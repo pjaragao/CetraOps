@@ -18,6 +18,8 @@ const ErpController = {
   currentCnpjId: "ALL",
   receivablesData: null,
   payablesData: null,
+  financialMovementData: null,
+  customFieldsConfig: null,
   reconciliationData: null,
   taxData: null,
   employeesData: null,
@@ -29,6 +31,7 @@ const ErpController = {
     console.log("Inicializando SIÉ Joy OS ERP Controller...");
     try {
       await this.loadCnpjsAndStores();
+      await this.loadCustomFieldsConfig();
       this.setupStoreSwitcher();
       this.setupModalsAndEvents();
       console.log("ERP Controller inicializado com sucesso!");
@@ -46,6 +49,15 @@ const ErpController = {
       this.stores = data.stores || [];
     } catch (err) {
       console.error("Erro ao carregar CNPJs e Lojas:", err);
+    }
+  },
+
+  async loadCustomFieldsConfig() {
+    try {
+      const res = await fetch("/api/erp/custom-fields");
+      this.customFieldsConfig = await res.json();
+    } catch (err) {
+      console.error("Erro ao carregar custom fields:", err);
     }
   },
 
@@ -126,6 +138,7 @@ const ErpController = {
       const id = activeSubpane.id;
       if (id === "subpane-financial-receivable") this.renderAccountsReceivable();
       else if (id === "subpane-financial-payable") this.renderAccountsPayable();
+      else if (id === "subpane-financial-movement") this.renderFinancialMovement();
       else if (id === "subpane-financial-reconciliation") this.renderBankReconciliation();
       else if (id === "subpane-financial-taxes") this.renderTaxForecast();
       else if (id === "subpane-hr-employees") this.renderHrEmployees();
@@ -138,6 +151,7 @@ const ErpController = {
       else if (id === "subpane-settings-sync-dashboard") this.renderSyncDashboard();
       else if (id === "subpane-settings-chart-accounts") this.renderChartOfAccountsOnly();
       else if (id === "subpane-settings-cost-centers") this.renderCostCentersOnly();
+      else if (id === "subpane-settings-custom-fields") this.renderCustomFieldsConfig();
       else if (id === "subpane-settings-rules") this.renderSettlementRulesConfig();
     }
   },
@@ -245,6 +259,7 @@ const ErpController = {
                 <th>Taxa MDR</th>
                 <th>Valor Líquido</th>
                 <th>Status</th>
+                <th style="text-align:right;">Ação</th>
               </tr>
             </thead>
             <tbody>
@@ -270,7 +285,18 @@ const ErpController = {
                       ${r.chartOfAccountId || '1.1.2.01'} • ${(r.chartOfAccountName || 'Contas a Receber').split(' - ').slice(-1)[0]}
                     </div>
                   </td>
-                  <td>${r.customerName}</td>
+                  <td>
+                    <div style="font-weight:600;color:#FFF;">${r.customerName}</div>
+                    ${r.customFields && Object.keys(r.customFields).length > 0 ? `
+                      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">
+                        ${Object.entries(r.customFields).filter(([k,v]) => v).map(([k,v]) => `
+                          <span style="font-size:0.68rem;background:rgba(212,175,55,0.1);color:var(--gold-light);padding:1px 5px;border-radius:3px;border:1px solid rgba(212,175,55,0.2);">
+                            <strong>${this.getCustomFieldLabel(k)}:</strong> ${v}
+                          </span>
+                        `).join("")}
+                      </div>
+                    ` : ''}
+                  </td>
                   <td>
                     <span class="payment-badge-pill">${r.paymentMethod}</span>
                     <span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px;">${r.installments}x (${r.settlementMode})</span>
@@ -282,18 +308,39 @@ const ErpController = {
                   <td><strong style="color:var(--emerald-light);">R$ ${r.netAmount.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></td>
                   <td>
                     <span class="erp-status-badge ${r.status === 'SETTLED' ? 'settled' : 'pending'}">
-                      ${r.status === 'SETTLED' ? '✅ Liquidado' : '⏳ Em Liquidação'}
+                      ${r.status === 'SETTLED' ? '✅ Conciliado' : '⏳ Pendente'}
                     </span>
+                  </td>
+                  <td style="text-align:right;">
+                    ${r.status !== 'SETTLED' ? `
+                      <button class="crm-mini-btn btn-settle-rec" data-id="${r.id}" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border-color:rgba(0,168,104,0.3);" title="Conciliar recebimento com extrato Stone">
+                        🎯 Conciliar
+                      </button>
+                    ` : '<span style="font-size:0.75rem;color:var(--text-muted);">Conciliado</span>'}
                   </td>
                 </tr>
               `).join("") : `
-                <tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum recebível registrado para esta unidade.</td></tr>
+                <tr><td colspan="12" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum recebível registrado para esta unidade.</td></tr>
               `}
             </tbody>
           </table>
         </div>
       </div>
     `;
+
+    container.querySelectorAll(".btn-settle-rec").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        if (confirm(`Confirmar conciliação do recebível ${id}?`)) {
+          await fetch("/api/erp/accounts-receivable/reconcile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receivableId: id, status: "SETTLED" })
+          });
+          this.renderAccountsReceivable();
+        }
+      });
+    });
 
     const btnNewRec = document.getElementById("btn-new-receivable");
     if (btnNewRec) btnNewRec.addEventListener("click", () => this.openModalNewReceivable());
@@ -377,7 +424,6 @@ const ErpController = {
             <thead>
               <tr>
                 <th>Código</th>
-                <th>Categoria</th>
                 <th>Centro de Custo & Plano de Contas</th>
                 <th>Fornecedor / Beneficiário</th>
                 <th>Descrição / Parcela</th>
@@ -393,9 +439,6 @@ const ErpController = {
               ${payables.length > 0 ? payables.map(p => `
                 <tr style="height:42px;">
                   <td><strong>${p.id}</strong></td>
-                  <td>
-                    <span class="category-pill ${(p.category || '').toLowerCase()}">${p.category}</span>
-                  </td>
                   <td>
                     <div style="font-weight:600;font-size:0.78rem;display:flex;align-items:center;gap:4px;">
                       <span class="category-pill" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);padding:2px 6px;font-size:0.7rem;font-weight:600;">
@@ -418,6 +461,15 @@ const ErpController = {
                       ${p.installmentsInfo ? `<span style="font-size:0.7rem;color:var(--gold-light);background:rgba(212,175,55,0.12);padding:1px 6px;border-radius:4px;">${p.installmentsInfo}</span>` : ''}
                       ${p.notes ? `<span style="font-size:0.7rem;color:var(--emerald-light);">${p.notes}</span>` : ''}
                     </div>
+                    ${p.customFields && Object.keys(p.customFields).length > 0 ? `
+                      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">
+                        ${Object.entries(p.customFields).filter(([k,v]) => v).map(([k,v]) => `
+                          <span style="font-size:0.68rem;background:rgba(212,175,55,0.1);color:var(--gold-light);padding:1px 5px;border-radius:3px;border:1px solid rgba(212,175,55,0.2);">
+                            <strong>${this.getCustomFieldLabel(k)}:</strong> ${v}
+                          </span>
+                        `).join("")}
+                      </div>
+                    ` : ''}
                   </td>
                   <td>${p.documentNumber}</td>
                   <td>${new Date(p.issueDate).toLocaleDateString('pt-BR')}</td>
@@ -429,19 +481,19 @@ const ErpController = {
                   </td>
                   <td>
                     <span class="erp-status-badge ${p.status === 'PAID' ? 'settled' : (p.status === 'APPROVED' ? 'approved' : 'pending')}">
-                      ${p.status === 'PAID' ? '✅ Pago' : (p.status === 'APPROVED' ? '👍 Aprovado' : '⏳ Pendente')}
+                      ${p.status === 'PAID' ? '✅ Conciliado' : (p.status === 'APPROVED' ? '👍 Aprovado' : '⏳ Pendente')}
                     </span>
                   </td>
                   <td style="text-align:right;">
                     ${p.status !== 'PAID' ? `
-                      <button class="crm-mini-btn btn-pay-payable" data-id="${p.id}" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border-color:rgba(0,168,104,0.3);">
-                        💸 Dar Baixa
+                      <button class="crm-mini-btn btn-pay-payable" data-id="${p.id}" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border-color:rgba(0,168,104,0.3);" title="Conciliar despesa com extrato bancário">
+                        🎯 Conciliar
                       </button>
-                    ` : '<span style="font-size:0.75rem;color:var(--text-muted);">Liquidado</span>'}
+                    ` : '<span style="font-size:0.75rem;color:var(--text-muted);">Conciliado</span>'}
                   </td>
                 </tr>
               `).join("") : `
-                <tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum título a pagar encontrado para esta unidade.</td></tr>
+                <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum título a pagar encontrado para esta unidade.</td></tr>
               `}
             </tbody>
           </table>
@@ -452,7 +504,7 @@ const ErpController = {
     container.querySelectorAll(".btn-pay-payable").forEach(btn => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-id");
-        if (confirm(`Confirmar liquidação do título ${id}?`)) {
+        if (confirm(`Confirmar conciliação do título ${id}?`)) {
           await fetch("/api/erp/accounts-payable/pay", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -3262,7 +3314,7 @@ const ErpController = {
                 </select>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
               <div>
                 <label class="erp-label">Unidade / Loja:</label>
                 <select id="in-rec-store" class="erp-input-sm" style="width:100%;">
@@ -3271,9 +3323,10 @@ const ErpController = {
               </div>
               <div>
                 <label class="erp-label">Data Prevista Liquidação:</label>
-                <input type="date" id="in-rec-date" class="erp-input-sm" style="width:100%;" value="2026-10-21">
+                <input type="date" id="in-rec-date" class="erp-input-sm" style="width:100%;" value="${new Date().toISOString().split('T')[0]}">
               </div>
             </div>
+            ${this.renderCustomFieldsFormHtml("RECEIVABLE")}
             <div style="display:flex;justify-content:flex-end;gap:10px;">
               <button type="submit" class="btn-primary-luxury">Cadastrar Recebível</button>
             </div>
@@ -3285,6 +3338,7 @@ const ErpController = {
 
     document.getElementById("form-new-receivable").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const formEl = document.getElementById("form-new-receivable");
       const storeId = document.getElementById("in-rec-store").value;
       const store = this.stores.find(s => s.id === storeId);
       const ccSelect = document.getElementById("in-rec-cost-center");
@@ -3303,7 +3357,8 @@ const ErpController = {
         storeId: storeId,
         cnpjId: store ? store.cnpjId : "cnpj-01",
         expectedSettlementDate: document.getElementById("in-rec-date").value,
-        installments: 1
+        installments: 1,
+        customFields: this.collectCustomFieldsValues(formEl)
       };
       await fetch("/api/erp/accounts-receivable/create", {
         method: "POST",
@@ -3319,7 +3374,6 @@ const ErpController = {
     // Collect registered suppliers for autocomplete
     const suppliers = (this.entitiesData?.entities || []).filter(e => e.isSupplier || e.category === "FORNECEDOR_CMV");
     const defaultSupplier = options?.supplierName || "";
-    const defaultCat = options?.category || "FORNECEDOR_CMV";
 
     const modalHtml = `
       <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
@@ -3348,14 +3402,8 @@ const ErpController = {
                 <input type="number" step="0.01" id="in-pay-amount" required class="erp-input-sm" style="width:100%;" placeholder="0.00">
               </div>
               <div>
-                <label class="erp-label">Categoria:</label>
-                <select id="in-pay-cat" class="erp-input-sm" style="width:100%;">
-                  <option value="FORNECEDOR_CMV" ${defaultCat === 'FORNECEDOR_CMV' ? 'selected' : ''}>FORNECEDOR_CMV (Confecção / Peças)</option>
-                  <option value="ALUGUEL" ${defaultCat === 'ALUGUEL' ? 'selected' : ''}>ALUGUEL</option>
-                  <option value="MARKETING_DROPS" ${defaultCat === 'MARKETING_DROPS' ? 'selected' : ''}>MARKETING_DROPS</option>
-                  <option value="CONTABILIDADE" ${defaultCat === 'CONTABILIDADE' ? 'selected' : ''}>CONTABILIDADE</option>
-                  <option value="IMPOSTOS" ${defaultCat === 'IMPOSTOS' ? 'selected' : ''}>IMPOSTOS / TRIBUTOS</option>
-                </select>
+                <label class="erp-label">Data de Vencimento:</label>
+                <input type="date" id="in-pay-due" required class="erp-input-sm" style="width:100%;" value="${new Date().toISOString().split('T')[0]}">
               </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
@@ -3372,17 +3420,23 @@ const ErpController = {
                 </select>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
               <div>
                 <label class="erp-label">Número do Documento / NF-e:</label>
                 <input type="text" id="in-pay-doc" class="erp-input-sm" style="width:100%;" placeholder="NF-e 1234">
               </div>
               <div>
-                <label class="erp-label">Data de Vencimento:</label>
-                <input type="date" id="in-pay-due" required class="erp-input-sm" style="width:100%;" value="${new Date().toISOString().split('T')[0]}">
+                <label class="erp-label">Forma de Pagamento:</label>
+                <select id="in-pay-method" class="erp-input-sm" style="width:100%;">
+                  <option value="BOLETO">Boleto Bancário</option>
+                  <option value="PIX">PIX</option>
+                  <option value="TRANSFERENCIA">Transferência Bancária</option>
+                  <option value="CARTAO">Cartão Corporativo</option>
+                </select>
               </div>
             </div>
-            <div style="display:flex;justify-content:flex-end;gap:10px;">
+            ${this.renderCustomFieldsFormHtml("PAYABLE")}
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
               <button type="submit" class="btn-primary-luxury">Salvar Título a Pagar</button>
             </div>
           </form>
@@ -3391,38 +3445,9 @@ const ErpController = {
     `;
     document.body.insertAdjacentHTML("beforeend", modalHtml);
 
-    // Auto-select corresponding cost center & chart of account when category changes
-    const catSelect = document.getElementById("in-pay-cat");
-    const ccSelect = document.getElementById("in-pay-cost-center");
-    const caSelect = document.getElementById("in-pay-chart-account");
-    if (catSelect && ccSelect && caSelect) {
-      catSelect.addEventListener("change", (e) => {
-        const cat = e.target.value;
-        if (cat === "FORNECEDOR_CMV") {
-          ccSelect.value = "CC-01";
-          caSelect.value = "2.1.1.01";
-        } else if (cat === "ALUGUEL") {
-          ccSelect.value = "CC-01";
-          caSelect.value = "4.3.1.01";
-        } else if (cat === "MARKETING_DROPS") {
-          ccSelect.value = "CC-01";
-          caSelect.value = "4.2.1.01";
-        } else if (cat === "CONTABILIDADE") {
-          ccSelect.value = "CC-CNPJ-01";
-          caSelect.value = "4.3.2.01";
-        } else if (cat === "IMPOSTOS") {
-          ccSelect.value = "CC-CNPJ-01";
-          caSelect.value = "2.1.4.01";
-        }
-      });
-      // Trigger initial classification sync if defaultCat given
-      if (defaultCat) {
-        catSelect.dispatchEvent(new Event("change"));
-      }
-    }
-
     document.getElementById("form-new-payable").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const formEl = document.getElementById("form-new-payable");
       const currentCc = document.getElementById("in-pay-cost-center");
       const currentCcOpt = currentCc ? currentCc.options[currentCc.selectedIndex] : null;
       const currentCa = document.getElementById("in-pay-chart-account");
@@ -3432,7 +3457,7 @@ const ErpController = {
         supplier: document.getElementById("in-pay-supplier").value,
         description: document.getElementById("in-pay-desc").value,
         amount: parseFloat(document.getElementById("in-pay-amount").value),
-        category: document.getElementById("in-pay-cat").value,
+        paymentMethod: document.getElementById("in-pay-method")?.value || "BOLETO",
         costCenterId: currentCc ? currentCc.value : "CC-01",
         costCenterName: currentCcOpt ? (currentCcOpt.getAttribute("data-name") || currentCcOpt.text) : "Boutique JOY Club - Centro Floripa",
         chartOfAccountId: currentCa ? currentCa.value : "2.1.1.01",
@@ -3440,7 +3465,8 @@ const ErpController = {
         documentNumber: document.getElementById("in-pay-doc").value,
         dueDate: document.getElementById("in-pay-due").value,
         storeId: this.currentStoreId === "ALL" ? "store-01" : this.currentStoreId,
-        cnpjId: this.currentCnpjId === "ALL" ? "cnpj-01" : this.currentCnpjId
+        cnpjId: this.currentCnpjId === "ALL" ? "cnpj-01" : this.currentCnpjId,
+        customFields: this.collectCustomFieldsValues(formEl)
       };
       await fetch("/api/erp/accounts-payable", {
         method: "POST",
@@ -4349,6 +4375,511 @@ const ErpController = {
         </div>
       </div>
     `;
+  },
+
+  // --- HELPERS PARA CAMPOS CUSTOMIZADOS ---
+  getCustomFieldLabel(keyOrId) {
+    if (!this.customFieldsConfig?.fields) return keyOrId;
+    const f = this.customFieldsConfig.fields.find(item => item.id === keyOrId || item.name === keyOrId);
+    return f ? f.name : keyOrId;
+  },
+
+  renderCustomFieldsFormHtml(targetType) {
+    const fields = (this.customFieldsConfig?.fields || []).filter(f => f.active && (f.target === "ALL" || f.target === targetType));
+    if (fields.length === 0) return "";
+    return `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:0.75rem;font-weight:600;color:var(--gold-light);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <span>🏷️</span> <span>Campos Customizados:</span>
+        </div>
+        <div style="display:grid;grid-template-columns:${fields.length > 1 ? '1fr 1fr' : '1fr'};gap:10px;">
+          ${fields.map(f => `
+            <div>
+              <label class="erp-label" style="margin-bottom:2px;">${f.name}:</label>
+              <input type="${f.type || 'text'}" class="erp-input-sm custom-field-input" data-cf-id="${f.id}" style="width:100%;" placeholder="${f.placeholder || ''}" ${f.required ? 'required' : ''}>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  },
+
+  collectCustomFieldsValues(containerElement) {
+    const customFields = {};
+    if (!containerElement) return customFields;
+    containerElement.querySelectorAll(".custom-field-input").forEach(input => {
+      const id = input.getAttribute("data-cf-id");
+      const val = input.value.trim();
+      if (id && val) {
+        customFields[id] = val;
+      }
+    });
+    return customFields;
+  },
+
+  // --- GERENCIADOR DE CAMPOS CUSTOMIZADOS (CONFIGURAÇÃO) ---
+  async renderCustomFieldsConfig() {
+    const container = document.getElementById("subpane-settings-custom-fields");
+    if (!container) return;
+
+    await this.loadCustomFieldsConfig();
+    const config = this.customFieldsConfig || { maxFields: 5, fields: [] };
+    const fields = config.fields || [];
+
+    const slots = [];
+    for (let i = 0; i < 5; i++) {
+      slots.push(fields[i] || {
+        id: `cf_${i+1}`,
+        name: "",
+        target: "ALL",
+        type: "text",
+        placeholder: "",
+        required: false,
+        active: false
+      });
+    }
+
+    container.innerHTML = `
+      <div class="content-card">
+        <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+          <div>
+            <h4>🏷️ Gerenciador de Campos Customizados do ERP (Até 5 Campos)</h4>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+              Personalize até 5 campos dinâmicos para os lançamentos de <strong>Contas a Pagar</strong> e <strong>Contas a Receber</strong> (ex: Pedido de Compra, SLA de Contrato, Link de Drive, Tags Fiscais ou Projetos).
+            </p>
+          </div>
+          <button id="btn-save-custom-fields" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.82rem;">
+            💾 Salvar Configurações de Campos
+          </button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+          ${slots.map((s, idx) => `
+            <div class="custom-field-slot-card" style="background:rgba(255,255,255,0.02);border:1px solid ${s.active ? 'rgba(0,168,104,0.3)' : 'var(--border-subtle)'};border-radius:10px;padding:16px;transition:all 0.2s ease;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-weight:700;font-size:0.85rem;color:${s.active ? 'var(--stone-green)' : 'var(--text-muted)'};background:${s.active ? 'rgba(0,168,104,0.15)' : 'rgba(255,255,255,0.05)'};padding:2px 8px;border-radius:6px;">
+                    Slot #${idx + 1}
+                  </span>
+                  <span style="font-size:0.88rem;font-weight:600;color:#FFF;">
+                    ${s.name || `Campo Customizado #${idx + 1} (Disponível)`}
+                  </span>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.8rem;color:${s.active ? 'var(--stone-green)' : 'var(--text-muted)'};">
+                  <input type="checkbox" class="cf-input-active" data-idx="${idx}" ${s.active ? 'checked' : ''} style="accent-color:var(--stone-green);width:16px;height:16px;">
+                  <strong>${s.active ? 'Ativo no ERP' : 'Inativo / Oculto'}</strong>
+                </label>
+              </div>
+
+              <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 2fr auto;gap:12px;align-items:end;">
+                <div>
+                  <label class="erp-label">Nome / Rótulo do Campo:</label>
+                  <input type="text" class="erp-input-sm cf-input-name" data-idx="${idx}" value="${s.name || ''}" placeholder="Ex: Nº Pedido de Compra" style="width:100%;">
+                </div>
+                <div>
+                  <label class="erp-label">Aplicar Em:</label>
+                  <select class="erp-input-sm cf-input-target" data-idx="${idx}" style="width:100%;">
+                    <option value="ALL" ${s.target === 'ALL' ? 'selected' : ''}>Pagar & Receber</option>
+                    <option value="PAYABLE" ${s.target === 'PAYABLE' ? 'selected' : ''}>Apenas Contas a Pagar</option>
+                    <option value="RECEIVABLE" ${s.target === 'RECEIVABLE' ? 'selected' : ''}>Apenas Contas a Receber</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="erp-label">Tipo de Dado:</label>
+                  <select class="erp-input-sm cf-input-type" data-idx="${idx}" style="width:100%;">
+                    <option value="text" ${s.type === 'text' ? 'selected' : ''}>Texto Curto</option>
+                    <option value="number" ${s.type === 'number' ? 'selected' : ''}>Número</option>
+                    <option value="date" ${s.type === 'date' ? 'selected' : ''}>Data</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="erp-label">Placeholder / Exemplo:</label>
+                  <input type="text" class="erp-input-sm cf-input-placeholder" data-idx="${idx}" value="${s.placeholder || ''}" placeholder="Ex: PC-2026-000" style="width:100%;">
+                </div>
+                <div style="display:flex;align-items:center;padding-bottom:8px;">
+                  <label style="font-size:0.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="checkbox" class="cf-input-required" data-idx="${idx}" ${s.required ? 'checked' : ''} style="accent-color:var(--gold-primary);">
+                    Obrigatório
+                  </label>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+
+    const btnSave = document.getElementById("btn-save-custom-fields");
+    if (btnSave) {
+      btnSave.addEventListener("click", async () => {
+        const updatedFields = [];
+        for (let i = 0; i < 5; i++) {
+          const activeEl = container.querySelector(`.cf-input-active[data-idx="${i}"]`);
+          const nameEl = container.querySelector(`.cf-input-name[data-idx="${i}"]`);
+          const targetEl = container.querySelector(`.cf-input-target[data-idx="${i}"]`);
+          const typeEl = container.querySelector(`.cf-input-type[data-idx="${i}"]`);
+          const placeholderEl = container.querySelector(`.cf-input-placeholder[data-idx="${i}"]`);
+          const requiredEl = container.querySelector(`.cf-input-required[data-idx="${i}"]`);
+
+          const fieldObj = {
+            id: `cf_${i + 1}`,
+            name: nameEl?.value.trim() || `Campo #${i + 1}`,
+            target: targetEl?.value || "ALL",
+            type: typeEl?.value || "text",
+            placeholder: placeholderEl?.value.trim() || "",
+            required: requiredEl?.checked || false,
+            active: activeEl?.checked || false
+          };
+          updatedFields.push(fieldObj);
+        }
+
+        try {
+          const res = await fetch("/api/erp/custom-fields", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fields: updatedFields })
+          });
+          const result = await res.json();
+          this.customFieldsConfig = result.customFields;
+          this.showToastNotification("✅ Configurações de Campos Customizados salvas com sucesso!");
+          this.renderCustomFieldsConfig();
+        } catch (err) {
+          console.error(err);
+          alert("Erro ao salvar campos customizados.");
+        }
+      });
+    }
+  },
+
+  // --- 4. MOVIMENTO FINANCEIRO (SOMENTE CONTAS CONCILIADAS) ---
+  async renderFinancialMovement() {
+    const container = document.getElementById("subpane-financial-movement");
+    if (!container) return;
+
+    try {
+      const res = await fetch(`/api/erp/financial-movement?storeId=${this.currentStoreId}&cnpjId=${this.currentCnpjId}`);
+      this.financialMovementData = await res.json();
+    } catch (e) {
+      console.error(e);
+      return;
+    }
+
+    const { movements, summary } = this.financialMovementData || { movements: [], summary: { totalIn: 0, totalOut: 0, netBalance: 0, countIn: 0, countOut: 0, totalCount: 0 } };
+
+    container.innerHTML = `
+      <!-- KPI Row -->
+      <div class="kpi-grid" style="margin-bottom:20px;">
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-emerald">📥</div>
+            <span class="kpi-badge positive">${summary.countIn} Entradas</span>
+          </div>
+          <div class="kpi-title">Total Entradas Conciliadas</div>
+          <div class="kpi-value" style="color:var(--emerald-light);">R$ ${(summary?.totalIn || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+          <div class="kpi-subtitle">Recebimentos Stone & Vendas liquidadas</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-rose">📤</div>
+            <span class="kpi-badge">${summary.countOut} Saídas</span>
+          </div>
+          <div class="kpi-title">Total Saídas Conciliadas</div>
+          <div class="kpi-value" style="color:var(--rose-light);">R$ ${(summary?.totalOut || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+          <div class="kpi-subtitle">Despesas pagas & Fornecedores quitados</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-gold">⚖️</div>
+            <span class="kpi-badge positive">Saldo Real</span>
+          </div>
+          <div class="kpi-title">Saldo Líquido Conciliado</div>
+          <div class="kpi-value" style="color:${(summary?.netBalance || 0) >= 0 ? 'var(--emerald-light)' : 'var(--rose-light)'};">
+            R$ ${(summary?.netBalance || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+          </div>
+          <div class="kpi-subtitle">Disponibilidade efetiva em caixa</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-blue">🎯</div>
+            <span class="kpi-badge positive">100% Conferido</span>
+          </div>
+          <div class="kpi-title">Lançamentos Conciliados</div>
+          <div class="kpi-value" style="color:var(--blue-accent);">${summary.totalCount || 0}</div>
+          <div class="kpi-subtitle">Conferidos em 3 vias com banco</div>
+        </div>
+      </div>
+
+      <!-- Financial Movement Table -->
+      <div class="content-card">
+        <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+          <div>
+            <h4>🔄 Livro Razão de Movimento Financeiro (Lançamentos Conciliados)</h4>
+            <p style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">
+              Extrato consolidado contemplando <strong>exclusivamente contas conciliadas</strong> de entrada (recebimentos) e saída (despesas).
+            </p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <select id="sel-filter-mov-type" class="erp-input-sm" style="font-size:0.8rem;padding:6px 10px;">
+              <option value="ALL">Todos os Tipos (Entradas & Saídas)</option>
+              <option value="ENTRADA">📥 Apenas Entradas (Recebimentos)</option>
+              <option value="SAIDA">📤 Apenas Saídas (Despesas)</option>
+            </select>
+            <input type="text" id="in-filter-mov-search" class="erp-input-sm" placeholder="🔍 Buscar por descrição, entidade, doc..." style="font-size:0.8rem;padding:6px 12px;min-width:220px;">
+            <button id="btn-export-mov-csv" class="btn-primary-luxury" style="padding:6px 14px;font-size:0.8rem;background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);">
+              📥 Exportar CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="crm-compact-table" id="table-financial-movement">
+            <thead>
+              <tr>
+                <th>Data Conciliação</th>
+                <th>Código / ID</th>
+                <th>Tipo</th>
+                <th>Descrição & Beneficiário / Cliente</th>
+                <th>Centro de Custo & Plano de Contas</th>
+                <th>Meio Pagamento</th>
+                <th>Documento</th>
+                <th>Valor Líquido</th>
+                <th>Status</th>
+                <th style="text-align:right;">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-financial-movement">
+              ${this.renderMovementRowsHtml(movements)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    // Filter Type and Search
+    const typeSelect = document.getElementById("sel-filter-mov-type");
+    const searchInput = document.getElementById("in-filter-mov-search");
+    const tbody = document.getElementById("tbody-financial-movement");
+
+    const filterList = () => {
+      const typeVal = typeSelect?.value || "ALL";
+      const searchVal = (searchInput?.value || "").toLowerCase().trim();
+      let filtered = movements;
+      if (typeVal !== "ALL") {
+        filtered = filtered.filter(m => m.type === typeVal);
+      }
+      if (searchVal) {
+        filtered = filtered.filter(m => 
+          (m.id || "").toLowerCase().includes(searchVal) ||
+          (m.description || "").toLowerCase().includes(searchVal) ||
+          (m.entity || "").toLowerCase().includes(searchVal) ||
+          (m.documentNumber || "").toLowerCase().includes(searchVal) ||
+          (m.costCenterName || "").toLowerCase().includes(searchVal) ||
+          (m.chartOfAccountName || "").toLowerCase().includes(searchVal)
+        );
+      }
+      if (tbody) tbody.innerHTML = this.renderMovementRowsHtml(filtered);
+      this.attachMovementRowEvents();
+    };
+
+    if (typeSelect) typeSelect.addEventListener("change", filterList);
+    if (searchInput) searchInput.addEventListener("input", filterList);
+
+    // Export CSV
+    const btnExport = document.getElementById("btn-export-mov-csv");
+    if (btnExport) {
+      btnExport.addEventListener("click", () => {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Data;Codigo;Tipo;Descricao;Favorecido;CentroDeCusto;PlanoDeContas;Meio;Documento;ValorLiquido;Status\n";
+        movements.forEach(m => {
+          const row = [
+            m.date,
+            m.id,
+            m.type,
+            `"${(m.description || '').replace(/"/g, '""')}"`,
+            `"${(m.entity || '').replace(/"/g, '""')}"`,
+            `"${(m.costCenterName || '').replace(/"/g, '""')}"`,
+            `"${(m.chartOfAccountName || '').replace(/"/g, '""')}"`,
+            m.paymentMethod,
+            m.documentNumber,
+            m.netAmount,
+            m.status
+          ].join(";");
+          csvContent += row + "\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `movimento_financeiro_conciliado_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      });
+    }
+
+    this.attachMovementRowEvents();
+  },
+
+  renderMovementRowsHtml(movements) {
+    if (!movements || movements.length === 0) {
+      return `<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--text-muted);">Nenhum lançamento conciliado encontrado para os filtros selecionados.</td></tr>`;
+    }
+    return movements.map(m => `
+      <tr style="height:44px;">
+        <td><strong>${new Date(m.date + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></td>
+        <td>
+          <span style="font-weight:700;font-size:0.8rem;color:#FFF;">${m.id}</span>
+          <span style="font-size:0.68rem;color:var(--text-muted);display:block;">${m.sourceId}</span>
+        </td>
+        <td>
+          <span class="category-pill" style="background:${m.type === 'ENTRADA' ? 'rgba(0,168,104,0.15)' : 'rgba(239,68,68,0.15)'};color:${m.type === 'ENTRADA' ? 'var(--stone-green)' : 'var(--rose-light)'};font-weight:700;padding:3px 8px;">
+            ${m.type === 'ENTRADA' ? '📥 Entrada' : '📤 Saída'}
+          </span>
+        </td>
+        <td>
+          <div style="font-weight:600;color:#FFF;font-size:0.83rem;">${m.description}</div>
+          <div style="font-size:0.72rem;color:var(--gold-light);margin-top:2px;">
+            👤 ${m.entity}
+          </div>
+          ${m.customFields && Object.keys(m.customFields).length > 0 ? `
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+              ${Object.entries(m.customFields).filter(([k,v]) => v).map(([k,v]) => `
+                <span style="font-size:0.68rem;background:rgba(212,175,55,0.1);color:var(--gold-light);padding:1px 5px;border-radius:3px;border:1px solid rgba(212,175,55,0.2);">
+                  <strong>${this.getCustomFieldLabel(k)}:</strong> ${v}
+                </span>
+              `).join("")}
+            </div>
+          ` : ''}
+        </td>
+        <td>
+          <div style="font-weight:600;font-size:0.76rem;display:flex;align-items:center;gap:4px;">
+            <span class="category-pill" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);padding:2px 6px;font-size:0.68rem;font-weight:600;">
+              ${m.costCenterId || 'CC-01'}
+            </span>
+            <span style="font-size:0.73rem;color:#FFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;" title="${m.costCenterName || ''}">
+              ${(m.costCenterName || '').split(' - ')[0]}
+            </span>
+          </div>
+          <div style="font-size:0.7rem;color:var(--gold-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;" title="${m.chartOfAccountName || ''}">
+            ${m.chartOfAccountId || ''} • ${(m.chartOfAccountName || '').split(' - ').slice(-1)[0]}
+          </div>
+        </td>
+        <td>
+          <span class="payment-badge-pill" style="font-size:0.72rem;">${m.paymentMethod || 'PIX'}</span>
+        </td>
+        <td>
+          <span style="font-size:0.78rem;color:var(--text-secondary);font-family:monospace;">${m.documentNumber || '-'}</span>
+        </td>
+        <td>
+          <strong style="font-size:0.92rem;color:${m.type === 'ENTRADA' ? 'var(--emerald-light)' : 'var(--rose-light)'};">
+            ${m.type === 'ENTRADA' ? '+' : '-'} R$ ${m.netAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+          </strong>
+        </td>
+        <td>
+          <span class="erp-status-badge settled" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border:1px solid rgba(0,168,104,0.3);">
+            ✅ Conciliado
+          </span>
+        </td>
+        <td style="text-align:right;">
+          <button class="crm-mini-btn btn-view-movement" data-id="${m.id}" style="background:rgba(212,175,55,0.15);color:var(--gold-light);border-color:rgba(212,175,55,0.3);" title="Ver Detalhes 360º">
+            👁️ Detalhes
+          </button>
+        </td>
+      </tr>
+    `).join("");
+  },
+
+  attachMovementRowEvents() {
+    const container = document.getElementById("subpane-financial-movement");
+    if (!container) return;
+
+    container.querySelectorAll(".btn-view-movement").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const mov = (this.financialMovementData?.movements || []).find(m => m.id === id);
+        if (!mov) return;
+        this.openModalMovementDetails(mov);
+      });
+    });
+  },
+
+  openModalMovementDetails(mov) {
+    const modalHtml = `
+      <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:580px;">
+          <button class="modal-close-btn" onclick="document.getElementById('modal-erp-temp').remove()">&times;</button>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div style="font-size:1.6rem;">${mov.type === 'ENTRADA' ? '📥' : '📤'}</div>
+            <div>
+              <h4 style="color:#FFF;font-family:var(--font-display);margin:0;">Lançamento Conciliado ${mov.id}</h4>
+              <span style="font-size:0.75rem;color:var(--stone-green);font-weight:600;">Status: 100% Conciliado e Liquidado no Caixa</span>
+            </div>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border-subtle);border-radius:10px;padding:16px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px;font-size:0.83rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Tipo de Movimentação:</span>
+              <strong style="color:${mov.type === 'ENTRADA' ? 'var(--stone-green)' : 'var(--rose-light)'};">${mov.type === 'ENTRADA' ? 'ENTRADA (Recebimento)' : 'SAÍDA (Pagamento/Despesa)'}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Valor Líquido Efetivado:</span>
+              <strong style="font-size:1.05rem;color:${mov.type === 'ENTRADA' ? 'var(--stone-green)' : 'var(--rose-light)'};">
+                ${mov.type === 'ENTRADA' ? '+' : '-'} R$ ${mov.netAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+              </strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Data da Efetivação / Conciliação:</span>
+              <strong style="color:#FFF;">${new Date(mov.date + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Favorecido / Cliente:</span>
+              <strong style="color:#FFF;">${mov.entity}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Descrição:</span>
+              <strong style="color:#FFF;">${mov.description}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Centro de Custo:</span>
+              <strong style="color:var(--blue-accent);">${mov.costCenterId} - ${mov.costCenterName}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Plano de Contas:</span>
+              <strong style="color:var(--gold-light);">${mov.chartOfAccountId} - ${mov.chartOfAccountName}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Documento / Comprovante:</span>
+              <strong style="color:#FFF;">${mov.documentNumber || '-'}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-secondary);">Meio de Liquidação:</span>
+              <strong style="color:#FFF;">${mov.paymentMethod}</strong>
+            </div>
+          </div>
+
+          ${mov.customFields && Object.keys(mov.customFields).length > 0 ? `
+            <div style="background:rgba(212,175,55,0.05);border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:12px;margin-bottom:16px;">
+              <h5 style="color:var(--gold-light);font-size:0.8rem;margin-bottom:8px;">🏷️ Campos Customizados Vinculados:</h5>
+              <div style="display:flex;flex-direction:column;gap:6px;font-size:0.8rem;">
+                ${Object.entries(mov.customFields).map(([k,v]) => `
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:var(--text-secondary);">${this.getCustomFieldLabel(k)}:</span>
+                    <strong style="color:#FFF;">${v}</strong>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="modal-close-btn-secondary" onclick="document.getElementById('modal-erp-temp').remove()">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
   },
 
   // Helpers

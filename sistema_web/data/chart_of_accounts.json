@@ -156,50 +156,81 @@
   "costCenters": [
     {
       "id": "CC-01",
+      "code": "CC-01",
       "name": "Boutique JOY Club - Centro Floripa (Flagship)",
-      "type": "LOJA_PROPRIA",
+      "scope": "STORE",
+      "storeId": "store-01",
       "cnpjId": "cnpj-01",
+      "type": "LOJA_PROPRIA",
       "manager": "Mariana Ramos",
       "status": "ACTIVE"
     },
     {
       "id": "CC-02",
+      "code": "CC-02",
       "name": "Corner JOY Club - Balneário Camboriú",
-      "type": "CORNER",
+      "scope": "STORE",
+      "storeId": "store-02",
       "cnpjId": "cnpj-01",
+      "type": "CORNER",
       "manager": "Tatiana Guimarães",
       "status": "ACTIVE"
     },
     {
       "id": "CC-03",
+      "code": "CC-03",
       "name": "Pop-up Store - Jurerê Internacional",
-      "type": "POPUP",
+      "scope": "STORE",
+      "storeId": "store-03",
       "cnpjId": "cnpj-01",
+      "type": "POPUP",
       "manager": "Isabela Schütz",
       "status": "ACTIVE"
     },
     {
       "id": "CC-04",
+      "code": "CC-04",
       "name": "Corner Clube Porto Alegre",
-      "type": "CORNER",
+      "scope": "STORE",
+      "storeId": "store-04",
       "cnpjId": "cnpj-02",
+      "type": "CORNER",
       "manager": "Camila Guimarães",
       "status": "ACTIVE"
     },
     {
       "id": "CC-05",
+      "code": "CC-05",
       "name": "Canal Digital WhatsApp & Concierge IA",
-      "type": "CANAL_DIGITAL",
+      "scope": "STORE",
+      "storeId": "store-05",
       "cnpjId": "cnpj-01",
+      "type": "CANAL_DIGITAL",
       "manager": "Herme Agent IA",
       "status": "ACTIVE"
     },
     {
-      "id": "CC-06",
-      "name": "Administração Geral & Governança SIÉ",
-      "type": "ADMINISTRATIVO",
+      "id": "CC-CNPJ-01",
+      "code": "CC-CNPJ-01",
+      "legacyId": "CC-06",
+      "name": "Corporativo Matriz SC - SIÉ Wear (CNPJ 48.912.847/0001-92)",
+      "scope": "CNPJ",
+      "storeId": "ALL",
       "cnpjId": "cnpj-01",
-      "manager": "Paulo Júnior",
+      "type": "CORPORATIVO_CNPJ",
+      "manager": "Paulo Júnior (Diretor Executivo)",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "CC-CNPJ-02",
+      "code": "CC-CNPJ-02",
+      "legacyId": "CC-07",
+      "name": "Corporativo Filial Sul - JOY & SIÉ (CNPJ 52.341.678/0001-14)",
+      "scope": "CNPJ",
+      "storeId": "ALL",
+      "cnpjId": "cnpj-02",
+      "type": "CORPORATIVO_CNPJ",
+      "manager": "Camila Guimarães (Diretora Regional)",
       "status": "ACTIVE"
     }
   ]

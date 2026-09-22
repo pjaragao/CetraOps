@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         { id: "financial-dre", label: "📑 DRE Gerencial" },
         { id: "financial-receivable", label: "💵 Contas a Receber" },
         { id: "financial-payable", label: "🧾 Contas a Pagar" },
+        { id: "financial-movement", label: "🔄 Movimento Financeiro" },
         { id: "financial-reconciliation", label: "🏦 Conciliação Bancária" },
         { id: "financial-taxes", label: "🏛️ Previsão de Impostos" }
       ]
@@ -114,6 +115,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         { id: "settings-sync-dashboard", label: "📡 Sincronizações" },
         { id: "settings-chart-accounts", label: "📑 Plano de Contas" },
         { id: "settings-cost-centers", label: "🏢 Centros de Custo" },
+        { id: "settings-custom-fields", label: "🏷️ Campos Customizados" },
         { id: "settings-rules", label: "⚡ Regras de Liquidação" },
         { id: "settings-integrations", label: "🔌 Credenciais APIs" },
         { id: "settings-qualification", label: "⚙️ Regras de Qualificação" },
@@ -281,6 +283,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (window.ErpController) {
       if (subtabId === "financial-receivable") ErpController.renderAccountsReceivable();
       else if (subtabId === "financial-payable") ErpController.renderAccountsPayable();
+      else if (subtabId === "financial-movement") ErpController.renderFinancialMovement();
       else if (subtabId === "financial-reconciliation") ErpController.renderBankReconciliation();
       else if (subtabId === "financial-taxes") ErpController.renderTaxForecast();
       else if (subtabId === "budget-variance") ErpController.renderBudgetVariance();
@@ -300,6 +303,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       else if (subtabId === "settings-sync-dashboard") ErpController.renderSyncDashboard();
       else if (subtabId === "settings-chart-accounts") ErpController.renderChartOfAccountsOnly();
       else if (subtabId === "settings-cost-centers") ErpController.renderCostCentersOnly();
+      else if (subtabId === "settings-custom-fields") ErpController.renderCustomFieldsConfig();
       else if (subtabId === "settings-rules") ErpController.renderSettlementRulesConfig();
     }
   }

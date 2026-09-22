@@ -1783,7 +1783,210 @@ const ErpController = {
     }
   },
 
-  // --- 8B. CONFIGURAÇÕES: PLANO DE CONTAS (DEDICADO) ---
+  // --- 8B. CONFIGURAÇÕES: PLANO DE CONTAS (TOTALMENTE EDITÁVEL) ---
+  async loadAccountsData() {
+    try {
+      const res = await fetch("/api/erp/chart-of-accounts");
+      this.accountsData = await res.json();
+      return this.accountsData;
+    } catch (e) {
+      console.error("Erro ao carregar plano de contas e centros de custo:", e);
+      return null;
+    }
+  },
+
+  getCostCenterOptionsHtml(selectedId = "") {
+    const list = this.accountsData?.costCenters || [];
+    const cnpjList = list.filter(c => c.scope === "CNPJ" || (c.id && c.id.includes("CNPJ")) || c.id === "CC-06");
+    const storeList = list.filter(c => c.scope !== "CNPJ" && (!c.id || !c.id.includes("CNPJ")) && c.id !== "CC-06");
+
+    return `
+      <optgroup label="🏢 Centros de Custo por CNPJ (Corporativo & Governança)">
+        ${cnpjList.map(c => `
+          <option value="${c.id}" data-name="${c.name}" ${(c.id === selectedId || c.code === selectedId || (c.legacyId && c.legacyId === selectedId)) ? 'selected' : ''}>
+            ${c.code || c.id} • ${c.name.split(' - ')[0]}
+          </option>
+        `).join("")}
+      </optgroup>
+      <optgroup label="📍 Centros de Custo por Loja / Unidade">
+        ${storeList.map(c => `
+          <option value="${c.id}" data-name="${c.name}" ${(c.id === selectedId || c.code === selectedId) ? 'selected' : ''}>
+            ${c.code || c.id} • ${c.name.split(' - ')[0]}
+          </option>
+        `).join("")}
+      </optgroup>
+    `;
+  },
+
+  getAnalyticalAccounts(tree = null) {
+    const root = tree || this.accountsData?.chartOfAccounts || [];
+    const analyticals = [];
+    const traverse = (nodes, parentName = "") => {
+      if (!nodes) return;
+      for (const n of nodes) {
+        if (n.type === "ANALITICA") {
+          analyticals.push({ ...n, group: parentName });
+        }
+        if (n.children && n.children.length > 0) {
+          traverse(n.children, parentName ? `${parentName} > ${n.name}` : n.name);
+        }
+      }
+    };
+    traverse(root);
+    return analyticals;
+  },
+
+  getChartAccountOptionsHtml(filterType = "ALL", selectedCode = "") {
+    const list = this.getAnalyticalAccounts();
+    const groups = {};
+    for (const acc of list) {
+      let g = acc.group || "Geral";
+      if (filterType === "EXPENSE" && acc.nature === "CREDORA" && !acc.code.startsWith("2.") && !acc.code.startsWith("4.")) {
+        // Skip non-expense if filtered
+      }
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(acc);
+    }
+
+    return Object.entries(groups).map(([groupName, accs]) => `
+      <optgroup label="${groupName}">
+        ${accs.map(a => `
+          <option value="${a.code}" data-name="${a.name}" ${a.code === selectedCode ? 'selected' : ''}>
+            ${a.code} - ${a.name}
+          </option>
+        `).join("")}
+      </optgroup>
+    `).join("");
+  },
+
+  findAccountInTree(nodes, code, parent = null) {
+    if (!nodes) return null;
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].code === code) {
+        return { node: nodes[i], list: nodes, index: i, parent };
+      }
+      if (nodes[i].children && nodes[i].children.length > 0) {
+        const found = this.findAccountInTree(nodes[i].children, code, nodes[i]);
+        if (found) return found;
+      }
+    }
+    return null;
+  },
+
+  getAllSyntheticAccounts(nodes = null) {
+    const root = nodes || this.accountsData?.chartOfAccounts || [];
+    const synthetics = [];
+    const traverse = (list, depth = 0) => {
+      if (!list) return;
+      for (const item of list) {
+        if (item.type === "SINTETICA") {
+          synthetics.push({ code: item.code, name: item.name, depth });
+          if (item.children) traverse(item.children, depth + 1);
+        }
+      }
+    };
+    traverse(root);
+    return synthetics;
+  },
+
+  async saveChartOfAccountsTree(newTree) {
+    try {
+      const res = await fetch("/api/erp/chart-of-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chartOfAccounts: newTree })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (!this.accountsData) this.accountsData = {};
+        this.accountsData.chartOfAccounts = data.chartOfAccounts || newTree;
+        this.showToastNotification("✅ Plano de Contas salvo com sucesso!");
+        this.renderChartOfAccountsOnly();
+      } else {
+        alert("Erro ao salvar: " + (data.error || "Erro desconhecido"));
+      }
+    } catch (err) {
+      console.error("Erro ao salvar plano de contas:", err);
+      alert("Falha de comunicação com o servidor.");
+    }
+  },
+
+  renderTreeRowsHtml(nodes, depth = 0, filter = "") {
+    if (!nodes || nodes.length === 0) return "";
+    let html = "";
+    const f = filter.toLowerCase().trim();
+
+    for (const node of nodes) {
+      const matchSelf = !f || node.code.toLowerCase().includes(f) || node.name.toLowerCase().includes(f) || (node.type || '').toLowerCase().includes(f) || (node.nature || '').toLowerCase().includes(f);
+      const childrenHtml = node.children && node.children.length > 0
+        ? this.renderTreeRowsHtml(node.children, depth + 1, filter)
+        : "";
+      const matchChildren = childrenHtml.length > 0;
+
+      if (!matchSelf && !matchChildren) continue;
+
+      const isSynthetic = node.type === "SINTETICA";
+      const rowStyle = depth === 0
+        ? 'background:rgba(212,175,55,0.08);font-weight:700;'
+        : (depth === 1 ? 'background:rgba(255,255,255,0.02);font-weight:600;' : '');
+      const indentPadding = depth === 0 ? 12 : (depth * 20 + 12);
+
+      html += `
+        <tr style="${rowStyle}height:42px;">
+          <td style="padding-left:${indentPadding}px;white-space:nowrap;">
+            <strong style="color:${depth === 0 ? 'var(--gold-light)' : (depth === 1 ? '#FFF' : 'var(--text-muted)')};font-family:monospace;font-size:0.85rem;">
+              ${node.code}
+            </strong>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:0.85rem;">${isSynthetic ? '📁' : '📄'}</span>
+              <span style="color:${isSynthetic ? '#FFF' : 'var(--text-secondary)'};font-size:0.83rem;">
+                ${node.name}
+              </span>
+            </div>
+          </td>
+          <td>
+            <span class="erp-badge-mode btn-toggle-type" data-code="${node.code}" style="cursor:pointer;background:${isSynthetic ? 'rgba(59,130,246,0.15)' : 'rgba(16,185,129,0.15)'};color:${isSynthetic ? 'var(--blue-accent)' : 'var(--emerald-light)'};border:1px solid ${isSynthetic ? 'rgba(59,130,246,0.3)' : 'rgba(16,185,129,0.3)'};font-size:0.68rem;padding:2px 6px;" title="Clique para alternar entre Sintética e Analítica">
+              ${node.type}
+            </span>
+          </td>
+          <td>
+            <span class="btn-toggle-nature" data-code="${node.code}" style="cursor:pointer;color:${node.nature === 'DEVEDORA' ? 'var(--rose-light)' : 'var(--emerald-light)'};font-size:0.75rem;font-weight:600;" title="Clique para alternar Natureza">
+              ${node.nature}
+            </span>
+          </td>
+          <td style="text-align:right;white-space:nowrap;">
+            <div style="display:inline-flex;gap:4px;align-items:center;">
+              ${isSynthetic ? `
+                <button class="crm-mini-btn btn-add-subaccount" data-code="${node.code}" title="Adicionar Subconta Filha" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border-color:rgba(0,168,104,0.3);font-size:0.7rem;padding:3px 7px;">
+                  ➕ Filha
+                </button>
+              ` : ''}
+              <button class="crm-mini-btn btn-edit-account" data-code="${node.code}" title="Editar Conta (Número, Nome, Tipo)" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);border-color:rgba(59,130,246,0.3);font-size:0.7rem;padding:3px 6px;">
+                ✏️
+              </button>
+              <button class="crm-mini-btn btn-move-account-up" data-code="${node.code}" title="Mover para Cima" style="background:rgba(255,255,255,0.06);color:#FFF;border-color:rgba(255,255,255,0.2);font-size:0.7rem;padding:3px 6px;">
+                ⬆️
+              </button>
+              <button class="crm-mini-btn btn-move-account-down" data-code="${node.code}" title="Mover para Baixo" style="background:rgba(255,255,255,0.06);color:#FFF;border-color:rgba(255,255,255,0.2);font-size:0.7rem;padding:3px 6px;">
+                ⬇️
+              </button>
+              <button class="crm-mini-btn btn-delete-account" data-code="${node.code}" title="Excluir Conta" style="background:rgba(239,68,68,0.15);color:var(--rose-light);border-color:rgba(239,68,68,0.3);font-size:0.7rem;padding:3px 6px;">
+                🗑️
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      if (childrenHtml) {
+        html += childrenHtml;
+      }
+    }
+    return html;
+  },
+
   async renderChartOfAccountsOnly() {
     const container = document.getElementById("subpane-settings-chart-accounts");
     if (!container) return;
@@ -1801,66 +2004,413 @@ const ErpController = {
     container.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
-          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">📑 Plano de Contas Padronizado (SIÉ Wear & Varejo de Luxo)</h4>
+          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">📑 Plano de Contas Totalmente Editável (SIÉ Wear & Varejo)</h4>
           <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
-            Classificação contábil estruturada para apuração gerencial, DRE analítico e controle patrimonial.
+            Adicione, edite numeração, nome, tipo (Sintética/Analítica), natureza, reordene e exclua contas contábeis em tempo real.
           </p>
         </div>
-        <button class="btn-primary-luxury" style="font-size:0.8rem;padding:8px 14px;" onclick="alert('Funcionalidade de inclusão de nova conta contábil em desenvolvimento.')">
-          ➕ Nova Conta Contábil
-        </button>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="text" id="chart-account-search" placeholder="🔍 Filtrar conta por código/nome..." class="erp-input-sm" style="width:230px;padding:6px 10px;font-size:0.78rem;">
+          <button id="btn-add-root-account" class="btn-primary-luxury" style="font-size:0.8rem;padding:7px 14px;">
+            ➕ Nova Conta Raiz
+          </button>
+        </div>
       </div>
 
       <!-- Chart of Accounts Tree Table -->
       <div class="content-card">
-        <div class="card-header">
-          <h4>📊 Estrutura Hierárquica do Plano de Contas</h4>
-          <span class="status-badge" style="background:rgba(212,175,55,0.12);color:var(--gold-light);">Padrão CPC / DRE</span>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h4 style="margin:0;">📊 Estrutura Hierárquica Interativa</h4>
+            <span class="status-badge" style="background:rgba(212,175,55,0.12);color:var(--gold-light);">Padrão CPC / DRE</span>
+          </div>
+          <span style="font-size:0.75rem;color:var(--text-muted);">
+            💡 Clique no tipo ou natureza para alternância rápida, ou em ✏️ para edição completa.
+          </span>
         </div>
 
         <div class="table-responsive">
-          <table class="crm-compact-table">
+          <table class="crm-compact-table" id="table-chart-accounts">
             <thead>
               <tr>
-                <th>Código</th>
+                <th style="width:130px;">Código</th>
                 <th>Classificação Contábil</th>
-                <th>Tipo</th>
-                <th>Natureza</th>
+                <th style="width:110px;">Tipo</th>
+                <th style="width:100px;">Natureza</th>
+                <th style="text-align:right;width:220px;">Ações</th>
               </tr>
             </thead>
-            <tbody>
-              ${(chartOfAccounts || []).map(group => `
-                <tr style="background:rgba(212,175,55,0.08);font-weight:700;">
-                  <td>${group.code}</td>
-                  <td style="color:var(--gold-light);">${group.name}</td>
-                  <td><span class="erp-badge-mode">${group.type}</span></td>
-                  <td>${group.nature}</td>
-                </tr>
-                ${(group.children || []).map(sub => `
-                  <tr style="background:rgba(255,255,255,0.02);font-weight:600;">
-                    <td style="padding-left:24px;">${sub.code}</td>
-                    <td style="color:#FFF;">${sub.name}</td>
-                    <td><span class="erp-badge-mode" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);">${sub.type}</span></td>
-                    <td>${sub.nature}</td>
-                  </tr>
-                  ${(sub.children || []).map(item => `
-                    <tr>
-                      <td style="padding-left:48px;color:var(--text-muted);">${item.code}</td>
-                      <td>${item.name}</td>
-                      <td><span style="font-size:0.7rem;color:var(--text-muted);">${item.type}</span></td>
-                      <td style="color:${item.nature === 'DEVEDORA' ? 'var(--rose-light)' : 'var(--emerald-light)'};font-size:0.75rem;">${item.nature}</td>
-                    </tr>
-                  `).join("")}
-                `).join("")}
-              `).join("")}
+            <tbody id="chart-accounts-tbody">
+              ${this.renderTreeRowsHtml(chartOfAccounts, 0, "")}
             </tbody>
           </table>
         </div>
       </div>
     `;
+
+    // Live search listener
+    const searchInput = document.getElementById("chart-account-search");
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        const filter = e.target.value;
+        const tbody = document.getElementById("chart-accounts-tbody");
+        if (tbody) {
+          tbody.innerHTML = this.renderTreeRowsHtml(this.accountsData?.chartOfAccounts || [], 0, filter);
+          this.attachChartAccountsTableEvents(container);
+        }
+      });
+    }
+
+    // Add root account
+    const btnAddRoot = document.getElementById("btn-add-root-account");
+    if (btnAddRoot) {
+      btnAddRoot.addEventListener("click", () => this.openModalAddChartAccount(null));
+    }
+
+    // Attach row events
+    this.attachChartAccountsTableEvents(container);
   },
 
-  // --- 8C. CONFIGURAÇÕES: CENTROS DE CUSTO (DEDICADO) ---
+  attachChartAccountsTableEvents(container) {
+    // Add subaccount
+    container.querySelectorAll(".btn-add-subaccount").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const code = btn.getAttribute("data-code");
+        this.openModalAddChartAccount(code);
+      });
+    });
+
+    // Edit account
+    container.querySelectorAll(".btn-edit-account").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const code = btn.getAttribute("data-code");
+        this.openModalEditChartAccount(code);
+      });
+    });
+
+    // Move up
+    container.querySelectorAll(".btn-move-account-up").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const code = btn.getAttribute("data-code");
+        this.moveChartAccount(code, "UP");
+      });
+    });
+
+    // Move down
+    container.querySelectorAll(".btn-move-account-down").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const code = btn.getAttribute("data-code");
+        this.moveChartAccount(code, "DOWN");
+      });
+    });
+
+    // Delete
+    container.querySelectorAll(".btn-delete-account").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const code = btn.getAttribute("data-code");
+        this.deleteChartAccount(code);
+      });
+    });
+
+    // Quick toggle type
+    container.querySelectorAll(".btn-toggle-type").forEach(badge => {
+      badge.addEventListener("click", () => {
+        const code = badge.getAttribute("data-code");
+        this.toggleAccountType(code);
+      });
+    });
+
+    // Quick toggle nature
+    container.querySelectorAll(".btn-toggle-nature").forEach(badge => {
+      badge.addEventListener("click", () => {
+        const code = badge.getAttribute("data-code");
+        this.toggleAccountNature(code);
+      });
+    });
+  },
+
+  openModalAddChartAccount(parentCode = null) {
+    const synthetics = this.getAllSyntheticAccounts();
+    const modalHtml = `
+      <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:560px;">
+          <button class="modal-close-btn" onclick="document.getElementById('modal-erp-temp').remove()">&times;</button>
+          <h4 style="color:#FFF;font-family:var(--font-display);margin-bottom:6px;">➕ Nova Conta Contábil</h4>
+          <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;">
+            ${parentCode ? `Inserindo subconta vinculada ao grupo <strong>${parentCode}</strong>` : 'Adicione uma conta raiz ou selecione um agrupador sintético.'}
+          </p>
+
+          <form id="form-add-chart-account">
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Código / Numeração:</label>
+                <input type="text" id="in-new-acc-code" required class="erp-input-sm" style="width:100%;font-weight:700;" placeholder="Ex: 1.1.2.03">
+              </div>
+              <div>
+                <label class="erp-label">Nome da Conta Contábil:</label>
+                <input type="text" id="in-new-acc-name" required class="erp-input-sm" style="width:100%;" placeholder="Ex: Vendas Voucher & Parcerias VIP">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Tipo da Conta:</label>
+                <select id="in-new-acc-type" class="erp-input-sm" style="width:100%;">
+                  <option value="ANALITICA">ANALÍTICA (Lançamentos / Operacional)</option>
+                  <option value="SINTETICA">SINTÉTICA (Agrupadora / Totalizadora)</option>
+                </select>
+              </div>
+              <div>
+                <label class="erp-label">Natureza do Saldo:</label>
+                <select id="in-new-acc-nature" class="erp-input-sm" style="width:100%;">
+                  <option value="DEVEDORA">DEVEDORA (Ativo / Custos / Despesas)</option>
+                  <option value="CREDORA">CREDORA (Passivo / PL / Receitas)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom:18px;">
+              <label class="erp-label">Conta Pai / Agrupador Sintético:</label>
+              <select id="in-new-acc-parent" class="erp-input-sm" style="width:100%;">
+                <option value="">(Nenhuma - Nível Raiz / Grupo Principal)</option>
+                ${synthetics.map(s => `
+                  <option value="${s.code}" ${s.code === parentCode ? 'selected' : ''}>
+                    ${'&nbsp;&nbsp;'.repeat(s.depth * 2)}${s.code} - ${s.name}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+              <button type="button" class="modal-close-btn-secondary" onclick="document.getElementById('modal-erp-temp').remove()">Cancelar</button>
+              <button type="submit" class="btn-primary-luxury">Salvar Conta Contábil</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+    document.getElementById("form-add-chart-account").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const code = document.getElementById("in-new-acc-code").value.trim();
+      const name = document.getElementById("in-new-acc-name").value.trim();
+      const type = document.getElementById("in-new-acc-type").value;
+      const nature = document.getElementById("in-new-acc-nature").value;
+      const targetParentCode = document.getElementById("in-new-acc-parent").value;
+
+      const tree = JSON.parse(JSON.stringify(this.accountsData?.chartOfAccounts || []));
+      const newAccount = {
+        code,
+        name,
+        type,
+        nature,
+        ...(type === "SINTETICA" ? { children: [] } : {})
+      };
+
+      if (!targetParentCode) {
+        tree.push(newAccount);
+      } else {
+        const foundParent = this.findAccountInTree(tree, targetParentCode);
+        if (foundParent && foundParent.node) {
+          if (!foundParent.node.children) foundParent.node.children = [];
+          foundParent.node.children.push(newAccount);
+        } else {
+          tree.push(newAccount);
+        }
+      }
+
+      document.getElementById("modal-erp-temp").remove();
+      await this.saveChartOfAccountsTree(tree);
+    });
+  },
+
+  openModalEditChartAccount(code) {
+    const tree = JSON.parse(JSON.stringify(this.accountsData?.chartOfAccounts || []));
+    const item = this.findAccountInTree(tree, code);
+    if (!item) {
+      alert("Conta não encontrada: " + code);
+      return;
+    }
+    const { node, parent } = item;
+    const currentParentCode = parent ? parent.code : "";
+    const synthetics = this.getAllSyntheticAccounts(tree).filter(s => s.code !== code);
+
+    const modalHtml = `
+      <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:560px;">
+          <button class="modal-close-btn" onclick="document.getElementById('modal-erp-temp').remove()">&times;</button>
+          <h4 style="color:#FFF;font-family:var(--font-display);margin-bottom:6px;">✏️ Editar Conta Contábil</h4>
+          <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;">
+            Altere numeração, descrição, tipo contábil, natureza ou mova para outro grupo sintético.
+          </p>
+
+          <form id="form-edit-chart-account">
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Código / Numeração:</label>
+                <input type="text" id="in-edit-acc-code" required class="erp-input-sm" style="width:100%;font-weight:700;" value="${node.code}">
+              </div>
+              <div>
+                <label class="erp-label">Nome da Conta Contábil:</label>
+                <input type="text" id="in-edit-acc-name" required class="erp-input-sm" style="width:100%;" value="${node.name}">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Tipo da Conta:</label>
+                <select id="in-edit-acc-type" class="erp-input-sm" style="width:100%;">
+                  <option value="SINTETICA" ${node.type === 'SINTETICA' ? 'selected' : ''}>SINTÉTICA (Agrupadora / Totalizadora)</option>
+                  <option value="ANALITICA" ${node.type === 'ANALITICA' ? 'selected' : ''}>ANALÍTICA (Lançamentos / Operacional)</option>
+                </select>
+              </div>
+              <div>
+                <label class="erp-label">Natureza do Saldo:</label>
+                <select id="in-edit-acc-nature" class="erp-input-sm" style="width:100%;">
+                  <option value="DEVEDORA" ${node.nature === 'DEVEDORA' ? 'selected' : ''}>DEVEDORA (Ativo / Custos / Despesas)</option>
+                  <option value="CREDORA" ${node.nature === 'CREDORA' ? 'selected' : ''}>CREDORA (Passivo / PL / Receitas)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom:18px;">
+              <label class="erp-label">Conta Pai / Agrupador Sintético (Mover de Nível):</label>
+              <select id="in-edit-acc-parent" class="erp-input-sm" style="width:100%;">
+                <option value="" ${!currentParentCode ? 'selected' : ''}>(Nenhuma - Nível Raiz / Grupo Principal)</option>
+                ${synthetics.map(s => `
+                  <option value="${s.code}" ${s.code === currentParentCode ? 'selected' : ''}>
+                    ${'&nbsp;&nbsp;'.repeat(s.depth * 2)}${s.code} - ${s.name}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <button type="button" class="modal-close-btn-secondary" style="color:var(--rose-light);border-color:rgba(239,68,68,0.3);" onclick="ErpController.deleteChartAccount('${node.code}')">
+                🗑️ Excluir Conta
+              </button>
+              <div style="display:flex;gap:10px;">
+                <button type="button" class="modal-close-btn-secondary" onclick="document.getElementById('modal-erp-temp').remove()">Cancelar</button>
+                <button type="submit" class="btn-primary-luxury">Salvar Alterações</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+    document.getElementById("form-edit-chart-account").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newCode = document.getElementById("in-edit-acc-code").value.trim();
+      const newName = document.getElementById("in-edit-acc-name").value.trim();
+      const newType = document.getElementById("in-edit-acc-type").value;
+      const newNature = document.getElementById("in-edit-acc-nature").value;
+      const newParentCode = document.getElementById("in-edit-acc-parent").value;
+
+      node.code = newCode;
+      node.name = newName;
+      node.type = newType;
+      node.nature = newNature;
+      if (newType === "SINTETICA" && !node.children) node.children = [];
+
+      // Check if parent moved
+      if (newParentCode !== currentParentCode) {
+        item.list.splice(item.index, 1);
+        if (!newParentCode) {
+          tree.push(node);
+        } else {
+          const newParentItem = this.findAccountInTree(tree, newParentCode);
+          if (newParentItem && newParentItem.node) {
+            if (!newParentItem.node.children) newParentItem.node.children = [];
+            newParentItem.node.children.push(node);
+          } else {
+            tree.push(node);
+          }
+        }
+      }
+
+      document.getElementById("modal-erp-temp").remove();
+      await this.saveChartOfAccountsTree(tree);
+    });
+  },
+
+  async deleteChartAccount(code) {
+    const tree = JSON.parse(JSON.stringify(this.accountsData?.chartOfAccounts || []));
+    const item = this.findAccountInTree(tree, code);
+    if (!item) return;
+
+    const hasChildren = item.node.children && item.node.children.length > 0;
+    const msg = hasChildren
+      ? `Atenção: A conta [${item.node.code}] possui ${item.node.children.length} subcontas vinculadas!\nDeseja realmente excluir esta conta e TODAS as suas subcontas?`
+      : `Deseja realmente excluir a conta [${item.node.code} - ${item.node.name}]?`;
+
+    if (!confirm(msg)) return;
+
+    item.list.splice(item.index, 1);
+    const modal = document.getElementById("modal-erp-temp");
+    if (modal) modal.remove();
+    await this.saveChartOfAccountsTree(tree);
+  },
+
+  async moveChartAccount(code, direction) {
+    const tree = JSON.parse(JSON.stringify(this.accountsData?.chartOfAccounts || []));
+    const item = this.findAccountInTree(tree, code);
+    if (!item) return;
+
+    const { list, index } = item;
+    if (direction === "UP") {
+      if (index === 0) {
+        this.showToastNotification("A conta já é a primeira do seu grupo!");
+        return;
+      }
+      const temp = list[index - 1];
+      list[index - 1] = list[index];
+      list[index] = temp;
+    } else if (direction === "DOWN") {
+      if (index === list.length - 1) {
+        this.showToastNotification("A conta já é a última do seu grupo!");
+        return;
+      }
+      const temp = list[index + 1];
+      list[index + 1] = list[index];
+      list[index] = temp;
+    }
+
+    await this.saveChartOfAccountsTree(tree);
+  },
+
+  async toggleAccountType(code) {
+    const tree = JSON.parse(JSON.stringify(this.accountsData?.chartOfAccounts || []));
+    const item = this.findAccountInTree(tree, code);
+    if (!item) return;
+
+    if (item.node.type === "SINTETICA") {
+      if (item.node.children && item.node.children.length > 0) {
+        if (!confirm(`A conta possui ${item.node.children.length} subcontas. Ao mudar para Analítica, as subcontas permanecerão ocultas nos lançamentos. Continuar?`)) {
+          return;
+        }
+      }
+      item.node.type = "ANALITICA";
+    } else {
+      item.node.type = "SINTETICA";
+      if (!item.node.children) item.node.children = [];
+    }
+
+    await this.saveChartOfAccountsTree(tree);
+  },
+
+  async toggleAccountNature(code) {
+    const tree = JSON.parse(JSON.stringify(this.accountsData?.chartOfAccounts || []));
+    const item = this.findAccountInTree(tree, code);
+    if (!item) return;
+
+    item.node.nature = item.node.nature === "DEVEDORA" ? "CREDORA" : "DEVEDORA";
+    await this.saveChartOfAccountsTree(tree);
+  },
+
+  // --- 8C. CONFIGURAÇÕES: CENTROS DE CUSTO (POR LOJA E POR CNPJ) ---
   async renderCostCentersOnly() {
     const container = document.getElementById("subpane-settings-cost-centers");
     if (!container) return;
@@ -1873,40 +2423,244 @@ const ErpController = {
       return;
     }
 
-    const { costCenters } = this.accountsData || { costCenters: [] };
+    const costCenters = this.accountsData?.costCenters || [];
+    const cnpjCostCenters = costCenters.filter(c => c.scope === "CNPJ" || (c.id && c.id.includes("CNPJ")) || c.id === "CC-06");
+    const storeCostCenters = costCenters.filter(c => c.scope !== "CNPJ" && (!c.id || !c.id.includes("CNPJ")) && c.id !== "CC-06");
 
     container.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
-          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">🏢 Centros de Custo (Unidades Físicas & Canais Digitais)</h4>
+          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">🏢 Centros de Custo (Unidades Físicas, Digitais & Corporativo CNPJ)</h4>
           <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
-            Alocação de receitas, custos de mercadoria e despesas operacionais por unidade de negócio.
+            Estrutura vinculada: um centro de custo para cada Loja e um para cada CNPJ do grupo SIÉ.
           </p>
         </div>
-        <button class="btn-primary-luxury" style="font-size:0.8rem;padding:8px 14px;" onclick="alert('Funcionalidade de cadastro de centro de custo em desenvolvimento.')">
+        <button id="btn-new-cost-center" class="btn-primary-luxury" style="font-size:0.8rem;padding:8px 14px;">
           ➕ Novo Centro de Custo
         </button>
       </div>
 
-      <!-- Cost Centers Cards Grid -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;margin-bottom:24px;">
-        ${(costCenters || []).map(cc => `
-          <div class="content-card" style="padding:18px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <strong style="color:#FFF;font-size:1rem;">${cc.name}</strong>
-              <span class="erp-badge-mode">${cc.id}</span>
+      <!-- Section 1: CNPJ Corporate Cost Centers -->
+      <div style="margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:1.1rem;">🏢</span>
+          <h5 style="color:var(--gold-light);margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.5px;">
+            Centros de Custo por CNPJ (Corporativo & Governança)
+          </h5>
+          <span class="status-badge" style="background:rgba(212,175,55,0.15);color:var(--gold-light);font-size:0.68rem;">
+            ${cnpjCostCenters.length} Centros Vinculados
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));gap:16px;">
+          ${cnpjCostCenters.map(cc => `
+            <div class="content-card" style="padding:18px;border-left:3px solid var(--gold-primary);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <strong style="color:#FFF;font-size:1rem;">${cc.name}</strong>
+                <span class="erp-badge-mode" style="background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);font-size:0.75rem;padding:2px 8px;">
+                  ${cc.code || cc.id}
+                </span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:8px;">
+                Escopo: <strong style="color:var(--gold-light);">Corporativo por CNPJ</strong> • Gestor: <strong style="color:#FFF;">${cc.manager}</strong>
+              </div>
+              <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:10px;">
+                CNPJ Vinculado: <strong style="color:var(--blue-accent);">${this.getCnpjNumber(cc.cnpjId)}</strong>
+              </div>
+              <div style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;">
+                <span style="color:var(--stone-green);font-weight:600;">🟢 Ativo & Vinculado</span>
+                <button class="crm-mini-btn btn-edit-cost-center" data-id="${cc.id}" style="background:rgba(255,255,255,0.06);color:#FFF;border-color:rgba(255,255,255,0.2);font-size:0.7rem;padding:3px 8px;">
+                  ✏️ Editar
+                </button>
+              </div>
             </div>
-            <div style="font-size:0.78rem;color:var(--blue-accent);margin-bottom:8px;">
-              Tipo: <strong>${cc.type}</strong> • Gestor: <strong>${cc.manager}</strong>
+          `).join("")}
+        </div>
+      </div>
+
+      <!-- Section 2: Store Cost Centers -->
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:1.1rem;">📍</span>
+          <h5 style="color:var(--blue-accent);margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.5px;">
+            Centros de Custo por Loja / Unidade Operacional
+          </h5>
+          <span class="status-badge" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);font-size:0.68rem;">
+            ${storeCostCenters.length} Lojas Vinculadas
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));gap:16px;">
+          ${storeCostCenters.map(cc => `
+            <div class="content-card" style="padding:18px;border-left:3px solid var(--blue-accent);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <strong style="color:#FFF;font-size:1rem;">${cc.name}</strong>
+                <span class="erp-badge-mode" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);border:1px solid rgba(59,130,246,0.3);font-size:0.75rem;padding:2px 8px;">
+                  ${cc.code || cc.id}
+                </span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:8px;">
+                Escopo: <strong style="color:var(--blue-accent);">Unidade Loja</strong> • Tipo: <strong>${cc.type}</strong> • Gestor: <strong style="color:#FFF;">${cc.manager}</strong>
+              </div>
+              <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:10px;">
+                CNPJ Vinculado: <strong style="color:#FFF;">${this.getCnpjNumber(cc.cnpjId)}</strong>
+              </div>
+              <div style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;">
+                <span style="color:var(--stone-green);font-weight:600;">🟢 Ativo & Vinculado</span>
+                <button class="crm-mini-btn btn-edit-cost-center" data-id="${cc.id}" style="background:rgba(255,255,255,0.06);color:#FFF;border-color:rgba(255,255,255,0.2);font-size:0.7rem;padding:3px 8px;">
+                  ✏️ Editar
+                </button>
+              </div>
             </div>
-            <div style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;">
-              <span style="color:var(--text-muted);">Status:</span>
-              <span style="color:var(--stone-green);font-weight:600;">🟢 Ativo & Vinculado</span>
-            </div>
-          </div>
-        `).join("")}
+          `).join("")}
+        </div>
       </div>
     `;
+
+    // Wire btn-new-cost-center
+    const btnNew = document.getElementById("btn-new-cost-center");
+    if (btnNew) {
+      btnNew.addEventListener("click", () => this.openModalNewCostCenter());
+    }
+
+    // Wire edit buttons
+    container.querySelectorAll(".btn-edit-cost-center").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        this.openModalNewCostCenter(id);
+      });
+    });
+  },
+
+  openModalNewCostCenter(costCenterId = null) {
+    const list = this.accountsData?.costCenters || [];
+    const cc = costCenterId ? list.find(c => c.id === costCenterId) : null;
+    const isEdit = !!cc;
+
+    const modalHtml = `
+      <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:560px;">
+          <button class="modal-close-btn" onclick="document.getElementById('modal-erp-temp').remove()">&times;</button>
+          <h4 style="color:#FFF;font-family:var(--font-display);margin-bottom:6px;">
+            ${isEdit ? '✏️ Editar Centro de Custo' : '➕ Novo Centro de Custo'}
+          </h4>
+          <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;">
+            Vincule um centro de custo para cada Loja ou para cada CNPJ do grupo SIÉ.
+          </p>
+
+          <form id="form-cost-center">
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Código / Sigla:</label>
+                <input type="text" id="in-cc-code" required class="erp-input-sm" style="width:100%;font-weight:700;" value="${cc ? (cc.code || cc.id) : `CC-${list.length + 1}`}">
+              </div>
+              <div>
+                <label class="erp-label">Nome do Centro de Custo:</label>
+                <input type="text" id="in-cc-name" required class="erp-input-sm" style="width:100%;" value="${cc ? cc.name : ''}" placeholder="Ex: Corner JOY Club - Balneário Camboriú">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Escopo do Centro de Custo:</label>
+                <select id="in-cc-scope" class="erp-input-sm" style="width:100%;">
+                  <option value="STORE" ${cc?.scope === 'STORE' ? 'selected' : ''}>📍 Por Loja / Unidade Operacional</option>
+                  <option value="CNPJ" ${cc?.scope === 'CNPJ' ? 'selected' : ''}>🏢 Por CNPJ (Corporativo & Governança)</option>
+                </select>
+              </div>
+              <div>
+                <label class="erp-label">Tipo Operacional:</label>
+                <select id="in-cc-type" class="erp-input-sm" style="width:100%;">
+                  <option value="LOJA_PROPRIA" ${cc?.type === 'LOJA_PROPRIA' ? 'selected' : ''}>Boutique Flagship</option>
+                  <option value="CORNER" ${cc?.type === 'CORNER' ? 'selected' : ''}>Corner</option>
+                  <option value="POPUP" ${cc?.type === 'POPUP' ? 'selected' : ''}>Pop-up Store</option>
+                  <option value="CANAL_DIGITAL" ${cc?.type === 'CANAL_DIGITAL' ? 'selected' : ''}>Canal Digital / IA</option>
+                  <option value="CORPORATIVO_CNPJ" ${cc?.type === 'CORPORATIVO_CNPJ' ? 'selected' : ''}>Corporativo CNPJ</option>
+                  <option value="ADMINISTRATIVO" ${cc?.type === 'ADMINISTRATIVO' ? 'selected' : ''}>Administração Geral</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">CNPJ Vinculado:</label>
+                <select id="in-cc-cnpj" class="erp-input-sm" style="width:100%;">
+                  ${this.cnpjs.map(c => `
+                    <option value="${c.id}" ${cc?.cnpjId === c.id ? 'selected' : ''}>
+                      ${c.cnpj} (${c.nomeFantasia || c.razaoSocial})
+                    </option>
+                  `).join("")}
+                </select>
+              </div>
+              <div>
+                <label class="erp-label">Loja Vinculada (se aplicável):</label>
+                <select id="in-cc-store" class="erp-input-sm" style="width:100%;">
+                  <option value="ALL">(Nenhuma / Aplicável a Todas)</option>
+                  ${this.stores.map(s => `
+                    <option value="${s.id}" ${cc?.storeId === s.id ? 'selected' : ''}>
+                      ${s.name}
+                    </option>
+                  `).join("")}
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom:18px;">
+              <label class="erp-label">Gestor / Responsável:</label>
+              <input type="text" id="in-cc-manager" required class="erp-input-sm" style="width:100%;" value="${cc ? cc.manager : 'Paulo Júnior'}" placeholder="Nome do gestor do centro de custo">
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+              <button type="button" class="modal-close-btn-secondary" onclick="document.getElementById('modal-erp-temp').remove()">Cancelar</button>
+              <button type="submit" class="btn-primary-luxury">Salvar Centro de Custo</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+    document.getElementById("form-cost-center").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const code = document.getElementById("in-cc-code").value.trim();
+      const name = document.getElementById("in-cc-name").value.trim();
+      const scope = document.getElementById("in-cc-scope").value;
+      const type = document.getElementById("in-cc-type").value;
+      const cnpjId = document.getElementById("in-cc-cnpj").value;
+      const storeId = document.getElementById("in-cc-store").value;
+      const manager = document.getElementById("in-cc-manager").value.trim();
+
+      const newCc = {
+        id: cc ? cc.id : code,
+        code,
+        name,
+        scope,
+        type,
+        cnpjId,
+        storeId,
+        manager,
+        status: "ACTIVE"
+      };
+
+      try {
+        const res = await fetch("/api/erp/cost-centers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ costCenter: newCc })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (!this.accountsData) this.accountsData = {};
+          this.accountsData.costCenters = data.costCenters;
+          this.showToastNotification("✅ Centro de Custo salvo com sucesso!");
+          document.getElementById("modal-erp-temp").remove();
+          this.renderCostCentersOnly();
+        } else {
+          alert("Erro: " + (data.error || "Não foi possível salvar o centro de custo"));
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erro de comunicação com o servidor.");
+      }
+    });
   },
 
   renderChartOfAccounts() {
@@ -2498,22 +3252,13 @@ const ErpController = {
               <div>
                 <label class="erp-label">Centro de Custo:</label>
                 <select id="in-rec-cost-center" class="erp-input-sm" style="width:100%;">
-                  <option value="CC-01" data-name="Boutique JOY Club - Centro Floripa">CC-01 - Boutique JOY Floripa (Flagship)</option>
-                  <option value="CC-02" data-name="Corner JOY Club - Balneário Camboriú">CC-02 - Corner Balneário Camboriú</option>
-                  <option value="CC-03" data-name="Pop-up Store - Jurerê Internacional">CC-03 - Pop-up Jurerê Internacional</option>
-                  <option value="CC-04" data-name="Corner Clube Porto Alegre">CC-04 - Corner Porto Alegre</option>
-                  <option value="CC-05" data-name="Canal Digital WhatsApp & Concierge IA">CC-05 - Canal Digital & IA Concierge</option>
-                  <option value="CC-06" data-name="Administração Geral & Governança SIÉ">CC-06 - Administração & Governança</option>
+                  ${this.getCostCenterOptionsHtml("CC-01")}
                 </select>
               </div>
               <div>
                 <label class="erp-label">Plano de Contas:</label>
                 <select id="in-rec-chart-account" class="erp-input-sm" style="width:100%;">
-                  <option value="1.1.2.02" data-name="Contas a Receber - Faturamento Corporativo D+30">1.1.2.02 - Contas a Receber Corporativo (D+30)</option>
-                  <option value="1.1.2.01" data-name="Contas a Receber - Stone D+1 Cartões">1.1.2.01 - Contas a Receber Stone D+1 Cartões</option>
-                  <option value="5.1.1.03" data-name="Vendas Faturamento Corporativo & Parcerias VIP">5.1.1.03 - Vendas Corporativo & Parcerias VIP</option>
-                  <option value="5.1.1.01" data-name="Vendas Balcão Boutique - Smart POS P2">5.1.1.01 - Vendas Balcão Boutique POS P2</option>
-                  <option value="5.1.1.02" data-name="Vendas WhatsApp Assistida - Links Stone">5.1.1.02 - Vendas WhatsApp Links Stone</option>
+                  ${this.getChartAccountOptionsHtml("REVENUE", "1.1.2.02")}
                 </select>
               </div>
             </div>
@@ -2617,27 +3362,13 @@ const ErpController = {
               <div>
                 <label class="erp-label">Centro de Custo:</label>
                 <select id="in-pay-cost-center" class="erp-input-sm" style="width:100%;">
-                  <option value="CC-01" data-name="Boutique JOY Club - Centro Floripa">CC-01 - Boutique JOY Floripa (Flagship)</option>
-                  <option value="CC-02" data-name="Corner JOY Club - Balneário Camboriú">CC-02 - Corner Balneário Camboriú</option>
-                  <option value="CC-03" data-name="Pop-up Store - Jurerê Internacional">CC-03 - Pop-up Jurerê Internacional</option>
-                  <option value="CC-04" data-name="Corner Clube Porto Alegre">CC-04 - Corner Porto Alegre</option>
-                  <option value="CC-05" data-name="Canal Digital WhatsApp & Concierge IA">CC-05 - Canal Digital & IA Concierge</option>
-                  <option value="CC-06" data-name="Administração Geral & Governança SIÉ">CC-06 - Administração & Governança</option>
+                  ${this.getCostCenterOptionsHtml("CC-01")}
                 </select>
               </div>
               <div>
                 <label class="erp-label">Plano de Contas:</label>
                 <select id="in-pay-chart-account" class="erp-input-sm" style="width:100%;">
-                  <option value="2.1.1.01" data-name="Fornecedores Confecção Têxtil (30/60/90d)">2.1.1.01 - Fornecedores Confecção Têxtil (30/60/90d)</option>
-                  <option value="3.1.1.01" data-name="Custo das Peças Vendidas - Confecção Têxtil">3.1.1.01 - CMV Peças Vendidas Confecção</option>
-                  <option value="3.1.1.02" data-name="Custo de Embalagens de Luxo, Laços e Perfumes">3.1.1.02 - Custo Embalagens de Luxo & Laços</option>
-                  <option value="4.1.3.01" data-name="Fretes e Entregas Motoboy VIP / Sedex Express">4.1.3.01 - Fretes Motoboy VIP / Sedex</option>
-                  <option value="4.2.1.01" data-name="Eventos de Lançamento de Drops (DJ, Espumante)">4.2.1.01 - Eventos de Drops (DJ, Espumante)</option>
-                  <option value="4.2.2.01" data-name="Tráfego Pago Meta Ads (Instagram / Facebook)">4.2.2.01 - Tráfego Pago Meta Ads</option>
-                  <option value="4.3.1.01" data-name="Aluguel Fixo Boutique JOY Club (R$ 6.000/mês)">4.3.1.01 - Aluguel Boutique JOY Club</option>
-                  <option value="4.3.2.01" data-name="Honorários Contábeis & Fiscais">4.3.2.01 - Honorários Contábeis & Fiscais</option>
-                  <option value="4.3.4.01" data-name="Energia, Internet & Limpeza Boutique">4.3.4.01 - Energia, Internet & Limpeza</option>
-                  <option value="2.1.4.01" data-name="DAS - Simples Nacional a Recolher">2.1.4.01 - DAS Simples Nacional a Recolher</option>
+                  ${this.getChartAccountOptionsHtml("EXPENSE", "2.1.1.01")}
                 </select>
               </div>
             </div>
@@ -2677,10 +3408,10 @@ const ErpController = {
           ccSelect.value = "CC-01";
           caSelect.value = "4.2.1.01";
         } else if (cat === "CONTABILIDADE") {
-          ccSelect.value = "CC-06";
+          ccSelect.value = "CC-CNPJ-01";
           caSelect.value = "4.3.2.01";
         } else if (cat === "IMPOSTOS") {
-          ccSelect.value = "CC-06";
+          ccSelect.value = "CC-CNPJ-01";
           caSelect.value = "2.1.4.01";
         }
       });

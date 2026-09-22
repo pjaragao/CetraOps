@@ -1,0 +1,50 @@
+{
+  "maxFields": 5,
+  "fields": [
+    {
+      "id": "cf_1",
+      "name": "Nº Pedido de Compra / Venda",
+      "target": "ALL",
+      "type": "text",
+      "placeholder": "Ex: PC-2026-089",
+      "required": false,
+      "active": true
+    },
+    {
+      "id": "cf_2",
+      "name": "Código Contrato / SLA",
+      "target": "PAYABLE",
+      "type": "text",
+      "placeholder": "Ex: CTR-JOY-01",
+      "required": false,
+      "active": true
+    },
+    {
+      "id": "cf_3",
+      "name": "Link do Comprovante / Drive",
+      "target": "ALL",
+      "type": "text",
+      "placeholder": "https://drive.google.com/...",
+      "required": false,
+      "active": true
+    },
+    {
+      "id": "cf_4",
+      "name": "Centro de Resultado / Projeto",
+      "target": "ALL",
+      "type": "text",
+      "placeholder": "Ex: Drop Inauguração Floripa",
+      "required": false,
+      "active": false
+    },
+    {
+      "id": "cf_5",
+      "name": "Observação Fiscal / Tag",
+      "target": "ALL",
+      "type": "text",
+      "placeholder": "Ex: Retenção ISSQN",
+      "required": false,
+      "active": false
+    }
+  ]
+}

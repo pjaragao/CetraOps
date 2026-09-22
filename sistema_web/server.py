@@ -273,6 +273,106 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 }
             })
 
+        elif path == "/api/erp/custom-fields":
+            data = load_json("custom_fields_config.json")
+            return self.send_json(data)
+
+        elif path == "/api/erp/financial-movement":
+            store_filter = qs.get("storeId", [None])[0]
+            cnpj_filter = qs.get("cnpjId", [None])[0]
+            type_filter = qs.get("type", [None])[0]
+
+            rec_data = load_json("accounts_receivable.json")
+            pay_data = load_json("accounts_payable.json")
+
+            movements = []
+
+            # Entradas: Contas a Receber Conciliadas (status SETTLED, PAID ou CONCILIADO)
+            for r in rec_data.get("receivables", []):
+                status = r.get("status", "")
+                if status in ["SETTLED", "PAID", "CONCILIADO"]:
+                    if store_filter and store_filter != "ALL" and r.get("storeId") != store_filter:
+                        continue
+                    if cnpj_filter and cnpj_filter != "ALL" and r.get("cnpjId") != cnpj_filter:
+                        continue
+                    date_val = r.get("expectedSettlementDate") or r.get("saleDate", "")[:10]
+                    movements.append({
+                        "id": f"MOV-{r.get('id')}",
+                        "sourceId": r.get("id"),
+                        "sourceType": "RECEIVABLE",
+                        "type": "ENTRADA",
+                        "date": date_val,
+                        "description": f"Recebimento Stone ({r.get('saleCode', r.get('id'))})",
+                        "entity": r.get("customerName", "Cliente Stone"),
+                        "documentNumber": r.get("saleCode", r.get("id")),
+                        "paymentMethod": r.get("paymentMethod", "CARTAO"),
+                        "costCenterId": r.get("costCenterId", "CC-01"),
+                        "costCenterName": r.get("costCenterName", "Boutique JOY Club - Centro Floripa"),
+                        "chartOfAccountId": r.get("chartOfAccountId", "1.1.2.01"),
+                        "chartOfAccountName": r.get("chartOfAccountName", "Contas a Receber Stone"),
+                        "grossAmount": float(r.get("grossAmount", 0.0)),
+                        "netAmount": float(r.get("netAmount", r.get("grossAmount", 0.0))),
+                        "feeAmount": float(r.get("feeAmount", 0.0)),
+                        "storeId": r.get("storeId"),
+                        "cnpjId": r.get("cnpjId"),
+                        "status": "CONCILIADO",
+                        "customFields": r.get("customFields", {})
+                    })
+
+            # Saídas: Contas a Pagar Conciliadas (status PAID, SETTLED ou CONCILIADO)
+            for p in pay_data.get("payables", []):
+                status = p.get("status", "")
+                if status in ["PAID", "SETTLED", "CONCILIADO"]:
+                    if store_filter and store_filter != "ALL" and p.get("storeId") != store_filter:
+                        continue
+                    if cnpj_filter and cnpj_filter != "ALL" and p.get("cnpjId") != cnpj_filter:
+                        continue
+                    date_val = p.get("dueDate") or p.get("issueDate", "")[:10]
+                    amount = float(p.get("amount", 0.0))
+                    movements.append({
+                        "id": f"MOV-{p.get('id')}",
+                        "sourceId": p.get("id"),
+                        "sourceType": "PAYABLE",
+                        "type": "SAIDA",
+                        "date": date_val,
+                        "description": p.get("description", "Pagamento de Despesa"),
+                        "entity": p.get("supplier", "Favorecido"),
+                        "documentNumber": p.get("documentNumber", p.get("id")),
+                        "paymentMethod": p.get("paymentMethod", "PIX"),
+                        "costCenterId": p.get("costCenterId", "CC-01"),
+                        "costCenterName": p.get("costCenterName", "Boutique JOY Club - Centro Floripa"),
+                        "chartOfAccountId": p.get("chartOfAccountId", "2.1.1.01"),
+                        "chartOfAccountName": p.get("chartOfAccountName", "Fornecedores e Despesas"),
+                        "grossAmount": amount,
+                        "netAmount": amount,
+                        "feeAmount": 0.0,
+                        "storeId": p.get("storeId"),
+                        "cnpjId": p.get("cnpjId"),
+                        "status": "CONCILIADO",
+                        "customFields": p.get("customFields", {})
+                    })
+
+            if type_filter and type_filter in ["ENTRADA", "SAIDA"]:
+                movements = [m for m in movements if m["type"] == type_filter]
+
+            movements.sort(key=lambda m: m.get("date", ""), reverse=True)
+
+            total_in = sum(m["netAmount"] for m in movements if m["type"] == "ENTRADA")
+            total_out = sum(m["netAmount"] for m in movements if m["type"] == "SAIDA")
+            net_balance = total_in - total_out
+
+            return self.send_json({
+                "movements": movements,
+                "summary": {
+                    "totalIn": round(total_in, 2),
+                    "totalOut": round(total_out, 2),
+                    "netBalance": round(net_balance, 2),
+                    "countIn": len([m for m in movements if m["type"] == "ENTRADA"]),
+                    "countOut": len([m for m in movements if m["type"] == "SAIDA"]),
+                    "totalCount": len(movements)
+                }
+            })
+
         elif path == "/api/erp/bank-reconciliation":
             data = load_json("bank_reconciliation.json")
             return self.send_json(data)
@@ -854,11 +954,28 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "feeAmount": fee_amount,
                 "netAmount": net_amount,
                 "settlementMode": rule.get("mode", "D+0"),
-                "status": "PENDING"
+                "status": "PENDING",
+                "customFields": payload.get("customFields", {})
             }
             data.setdefault("receivables", []).insert(0, new_rec)
             save_json("accounts_receivable.json", data)
             return self.send_json({"success": True, "receivable": new_rec})
+
+        elif path in ["/api/erp/accounts-receivable/reconcile", "/api/erp/accounts-receivable/settle"]:
+            rec_id = payload.get("receivableId")
+            new_status = payload.get("status", "SETTLED")
+            data = load_json("accounts_receivable.json")
+            updated = False
+            for r in data.get("receivables", []):
+                if r["id"] == rec_id:
+                    r["status"] = new_status
+                    r["settledAt"] = datetime.now().isoformat()
+                    updated = True
+                    break
+            if updated:
+                save_json("accounts_receivable.json", data)
+                return self.send_json({"success": True, "receivableId": rec_id, "status": new_status})
+            return self.send_json({"error": "Recebível não encontrado"}, 404)
 
         elif path == "/api/erp/accounts-payable":
             data = load_json("accounts_payable.json")
@@ -871,7 +988,7 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "costCenterName": payload.get("costCenterName", "Boutique JOY Club - Centro Floripa"),
                 "chartOfAccountId": payload.get("chartOfAccountId", "2.1.1.01"),
                 "chartOfAccountName": payload.get("chartOfAccountName", "Fornecedores Confecção Têxtil (30/60/90d)"),
-                "category": payload.get("category", "FORNECEDOR_CMV"),
+                "category": payload.get("category", ""),
                 "supplier": payload.get("supplier", "").strip(),
                 "description": payload.get("description", "").strip(),
                 "documentNumber": payload.get("documentNumber", "").strip(),
@@ -880,13 +997,14 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "amount": float(payload.get("amount", 0.0)),
                 "paymentMethod": payload.get("paymentMethod", "BOLETO"),
                 "status": "PENDING",
+                "customFields": payload.get("customFields", {}),
                 "notes": payload.get("notes", "")
             }
             data.setdefault("payables", []).append(new_pag)
             save_json("accounts_payable.json", data)
             return self.send_json({"success": True, "payable": new_pag})
 
-        elif path == "/api/erp/accounts-payable/pay":
+        elif path in ["/api/erp/accounts-payable/pay", "/api/erp/accounts-payable/reconcile"]:
             payable_id = payload.get("payableId")
             new_status = payload.get("status", "PAID")
             data = load_json("accounts_payable.json")
@@ -901,6 +1019,14 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 save_json("accounts_payable.json", data)
                 return self.send_json({"success": True, "payableId": payable_id, "status": new_status})
             return self.send_json({"error": "Título a pagar não encontrado"}, 404)
+
+        elif path == "/api/erp/custom-fields":
+            fields = payload.get("fields", [])
+            if len(fields) > 5:
+                fields = fields[:5]
+            data = {"maxFields": 5, "fields": fields}
+            save_json("custom_fields_config.json", data)
+            return self.send_json({"success": True, "customFields": data})
 
         elif path == "/api/erp/bank-reconciliation/match":
             match_id = payload.get("matchId")
@@ -1277,14 +1403,44 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                     "explanation": f"Lucro Presumido: 5,93% Federal + {iss_rate*100:.1f}% ISS ({city}) = {total_presumido}% estimado"
                 })
 
-        # --- SALVAR ORÇAMENTO BASE ---
-        elif path == "/api/erp/budget/save-base":
-            budget_data = load_json("budget_scenarios.json")
-            if "budgetVariance" in payload:
-                budget_data["budgetVariance"] = payload["budgetVariance"]
-            budget_data["lastUpdated"] = datetime.now().isoformat()
-            save_json("budget_scenarios.json", budget_data)
-            return self.send_json({"success": True, "message": "Orçamento base salvo com sucesso!"})
+        # --- PLANO DE CONTAS & CENTROS DE CUSTO ---
+        elif path == "/api/erp/chart-of-accounts":
+            data = load_json("chart_of_accounts.json")
+            if "chartOfAccounts" in payload:
+                data["chartOfAccounts"] = payload["chartOfAccounts"]
+            if "costCenters" in payload:
+                data["costCenters"] = payload["costCenters"]
+            data["lastUpdated"] = datetime.now().isoformat()
+            save_json("chart_of_accounts.json", data)
+            return self.send_json({
+                "success": True, 
+                "message": "Plano de Contas atualizado com sucesso!",
+                "chartOfAccounts": data.get("chartOfAccounts", []),
+                "costCenters": data.get("costCenters", [])
+            })
+
+        elif path == "/api/erp/cost-centers":
+            data = load_json("chart_of_accounts.json")
+            if "costCenters" in payload:
+                data["costCenters"] = payload["costCenters"]
+            elif "costCenter" in payload:
+                cc = payload["costCenter"]
+                existing_list = data.setdefault("costCenters", [])
+                found = False
+                for i, item in enumerate(existing_list):
+                    if item.get("id") == cc.get("id"):
+                        existing_list[i] = cc
+                        found = True
+                        break
+                if not found:
+                    existing_list.append(cc)
+            data["lastUpdated"] = datetime.now().isoformat()
+            save_json("chart_of_accounts.json", data)
+            return self.send_json({
+                "success": True, 
+                "message": "Centros de custo salvos com sucesso!",
+                "costCenters": data.get("costCenters", [])
+            })
 
         else:
             return self.send_json({"error": "Rota não encontrada"}, 404)

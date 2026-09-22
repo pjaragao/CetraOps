@@ -1,0 +1,40 @@
+{
+  "regimes": {
+    "SIMPLES_NACIONAL": {
+      "name": "Simples Nacional - Anexo I (Comércio)",
+      "baseRate": 0.055,
+      "annualLimit": 4800000.0,
+      "stateSublimitSC": 3600000.0,
+      "dasDueDay": 20,
+      "brackets": [
+        { "bracket": 1, "maxRevenue12m": 180000.0, "nominalRate": 0.040, "deduction": 0.0 },
+        { "bracket": 2, "maxRevenue12m": 360000.0, "nominalRate": 0.073, "deduction": 5940.0 },
+        { "bracket": 3, "maxRevenue12m": 720000.0, "nominalRate": 0.095, "deduction": 13860.0 },
+        { "bracket": 4, "maxRevenue12m": 1800000.0, "nominalRate": 0.107, "deduction": 22500.0 },
+        { "bracket": 5, "maxRevenue12m": 3600000.0, "nominalRate": 0.143, "deduction": 87300.0 },
+        { "bracket": 6, "maxRevenue12m": 4800000.0, "nominalRate": 0.190, "deduction": 378000.0 }
+      ]
+    },
+    "LUCRO_PRESUMIDO": {
+      "name": "Lucro Presumido (Comércio)",
+      "pisRate": 0.0065,
+      "cofinsRate": 0.0300,
+      "irpjPresumption": 0.08,
+      "irpjRate": 0.15,
+      "csllPresumption": 0.12,
+      "csllRate": 0.09,
+      "icmsSC": 0.17
+    }
+  },
+  "currentForecast": {
+    "competence": "2026-09",
+    "cnpjId": "cnpj-01",
+    "rbt12": 180000.0,
+    "currentMonthRevenue": 34185.00,
+    "effectiveTaxRate": 0.055,
+    "dasAmountEstimated": 1880.18,
+    "paymentDueDate": "2026-10-20",
+    "nfceCount": 42,
+    "sefazStatus": "HOMOLOGADO_SC_PRODUCAO_ONLINE"
+  }
+}

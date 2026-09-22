@@ -1,0 +1,51 @@
+{
+  "highTicketKeywords": [
+    "médica",
+    "dermato",
+    "cirurgiã",
+    "arquiteta",
+    "advogada",
+    "empresária",
+    "nutróloga",
+    "nutricionista",
+    "dentista",
+    "juíza",
+    "investidora",
+    "diretora",
+    "founder",
+    "ceo"
+  ],
+  "sportsAndLifestyleKeywords": [
+    "pilates",
+    "reformer",
+    "beach tennis",
+    "triatlo",
+    "triathlon",
+    "maratona",
+    "ironman",
+    "musculação",
+    "wellness",
+    "yoga",
+    "joy",
+    "bodytech"
+  ],
+  "targetCities": [
+    "Florianópolis",
+    "Balneário Camboriú",
+    "Itapema",
+    "Joinville",
+    "Blumenau",
+    "Porto Alegre",
+    "Caxias do Sul"
+  ],
+  "minFollowers": 1000,
+  "maxFollowers": 50000,
+  "scoringWeights": {
+    "professionMatch": 2,
+    "sportsMatch": 2,
+    "hasPhoneOrEmail": 1,
+    "targetCityMatch": 1,
+    "hasPublicProfile": 1
+  },
+  "lastUpdated": "2026-09-21T11:30:00"
+}

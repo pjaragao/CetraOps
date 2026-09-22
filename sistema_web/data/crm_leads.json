@@ -1,0 +1,351 @@
+[
+  {
+    "id": "LEAD-010",
+    "name": "Tatiana Guimarães",
+    "instagram": "tatiguimaraes_bt",
+    "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
+    "bio": "Atleta Beach Tennis Pro/Am 🎾 | Estilo de vida saudável & Nutrição | Balneário Camboriú",
+    "phone": "47998811223",
+    "email": "tati@btlifestyle.com",
+    "city": "Balneário Camboriú",
+    "followers": 19400,
+    "tags": [
+      "Beach Tennis",
+      "Atleta",
+      "Balneário Camboriú"
+    ],
+    "source": "instagrapi: @trackfieldoficial",
+    "score": 5,
+    "stage": "QUALIFICADO",
+    "instagramEngagement": {
+      "storyViewed": false,
+      "postLiked": false,
+      "followed": false,
+      "followedBack": false,
+      "directSent": false
+    },
+    "stonePurchases": [],
+    "interactions": [],
+    "discoveredAt": "2026-09-21T11:37:50.655612"
+  },
+  {
+    "id": "LEAD-009",
+    "name": "Isabela Schütz",
+    "instagram": "isaschutz_pilates",
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    "bio": "Studio Reformer Pilates Clássico 🩰 | Aluna JOY Wellness | Jurerê / Centro Floripa",
+    "phone": "48996655443",
+    "email": "isabela@schutzpilates.com.br",
+    "city": "Florianópolis",
+    "followers": 8700,
+    "tags": [
+      "Pilates",
+      "Reformer",
+      "JOY Member",
+      "Jurerê"
+    ],
+    "source": "instagrapi: @trackfieldoficial",
+    "score": 5,
+    "stage": "QUALIFICADO",
+    "instagramEngagement": {
+      "storyViewed": false,
+      "postLiked": false,
+      "followed": false,
+      "followedBack": false,
+      "directSent": false
+    },
+    "stonePurchases": [],
+    "interactions": [],
+    "discoveredAt": "2026-09-21T11:37:50.655594"
+  },
+  {
+    "id": "LEAD-008",
+    "name": "Dra. Carolina Mendes",
+    "instagram": "dra.carol_cardio",
+    "avatar": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80",
+    "bio": "Cardiologista • Especialista em Atletas 🩺 | Triatleta Amadora 🏊‍♀️🚴‍♀️🏃‍♀️ | Floripa",
+    "phone": "48997788112",
+    "email": "carolina@cardiofloripa.com",
+    "city": "Florianópolis",
+    "followers": 14200,
+    "tags": [
+      "Médica",
+      "Cardiologista",
+      "Triatlo",
+      "Florianópolis"
+    ],
+    "source": "instagrapi: @trackfieldoficial",
+    "score": 3,
+    "stage": "QUALIFICADO",
+    "instagramEngagement": {
+      "storyViewed": false,
+      "postLiked": false,
+      "followed": false,
+      "followedBack": false,
+      "directSent": false
+    },
+    "stonePurchases": [],
+    "interactions": [],
+    "discoveredAt": "2026-09-21T11:37:50.655537"
+  },
+  {
+    "id": "LEAD-001",
+    "name": "Dra. Mariana Silveira",
+    "instagram": "mariana.silveira_dermato",
+    "avatar": "https://images.unsplash.com/photo-1594824813515-0814a05d8f63?w=150&auto=format&fit=crop&q=80",
+    "bio": "Médica Dermatologista • SBD 🩺 | Aluna JOY Wellness Club 🧘‍♀️ | Beach Tennis & Lifestyle | Floripa",
+    "phone": "48991234567",
+    "email": "contato@dramarianasilveira.com.br",
+    "city": "Florianópolis",
+    "followers": 12400,
+    "score": 5,
+    "tags": [
+      "Médica",
+      "Beach Tennis",
+      "JOY Member",
+      "High-Ticket"
+    ],
+    "stage": "CONVERTIDO",
+    "source": "Scraping Check-in JOY",
+    "instagramEngagement": {
+      "storyViewed": true,
+      "postLiked": true,
+      "followed": true,
+      "followedBack": true,
+      "directSent": true
+    },
+    "stonePurchases": [
+      {
+        "txId": "TX-STONE-9802",
+        "date": "2026-09-18",
+        "product": "Legging Sculpt High Waist (Preto)",
+        "amount": 349.0
+      }
+    ],
+    "interactions": [
+      {
+        "date": "2026-09-15T14:30:00",
+        "sender": "Herme Agent",
+        "channel": "WhatsApp",
+        "message": "Olá Dra. Mariana! ✨ Separamos as peças da nova coleção no seu Armário VIP na JOY."
+      },
+      {
+        "date": "2026-09-15T15:10:00",
+        "sender": "Mariana Silveira",
+        "channel": "WhatsApp",
+        "message": "Amei o tecido da legging! Acabei de pagar pelo link Stone."
+      }
+    ]
+  },
+  {
+    "id": "LEAD-002",
+    "name": "Camila Rezende",
+    "instagram": "camilarezende_arq",
+    "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+    "bio": "Arquiteta de Interiores de Luxo 🏛️ | Reformer Pilates & Triatlo 🏊‍♀️🚴‍♀️🏃‍♀️ | Jurerê Internacional",
+    "phone": "48998765432",
+    "email": "camila@rezendearquitetura.com.br",
+    "city": "Florianópolis",
+    "followers": 8900,
+    "score": 5,
+    "tags": [
+      "Arquiteta",
+      "Pilates",
+      "Triatlo",
+      "Jurerê"
+    ],
+    "stage": "VISITA_AGENDADA",
+    "source": "Engajador @trackfieldoficial",
+    "instagramEngagement": {
+      "storyViewed": true,
+      "postLiked": true,
+      "followed": true,
+      "followedBack": true,
+      "directSent": true
+    },
+    "stonePurchases": [],
+    "interactions": [
+      {
+        "date": "2026-09-20T10:15:00",
+        "sender": "Herme Agent",
+        "channel": "WhatsApp",
+        "message": "Olá Camila! Notei seu interesse no Macaquinho Reformer Seamless. Gostaria de experimentar no clube JOY?"
+      },
+      {
+        "date": "2026-09-20T10:45:00",
+        "sender": "Camila Rezende",
+        "channel": "WhatsApp",
+        "message": "Oi! Sim, estarei na aula de Pilates amanhã às 10h. Pode deixar separado no provador?"
+      }
+    ]
+  },
+  {
+    "id": "LEAD-003",
+    "name": "Dra. Beatriz Fontes",
+    "instagram": "dra.beatrizfontes_nutro",
+    "avatar": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80",
+    "bio": "Nutrologia & Medicina Esportiva 🩺 | Maratona & Musculação | Balneário Camboriú / Floripa",
+    "phone": "47996541234",
+    "email": "clinica@drabeatrizfontes.com",
+    "city": "Balneário Camboriú",
+    "followers": 22100,
+    "score": 5,
+    "tags": [
+      "Médica",
+      "Nutrologia",
+      "Maratona",
+      "Balneário Camboriú"
+    ],
+    "stage": "EM_CONTATO_IA",
+    "source": "Scraping Apify @liveoficial",
+    "instagramEngagement": {
+      "storyViewed": true,
+      "postLiked": true,
+      "followed": true,
+      "followedBack": true,
+      "directSent": false
+    },
+    "stonePurchases": [],
+    "interactions": [
+      {
+        "date": "2026-09-21T09:00:00",
+        "sender": "Herme Agent",
+        "channel": "WhatsApp",
+        "message": "Dra. Beatriz, tudo bem? A SIÉ Wear preparou um catálogo exclusivo de tecidos térmicos para corredoras de alta performance."
+      }
+    ]
+  },
+  {
+    "id": "LEAD-004",
+    "name": "Fernanda Becker",
+    "instagram": "febecker_lifestyle",
+    "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+    "bio": "Advogada Corporativa ⚖️ | Apaixonada por Beach Tennis 🎾 & Yoga | Morando em Floripa",
+    "phone": "48991122334",
+    "email": "fernanda.becker@beckerlaw.com.br",
+    "city": "Florianópolis",
+    "followers": 4300,
+    "score": 5,
+    "tags": [
+      "Advogada",
+      "Beach Tennis",
+      "Yoga"
+    ],
+    "stage": "CAMPANHA_META",
+    "source": "Hashtag #beachtennisfloripa",
+    "instagramEngagement": {
+      "storyViewed": true,
+      "postLiked": true,
+      "followed": false,
+      "followedBack": false,
+      "directSent": false
+    },
+    "stonePurchases": [],
+    "interactions": []
+  },
+  {
+    "id": "LEAD-005",
+    "name": "Juliana Werner",
+    "instagram": "juwerner_wellness",
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    "bio": "Empresária & Investidora 💼 | Aluna Bodytech / Joy | Lifestyle & Viagens | SC",
+    "phone": "48999887766",
+    "email": "ju.werner@wernerholding.com",
+    "city": "Florianópolis",
+    "followers": 15600,
+    "score": 5,
+    "tags": [
+      "Empresária",
+      "Bodytech",
+      "High-Ticket",
+      "Viagens"
+    ],
+    "stage": "QUALIFICADO",
+    "source": "Extração Local instagrapi",
+    "instagramEngagement": {
+      "storyViewed": true,
+      "postLiked": false,
+      "followed": false,
+      "followedBack": false,
+      "directSent": false
+    },
+    "stonePurchases": [],
+    "interactions": []
+  },
+  {
+    "id": "LEAD-006",
+    "name": "Priscila Alencar",
+    "instagram": "priscila.alencar_fit",
+    "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
+    "bio": "Fisioterapeuta Dermato-Funcional 🌸 | Crossfit & Musculação | Centro Florianópolis",
+    "phone": "48988443322",
+    "email": "priscila@alencarfisio.com.br",
+    "city": "Florianópolis",
+    "followers": 3100,
+    "score": 5,
+    "tags": [
+      "Fisioterapeuta",
+      "Musculação",
+      "Centro"
+    ],
+    "stage": "NOVO_LEAD",
+    "source": "Scraping Apify @trackfieldoficial",
+    "instagramEngagement": {
+      "storyViewed": false,
+      "postLiked": false,
+      "followed": false,
+      "followedBack": false,
+      "directSent": false
+    },
+    "stonePurchases": [],
+    "interactions": []
+  },
+  {
+    "id": "LEAD-007",
+    "name": "Renata Vianna",
+    "instagram": "renatavianna_pilates",
+    "avatar": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80",
+    "bio": "Instrutora Master de Pilates Clássico 🩰 | Consultora de Bem-Estar | Porto Alegre / Floripa",
+    "phone": "51999776655",
+    "email": "renata@viannapilates.com",
+    "city": "Porto Alegre",
+    "followers": 9800,
+    "score": 5,
+    "tags": [
+      "Pilates",
+      "Instrutora",
+      "Porto Alegre"
+    ],
+    "stage": "RECOMPRA",
+    "source": "Engajador @lululemonbrasil",
+    "instagramEngagement": {
+      "storyViewed": true,
+      "postLiked": true,
+      "followed": true,
+      "followedBack": true,
+      "directSent": true
+    },
+    "stonePurchases": [
+      {
+        "txId": "TX-STONE-9750",
+        "date": "2026-08-10",
+        "product": "Top Cross High Support (Branco Pérola)",
+        "amount": 219.0
+      },
+      {
+        "txId": "TX-STONE-9805",
+        "date": "2026-09-12",
+        "product": "Jaqueta Bomber Luxe Satin (Champagne)",
+        "amount": 489.0
+      }
+    ],
+    "interactions": [
+      {
+        "date": "2026-09-12T16:00:00",
+        "sender": "Herme Agent",
+        "channel": "WhatsApp",
+        "message": "Renata, seu pedido da Jaqueta Bomber já está a caminho via Sedex Express! Segue o rastreio."
+      }
+    ]
+  }
+]

@@ -1,0 +1,75 @@
+{
+  "bankAccounts": [
+    {
+      "id": "bank-01",
+      "bankName": "Banco Inter S.A.",
+      "agency": "0001",
+      "accountNumber": "9812440-1",
+      "cnpjId": "cnpj-01",
+      "currentBalance": 48250.30,
+      "lastSync": "2026-09-21T20:25:00"
+    }
+  ],
+  "reconciledTransactions": [
+    {
+      "id": "REC-MATCH-01",
+      "stoneTxCode": "TX-STONE-9801",
+      "saleAmount": 478.00,
+      "stoneSettledAmount": 478.00,
+      "bankStatementAmount": 478.00,
+      "settlementDate": "2026-09-21",
+      "difference": 0.0,
+      "aiConfidence": 0.99,
+      "aiRecommendation": "Match 100% exato de valor e horário (PIX D+0)",
+      "approvalStatus": "APPROVED",
+      "approvedBy": "Paulo Júnior (Diretor Executivo)",
+      "approvedAt": "2026-09-21T16:30:00",
+      "notes": "Conciliado e validado em 3 vias com sucesso."
+    },
+    {
+      "id": "REC-MATCH-02",
+      "stoneTxCode": "TX-STONE-9802",
+      "saleAmount": 818.00,
+      "stoneSettledAmount": 791.99,
+      "bankStatementAmount": 791.99,
+      "settlementDate": "2026-09-21",
+      "difference": 0.0,
+      "aiConfidence": 0.98,
+      "aiRecommendation": "Match exato de valor líquido após MDR 3,18% Stone",
+      "approvalStatus": "APPROVED",
+      "approvedBy": "Paulo Júnior (Diretor Executivo)",
+      "approvedAt": "2026-09-21T17:15:00",
+      "notes": "Crédito em conta Inter confirmado."
+    },
+    {
+      "id": "REC-MATCH-03",
+      "stoneTxCode": "TX-STONE-9806",
+      "saleAmount": 478.00,
+      "stoneSettledAmount": 462.80,
+      "bankStatementAmount": 462.80,
+      "settlementDate": "2026-09-21",
+      "difference": 0.0,
+      "aiConfidence": 0.97,
+      "aiRecommendation": "Depósito identificado no extrato Inter via Stone Pagamentos S.A. (Crédito D+1)",
+      "approvalStatus": "SUGGESTED_AI",
+      "approvedBy": null,
+      "approvedAt": null,
+      "notes": "Aguardando aprovação humana final do gestor financeiro."
+    },
+    {
+      "id": "REC-MATCH-04",
+      "stoneTxCode": "TX-STONE-9807",
+      "saleAmount": 478.00,
+      "stoneSettledAmount": 462.80,
+      "bankStatementAmount": 462.80,
+      "settlementDate": "2026-09-21",
+      "difference": 0.0,
+      "aiConfidence": 0.96,
+      "aiRecommendation": "Venda 2x parcelada com antecipação Stone D+1 aprovada",
+      "approvalStatus": "SUGGESTED_AI",
+      "approvedBy": null,
+      "approvedAt": null,
+      "notes": "Aguardando aprovação humana final do gestor financeiro."
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+[
+  {
+    "id": "TX-STONE-9807",
+    "timestamp": "2026-09-09T23:18:28.914431",
+    "customer": {
+      "name": "Fernanda D'Ávila (Aluna VIP)",
+      "joyPlan": "Membro JOY Club"
+    },
+    "channel": "POS_BALCAO",
+    "device": "Stone Smart POS P2 #01",
+    "paymentMethod": "CREDIT_CARD",
+    "installments": 1,
+    "grossAmount": 478.0,
+    "feeRate": 0.0318,
+    "netAmount": 462.8,
+    "status": "PAID",
+    "salesPerson": "Vendedora Titular",
+    "commissionAmount": 14.34,
+    "deliveryMode": "Retirada Balcão JOY",
+    "items": [
+      {
+        "name": "Peça SIÉ Wear",
+        "sku": "SIE-LEG-SCULPT-BLK",
+        "size": "M",
+        "qty": 1,
+        "price": 478.0
+      }
+    ]
+  },
+  {
+    "id": "TX-STONE-9806",
+    "timestamp": "2026-09-09T23:08:13.272490",
+    "customer": {
+      "name": "Fernanda D'Ávila (Aluna VIP)",
+      "joyPlan": "Membro JOY Club"
+    },
+    "channel": "POS_BALCAO",
+    "device": "Stone Smart POS P2 #01",
+    "paymentMethod": "CREDIT_CARD",
+    "installments": 1,
+    "grossAmount": 478.0,
+    "feeRate": 0.0318,
+    "netAmount": 462.8,
+    "status": "PAID",
+    "salesPerson": "Vendedora Titular",
+    "commissionAmount": 14.34,
+    "deliveryMode": "Retirada Balcão JOY",
+    "items": [
+      {
+        "name": "Peça SIÉ Wear",
+        "sku": "SIE-LEG-SCULPT-BLK",
+        "size": "M",
+        "qty": 1,
+        "price": 478.0
+      }
+    ]
+  },
+  {
+    "id": "TX-STONE-9801",
+    "timestamp": "2026-10-05T08:35:12-03:00",
+    "customer": {
+      "name": "Camila Guimarães",
+      "phone": "48991234567",
+      "joyPlan": "Clube VIP Wellness"
+    },
+    "channel": "POS_BALCAO",
+    "device": "Stone Smart POS P2 #01",
+    "paymentMethod": "PIX",
+    "installments": 1,
+    "grossAmount": 478.0,
+    "feeRate": 0.0,
+    "netAmount": 478.0,
+    "status": "PAID",
+    "salesPerson": "Vendedora Titular",
+    "commissionAmount": 14.34,
+    "items": [
+      {
+        "name": "Legging High Sculpt",
+        "sku": "SIE-LEG-SCULPT-BLK",
+        "size": "M",
+        "qty": 1,
+        "price": 289.0
+      },
+      {
+        "name": "Top Cross Back",
+        "sku": "SIE-TOP-CROSS-EMD",
+        "size": "M",
+        "qty": 1,
+        "price": 189.0
+      }
+    ]
+  },
+  {
+    "id": "TX-STONE-9802",
+    "timestamp": "2026-10-05T09:15:40-03:00",
+    "customer": {
+      "name": "Dra. Beatriz Silveira",
+      "phone": "48988776655",
+      "joyPlan": "Reformer Pilates + Musculação"
+    },
+    "channel": "WHATSAPP_LINK",
+    "device": "Stone Online API (Link)",
+    "paymentMethod": "CREDIT_CARD",
+    "brand": "Mastercard Black",
+    "installments": 3,
+    "grossAmount": 818.0,
+    "feeRate": 0.0431,
+    "netAmount": 782.74,
+    "status": "PAID",
+    "salesPerson": "Bot IA Concierge (WhatsApp)",
+    "commissionAmount": 0.0,
+    "deliveryMode": "Armário VIP #42 (JOY Club)",
+    "items": [
+      {
+        "name": "Macaquinho Long Halter",
+        "sku": "SIE-MACACO-GLOW-BUR",
+        "size": "P",
+        "qty": 1,
+        "price": 349.0
+      },
+      {
+        "name": "Jaqueta Bomber Soft Tech",
+        "sku": "SIE-CASACO-PUFF-CHMP",
+        "size": "P",
+        "qty": 1,
+        "price": 469.0
+      }
+    ]
+  },
+  {
+    "id": "TX-STONE-9803",
+    "timestamp": "2026-10-05T11:42:05-03:00",
+    "customer": {
+      "name": "Mariana Fontes",
+      "phone": "48999881122",
+      "joyPlan": "Musculação Master"
+    },
+    "channel": "POS_BALCAO",
+    "device": "Stone Smart POS P2 #01",
+    "paymentMethod": "DEBIT",
+    "brand": "Visa",
+    "installments": 1,
+    "grossAmount": 219.0,
+    "feeRate": 0.0089,
+    "netAmount": 217.05,
+    "status": "PAID",
+    "salesPerson": "Vendedora Titular",
+    "commissionAmount": 6.57,
+    "items": [
+      {
+        "name": "Short Biker Seamless",
+        "sku": "SIE-SHORT-SEAM-CHOC",
+        "size": "M",
+        "qty": 1,
+        "price": 219.0
+      }
+    ]
+  },
+  {
+    "id": "TX-STONE-9804",
+    "timestamp": "2026-10-05T17:50:22-03:00",
+    "customer": {
+      "name": "Fernanda D'Ávila",
+      "phone": "48981443322",
+      "joyPlan": "Clube VIP Wellness"
+    },
+    "channel": "POS_BALCAO",
+    "device": "Stone Smart POS P2 #01",
+    "paymentMethod": "CREDIT_CARD",
+    "brand": "Visa Infinite",
+    "installments": 2,
+    "grossAmount": 637.0,
+    "feeRate": 0.039,
+    "netAmount": 612.16,
+    "status": "PAID",
+    "salesPerson": "Vendedora Titular",
+    "commissionAmount": 19.11,
+    "items": [
+      {
+        "name": "Legging High Sculpt",
+        "sku": "SIE-LEG-SCULPT-BLK",
+        "size": "P",
+        "qty": 1,
+        "price": 289.0
+      },
+      {
+        "name": "Macaquinho Long Halter",
+        "sku": "SIE-MACACO-GLOW-BUR",
+        "size": "P",
+        "qty": 1,
+        "price": 348.0
+      }
+    ]
+  },
+  {
+    "id": "TX-STONE-9805",
+    "timestamp": "2026-10-05T18:30:15-03:00",
+    "customer": {
+      "name": "Juliana Becker",
+      "phone": "48996554433",
+      "joyPlan": "Beach Tennis + Spa"
+    },
+    "channel": "WHATSAPP_LINK",
+    "device": "Stone Online API (Link)",
+    "paymentMethod": "PIX",
+    "installments": 1,
+    "grossAmount": 348.0,
+    "feeRate": 0.0,
+    "netAmount": 348.0,
+    "status": "PAID",
+    "salesPerson": "Vendedora Titular",
+    "commissionAmount": 10.44,
+    "deliveryMode": "Retirada Balcão JOY",
+    "items": [
+      {
+        "name": "Top Cross Back",
+        "sku": "SIE-TOP-CROSS-EMD",
+        "size": "G",
+        "qty": 1,
+        "price": 189.0
+      },
+      {
+        "name": "Regata Muscle Tee Ultralight",
+        "sku": "SIE-REGATA-AIR-WHT",
+        "size": "G",
+        "qty": 1,
+        "price": 159.0
+      }
+    ]
+  }
+]

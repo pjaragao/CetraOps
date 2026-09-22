@@ -1,0 +1,206 @@
+{
+  "chartOfAccounts": [
+    {
+      "code": "1.0.0.00",
+      "name": "ATIVO",
+      "type": "SINTETICA",
+      "nature": "DEVEDORA",
+      "children": [
+        {
+          "code": "1.1.0.00",
+          "name": "ATIVO CIRCULANTE",
+          "type": "SINTETICA",
+          "nature": "DEVEDORA",
+          "children": [
+            { "code": "1.1.1.01", "name": "Caixa Geral / Fundo Fixo Balcão JOY", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.1.1.02", "name": "Banco Inter S.A. - Conta Corrente Matriz", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.1.2.01", "name": "Contas a Receber - Stone D+1 Cartões", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.1.2.02", "name": "Contas a Receber - Faturamento Corporativo D+30", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.1.3.01", "name": "Estoque de Mercadorias para Revenda (Peças SIÉ)", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.1.3.02", "name": "Estoque de Insumos & Sacolas Perfumadas Luxo", "type": "ANALITICA", "nature": "DEVEDORA" }
+          ]
+        },
+        {
+          "code": "1.2.0.00",
+          "name": "ATIVO NÃO CIRCULANTE",
+          "type": "SINTETICA",
+          "nature": "DEVEDORA",
+          "children": [
+            { "code": "1.2.1.01", "name": "Instalações & Benfeitorias Boutique JOY Floripa", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.2.1.02", "name": "Móveis, Araras & Armários VIP Room Service", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.2.1.03", "name": "Equipamentos Smart POS Stone P2/A8", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "1.2.2.01", "name": "Marca Registrada SIÉ Wear & Software", "type": "ANALITICA", "nature": "DEVEDORA" }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2.0.0.00",
+      "name": "PASSIVO",
+      "type": "SINTETICA",
+      "nature": "CREDORA",
+      "children": [
+        {
+          "code": "2.1.0.00",
+          "name": "PASSIVO CIRCULANTE",
+          "type": "SINTETICA",
+          "nature": "CREDORA",
+          "children": [
+            { "code": "2.1.1.01", "name": "Fornecedores Confecção Têxtil (30/60/90d)", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.2.01", "name": "Aluguel a Pagar - JOY Wellness Club (Carência)", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.3.01", "name": "Salários & Ordenados a Pagar", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.3.02", "name": "Comissões de Vendas Balcão/WA a Pagar", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.3.03", "name": "FGTS a Recolher (8%)", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.3.04", "name": "INSS a Recolher (Folha & Pró-Labore)", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.3.05", "name": "Provisão de 13º Salário (1/12)", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.3.06", "name": "Provisão de Férias + 1/3 Constitucional", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.1.4.01", "name": "DAS - Simples Nacional a Recolher", "type": "ANALITICA", "nature": "CREDORA" }
+          ]
+        },
+        {
+          "code": "2.2.0.00",
+          "name": "PATRIMÔNIO LÍQUIDO",
+          "type": "SINTETICA",
+          "nature": "CREDORA",
+          "children": [
+            { "code": "2.2.1.01", "name": "Capital Social Subscrito e Integralizado", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "2.2.2.01", "name": "Lucros Acumulados / Reserva de Expansão", "type": "ANALITICA", "nature": "CREDORA" }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3.0.0.00",
+      "name": "CUSTOS OPERACIONAIS (CMV)",
+      "type": "SINTETICA",
+      "nature": "DEVEDORA",
+      "children": [
+        { "code": "3.1.1.01", "name": "Custo das Peças Vendidas - Confecção Têxtil", "type": "ANALITICA", "nature": "DEVEDORA" },
+        { "code": "3.1.1.02", "name": "Custo de Embalagens de Luxo, Laços e Perfumes", "type": "ANALITICA", "nature": "DEVEDORA" },
+        { "code": "3.1.1.03", "name": "Custo de Tags Aromáticas e Lacres de Segurança", "type": "ANALITICA", "nature": "DEVEDORA" }
+      ]
+    },
+    {
+      "code": "4.0.0.00",
+      "name": "DESPESAS OPERACIONAIS",
+      "type": "SINTETICA",
+      "nature": "DEVEDORA",
+      "children": [
+        {
+          "code": "4.1.0.00",
+          "name": "DESPESAS COMERCIAIS & VENDAS",
+          "type": "SINTETICA",
+          "nature": "DEVEDORA",
+          "children": [
+            { "code": "4.1.1.01", "name": "Comissão Vendedora Titular (3% Balcão/WA)", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.1.2.01", "name": "Taxas MDR Stone (Crédito D+1, Débito, Antecipação)", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.1.3.01", "name": "Fretes e Entregas Motoboy VIP / Sedex Express", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.1.4.01", "name": "Comissões Joy Trainers VIP (Afiliados)", "type": "ANALITICA", "nature": "DEVEDORA" }
+          ]
+        },
+        {
+          "code": "4.2.0.00",
+          "name": "DESPESAS DE MARKETING & DROPS",
+          "type": "SINTETICA",
+          "nature": "DEVEDORA",
+          "children": [
+            { "code": "4.2.1.01", "name": "Eventos de Lançamento de Drops (DJ, Espumante)", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.2.2.01", "name": "Tráfego Pago Meta Ads (Instagram / Facebook)", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.2.3.01", "name": "Assinaturas Tecnológicas (Apify, WhatsApp Cloud API)", "type": "ANALITICA", "nature": "DEVEDORA" }
+          ]
+        },
+        {
+          "code": "4.3.0.00",
+          "name": "DESPESAS DE OCUPAÇÃO & ADMINISTRATIVAS",
+          "type": "SINTETICA",
+          "nature": "DEVEDORA",
+          "children": [
+            { "code": "4.3.1.01", "name": "Aluguel Fixo Boutique JOY Club (R$ 6.000/mês)", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.3.2.01", "name": "Honorários Contábeis & Fiscais", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.3.3.01", "name": "Pró-Labore dos Sócios Administradores", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "4.3.4.01", "name": "Energia, Internet & Limpeza Boutique", "type": "ANALITICA", "nature": "DEVEDORA" }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "5.0.0.00",
+      "name": "RECEITAS OPERACIONAIS",
+      "type": "SINTETICA",
+      "nature": "CREDORA",
+      "children": [
+        {
+          "code": "5.1.0.00",
+          "name": "RECEITA BRUTA DE VENDAS",
+          "type": "SINTETICA",
+          "nature": "CREDORA",
+          "children": [
+            { "code": "5.1.1.01", "name": "Vendas Balcão Boutique - Smart POS P2", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "5.1.1.02", "name": "Vendas WhatsApp Assistida - Links Stone", "type": "ANALITICA", "nature": "CREDORA" },
+            { "code": "5.1.1.03", "name": "Vendas Faturamento Corporativo & Parcerias VIP", "type": "ANALITICA", "nature": "CREDORA" }
+          ]
+        },
+        {
+          "code": "5.2.0.00",
+          "name": "DEDUÇÕES DA RECEITA BRUTA",
+          "type": "SINTETICA",
+          "nature": "DEVEDORA",
+          "children": [
+            { "code": "5.2.1.01", "name": "DAS - Simples Nacional (Anexo I - Comércio)", "type": "ANALITICA", "nature": "DEVEDORA" },
+            { "code": "5.2.2.01", "name": "Devoluções de Vendas e Descontos Concedidos", "type": "ANALITICA", "nature": "DEVEDORA" }
+          ]
+        }
+      ]
+    }
+  ],
+  "costCenters": [
+    {
+      "id": "CC-01",
+      "name": "Boutique JOY Club - Centro Floripa (Flagship)",
+      "type": "LOJA_PROPRIA",
+      "cnpjId": "cnpj-01",
+      "manager": "Mariana Ramos",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "CC-02",
+      "name": "Corner JOY Club - Balneário Camboriú",
+      "type": "CORNER",
+      "cnpjId": "cnpj-01",
+      "manager": "Tatiana Guimarães",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "CC-03",
+      "name": "Pop-up Store - Jurerê Internacional",
+      "type": "POPUP",
+      "cnpjId": "cnpj-01",
+      "manager": "Isabela Schütz",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "CC-04",
+      "name": "Corner Clube Porto Alegre",
+      "type": "CORNER",
+      "cnpjId": "cnpj-02",
+      "manager": "Camila Guimarães",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "CC-05",
+      "name": "Canal Digital WhatsApp & Concierge IA",
+      "type": "CANAL_DIGITAL",
+      "cnpjId": "cnpj-01",
+      "manager": "Herme Agent IA",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "CC-06",
+      "name": "Administração Geral & Governança SIÉ",
+      "type": "ADMINISTRATIVO",
+      "cnpjId": "cnpj-01",
+      "manager": "Paulo Júnior",
+      "status": "ACTIVE"
+    }
+  ]
+}

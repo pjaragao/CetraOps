@@ -1,0 +1,135 @@
+{
+  "rentNegotiated": 6000.0,
+  "gracePeriodMonths": 3,
+  "openingMonth": "Outubro/2026",
+  "monthlyFixedCostsRegular": 10502.50,
+  "monthlyFixedCostsGrace": 4502.50,
+  "eventProvisionMonthly": 2000.0,
+  "eventBudgetPerDrop": 4000.0,
+  "monthlyFixedCostsWithEvents": 12502.50,
+  "monthlyFixedCostsGraceWithEvents": 6502.50,
+  "capexTotal": 30000.0,
+  "markup": 2.40,
+  "cmvPct": 0.4167,
+  "grossMarginPct": 0.5833,
+  "netContributionMarginPct": 0.4584,
+  "stoneRates": {
+    "pix": 0.00,
+    "debit": 0.0089,
+    "credit1x": 0.0285,
+    "creditInstallments": 0.0450,
+    "weightedAverageD1": 0.0318
+  },
+  "salesPersonCommission": {
+    "salesSharePct": 0.60,
+    "commissionRatePct": 0.03,
+    "effectiveCommissionPct": 0.0180,
+    "laborChargesPct": 0.0051
+  },
+  "packagingLossesPct": 0.0150,
+  "simplesTaxPct": 0.0550,
+  "breakeven": {
+    "graceWithoutEvents": {
+      "fixedCost": 4502.50,
+      "monthlyRevenue": 9822.14,
+      "dailyRevenue": 377.77,
+      "monthlyPurchases": 4092.56,
+      "dailySalesCount": 0.9
+    },
+    "graceWithEvents": {
+      "fixedCost": 6502.50,
+      "monthlyRevenue": 14185.11,
+      "dailyRevenue": 545.58,
+      "monthlyPurchases": 5910.46,
+      "dailySalesCount": 1.3
+    },
+    "regularWithoutEvents": {
+      "fixedCost": 10502.50,
+      "monthlyRevenue": 22911.05,
+      "dailyRevenue": 881.19,
+      "monthlyPurchases": 9546.27,
+      "dailySalesCount": 2.1
+    },
+    "regularWithEvents": {
+      "fixedCost": 12502.50,
+      "monthlyRevenue": 27274.02,
+      "dailyRevenue": 1049.00,
+      "monthlyPurchases": 11364.17,
+      "dailySalesCount": 2.5
+    }
+  },
+  "scenarios": [
+    {
+      "id": "c1",
+      "name": "Cenário 1 (Payback 18 Meses)",
+      "monthlyRevenueTarget": 30909.82,
+      "monthlyPurchasesTarget": 12879.09,
+      "simplesRate": 0.055,
+      "netProfitMonthly": 1666.67,
+      "netMarginPct": 0.054,
+      "paybackMonths": 18.0,
+      "annualProfitRegular": 16767.50
+    },
+    {
+      "id": "c2",
+      "name": "Cenário 2 (Payback 12 Meses)",
+      "monthlyRevenueTarget": 32727.73,
+      "monthlyPurchasesTarget": 13636.55,
+      "simplesRate": 0.055,
+      "netProfitMonthly": 2500.00,
+      "netMarginPct": 0.076,
+      "paybackMonths": 12.0,
+      "annualProfitRegular": 26767.50
+    },
+    {
+      "id": "c3",
+      "name": "Cenário 3 (Payback 6 Meses)",
+      "monthlyRevenueTarget": 38181.44,
+      "monthlyPurchasesTarget": 15908.93,
+      "simplesRate": 0.055,
+      "netProfitMonthly": 5000.00,
+      "netMarginPct": 0.131,
+      "paybackMonths": 6.0,
+      "annualProfitRegular": 56767.50
+    },
+    {
+      "id": "c4",
+      "name": "Cenário 4 (Compra R$ 25k)",
+      "monthlyRevenueTarget": 60000.00,
+      "monthlyPurchasesTarget": 25000.00,
+      "simplesRate": 0.074,
+      "netProfitMonthly": 13861.70,
+      "netMarginPct": 0.231,
+      "paybackMonths": 2.2,
+      "annualProfitRegular": 163107.90
+    },
+    {
+      "id": "c5",
+      "name": "Cenário 5 (Compra R$ 30k)",
+      "monthlyRevenueTarget": 72000.00,
+      "monthlyPurchasesTarget": 30000.00,
+      "simplesRate": 0.082,
+      "netProfitMonthly": 18558.54,
+      "netMarginPct": 0.258,
+      "paybackMonths": 1.6,
+      "annualProfitRegular": 219469.98
+    },
+    {
+      "id": "c6",
+      "name": "Cenário 6 (Compra R$ 35k)",
+      "monthlyRevenueTarget": 84000.00,
+      "monthlyPurchasesTarget": 35000.00,
+      "simplesRate": 0.085,
+      "netProfitMonthly": 23483.38,
+      "netMarginPct": 0.280,
+      "paybackMonths": 1.3,
+      "annualProfitRegular": 278568.06
+    }
+  ],
+  "joyProjections": [
+    { "month": 1, "students": 400, "conversionPct": 0.10, "avgTicket": 420.0, "revenue": 16800.0 },
+    { "month": 3, "students": 650, "conversionPct": 0.12, "avgTicket": 430.0, "revenue": 33540.0 },
+    { "month": 6, "students": 1000, "conversionPct": 0.15, "avgTicket": 445.0, "revenue": 66750.0 },
+    { "month": 12, "students": 1100, "conversionPct": 0.16, "avgTicket": 450.0, "revenue": 79200.0 }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "employees": [
+    {
+      "id": "emp-001",
+      "name": "Mariana Ramos da Silva",
+      "cpf": "048.912.459-33",
+      "role": "Consultora de Vendas & Vendedora Titular",
+      "contractType": "CLT_FIXED_COMMISSION",
+      "contractLabel": "CLT (Fixo + Comissão)",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "baseSalary": 2400.00,
+      "commissionRates": {
+        "posDirect": 0.03,
+        "waLink": 0.03
+      },
+      "workSchedule": "Segunda a Sexta: 10h00 às 16h00 (Turno de 6h)",
+      "admissionDate": "2026-08-01",
+      "vacationInfo": {
+        "acquisitionPeriodStart": "2026-08-01",
+        "acquisitionPeriodEnd": "2027-07-31",
+        "daysBalance": 30,
+        "concessivePeriodDeadline": "2028-07-31",
+        "scheduledPeriods": [],
+        "status": "ACQUIRING"
+      },
+      "payrollCurrentMonth": {
+        "baseSalary": 2400.00,
+        "posSalesAmount": 23400.00,
+        "posCommission": 702.00,
+        "waSalesAmount": 10785.00,
+        "waCommission": 323.55,
+        "totalCommission": 1025.55,
+        "dsrAmount": 205.11,
+        "grossTotal": 3630.66,
+        "inssDeduction": 328.76,
+        "irrfDeduction": 84.12,
+        "netSalary": 3217.78,
+        "fgtsDeposit": 290.45,
+        "provision13th": 302.55,
+        "provisionVacation": 403.41
+      },
+      "status": "ACTIVE"
+    },
+    {
+      "id": "emp-002",
+      "name": "Juliana Silveira Nogueira",
+      "cpf": "089.412.309-88",
+      "role": "Assistente de Boutique & Apoio Concierge",
+      "contractType": "CLT_FIXED_COMMISSION",
+      "contractLabel": "CLT (Fixo + Comissão)",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "baseSalary": 1800.00,
+      "commissionRates": {
+        "posDirect": 0.015,
+        "waLink": 0.015
+      },
+      "workSchedule": "Segunda a Sexta: 15h30 às 21h30 (Turno de 6h)",
+      "admissionDate": "2026-08-15",
+      "vacationInfo": {
+        "acquisitionPeriodStart": "2026-08-15",
+        "acquisitionPeriodEnd": "2027-08-14",
+        "daysBalance": 30,
+        "concessivePeriodDeadline": "2028-08-14",
+        "scheduledPeriods": [],
+        "status": "ACQUIRING"
+      },
+      "payrollCurrentMonth": {
+        "baseSalary": 1800.00,
+        "posSalesAmount": 10785.00,
+        "posCommission": 161.77,
+        "waSalesAmount": 0.0,
+        "waCommission": 0.0,
+        "totalCommission": 161.77,
+        "dsrAmount": 32.35,
+        "grossTotal": 1994.12,
+        "inssDeduction": 156.47,
+        "irrfDeduction": 0.0,
+        "netSalary": 1837.65,
+        "fgtsDeposit": 159.53,
+        "provision13th": 166.18,
+        "provisionVacation": 221.57
+      },
+      "status": "ACTIVE"
+    },
+    {
+      "id": "emp-003",
+      "name": "Camila Becker de Souza",
+      "cpf": "051.882.119-02",
+      "role": "Consultora Exclusiva WhatsApp & Vendas Digitais",
+      "contractType": "COMMISSION_ONLY",
+      "contractLabel": "Comissionado Puro (100% Comissão)",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "baseSalary": 0.00,
+      "commissionRates": {
+        "posDirect": 0.08,
+        "waLink": 0.08
+      },
+      "workSchedule": "Flexível / Vendas Consultivas Remotas & Plantão VIP WhatsApp",
+      "admissionDate": "2026-08-20",
+      "vacationInfo": {
+        "daysBalance": 0,
+        "status": "NOT_APPLICABLE",
+        "notes": "Contrato de Representação / Prestação Comissionada (Sem férias CLT)"
+      },
+      "payrollCurrentMonth": {
+        "baseSalary": 0.00,
+        "posSalesAmount": 12800.00,
+        "posCommission": 1024.00,
+        "waSalesAmount": 15400.00,
+        "waCommission": 1232.00,
+        "totalCommission": 2256.00,
+        "dsrAmount": 0.00,
+        "grossTotal": 2256.00,
+        "inssDeduction": 0.00,
+        "irrfDeduction": 112.80,
+        "netSalary": 2143.20,
+        "fgtsDeposit": 0.00,
+        "provision13th": 0.00,
+        "provisionVacation": 0.00,
+        "payoutType": "RPA / NF-e Serviços (PJ/Autônomo)"
+      },
+      "status": "ACTIVE"
+    }
+  ],
+  "partnersProLabore": [
+    {
+      "id": "partner-01",
+      "name": "Paulo Júnior (Sócio Administrador)",
+      "cpf": "123.456.789-00",
+      "role": "Diretor Executivo & Estratégia",
+      "cnpjId": "cnpj-01",
+      "proLaboreGross": 4500.00,
+      "inssRate": 0.11,
+      "inssDeduction": 495.00,
+      "irrfDeduction": 245.30,
+      "netAmount": 3759.70
+    },
+    {
+      "id": "partner-02",
+      "name": "Sócia Co-Fundadora",
+      "cpf": "987.654.321-11",
+      "role": "Diretora Criativa & Curadoria de Moda",
+      "cnpjId": "cnpj-01",
+      "proLaboreGross": 4500.00,
+      "inssRate": 0.11,
+      "inssDeduction": 495.00,
+      "irrfDeduction": 245.30,
+      "netAmount": 3759.70
+    }
+  ]
+}

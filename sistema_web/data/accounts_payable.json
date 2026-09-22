@@ -1,0 +1,93 @@
+{
+  "payables": [
+    {
+      "id": "PAG-001",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "category": "FORNECEDOR_CMV",
+      "supplier": "SIÉ Confecção e Estamparia Têxtil LTDA",
+      "description": "Reposição Grade P/M/G Drop Outono (Parcela 1/3 - 30 dias)",
+      "documentNumber": "NF-e 4912",
+      "issueDate": "2026-09-01",
+      "dueDate": "2026-10-01",
+      "amount": 8333.33,
+      "paymentMethod": "BOLETO",
+      "status": "APPROVED",
+      "installmentsInfo": "1 de 3 (30/60/90d)"
+    },
+    {
+      "id": "PAG-002",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "category": "FORNECEDOR_CMV",
+      "supplier": "SIÉ Confecção e Estamparia Têxtil LTDA",
+      "description": "Reposição Grade P/M/G Drop Outono (Parcela 2/3 - 60 dias)",
+      "documentNumber": "NF-e 4912",
+      "issueDate": "2026-09-01",
+      "dueDate": "2026-11-01",
+      "amount": 8333.33,
+      "paymentMethod": "BOLETO",
+      "status": "PENDING",
+      "installmentsInfo": "2 de 3 (30/60/90d)"
+    },
+    {
+      "id": "PAG-003",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "category": "FORNECEDOR_CMV",
+      "supplier": "SIÉ Confecção e Estamparia Têxtil LTDA",
+      "description": "Reposição Grade P/M/G Drop Outono (Parcela 3/3 - 90 dias)",
+      "documentNumber": "NF-e 4912",
+      "issueDate": "2026-09-01",
+      "dueDate": "2026-12-01",
+      "amount": 8333.34,
+      "paymentMethod": "BOLETO",
+      "status": "PENDING",
+      "installmentsInfo": "3 de 3 (30/60/90d)"
+    },
+    {
+      "id": "PAG-004",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "category": "ALUGUEL",
+      "supplier": "JOY Wellness Club Locações Imobiliárias",
+      "description": "Aluguel Boutique JOY Floripa - Competência Setembro (Fase de Carência R$ 0)",
+      "documentNumber": "REC-JOY-0926",
+      "issueDate": "2026-09-05",
+      "dueDate": "2026-10-05",
+      "amount": 0.0,
+      "paymentMethod": "PIX",
+      "status": "PAID",
+      "notes": "Isenção total acordada: 3 meses de carência (Economia de R$ 18.000)."
+    },
+    {
+      "id": "PAG-005",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "category": "MARKETING_DROPS",
+      "supplier": "Floripa Eventos & Produções VIP",
+      "description": "DJ, Espumante e Ambientação Drop Inauguração JOY Club",
+      "documentNumber": "NF-e 182",
+      "issueDate": "2026-09-10",
+      "dueDate": "2026-09-25",
+      "amount": 4000.0,
+      "paymentMethod": "PIX",
+      "status": "APPROVED",
+      "notes": "Verba bimestral provisionada de drops."
+    },
+    {
+      "id": "PAG-006",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "category": "CONTABILIDADE",
+      "supplier": "Boutique Consultoria Contábil & Tributária SC",
+      "description": "Honorários Contábeis & Apuração Fiscal Competência Setembro",
+      "documentNumber": "DOC-CONT-09",
+      "issueDate": "2026-09-15",
+      "dueDate": "2026-10-10",
+      "amount": 1200.0,
+      "paymentMethod": "BOLETO",
+      "status": "PENDING"
+    }
+  ]
+}

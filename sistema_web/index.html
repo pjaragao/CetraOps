@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIÉ JOY OS | Gestão de Varejo de Luxo Integrada à Stone</title>
+  <meta name="description" content="Sistema Web Integrado de Gestão Comercial e Financeira para a SIÉ Wear no JOY Wellness Club em Florianópolis/SC. Conexão Stone POS, Planejamento de Compras, Drops e Bot de WhatsApp IA.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/growth_hub.css">
+</head>
+<body>
+
+<div class="app-container">
+  <!-- SIDEBAR NAVIGATION (COLLAPSIBLE) -->
+  <aside class="sidebar" id="app-sidebar">
+    <div class="brand-header">
+      <div class="brand-logo">
+        <div class="brand-badge-icon">✨</div>
+        <div class="brand-title-group">
+          <h1>SIÉ WEAR</h1>
+          <span>JOY WELLNESS CLUB</span>
+        </div>
+      </div>
+
+      <!-- Seletor de Loja na Barra Lateral com Nome Reduzido -->
+      <div class="sidebar-store-selector-box" title="Alternar Unidade / Ponto de Venda">
+        <select id="select-store-context" class="sidebar-store-select">
+          <option value="ALL">🌐 Todas as Lojas</option>
+          <option value="store-01" selected>👑 Boutique JOY Floripa</option>
+          <option value="store-02">📍 Loja Expansão SP</option>
+          <option value="store-03">📍 Loja Curitiba Batel</option>
+          <option value="store-04">📍 Loja Rio Ipanema</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Nav Menu (7 Thematic Macro-Modules) -->
+    <ul class="nav-menu">
+      <li class="nav-item active" data-module="financial" title="Financeiro & DRE">
+        <span class="nav-icon">📊</span>
+        <span>Financeiro & DRE</span>
+      </li>
+      <li class="nav-item" data-module="budget" title="Orçamento & Cenários">
+        <span class="nav-icon">📈</span>
+        <span>Orçamento & Cenários</span>
+      </li>
+      <li class="nav-item" data-module="growth" title="Aquisição & Growth">
+        <span class="nav-icon">🎯</span>
+        <span>Aquisição & Growth</span>
+      </li>
+      <li class="nav-item" data-module="retail" title="Loja & Operação">
+        <span class="nav-icon">🛍️</span>
+        <span>Loja & Operação</span>
+      </li>
+      <li class="nav-item" data-module="concierge" title="Atendimento & Concierge">
+        <span class="nav-icon">💬</span>
+        <span>Atendimento & IA</span>
+      </li>
+      <li class="nav-item" data-module="hr" title="Equipe & RH">
+        <span class="nav-icon">👥</span>
+        <span>Equipe & RH</span>
+      </li>
+      <li class="nav-item" data-module="cadastros" title="Central de Cadastros">
+        <span class="nav-icon">📇</span>
+        <span>Cadastros</span>
+      </li>
+      <li class="nav-item" data-module="settings" title="Central de Configurações">
+        <span class="nav-icon">⚙️</span>
+        <span>Configurações</span>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- MAIN VIEW WRAPPER -->
+  <div class="main-wrapper">
+    <!-- TOP APP BAR (UNIFIED SINGLE-ROW HEADER) -->
+    <header class="top-bar">
+      <div class="top-bar-row">
+        <button id="btn-sidebar-toggle-top" class="btn-sidebar-icon" title="Recolher / Expandir Menu Lateral">
+          ☰
+        </button>
+        <!-- DYNAMIC TOP SUB-NAVIGATION TABS (O PRIMEIRO BOTÃO É O MÓDULO ATIVO) -->
+        <nav class="top-subnav" id="top-subnav-container">
+          <!-- Injected dynamically via JS: 1st button is the active module, followed by subtabs -->
+        </nav>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="content-body">
+
+      <!-- =====================================================================
+           MODULE 1: FINANCEIRO & DRE
+           ===================================================================== -->
+      <section id="module-financial" class="module-container active">
+        <!-- Subpane 1: Dashboard de KPIs (Página Principal) -->
+        <div id="subpane-financial-kpi" class="module-subpane active">
+          <!-- 4 KPI Cards Row -->
+          <div class="kpi-grid" style="margin-bottom:24px;">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-emerald">💰</div>
+                <span class="kpi-badge positive">+18.2% vs Meta</span>
+              </div>
+              <div class="kpi-title">Faturamento Capturado Stone</div>
+              <div id="kpi-gross-revenue" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-subtitle">Smart POS + Links WhatsApp</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-gold">💎</div>
+                <span class="kpi-badge positive">Líquido</span>
+              </div>
+              <div class="kpi-title">Lucro Operacional Líquido</div>
+              <div id="kpi-net-profit" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-subtitle">Após CMV, Simples e Taxas Stone</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-rose">📈</div>
+                <span class="kpi-badge positive">Alta Rentabilidade</span>
+              </div>
+              <div class="kpi-title">Margem Líquida Real</div>
+              <div id="kpi-net-margin" class="kpi-value">0.0%</div>
+              <div class="kpi-subtitle">Target Cenário 4: 23,1%</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-blue">🛍️</div>
+                <span class="kpi-badge positive">Classe A/A+</span>
+              </div>
+              <div class="kpi-title">Ticket Médio por Venda</div>
+              <div id="kpi-avg-ticket" class="kpi-value">R$ 0,00</div>
+              <div class="kpi-subtitle">Meta balcão: R$ 420,00</div>
+            </div>
+          </div>
+
+          <!-- Two Columns: Executive Summary & Live Feed -->
+          <div class="dashboard-grid">
+            <!-- Executive Summary & Channels -->
+            <div class="content-card">
+              <div class="card-header">
+                <h4>📊 Resumo Executivo da Operação Stone</h4>
+                <span class="status-badge" style="background:rgba(0,168,104,0.12);color:var(--stone-green);">Boutique JOY Ativa</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px;border:1px solid var(--border-subtle);">
+                  <span style="font-size:0.75rem;color:var(--text-muted);">Vendas no Balcão (Smart POS):</span>
+                  <div style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:#FFF;margin-top:4px;">68,5%</div>
+                  <span style="font-size:0.7rem;color:var(--emerald-light);">Presencial no Clube</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px;border:1px solid var(--border-subtle);">
+                  <span style="font-size:0.75rem;color:var(--text-muted);">Vendas WhatsApp (Links Stone):</span>
+                  <div style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--gold-light);margin-top:4px;">31,5%</div>
+                  <span style="font-size:0.7rem;color:var(--blue-accent);">Venda Assistida IA</span>
+                </div>
+              </div>
+              <div style="padding:14px;background:rgba(15,23,42,0.6);border-radius:10px;border:1px solid var(--border-subtle);">
+                <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:8px;">
+                  <span style="color:var(--text-secondary);">Divisão por Meio de Pagamento:</span>
+                  <span style="color:#FFF;font-weight:600;">Crédito 3x (62%) • Pix (26%) • Débito (12%)</span>
+                </div>
+                <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;">
+                  <div style="width:62%;background:var(--gold-primary);" title="Crédito 3x: 62%"></div>
+                  <div style="width:26%;background:var(--emerald-primary);" title="Pix: 26%"></div>
+                  <div style="width:12%;background:var(--blue-accent);" title="Débito: 12%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stone Live Feed -->
+            <div class="content-card">
+              <div class="card-header">
+                <h4>⚡ Vendas Stone em Tempo Real</h4>
+                <span class="stone-live-pulse"></span>
+              </div>
+              <div id="stone-live-feed" class="feed-list">
+                <!-- Injected via JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 2: DRE Gerencial Detalhado -->
+        <div id="subpane-financial-dre" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <div>
+                <h4>📑 DRE Gerencial em Tempo Real (Realizado Stone vs. Orçado)</h4>
+                <p style="color:var(--text-secondary);font-size:0.8rem;">
+                  Comparativo detalhado de receitas, deduções de Simples Nacional, CMV e despesas operacionais da boutique.
+                </p>
+              </div>
+              <span style="font-size:0.75rem;color:var(--text-muted);">Valores em Reais (R$)</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Linha de Demonstração</th>
+                    <th style="text-align:right;">Realizado Stone</th>
+                    <th style="text-align:right;">Meta do Cenário</th>
+                    <th>% Atingido</th>
+                  </tr>
+                </thead>
+                <tbody id="dre-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 2: Simulador de Cenários & Payback -->
+        <div id="subpane-financial-scenarios" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <div>
+                <h4>📈 Simulador de Cenários & Projeções de Payback</h4>
+                <p style="color:var(--text-secondary);font-size:0.8rem;">
+                  Parametrização em tempo real de variações de vendas, aluguel, margem e velocidade de retorno do investimento.
+                </p>
+              </div>
+              <!-- Controles do Cenário (Local correto e natural!) -->
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <button id="btn-toggle-grace" class="status-badge badge-carencia" style="cursor:pointer;" title="Clique para alternar entre Fase de Carência e Operação Regular">
+                  🎁 <strong>3 Meses de Carência Ativos</strong> (Aluguel R$ 0)
+                </button>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:0.75rem;color:var(--text-muted);">Cenário Ativo:</span>
+                  <select id="scenario-select" style="background:#1E293B;color:#FFF;border:1px solid var(--border-subtle);border-radius:6px;padding:8px 12px;font-size:0.8rem;outline:none;">
+                    <option value="c1">Cenário 1: Payback 18 Meses (Venda R$ 30,9k)</option>
+                    <option value="c2">Cenário 2: Payback 12 Meses (Venda R$ 32,7k)</option>
+                    <option value="c3">Cenário 3: Payback 6 Meses (Venda R$ 38,2k)</option>
+                    <option value="c4" selected>Cenário 4: Compra R$ 25k (Venda R$ 60k)</option>
+                    <option value="c5">Cenário 5: Compra R$ 30k (Venda R$ 72k)</option>
+                    <option value="c6">Cenário 6: Compra R$ 35k (Venda R$ 84k)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabela Comparativa de Cenários -->
+            <div class="table-responsive" style="margin-top:16px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Cenário</th>
+                    <th>Faturamento Alvo</th>
+                    <th>Compras SIÉ (CMV)</th>
+                    <th>Lucro Líquido / Mês</th>
+                    <th>Margem Líquida</th>
+                    <th>Prazo Payback</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Cenário 1</strong> (Payback 18m)</td>
+                    <td>R$ 30.900,00</td>
+                    <td>R$ 12.875,00</td>
+                    <td>R$ 1.667,00</td>
+                    <td>5,4%</td>
+                    <td>18 Meses</td>
+                    <td><span class="lead-tag">Conservador</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cenário 2</strong> (Payback 12m)</td>
+                    <td>R$ 32.700,00</td>
+                    <td>R$ 13.625,00</td>
+                    <td>R$ 2.500,00</td>
+                    <td>7,6%</td>
+                    <td>12 Meses</td>
+                    <td><span class="lead-tag">Base</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cenário 3</strong> (Payback 6m)</td>
+                    <td>R$ 38.200,00</td>
+                    <td>R$ 15.917,00</td>
+                    <td>R$ 5.000,00</td>
+                    <td>13,1%</td>
+                    <td>6 Meses</td>
+                    <td><span class="lead-tag highlight">Acelerado</span></td>
+                  </tr>
+                  <tr style="background:rgba(212,175,55,0.08);border-left:3px solid var(--gold-primary);">
+                    <td><strong>Cenário 4 ⭐</strong> (Compra R$ 25k)</td>
+                    <td><strong>R$ 60.000,00</strong></td>
+                    <td>R$ 25.000,00</td>
+                    <td><strong style="color:var(--emerald-light);">R$ 13.882,00</strong></td>
+                    <td><strong>23,1%</strong></td>
+                    <td><strong>2,2 Meses</strong></td>
+                    <td><span class="roas-tag-luxury">Recomendado</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cenário 5</strong> (Compra R$ 30k)</td>
+                    <td>R$ 72.000,00</td>
+                    <td>R$ 30.000,00</td>
+                    <td><strong style="color:var(--emerald-light);">R$ 18.824,00</strong></td>
+                    <td>26,1%</td>
+                    <td>1,6 Meses</td>
+                    <td><span class="roas-tag-luxury">Alta Escala</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cenário 6</strong> (Compra R$ 35k)</td>
+                    <td>R$ 84.000,00</td>
+                    <td>R$ 35.000,00</td>
+                    <td><strong style="color:var(--emerald-light);">R$ 23.766,00</strong></td>
+                    <td>28,3%</td>
+                    <td>1,3 Meses</td>
+                    <td><span class="roas-tag-luxury">Top Performance</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 3: Termômetro de Breakeven & Aluguel -->
+        <div id="subpane-financial-breakeven" class="module-subpane">
+          <div class="hero-banner">
+            <div class="hero-grid">
+              <div class="hero-info">
+                <h3>Termômetro de Ponto de Equilíbrio & Aluguel</h3>
+                <p>
+                  Aluguel renegociado para <strong>R$ 6.000,00/mês</strong> com <strong>3 meses de carência</strong>.
+                  Inauguração confirmada para <strong>Outubro/2026</strong> na melhor temporada de fitness de Florianópolis.
+                </p>
+                <div class="hero-metrics-pill-row">
+                  <div class="metric-pill">
+                    <span>Aluguel Negociado:</span>
+                    <strong>R$ 6.000,00</strong>
+                  </div>
+                  <div class="metric-pill">
+                    <span>Economia Carência:</span>
+                    <strong>R$ 18.000,00</strong>
+                  </div>
+                  <div class="metric-pill">
+                    <span>Provisão Drops:</span>
+                    <strong>R$ 2.000,00/mês</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gauge Progress -->
+              <div class="thermometer-card">
+                <div class="thermometer-header">
+                  <span class="thermometer-label">Status Breakeven do Mês</span>
+                  <span id="breakeven-percent-label" class="thermometer-val">100%</span>
+                </div>
+                <div class="progress-track">
+                  <div id="breakeven-progress-fill" class="progress-bar-fill" style="width: 100%;"></div>
+                </div>
+                <div class="thermometer-footer">
+                  <span>Meta PE: <strong id="breakeven-target-val" style="color:#FFF;">R$ 14.185,11</strong></span>
+                  <span id="breakeven-remaining-val" style="color:var(--emerald-light);font-weight:600;">Meta Superada!</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 4: Contas a Receber (Configurável D+0, D+1, D+n, Parcelas) -->
+        <div id="subpane-financial-receivable" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderAccountsReceivable() -->
+        </div>
+
+        <!-- Subpane 5: Contas a Pagar (Fornecedores CMV, Aluguel, Drops & Serviços) -->
+        <div id="subpane-financial-payable" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderAccountsPayable() -->
+        </div>
+
+        <!-- Subpane 6: Conciliação Bancária em 3 Vias (Stone POS <-> Stone Extrato <-> Banco) -->
+        <div id="subpane-financial-reconciliation" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderBankReconciliation() -->
+        </div>
+
+        <!-- Subpane 7: Previsão de Impostos & Regime Fiscal CNPJ (Simples Nacional / Lucro Presumido) -->
+        <div id="subpane-financial-taxes" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderTaxForecast() -->
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE: ORÇAMENTO & CENÁRIOS (NOVO MACRO-MÓDULO DE GOVERNANÇA)
+           ===================================================================== -->
+      <section id="module-budget" class="module-container">
+        <!-- Subpane 1: Orçado vs. Realizado (Variance Analysis) -->
+        <div id="subpane-budget-variance" class="module-subpane active">
+          <!-- Dynamically populated by ErpController.renderBudgetVariance() -->
+        </div>
+
+        <!-- Subpane 2: Orçamento Base por Centro de Custo -->
+        <div id="subpane-budget-base" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderBudgetBase() -->
+        </div>
+
+        <!-- Subpane 3: Simulador de Cenários -->
+        <div id="subpane-budget-scenarios" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderBudgetScenarios() -->
+        </div>
+
+        <!-- Subpane 4: Ponto de Equilíbrio (Breakeven) -->
+        <div id="subpane-budget-breakeven" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderBudgetBreakeven() -->
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE 2: AQUISIÇÃO & GROWTH (CRM, SCRAPING & ADS)
+           ===================================================================== -->
+      <section id="module-growth" class="module-container">
+        <!-- Subpane 1: CRM & Funil High-Ticket (Lista Compacta Padrão + Kanban) -->
+        <div id="subpane-growth-crm" class="module-subpane active">
+          <div class="crm-header-row">
+            <div class="crm-search-bar">
+              <span>🔍</span>
+              <input type="text" id="crm-search-input" placeholder="Buscar por nome, @instagram, profissão, esporte ou cidade...">
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <!-- View Switcher -->
+              <div class="crm-view-toggle">
+                <button id="btn-crm-view-list" class="crm-view-btn active" title="Visualização em Lista Compacta">
+                  <span>📋</span>
+                  <span>Lista</span>
+                </button>
+                <button id="btn-crm-view-kanban" class="crm-view-btn" title="Visualização em Kanban">
+                  <span>🗂️</span>
+                  <span>Kanban</span>
+                </button>
+              </div>
+
+              <button id="btn-recalc-scores-quick" class="status-badge badge-carencia" style="cursor:pointer;" title="Recalcular pontuação de afinidade com base nas regras ativas">
+                🔄 <strong>Recalcular Scores</strong>
+              </button>
+              <button id="btn-sync-meta-quick" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.8rem;">
+                <span>⚡</span>
+                <span>Sincronizar Meta Ads</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 1. Compact List View (Default) -->
+          <div id="crm-list-view" class="content-card" style="padding:0;overflow:hidden;">
+            <div class="table-responsive">
+              <table class="crm-compact-table">
+                <thead>
+                  <tr>
+                    <th>Lead</th>
+                    <th>Estágio do Funil</th>
+                    <th>Score</th>
+                    <th>Profissão / Estilo de Vida</th>
+                    <th>Origem</th>
+                    <th>WhatsApp</th>
+                    <th style="text-align:right;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="crm-table-body">
+                  <!-- Injected dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 2. Kanban Board View (Alternative) -->
+          <div id="crm-kanban-view" style="display:none;">
+            <div class="kanban-board" id="kanban-board-container">
+              <!-- Columns injected dynamically via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 2: Extração (Apify & instagrapi) -->
+        <div id="subpane-growth-scraping" class="module-subpane">
+          <div class="scraping-grid">
+            <!-- Left: Controls & Triggers -->
+            <div class="scraping-control-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.1rem;">🚀 Painel de Disparo de Scraping</h4>
+                <div style="display:flex;gap:6px;">
+                  <span class="engine-pill-badge engine-apify">Apify Cloud 4G</span>
+                  <span class="engine-pill-badge engine-instagrapi">instagrapi Local</span>
+                </div>
+              </div>
+
+              <!-- Manual Target Insertion Form -->
+              <div style="background:rgba(15,23,42,0.6);border:1px solid var(--border-subtle);border-radius:10px;padding:16px;margin-bottom:16px;">
+                <h5 style="color:#FFF;font-size:0.85rem;margin-bottom:10px;">➕ Inserir Novo Alvo Manualmente</h5>
+                <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:10px;margin-bottom:10px;">
+                  <input type="text" id="input-new-target" placeholder="@perfil, #hashtag ou Localização" style="background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;padding:8px 12px;color:#FFF;font-size:0.8rem;outline:none;">
+                  <select id="select-target-type" style="background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;padding:8px 12px;color:#FFF;font-size:0.8rem;outline:none;">
+                    <option value="PROFILE">Perfil (@)</option>
+                    <option value="HASHTAG">Hashtag (#)</option>
+                    <option value="LOCATION">Local / Check-in</option>
+                  </select>
+                  <button id="btn-add-target" class="btn-primary-luxury" style="padding:8px 14px;font-size:0.8rem;">Adicionar</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <button id="btn-show-ai-suggestions" style="background:transparent;border:none;color:var(--gold-light);font-size:0.78rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                    <span>🤖</span>
+                    <span>Ver Sugestões Automáticas por IA (High-Ticket SC/RS)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Manual instagrapi Trigger Section -->
+              <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);border-radius:10px;padding:16px;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <span style="font-weight:700;color:var(--blue-accent);font-size:0.85rem;">⚡ Disparo Manual via instagrapi (Python Local)</span>
+                  <span style="font-size:0.72rem;color:var(--text-muted);">Delay Seguro: 3.5s - 8.0s</span>
+                </div>
+                <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;">
+                  Executa extração cirúrgica de bios, dados de contato e últimas postagens sem queimar contas.
+                </p>
+                <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:10px;">
+                  <select id="select-instagrapi-target" style="background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;padding:8px 12px;color:#FFF;font-size:0.8rem;outline:none;">
+                    <!-- Injected via JS -->
+                  </select>
+                  <select id="select-instagrapi-batch" style="background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;padding:8px 12px;color:#FFF;font-size:0.8rem;outline:none;">
+                    <option value="3">Lote: 3 Leads (Rápido)</option>
+                    <option value="5" selected>Lote: 5 Leads (Seguro)</option>
+                    <option value="10">Lote: 10 Leads</option>
+                  </select>
+                  <button id="btn-trigger-instagrapi" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.8rem;background:linear-gradient(135deg,#0284C7,#0369A1);">
+                    Disparar instagrapi
+                  </button>
+                </div>
+                <div id="instagrapi-status-box" style="margin-top:10px;display:none;font-size:0.78rem;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);"></div>
+              </div>
+
+              <!-- Apify Cloud Trigger Section -->
+              <div style="background:rgba(0,168,104,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <span style="font-weight:700;color:var(--emerald-primary);font-size:0.85rem;">☁️ Disparo Nuvem via Apify (Proxies Móveis 4G)</span>
+                  <span style="font-size:0.72rem;color:var(--text-muted);">Escala Massiva</span>
+                </div>
+                <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;">
+                  Extração em larga escala de curtidores e comentaristas com entrega direta via Webhook.
+                </p>
+                <div style="display:flex;gap:10px;">
+                  <button id="btn-trigger-apify" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.8rem;background:linear-gradient(135deg,#059669,#047857);">
+                    Iniciar Job Apify (@trackfieldoficial)
+                  </button>
+                </div>
+                <div id="apify-status-box" style="margin-top:10px;display:none;font-size:0.78rem;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);"></div>
+              </div>
+            </div>
+
+            <!-- Right: Targets List & AI Suggestions -->
+            <div class="scraping-control-card">
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.1rem;margin-bottom:14px;">🎯 Alvos de Extração Ativos</h4>
+              <table class="targets-table">
+                <thead>
+                  <tr>
+                    <th>Alvo / Semente</th>
+                    <th>Tipo</th>
+                    <th>Leads Encontrados</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="targets-table-body">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+
+              <!-- AI Suggestions Box -->
+              <div id="ai-suggestions-container" style="margin-top:20px;display:none;background:rgba(212,175,55,0.05);border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:14px;">
+                <h5 style="color:var(--gold-light);font-size:0.85rem;margin-bottom:8px;">🤖 Sugestões de Alvos pela IA:</h5>
+                <div id="ai-suggestions-list" style="display:flex;flex-direction:column;gap:8px;">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 3: Meta Ads Granular -->
+        <div id="subpane-growth-meta" class="module-subpane">
+          <!-- Overview Cards -->
+          <div class="meta-overview-grid" id="meta-kpi-container">
+            <!-- Injected via JS -->
+          </div>
+
+          <!-- Custom Audience & Sync Box -->
+          <div style="background:rgba(17,24,39,0.8);border:1px solid var(--border-active);border-radius:14px;padding:18px 22px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+            <div>
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.05rem;margin-bottom:4px;">
+                ⚡ Sincronização de Públicos Personalizados (Meta Marketing API)
+              </h4>
+              <p style="font-size:0.8rem;color:var(--text-secondary);">
+                Envia e-mails e telefones criptografados com <strong>hashing SHA-256</strong> para criação de <strong>Custom Audience</strong> e <strong>Lookalike 1%</strong> no Gerenciador de Anúncios.
+              </p>
+            </div>
+            <button id="btn-sync-meta-ads" class="btn-primary-luxury">
+              <span>⚡</span>
+              <span>Sincronizar Público Agora (SHA-256)</span>
+            </button>
+          </div>
+
+          <!-- Campaigns Hierarchy -->
+          <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.15rem;margin-bottom:14px;">
+            📊 Gestão Granular: Campanhas → Conjuntos de Anúncios → Criativos
+          </h4>
+          <div id="meta-campaigns-hierarchy">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Subpane 4: Playbook Anti-Ban Manual -->
+        <div id="subpane-growth-playbook" class="module-subpane">
+          <!-- Daily Progress Banner -->
+          <div class="playbook-progress-banner">
+            <div>
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.15rem;margin-bottom:4px;">
+                🛡️ Protocolo Seguro de Engajamento Manual (@sie.wear)
+              </h4>
+              <p style="font-size:0.8rem;color:var(--text-secondary);">
+                Checklist operacional para a equipe seguir "na mão" sem risco de bloqueio ou shadowban.
+              </p>
+            </div>
+
+            <div class="playbook-counters-row">
+              <div class="counter-pill">
+                <strong id="counter-stories">14/25</strong>
+                <span>Stories Vistos</span>
+              </div>
+              <div class="counter-pill">
+                <strong id="counter-likes">11/25</strong>
+                <span>Curtidas</span>
+              </div>
+              <div class="counter-pill">
+                <strong id="counter-follows">8/25</strong>
+                <span>Follows</span>
+              </div>
+              <div class="counter-pill">
+                <strong id="counter-directs">3/10</strong>
+                <span>Directs VIP</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SOP 4-Step Cards -->
+          <div class="sop-steps-grid">
+            <div class="sop-step-card">
+              <div class="sop-step-number">1</div>
+              <h5 style="color:#FFF;font-size:0.9rem;margin-bottom:6px;">Dia 1: Visualização de Story</h5>
+              <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:10px;">
+                Abra o perfil e assista aos Stories recentes. O lead nota o perfil @sie.wear na lista de visualizadores.
+              </p>
+              <div style="font-size:0.72rem;color:var(--emerald-light);">Limite: 25 a 30 perfis/dia</div>
+            </div>
+
+            <div class="sop-step-card">
+              <div class="sop-step-number">2</div>
+              <h5 style="color:#FFF;font-size:0.9rem;margin-bottom:6px;">Dia 2: Curtida Estratégica</h5>
+              <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:10px;">
+                Curta 1 ou 2 fotos recentes de treino, corrida ou beach tennis. Gera notificação sutil e positiva.
+              </p>
+              <div style="font-size:0.72rem;color:var(--emerald-light);">Limite: 1-2 fotos por perfil</div>
+            </div>
+
+            <div class="sop-step-card">
+              <div class="sop-step-number">3</div>
+              <h5 style="color:#FFF;font-size:0.9rem;margin-bottom:6px;">Dia 3: Conexão Oficial (Follow)</h5>
+              <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:10px;">
+                Siga a conta. O lead já reconhece a marca e a taxa de Follow-Back sobe para 35% a 45%!
+              </p>
+              <div style="font-size:0.72rem;color:var(--gold-light);">Intervalo mínimo: 180 segundos</div>
+            </div>
+
+            <div class="sop-step-card">
+              <div class="sop-step-number">4</div>
+              <h5 style="color:#FFF;font-size:0.9rem;margin-bottom:6px;">Dia 4+: Direct VIP de Boas-Vindas</h5>
+              <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:10px;">
+                Somente se o lead seguir de volta: envie um convite para um café ou experimentar o look na JOY.
+              </p>
+              <div style="font-size:0.72rem;color:var(--blue-accent);">Apenas leads que deram follow back</div>
+            </div>
+          </div>
+
+          <!-- Safe Timer & Lead Checklist -->
+          <div style="display:grid;grid-template-columns:1.8fr 1fr;gap:20px;">
+            <!-- Leads to engage table -->
+            <div class="scraping-control-card">
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.05rem;margin-bottom:12px;">
+                📋 Fila de Leads Qualificados para Execução Manual
+              </h4>
+              <div id="playbook-leads-list" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Interval Timer & Copyable Templates -->
+            <div class="scraping-control-card">
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.05rem;margin-bottom:12px;">
+                ⏱️ Cronômetro de Intervalo Seguro
+              </h4>
+              <div class="safe-timer-box">
+                <div id="timer-display" style="font-size:2rem;font-weight:800;color:var(--gold-light);font-family:var(--font-display);">
+                  03:00
+                </div>
+                <p style="font-size:0.75rem;color:var(--text-secondary);margin:8px 0 12px 0;">
+                  Aguarde o cronômetro zerar antes de realizar a próxima ação no Instagram para simular navegação humana 100% natural.
+                </p>
+                <button id="btn-start-timer" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.8rem;">
+                  Iniciar 180s
+                </button>
+              </div>
+
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.05rem;margin-top:20px;margin-bottom:10px;">
+                💬 Modelos de Direct para Copiar
+              </h4>
+              <div style="background:rgba(15,23,42,0.6);border:1px solid var(--border-subtle);border-radius:10px;padding:12px;font-size:0.78rem;color:var(--text-secondary);line-height:1.4;">
+                <p style="margin-bottom:8px;">"Olá! ✨ Que alegria ter você acompanhando a SIÉ Wear. Vimos seu treino em Floripa! Como estamos com boutique dentro da JOY Wellness Club no Centro, gostaríamos de te convidar para tomar um café com a gente e conhecer nossa nova coleção. Se quiser, separamos um look no seu tamanho para experimentar sem compromisso! 🎀"</p>
+                <button id="btn-copy-template-1" class="btn-wa-chip" style="font-size:0.72rem;">Copiar Modelo 1</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE 3: LOJA & OPERAÇÃO (STONE POS, ESTOQUE, COMPRAS & DROPS)
+           ===================================================================== -->
+      <section id="module-retail" class="module-container">
+        <!-- Subpane 1: Frente de Caixa & Vendas (Dedicada) -->
+        <div id="subpane-retail-sales" class="module-subpane active">
+          <!-- Mini KPIs de Vendas -->
+          <div class="sales-kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-emerald">⚡</div>
+                <span class="kpi-badge positive">Hoje</span>
+              </div>
+              <div class="kpi-title">Faturamento do Dia</div>
+              <div id="sales-kpi-today-revenue" class="kpi-value">R$ 2.724,00</div>
+              <div class="kpi-subtitle">6 Vendas Registradas</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-blue">💳</div>
+                <span class="kpi-badge positive">Smart POS P2</span>
+              </div>
+              <div class="kpi-title">Vendas Balcão JOY</div>
+              <div id="sales-kpi-pos-revenue" class="kpi-value">R$ 1.906,00</div>
+              <div class="kpi-subtitle">70% da Receita de Hoje</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-gold">📱</div>
+                <span class="kpi-badge positive">Concierge IA</span>
+              </div>
+              <div class="kpi-title">Links WhatsApp Stone</div>
+              <div id="sales-kpi-wa-revenue" class="kpi-value">R$ 818,00</div>
+              <div class="kpi-subtitle">30% da Receita de Hoje</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-icon icon-rose">🛍️</div>
+                <span class="kpi-badge positive">High-Ticket</span>
+              </div>
+              <div class="kpi-title">Ticket Médio Hoje</div>
+              <div id="sales-kpi-avg-ticket" class="kpi-value">R$ 454,00</div>
+              <div class="kpi-subtitle">Acima da meta (R$ 420,00)</div>
+            </div>
+          </div>
+
+          <!-- Sales Layout: Quick Registration Form + Real-Time Sales Log -->
+          <div class="pos-sales-layout">
+            <!-- Left: Quick POS Sale Registration -->
+            <div class="sales-form-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:1.4rem;">⚡</span>
+                  <div>
+                    <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.1rem;">Frente de Caixa & Registro de Venda</h4>
+                    <span style="font-size:0.75rem;color:var(--emerald-light);">🟢 Terminal Stone Smart POS P2 Conectado</span>
+                  </div>
+                </div>
+                <span class="engine-pill-badge engine-apify">Emissão NFC-e SEFAZ/SC</span>
+              </div>
+
+              <form id="form-pos-direct-sale">
+                <div style="margin-bottom:14px;">
+                  <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">Cliente / Aluna JOY:</label>
+                  <input type="text" id="pos-sale-customer" placeholder="Ex: Dra. Camila Guimarães (Aluna VIP)" required style="width:100%;padding:10px 14px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;font-size:0.85rem;outline:none;">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-bottom:14px;">
+                  <div>
+                    <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">Peça / Produto do Catálogo:</label>
+                    <select id="pos-sale-product" style="width:100%;padding:10px 14px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;font-size:0.85rem;outline:none;">
+                      <option value="478.00" data-name="Legging Seamless Sculpt JOY - M" selected>Legging Seamless Sculpt JOY (R$ 478,00)</option>
+                      <option value="328.00" data-name="Top Alta Sustentação Strappy - M">Top Alta Sustentação Strappy (R$ 328,00)</option>
+                      <option value="598.00" data-name="Jaqueta Corta-Vento Silk Touch - P">Jaqueta Corta-Vento Silk Touch (R$ 598,00)</option>
+                      <option value="418.00" data-name="Macacão Joy Club Ribbed - M">Macacão Joy Club Ribbed (R$ 418,00)</option>
+                      <option value="268.00" data-name="Shorts Duplo Performance - P">Shorts Duplo Performance (R$ 268,00)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">Valor Bruto (R$):</label>
+                    <input type="number" id="pos-sale-amount" value="478.00" step="0.01" required style="width:100%;padding:10px 14px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:var(--gold-light);font-size:1rem;font-weight:700;outline:none;">
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+                  <div>
+                    <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">Meio de Pagamento Stone:</label>
+                    <select id="pos-sale-method" style="width:100%;padding:10px 14px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;font-size:0.85rem;outline:none;">
+                      <option value="PIX">PIX Instantâneo (Taxa 0% - D+0)</option>
+                      <option value="DEBIT">Cartão Débito (Taxa 0,89% - D+1)</option>
+                      <option value="CREDIT_CARD" selected>Crédito até 3x (Taxa 3,18% - D+1)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">Canal da Venda:</label>
+                    <select id="pos-sale-channel" style="width:100%;padding:10px 14px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;font-size:0.85rem;outline:none;">
+                      <option value="POS_BALCAO" selected>Balcão JOY (Smart POS P2)</option>
+                      <option value="WHATSAPP_LINK">WhatsApp Link (Concierge IA)</option>
+                      <option value="LOCKER_VIP">Armário VIP (Vestiário JOY)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Live Sale Calculation Breakdown -->
+                <div style="background:rgba(15,23,42,0.8);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;margin-bottom:20px;">
+                  <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
+                    <span style="color:var(--text-muted);">Taxa Stone Estimada:</span>
+                    <span id="pos-sale-fee-display" style="color:#FFF;font-weight:600;">- R$ 15,20 (3,18%)</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
+                    <span style="color:var(--text-muted);">CMV Estimado (41,67%):</span>
+                    <span id="pos-sale-cmv-display" style="color:var(--text-secondary);">- R$ 199,18</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.9rem;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;margin-top:6px;">
+                    <strong style="color:var(--gold-light);">Líquido a Receber (D+1):</strong>
+                    <strong id="pos-sale-net-display" style="color:var(--emerald-light);font-size:1.05rem;">R$ 462,80</strong>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn-primary-luxury" style="width:100%;padding:14px;font-size:0.95rem;justify-content:center;">
+                  <span>⚡</span>
+                  <span>Registrar Venda Stone & Emitir NFC-e</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Right: Today's Live Sales Feed & Quick Conciliation -->
+            <div class="content-card">
+              <div class="card-header">
+                <div>
+                  <h4>📋 Extrato de Vendas em Tempo Real</h4>
+                  <p style="color:var(--text-secondary);font-size:0.8rem;">
+                    Conciliação automática Stone com emissão fiscal e rastreabilidade por canal.
+                  </p>
+                </div>
+                <span class="stone-live-pulse"></span>
+              </div>
+
+              <div class="table-responsive" style="max-height:450px;overflow-y:auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Hora</th>
+                      <th>Cliente</th>
+                      <th>Canal</th>
+                      <th>Meio</th>
+                      <th style="text-align:right;">Bruto</th>
+                      <th style="text-align:right;">Líquido</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pos-today-sales-table">
+                    <!-- Injected dynamically via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 2: Terminal PDV & Extrato Stone -->
+        <div id="subpane-retail-pos" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <h4>💳 Hub de Integração Stone (POS & Stone Online API)</h4>
+              <span class="status-badge" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border:1px solid rgba(0,168,104,0.3);">
+                API Online: https://online.stone.com.br/
+              </span>
+            </div>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:20px;">
+              A Stone é o motor oficial de pagamentos e frente de caixa da boutique no JOY Wellness Club:
+              controle de estoque físico, emissão de NFC-e com envio direto à SEFAZ de Santa Catarina, split de recebíveis e liquidação em D+1.
+            </p>
+
+            <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:16px;margin-bottom:24px;">
+              <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px;border:1px solid var(--border-subtle);">
+                <span style="color:var(--text-muted);font-size:0.75rem;">StoneCode Estabelecimento:</span>
+                <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:#FFF;">84729104</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px;border:1px solid var(--border-subtle);">
+                <span style="color:var(--text-muted);font-size:0.75rem;">Terminais Smart POS:</span>
+                <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--emerald-light);">2 Equipamentos (P2 + A8)</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:10px;border:1px solid var(--border-subtle);">
+                <span style="color:var(--text-muted);font-size:0.75rem;">Liquidação Bancária:</span>
+                <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--gold-light);">D+1 Antecipado Automático</div>
+              </div>
+            </div>
+
+            <h5 style="margin-bottom:12px;color:#FFF;">Extrato de Vendas Recentes & Conciliação Stone</h5>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Código Stone</th>
+                    <th>Data/Hora</th>
+                    <th>Cliente JOY</th>
+                    <th>Dispositivo / Canal</th>
+                    <th>Meio / Bandeira</th>
+                    <th style="text-align:right;">Valor Bruto</th>
+                    <th style="text-align:right;">Valor Líquido</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="stone-all-transactions">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 2: Catálogo & Grade P/M/G -->
+        <div id="subpane-retail-catalog" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <div>
+                <h4>📦 Catálogo de Peças & Estoque por Tamanho (ERP Stone)</h4>
+                <p style="color:var(--text-secondary);font-size:0.8rem;">
+                  Acompanhamento de grade física disponível no balcão e no estoque de apoio do clube JOY.
+                </p>
+              </div>
+            </div>
+            <div id="retail-catalog-table-container" style="margin-top:16px;">
+              <!-- Dynamic catalog inventory table -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 3: Planejamento de Compras (Curva ABC) -->
+        <div id="subpane-retail-purchasing" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <div>
+                <h4>🛒 Planejamento de Compras Baseado em Giro Real (Stone Pro)</h4>
+                <p style="color:var(--text-secondary);font-size:0.8rem;">
+                  Sugestão de reposição para a confecção SIÉ com cálculo de velocidade de vendas, curva ABC e previsão de ruptura.
+                </p>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Orçamento de Reposição Sugerido:</span>
+                <div id="purchasing-total-cost" style="font-family:var(--font-display);font-size:1.3rem;font-weight:700;color:var(--gold-light);">
+                  R$ 0,00
+                </div>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Produto / SKU</th>
+                    <th>Curva ABC</th>
+                    <th style="text-align:right;">Estoque Atual</th>
+                    <th>Giro Semanal</th>
+                    <th>Previsão de Ruptura</th>
+                    <th>Grade Sugerida</th>
+                    <th style="text-align:right;">Qtd Sugerida</th>
+                    <th style="text-align:right;">Custo Total</th>
+                  </tr>
+                </thead>
+                <tbody id="purchasing-items-table">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="margin-top:20px;padding:16px;background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.25);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="color:var(--gold-light);">Condição de Pagamento Especial Fornecedor:</strong>
+                <span style="font-size:0.82rem;color:var(--text-secondary);margin-left:8px;">Boletos em 30 / 60 / 90 dias (3x iguais de 33,33%) sem incidência de juros.</span>
+              </div>
+              <button class="btn-primary-luxury" onclick="alert('Pedido de Compra gerado e exportado com sucesso em PDF para a confecção da SIÉ Wear!')">
+                Emitir Pedido SIÉ Wear
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 4: Drops & Eventos -->
+        <div id="subpane-retail-drops" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <div>
+                <h4>🍸 Calendário Oficial de Drops & Ativações no JOY Club</h4>
+                <p style="color:var(--text-secondary);font-size:0.8rem;">
+                  Orçamento de <strong>R$ 4.000,00 por evento</strong> a cada 60 dias (Inauguração no Mês 1 em Outubro, M3 em Dezembro, etc.).
+                </p>
+              </div>
+              <span class="status-badge" style="background:rgba(212,175,55,0.15);color:var(--gold-light);">
+                6 Eventos / Ano 1 (R$ 24k total)
+              </span>
+            </div>
+
+            <div id="marketing-drops-container">
+              <!-- Injected via JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 5: JOY Trainers VIP -->
+        <div id="subpane-retail-trainers" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <h4>🏋️ Programa "JOY Trainers VIP" (Parcerias com Personais & Instrutores)</h4>
+              <span class="badge-pill" style="background:rgba(16,185,129,0.2);color:var(--emerald-light);">Comissão 8% a 10%</span>
+            </div>
+            <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:16px;">
+              Alunas confiam na indicação dos seus professores de Pilates, Yoga e Personais. Cada aluna que compra com o cupom ganha 10% de desconto na 1ª compra e o instrutor acumula créditos em produtos SIÉ.
+            </p>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Instrutor / Personal</th>
+                    <th>Modalidade JOY</th>
+                    <th>Cupom Exclusivo</th>
+                    <th style="text-align:right;">Vendas Geradas</th>
+                    <th>Alunas Indicadas</th>
+                    <th style="text-align:right;">Créditos em Loja</th>
+                  </tr>
+                </thead>
+                <tbody id="trainers-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE 4: ATENDIMENTO & CONCIERGE (HERME AGENT & WHATSAPP)
+           ===================================================================== -->
+      <section id="module-concierge" class="module-container">
+        <!-- Subpane 1: Dashboard em Tempo Real (Métricas & Atendimentos Ativos) -->
+        <div id="subpane-concierge-dashboard" class="module-subpane active">
+          <!-- Injected via ErpController.renderAiConciergeDashboard() -->
+        </div>
+
+        <!-- Subpane 2: Herme Agent IA (Vendedor & ERP) -->
+        <div id="subpane-concierge-herme" class="module-subpane">
+          <div class="herme-simulator-layout">
+            <!-- Chat Simulator -->
+            <div class="scraping-control-card">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border-subtle);">
+                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gold-primary),#B8860B);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+                  🤖
+                </div>
+                <div>
+                  <h4 style="color:#FFF;font-family:var(--font-display);font-size:1rem;">Herme Agent • Concierge & Vendedor VIP</h4>
+                  <span style="font-size:0.75rem;color:var(--emerald-light);">🟢 Conectado ao ERP Stone & WhatsApp Cloud API</span>
+                </div>
+              </div>
+
+              <!-- Chat messages container -->
+              <div id="herme-chat-log" style="height:350px;overflow-y:auto;background:rgba(15,23,42,0.7);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;">
+                <!-- Messages injected via JS -->
+              </div>
+
+              <!-- Quick chips -->
+              <div id="herme-quick-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+                <!-- Injected via JS -->
+              </div>
+
+              <!-- Input bar -->
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="input-herme-msg" placeholder="Digite uma pergunta sobre estoque, tamanho, entrega ou link..." style="flex:1;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;padding:10px 14px;color:#FFF;font-size:0.85rem;outline:none;">
+                <button id="btn-send-herme-msg" class="btn-primary-luxury" style="padding:10px 18px;">Enviar</button>
+              </div>
+            </div>
+
+            <!-- Right: ERP Stock & Delivery Calculator -->
+            <div class="herme-stock-preview">
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.05rem;margin-bottom:12px;">📦 Estoque ao Vivo no ERP (`stone_catalog.json`)</h4>
+              <div id="erp-live-stock-container" style="display:flex;flex-direction:column;gap:10px;max-height:220px;overflow-y:auto;padding-right:6px;">
+                <!-- Injected via JS -->
+              </div>
+
+              <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.05rem;margin-top:20px;margin-bottom:8px;">🛵 Modalidades de Entrega & Retirada</h4>
+              <div class="delivery-modes-grid">
+                <div class="delivery-box">
+                  <div style="font-size:1.2rem;margin-bottom:4px;">🛵</div>
+                  <strong style="color:#FFF;">Motoboy VIP</strong>
+                  <div style="color:var(--gold-light);font-weight:700;">R$ 25,00</div>
+                  <span style="font-size:0.7rem;color:var(--text-muted);">Floripa em 3h</span>
+                </div>
+                <div class="delivery-box">
+                  <div style="font-size:1.2rem;margin-bottom:4px;">📦</div>
+                  <strong style="color:#FFF;">Sedex Express</strong>
+                  <div style="color:var(--gold-light);font-weight:700;">R$ 32,00</div>
+                  <span style="font-size:0.7rem;color:var(--text-muted);">SC e RS (1-2d)</span>
+                </div>
+                <div class="delivery-box" style="border-color:var(--emerald-primary);">
+                  <div style="font-size:1.2rem;margin-bottom:4px;">🎀</div>
+                  <strong style="color:#FFF;">Armário JOY</strong>
+                  <div style="color:var(--emerald-light);font-weight:700;">GRÁTIS</div>
+                  <span style="font-size:0.7rem;color:var(--text-muted);">Provar no Clube</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 2: WhatsApp Concierge (Simulador de Telefone) -->
+        <div id="subpane-concierge-whatsapp" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <div>
+                <h4>💬 Venda Assistida por WhatsApp com IA Concierge</h4>
+                <p style="color:var(--text-secondary);font-size:0.8rem;">
+                  Atendimento consultivo 24/7 com inteligência artificial, recomendação de looks por modalidade, consulta de grade na Stone e checkout instantâneo.
+                </p>
+              </div>
+              <span class="status-badge" style="background:rgba(0,168,104,0.15);color:var(--stone-green);">
+                Stone Checkout Integrado
+              </span>
+            </div>
+
+            <div class="whatsapp-sim-container">
+              <!-- Smartphone Shell -->
+              <div class="smartphone-frame">
+                <div class="phone-speaker-notch">
+                  <div class="notch-pill"></div>
+                </div>
+
+                <div class="whatsapp-header">
+                  <div class="wa-avatar">✨</div>
+                  <div class="wa-contact-info">
+                    <h5>SIÉ Wear Concierge VIP</h5>
+                    <span>● Online • Loja JOY Club</span>
+                  </div>
+                </div>
+
+                <div id="wa-chat-area" class="wa-chat-area">
+                  <!-- Chat Bubbles injected via JS -->
+                </div>
+
+                <!-- Quick action chips -->
+                <div id="wa-chips-area" class="wa-quick-actions">
+                  <!-- Injected via JS -->
+                </div>
+
+                <div class="wa-input-bar">
+                  <input type="text" id="wa-input-text" placeholder="Digite uma mensagem para a IA..." autocomplete="off">
+                  <button id="btn-wa-send">➤</button>
+                </div>
+              </div>
+
+              <!-- Features & Room Service Info -->
+              <div style="display:flex;flex-direction:column;gap:18px;">
+                <div style="background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;border:1px solid var(--border-subtle);">
+                  <h5 style="color:var(--gold-light);margin-bottom:8px;font-size:0.95rem;">🎀 Serviço Exclusivo: "Armário VIP / Room Service"</h5>
+                  <p style="color:var(--text-secondary);font-size:0.82rem;line-height:1.5;">
+                    A aluna agenda sua aula de Reformer Pilates ou musculação e pede um look pelo WhatsApp.
+                    A vendedora da loja coloca as peças na cabine ou armário do vestiário com aromatizador SIÉ.
+                    A aluna experimenta com total conforto e privacidade. Se gostar, paga no link Stone ou balcão!
+                  </p>
+                </div>
+
+                <div style="background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;border:1px solid var(--border-subtle);">
+                  <h5 style="color:var(--emerald-light);margin-bottom:8px;font-size:0.95rem;">⚡ Links de Pagamento Stone Dinâmicos</h5>
+                  <p style="color:var(--text-secondary);font-size:0.82rem;line-height:1.5;">
+                    A IA gera links de pagamento seguros da Stone diretamente dentro da conversa, com suporte a parcelamento em até 3x sem juros e chave Pix com conciliação automática.
+                  </p>
+                </div>
+
+                <div style="background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;border:1px solid var(--border-subtle);">
+                  <h5 style="color:#FFF;margin-bottom:8px;font-size:0.95rem;">👩‍💼 Transbordo Suave para a Vendedora da Loja</h5>
+                  <p style="color:var(--text-secondary);font-size:0.82rem;line-height:1.5;">
+                    Sempre que a aluna solicita atendimento humano ou personalização sob medida, a conversa é transferida para o WhatsApp da vendedora no PDV, preservando a comissão de 3% da titular.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 3: Armário VIP / Room Service -->
+        <div id="subpane-concierge-locker" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <h4>🎀 Gestão do Serviço "Armário VIP" (Room Service no Vestiário JOY)</h4>
+              <span class="status-badge" style="background:rgba(212,175,55,0.15);color:var(--gold-light);">Experiência High-End</span>
+            </div>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:20px;">
+              Fluxo onde a aluna solicita um look e a vendedora o deixa preparado no armário numerado do vestiário antes do treino.
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;">
+              <div class="param-card">
+                <label>Taxa de Conversão do Armário VIP:</label>
+                <div class="param-value" style="color:var(--emerald-light);">74,2%</div>
+                <p>3 em cada 4 alunas que experimentam no armário compram a peça.</p>
+              </div>
+              <div class="param-card">
+                <label>Ticket Médio no Armário VIP:</label>
+                <div class="param-value">R$ 568,00</div>
+                <p>Geralmente levam o conjunto completo (Legging + Top + Casaco).</p>
+              </div>
+              <div class="param-card">
+                <label>Tempo Médio de Preparação:</label>
+                <div class="param-value" style="color:var(--blue-accent);">15 Minutos</div>
+                <p>Separado pela vendedora com tag aromática e QR Code Stone.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 4: Insights & Varejo de Luxo -->
+        <div id="subpane-concierge-insights" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <h4>💡 Insights & Inovações Estratégicas para o Varejo de Luxo no JOY Club</h4>
+              <span class="status-badge badge-carencia">Vantagens Competitivas</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:20px;margin-top:14px;">
+              <div style="background:rgba(255,255,255,0.02);padding:20px;border-radius:12px;border:1px solid var(--border-subtle);">
+                <div style="font-size:1.8rem;margin-bottom:8px;">🚪</div>
+                <h5 style="color:#FFF;font-size:1rem;margin-bottom:6px;">1. Armário VIP / Concierge no Vestiário</h5>
+                <p style="color:var(--text-secondary);font-size:0.82rem;">
+                  Elimina a barreira de entrada da aluna ter que "entrar na loja". A peça vai até o armário dela no vestiário com tag personalizada. Fricção zero.
+                </p>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.02);padding:20px;border-radius:12px;border:1px solid var(--border-subtle);">
+                <div style="font-size:1.8rem;margin-bottom:8px;">⏰</div>
+                <h5 style="color:#FFF;font-size:1rem;margin-bottom:6px;">2. Heatmap de Horários de Pico da JOY</h5>
+                <p style="color:var(--text-secondary);font-size:0.82rem;">
+                  O pico de alunas ocorre das 07h00 às 09h30 e das 17h30 às 20h00. O turno de 6h da vendedora cobre os horários nobres de saída das aulas de Reformer Pilates.
+                </p>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.02);padding:20px;border-radius:12px;border:1px solid var(--border-subtle);">
+                <div style="font-size:1.8rem;margin-bottom:8px;">🎁</div>
+                <h5 style="color:#FFF;font-size:1rem;margin-bottom:6px;">3. Assinatura "Drop Box Trimestral" Stone</h5>
+                <p style="color:var(--text-secondary);font-size:0.82rem;">
+                  Alunas VIP assinam uma caixa recorrente cobrada a cada 90 dias na Stone. A cada troca de estação, recebem um conjunto surpresa curado com desconto especial.
+                </p>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.02);padding:20px;border-radius:12px;border:1px solid var(--border-subtle);">
+                <div style="font-size:1.8rem;margin-bottom:8px;">🛡️</div>
+                <h5 style="color:#FFF;font-size:1rem;margin-bottom:6px;">4. Alerta Anti-Estoque Morto (35 Dias)</h5>
+                <p style="color:var(--text-secondary);font-size:0.82rem;">
+                  Se qualquer SKU passar de 35 dias sem venda na Stone, o sistema sinaliza no dashboard para reposicionamento no manequim de entrada ou oferta relâmpago.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE 5: CENTRAL DE CONFIGURAÇÕES & INTEGRAÇÕES
+           ===================================================================== -->
+      <section id="module-settings" class="module-container">
+        <!-- Subpane 1: Central de Integrações -->
+        <div id="subpane-settings-integrations" class="module-subpane active">
+          <div class="settings-integrations-grid">
+            <!-- Stone POS Card -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-title-group">
+                  <div class="integration-icon" style="color:var(--stone-green);">💳</div>
+                  <div>
+                    <h4>Stone POS & Online API</h4>
+                    <span>Frente de Caixa & Emissor Fiscal NFC-e</span>
+                  </div>
+                </div>
+                <span class="engine-pill-badge engine-apify">CONECTADO 🟢</span>
+              </div>
+              <table class="integration-fields-table">
+                <tr><td>StoneCode:</td><td>84729104</td></tr>
+                <tr><td>Equipamentos:</td><td>2x Smart POS P2 + A8</td></tr>
+                <tr><td>Taxa Média D+1:</td><td>3,18% (SIPAG/Stone)</td></tr>
+                <tr><td>Webhook Listener:</td><td>/api/stone/simulate-webhook</td></tr>
+                <tr><td>Emissão Fiscal:</td><td>NFC-e SEFAZ/SC Automática</td></tr>
+              </table>
+              <button class="btn-secondary" style="width:100%;font-size:0.75rem;" onclick="alert('Conexão Stone validada com sucesso! Latência: 42ms.')">
+                Testar Conexão Stone
+              </button>
+            </div>
+
+            <!-- Meta Ads API Card -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-title-group">
+                  <div class="integration-icon" style="color:var(--blue-accent);">📈</div>
+                  <div>
+                    <h4>Meta Marketing API</h4>
+                    <span>Custom Audiences & Gestão de Campanhas</span>
+                  </div>
+                </div>
+                <span class="engine-pill-badge engine-instagrapi">HOMOLOGADO 🟢</span>
+              </div>
+              <table class="integration-fields-table">
+                <tr><td>Ad Account ID:</td><td>act_98124401</td></tr>
+                <tr><td>API Version:</td><td>v19.0 (Graph API)</td></tr>
+                <tr><td>Algoritmo de Hash:</td><td>SHA-256 Automático</td></tr>
+                <tr><td>Públicos Sincronizados:</td><td>3 Audiences (Lookalike 1%)</td></tr>
+                <tr><td>Atribuição:</td><td>Pixel Meta + Stone POS Split</td></tr>
+              </table>
+              <button class="btn-secondary" style="width:100%;font-size:0.75rem;" onclick="alert('Token Meta Ads ativo. Sincronização SHA-256 pronta.')">
+                Verificar Token Graph API
+              </button>
+            </div>
+
+            <!-- Apify Cloud Card -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-title-group">
+                  <div class="integration-icon" style="color:var(--emerald-primary);">☁️</div>
+                  <div>
+                    <h4>Apify Cloud Scraping</h4>
+                    <span>Extração em Larga Escala via Proxies 4G</span>
+                  </div>
+                </div>
+                <span class="engine-pill-badge engine-apify">ATIVO 🟢</span>
+              </div>
+              <table class="integration-fields-table">
+                <tr><td>Actor ID:</td><td>apify/instagram-scraper-v3</td></tr>
+                <tr><td>Rede de Proxies:</td><td>Residenciais Móveis 4G/5G</td></tr>
+                <tr><td>Webhook Callback:</td><td>/api/scraping/execute-apify</td></tr>
+                <tr><td>Proteção Anti-Ban:</td><td>Rotação Automática de IP</td></tr>
+                <tr><td>Formato de Retorno:</td><td>JSON Estruturado</td></tr>
+              </table>
+              <button class="btn-secondary" style="width:100%;font-size:0.75rem;" onclick="alert('Conexão Apify validada! Créditos disponíveis: $ 48.50.')">
+                Testar Credenciais Apify
+              </button>
+            </div>
+
+            <!-- WhatsApp Cloud API Card -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-title-group">
+                  <div class="integration-icon" style="color:#25D366;">💬</div>
+                  <div>
+                    <h4>WhatsApp Cloud API (Meta Oficial)</h4>
+                    <span>WABA & Concierge Virtual IA</span>
+                  </div>
+                </div>
+                <span class="engine-pill-badge engine-apify">ONLINE 🟢</span>
+              </div>
+              <table class="integration-fields-table">
+                <tr><td>WABA ID:</td><td>waba_sie_joy_2026</td></tr>
+                <tr><td>Agente IA:</td><td>Herme Agent (Concierge)</td></tr>
+                <tr><td>Templates HSM:</td><td>Marketing & Utilidade Aprovados</td></tr>
+                <tr><td>Janela de Conversa:</td><td>24 Horas Oficial</td></tr>
+                <tr><td>Integração ERP:</td><td>stone_catalog.json em tempo real</td></tr>
+              </table>
+              <button class="btn-secondary" style="width:100%;font-size:0.75rem;" onclick="alert('WhatsApp Cloud API conectado. Webhook verificado com sucesso!')">
+                Testar Webhook WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 2: Regras de Qualificação de Leads -->
+        <div id="subpane-settings-qualification" class="module-subpane">
+          <div class="rules-config-card">
+            <h4 style="font-family:var(--font-display);color:#FFF;font-size:1.2rem;margin-bottom:6px;">
+              ⚙️ Customização dos Parâmetros de Qualificação de Leads
+            </h4>
+            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:20px;">
+              Personalize os termos de alta renda e modalidades esportivas que definem a pontuação (Score 1 a 5 estrelas) no CRM.
+            </p>
+
+            <!-- High Ticket Keywords -->
+            <label style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">1. Palavras-Chave de Profissões High-Ticket (+2 Estrelas):</label>
+            <div class="tag-editor-box" id="tags-professions-box">
+              <!-- Injected via JS -->
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
+              <input type="text" id="input-new-prof-tag" placeholder="Adicionar termo (ex: cirurgiã, empresária...)" style="background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;padding:8px 12px;color:#FFF;font-size:0.8rem;outline:none;">
+              <button id="btn-add-prof-tag" class="btn-primary-luxury" style="padding:8px 14px;font-size:0.8rem;">Adicionar Termo</button>
+            </div>
+
+            <!-- Sports & Lifestyle Keywords -->
+            <label style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">2. Palavras-Chave de Esportes & Estilo de Vida (+2 Estrelas):</label>
+            <div class="tag-editor-box" id="tags-sports-box">
+              <!-- Injected via JS -->
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
+              <input type="text" id="input-new-sport-tag" placeholder="Adicionar esporte (ex: triatlo, reformer...)" style="background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;padding:8px 12px;color:#FFF;font-size:0.8rem;outline:none;">
+              <button id="btn-add-sport-tag" class="btn-primary-luxury" style="padding:8px 14px;font-size:0.8rem;">Adicionar Esporte</button>
+            </div>
+
+            <!-- Target Cities -->
+            <label style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">3. Cidades Alvo do Plano de Expansão (+1 Estrela):</label>
+            <div class="tag-editor-box" id="tags-cities-box">
+              <!-- Injected via JS -->
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:20px;">
+              <button id="btn-save-recalc-rules" class="btn-primary-luxury">
+                <span>💾</span>
+                <span>Salvar Regras & Recalcular Base</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 3: Parâmetros da Boutique JOY -->
+        <div id="subpane-settings-store" class="module-subpane">
+          <div class="content-card">
+            <div class="card-header">
+              <h4>🏢 Parâmetros Financeiros & Fiscais da Boutique SIÉ @ JOY</h4>
+              <span class="status-badge badge-carencia">Modelo Consolidado</span>
+            </div>
+            <div class="store-params-grid">
+              <div class="param-card">
+                <label>Aluguel Fixo Mensal (JOY):</label>
+                <div class="param-value">R$ 6.000,00</div>
+                <p>Espaço exclusivo com 3 meses de carência inicial (Economia de R$ 18k).</p>
+              </div>
+              <div class="param-card">
+                <label>Markup Praticado SIÉ Wear:</label>
+                <div class="param-value" style="color:var(--emerald-light);">2,40x</div>
+                <p>CMV de 41,67% sobre o preço de venda e Margem Bruta de 58,33%.</p>
+              </div>
+              <div class="param-card">
+                <label>Comissão Vendedora Titular:</label>
+                <div class="param-value">3,00%</div>
+                <p>Aplicada sobre 60% das vendas (Comissão Efetiva Global: 1,80% + encargos).</p>
+              </div>
+              <div class="param-card">
+                <label>Alíquota Simples Nacional:</label>
+                <div class="param-value" style="color:var(--blue-accent);">5,50%</div>
+                <p>Faixa 1 do Comércio (Receita bruta até R$ 180k/ano ou R$ 15k/mês).</p>
+              </div>
+              <div class="param-card">
+                <label>Taxa Média Stone D+1:</label>
+                <div class="param-value">3,18%</div>
+                <p>Crédito D+1 antecipado automático (Débito: 0,89% / Pix: 0,00%).</p>
+              </div>
+              <div class="param-card">
+                <label>Provisão Mensal para Drops:</label>
+                <div class="param-value" style="color:var(--gold-light);">R$ 2.000,00</div>
+                <p>R$ 4.000,00 desembolsados a cada 60 dias (6 eventos/ano).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subpane 0: Dashboard de Sincronizações & Status -->
+        <div id="subpane-settings-sync-dashboard" class="module-subpane active">
+          <!-- Dynamically populated by ErpController.renderSyncDashboard() -->
+        </div>
+
+        <!-- Subpane 1: Plano de Contas Dedicado -->
+        <div id="subpane-settings-chart-accounts" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderChartOfAccountsOnly() -->
+        </div>
+
+        <!-- Subpane 2: Centros de Custo Dedicado -->
+        <div id="subpane-settings-cost-centers" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderCostCentersOnly() -->
+        </div>
+
+        <!-- Subpane 3: Regras de Liquidação Stone & Prazos -->
+        <div id="subpane-settings-rules" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderSettlementRulesConfig() -->
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE 6: EQUIPE & RH (NOVO MÓDULO PRINCIPAL)
+           ===================================================================== -->
+      <section id="module-hr" class="module-container">
+        <!-- Subpane 1: Colaboradores & Escala de Turnos 6h -->
+        <div id="subpane-hr-employees" class="module-subpane active">
+          <!-- Dynamically populated by ErpController.renderHrEmployees() -->
+        </div>
+
+        <!-- Subpane 2: Comissões Balcão/WA & Metas -->
+        <div id="subpane-hr-commissions" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderHrCommissions() -->
+        </div>
+
+        <!-- Subpane 3: Gestão de Férias CLT -->
+        <div id="subpane-hr-vacation" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderHrVacation() -->
+        </div>
+
+        <!-- Subpane 4: Folha de Pagamento & Encargos Sociais -->
+        <div id="subpane-hr-payroll" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderHrPayroll() -->
+        </div>
+
+        <!-- Subpane 5: Pró-Labore dos Sócios Administradores -->
+        <div id="subpane-hr-prolabore" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderHrProLabore() -->
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE 7: CENTRAL DE CADASTROS (PESSOAS PF/PJ, LOJAS & CNPJS)
+           ===================================================================== -->
+      <section id="module-cadastros" class="module-container">
+        <!-- Subpane 1: Pessoas Físicas e Jurídicas (Seletor Dinâmico Centralizado) -->
+        <div id="subpane-cadastros-pessoas" class="module-subpane active">
+          <!-- Dynamically populated by ErpController.renderCentralEntities() -->
+        </div>
+
+        <!-- Subpane 2: Lojas & Unidades (Vínculo 1:N) -->
+        <div id="subpane-cadastros-lojas" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderStoresRegistration() -->
+        </div>
+
+        <!-- Subpane 3: CNPJs Gerenciados do Grupo SIÉ -->
+        <div id="subpane-cadastros-cnpjs" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderCnpjsRegistration() -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: DETALHES DO LEAD (FICHA 360°) -->
+<div id="modal-lead-details" class="modal-backdrop">
+  <div class="modal-window" style="max-width:650px;">
+    <button id="btn-close-lead-modal" class="modal-close-btn">&times;</button>
+    <div id="lead-details-content">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SIMULADOR DE VENDA STONE -->
+<div id="modal-simulate-sale" class="modal-backdrop">
+  <div class="modal-window">
+    <button id="btn-close-modal" class="modal-close-btn">&times;</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:1.4rem;">⚡</span>
+      <h4 style="color:#FFF;font-family:var(--font-display);font-size:1.2rem;">Simular Nova Venda na Stone</h4>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:20px;">
+      Dispara um evento de webhook da Stone (`charge.paid`), atualizando o faturamento, o DRE gerencial e o termômetro de breakeven instantaneamente.
+    </p>
+
+    <form id="form-simulate-sale">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Nome da Aluna / Cliente JOY:</label>
+        <input type="text" id="sim-customer-name" value="Fernanda D'Ávila (Aluna VIP)" required style="width:100%;padding:10px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;outline:none;">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Valor Bruto da Venda (R$):</label>
+          <input type="number" id="sim-amount" value="478.00" step="0.01" required style="width:100%;padding:10px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;outline:none;">
+        </div>
+
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Meio de Pagamento:</label>
+          <select id="sim-method" style="width:100%;padding:10px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;outline:none;">
+            <option value="PIX">PIX (Taxa 0% - D+0)</option>
+            <option value="DEBIT">Cartão Débito (0,89%)</option>
+            <option value="CREDIT_CARD" selected>Crédito à Vista / Parcelado (3,18% D+1)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Canal de Venda:</label>
+        <select id="sim-channel" style="width:100%;padding:10px;background:#1E293B;border:1px solid var(--border-subtle);border-radius:8px;color:#FFF;outline:none;">
+          <option value="POS_BALCAO">Maquininha Stone Smart POS P2 (Balcão Loja)</option>
+          <option value="WHATSAPP_LINK">Link de Pagamento Stone (WhatsApp Concierge IA)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:12px;">
+        <button type="submit" class="btn-primary-luxury">Confirmar Venda Stone</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="js/stone_service.js"></script>
+<script src="js/financial_sync.js"></script>
+<script src="js/purchasing_ai.js"></script>
+<script src="js/marketing_hub.js"></script>
+<script src="js/whatsapp_bot.js"></script>
+<script src="js/crm_growth_hub.js"></script>
+<script src="js/erp_controller.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

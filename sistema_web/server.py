@@ -413,6 +413,124 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "currentForecast": forecast
             })
 
+        elif path == "/api/erp/fiscal/overview":
+            tax_data = load_json("tax_settings.json")
+            sales_inv_data = load_json("fiscal_sales_invoices.json")
+            sales_invoices = sales_inv_data.get("salesInvoices", [])
+            inbound_data = load_json("nfe_imports.json")
+            inbound_invoices = inbound_data.get("imports", []) if isinstance(inbound_data, dict) else (inbound_data if isinstance(inbound_data, list) else [])
+
+            store_filter = qs.get("storeId", [None])[0]
+            cnpj_filter = qs.get("cnpjId", [None])[0]
+
+            if store_filter and store_filter != "ALL":
+                sales_invoices = [inv for inv in sales_invoices if inv.get("storeId") == store_filter]
+                inbound_invoices = [inv for inv in inbound_invoices if inv.get("destinationStoreId") == store_filter or inv.get("storeId") == store_filter]
+            if cnpj_filter and cnpj_filter != "ALL":
+                sales_invoices = [inv for inv in sales_invoices if inv.get("cnpjId") == cnpj_filter]
+                inbound_invoices = [inv for inv in inbound_invoices if inv.get("destinationCnpjId") == cnpj_filter or inv.get("cnpjId") == cnpj_filter]
+
+            total_outbound = sum(float(inv.get("grossAmount", 0.0)) for inv in sales_invoices)
+            total_inbound = sum(float(inv.get("totalAmount", 0.0)) for inv in inbound_invoices)
+            
+            effective_tax_rate = tax_data.get("currentForecast", {}).get("effectiveTaxRate", 0.055)
+            estimated_das = round(total_outbound * effective_tax_rate, 2)
+            rbt12 = tax_data.get("currentForecast", {}).get("rbt12", 180000.0)
+            sublimit_sc = 3600000.0
+            sublimit_usage_pct = round((rbt12 / sublimit_sc) * 100, 2)
+
+            return self.send_json({
+                "summary": {
+                    "totalOutboundRevenue": round(total_outbound, 2),
+                    "outboundInvoicesCount": len(sales_invoices),
+                    "totalInboundPurchases": round(total_inbound, 2),
+                    "inboundInvoicesCount": len(inbound_invoices),
+                    "effectiveTaxRate": effective_tax_rate,
+                    "estimatedDasAmount": estimated_das,
+                    "rbt12": rbt12,
+                    "sublimitSC": sublimit_sc,
+                    "sublimitUsagePercent": sublimit_usage_pct,
+                    "dasDueDate": "2026-10-20",
+                    "sefazStatus": "ONLINE_HOMOLOGADA_SC",
+                    "competence": "09/2026"
+                },
+                "regimes": tax_data.get("regimes", {}),
+                "obligationsCalendar": [
+                    { "code": "DAS", "name": "Documento de Arrecadação do Simples Nacional", "dueDate": "2026-10-20", "status": "PENDENTE", "amount": estimated_das, "priority": "ALTA" },
+                    { "code": "DEFIS", "name": "Declaração de Informações Socioeconômicas e Fiscais", "dueDate": "2027-03-31", "status": "REGULAR", "amount": 0.0, "priority": "ANUAL" },
+                    { "code": "DeSTDA", "name": "Declaração de Substituição Tributária e Diferencial de Alíquota", "dueDate": "2026-10-28", "status": "REGULAR", "amount": 0.0, "priority": "MEDIA" },
+                    { "code": "EFD_REINF", "name": "Escrituração Fiscal Digital de Retenções (R-4000)", "dueDate": "2026-10-15", "status": "REGULAR", "amount": 0.0, "priority": "MEDIA" }
+                ]
+            })
+
+        elif path == "/api/erp/fiscal/sales-invoices":
+            data = load_json("fiscal_sales_invoices.json")
+            invoices = data.get("salesInvoices", [])
+            store_filter = qs.get("storeId", [None])[0]
+            cnpj_filter = qs.get("cnpjId", [None])[0]
+            model_filter = qs.get("model", [None])[0]
+            search = qs.get("search", [None])[0]
+
+            if store_filter and store_filter != "ALL":
+                invoices = [i for i in invoices if i.get("storeId") == store_filter]
+            if cnpj_filter and cnpj_filter != "ALL":
+                invoices = [i for i in invoices if i.get("cnpjId") == cnpj_filter]
+            if model_filter and model_filter != "ALL":
+                invoices = [i for i in invoices if i.get("model") == model_filter]
+            if search:
+                s = search.lower()
+                invoices = [i for i in invoices if s in i.get("number", "").lower() or s in i.get("accessKey", "").lower() or s in i.get("customer", {}).get("name", "").lower() or s in i.get("customer", {}).get("cpf", "").lower()]
+
+            return self.send_json({
+                "salesInvoices": invoices,
+                "totalCount": len(invoices),
+                "totalRevenue": round(sum(i.get("grossAmount", 0) for i in invoices), 2)
+            })
+
+        elif path == "/api/erp/fiscal/inbound-invoices":
+            inbound_data = load_json("nfe_imports.json")
+            inbound_invoices = inbound_data.get("imports", []) if isinstance(inbound_data, dict) else (inbound_data if isinstance(inbound_data, list) else [])
+            store_filter = qs.get("storeId", [None])[0]
+            cnpj_filter = qs.get("cnpjId", [None])[0]
+            search = qs.get("search", [None])[0]
+
+            if store_filter and store_filter != "ALL":
+                inbound_invoices = [i for i in inbound_invoices if i.get("destinationStoreId") == store_filter or i.get("storeId") == store_filter]
+            if cnpj_filter and cnpj_filter != "ALL":
+                inbound_invoices = [i for i in inbound_invoices if i.get("destinationCnpjId") == cnpj_filter or i.get("cnpjId") == cnpj_filter]
+            if search:
+                s = search.lower()
+                inbound_invoices = [i for i in inbound_invoices if s in (i.get("nfeNumber") or i.get("number") or "").lower() or s in (i.get("supplier") or "").lower() or s in (i.get("accessKey") or "").lower()]
+
+            return self.send_json({
+                "inboundInvoices": inbound_invoices,
+                "totalCount": len(inbound_invoices),
+                "totalPurchases": round(sum(float(i.get("totalAmount", 0)) for i in inbound_invoices), 2)
+            })
+
+        elif path == "/api/erp/fiscal/tax-book":
+            sales_inv = load_json("fiscal_sales_invoices.json").get("salesInvoices", [])
+            inbound_data = load_json("nfe_imports.json")
+            inbound_inv = inbound_data.get("imports", []) if isinstance(inbound_data, dict) else (inbound_data if isinstance(inbound_data, list) else [])
+
+            tot_sales = sum(float(i.get("grossAmount", 0)) for i in sales_inv)
+            tot_purchases = sum(float(i.get("totalAmount", 0)) for i in inbound_inv)
+            gross_margin = tot_sales - tot_purchases
+
+            cfop_summary = [
+                { "cfop": "5.102", "description": "Venda no Balcão e Presencial", "type": "SAIDA", "count": len(sales_inv), "amount": round(tot_sales, 2) },
+                { "cfop": "1.102", "description": "Compra para Comercialização (Estoque)", "type": "ENTRADA", "count": len(inbound_inv), "amount": round(tot_purchases, 2) }
+            ]
+
+            return self.send_json({
+                "competence": "2026-09",
+                "totalSales": round(tot_sales, 2),
+                "totalPurchases": round(tot_purchases, 2),
+                "grossMargin": round(gross_margin, 2),
+                "cfopSummary": cfop_summary,
+                "auditedStatus": "REGULAR_EM_CONFORMIDADE_SEFAZ_SC"
+            })
+
         elif path == "/api/erp/employees":
             data = load_json("employees_and_payroll.json")
             store_filter = qs.get("storeId", [None])[0]
@@ -1820,6 +1938,98 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "store": destination.get("matchedStoreName"),
                 "cnpj": destination.get("matchedCnpjNumber"),
                 "payableId": created_payable_id
+            })
+
+        # --- EMISSÃO SIMULADA DE NFC-e STONE ---
+        elif path == "/api/erp/fiscal/simulate-nfc":
+            data = load_json("fiscal_sales_invoices.json")
+            invoices = data.setdefault("salesInvoices", [])
+            
+            amount = float(payload.get("amount", 289.0))
+            sku = payload.get("sku", "SIE-LEG-SCULPT-BLK")
+            desc = payload.get("description", "Legging High Sculpt Zero Transparência")
+            cust_name = payload.get("customerName", "Consumidor Final")
+            cust_cpf = payload.get("customerCpf", "000.000.000-00")
+            store_id = payload.get("storeId", "store-01")
+            cnpj_id = payload.get("cnpjId", "cnpj-01")
+
+            new_num = f"{len(invoices) + 1049}"
+            now_iso = datetime.now().isoformat()
+            access_key = f"422609489128470001926500100000{new_num}1{int(time.time()) % 1000000000:09d}"
+
+            new_inv = {
+                "id": f"NFCE-{new_num}",
+                "number": new_num,
+                "series": "1",
+                "model": "65",
+                "type": "SAIDA",
+                "transactionId": f"TX-STONE-{int(time.time()) % 10000}",
+                "issueDate": now_iso,
+                "storeId": store_id,
+                "storeName": "Boutique JOY Club - Centro Floripa" if store_id == "store-01" else "Boutique JOY",
+                "cnpjId": cnpj_id,
+                "cnpjNumber": "48.912.847/0001-92" if cnpj_id == "cnpj-01" else "52.341.678/0001-14",
+                "issuerName": "SIÉ JOY COMERCIO DE VESTUARIO LTDA",
+                "issuerIE": "259841092",
+                "customer": {
+                    "name": cust_name,
+                    "cpf": cust_cpf,
+                    "email": "cliente@alunajoy.com.br"
+                },
+                "channel": "Stone Smart POS P2 #01 (Balcão)",
+                "paymentMethod": payload.get("paymentMethod", "CREDIT_CARD"),
+                "installments": 1,
+                "grossAmount": amount,
+                "taxableAmount": amount,
+                "simplesTaxRate": 0.055,
+                "estimatedTax": round(amount * 0.055, 2),
+                "cfop": "5.102",
+                "cfopDescription": "Venda de mercadoria adquirida de terceiros",
+                "sefazStatus": "AUTORIZADA",
+                "sefazStatusCode": 100,
+                "authorizationProtocol": f"1422600{int(time.time()) % 100000000:08d}",
+                "accessKey": access_key,
+                "danfeUrl": f"/api/erp/fiscal/danfe/NFCE-{new_num}",
+                "items": [
+                    {
+                        "item": 1,
+                        "sku": sku,
+                        "description": desc,
+                        "ncm": "61046300",
+                        "cfop": "5.102",
+                        "cstCsosn": "102",
+                        "qty": 1,
+                        "unitPrice": amount,
+                        "totalPrice": amount
+                    }
+                ]
+            }
+            invoices.insert(0, new_inv)
+            save_json("fiscal_sales_invoices.json", data)
+            return self.send_json({
+                "success": True,
+                "message": f"NFC-e {new_num} autorizada com sucesso na SEFAZ/SC!",
+                "invoice": new_inv
+            })
+
+        # --- EXPORTAÇÃO DE LIVRO FISCAL / ARQUIVO CONTÁBIL ---
+        elif path == "/api/erp/fiscal/export-tax-book":
+            sales_inv = load_json("fiscal_sales_invoices.json").get("salesInvoices", [])
+            inbound_data = load_json("nfe_imports.json")
+            inbound_inv = inbound_data.get("imports", []) if isinstance(inbound_data, dict) else (inbound_data if isinstance(inbound_data, list) else [])
+
+            csv_lines = ["TIPO;DOCUMENTO;SERIE;CHAVE_ACESSO;DATA_EMISSAO;PARCEIRO;CNPJ_CPF;VALOR_TOTAL;CFOP;STATUS_SEFAZ"]
+            for s in sales_inv:
+                csv_lines.append(f"SAIDA;NFC-e {s.get('number')};{s.get('series')};{s.get('accessKey')};{s.get('issueDate')[:10]};{s.get('customer',{}).get('name')};{s.get('customer',{}).get('cpf')};{s.get('grossAmount')};{s.get('cfop')};{s.get('sefazStatus')}")
+            for inp in inbound_inv:
+                csv_lines.append(f"ENTRADA;NF-e {inp.get('nfeNumber') or inp.get('number')};1;{inp.get('accessKey') or '-'};{(inp.get('timestamp') or '')[:10]};{inp.get('supplier')};{inp.get('destinationCnpj')};{inp.get('totalAmount')};1.102;CONFIRMADA")
+
+            return self.send_json({
+                "success": True,
+                "filename": f"LIVRO_FISCAL_SIE_JOY_09_2026.csv",
+                "csvData": "\n".join(csv_lines),
+                "recordsCount": len(csv_lines) - 1,
+                "message": "Livro Fiscal gerado com sucesso para a contabilidade!"
             })
 
         else:

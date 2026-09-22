@@ -24,12 +24,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Modules Definition & Navigation Map (Clean, No Parentheses in Labels)
   const MODULES = {
     financial: {
-      title: "<span>📊</span> Financeiro & DRE",
-      subtitle: "DRE Gerencial, Contas a Pagar/Receber, Conciliação Bancária e Previsão de Impostos",
+      title: "<span>📊</span> Financeiro",
+      subtitle: "DRE, Contas a Pagar/Receber, Conciliação Bancária e Previsão de Impostos",
       defaultSubTab: "financial-kpi",
       subtabs: [
-        { id: "financial-kpi", label: "📊 Dashboard de KPIs" },
-        { id: "financial-dre", label: "📑 DRE Gerencial" },
+        { id: "financial-kpi", label: "📊 Dashboard" },
+        { id: "financial-dre", label: "📑 DRE" },
         { id: "financial-receivable", label: "💵 Contas a Receber" },
         { id: "financial-payable", label: "🧾 Contas a Pagar" },
         { id: "financial-movement", label: "🔄 Movimento Financeiro" },
@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ]
     },
     budget: {
-      title: "<span>📈</span> Orçamento & Cenários",
+      title: "<span>📈</span> Orçamento",
       subtitle: "Variance Analysis (Orçado vs. Realizado), Orçamento Base, Cenários e Ponto de Equilíbrio",
       defaultSubTab: "budget-variance",
       subtabs: [
@@ -46,6 +46,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         { id: "budget-base", label: "📑 Orçamento Base Anual" },
         { id: "budget-scenarios", label: "📈 Simulador de Cenários" },
         { id: "budget-breakeven", label: "⚖️ Ponto de Equilíbrio" }
+      ]
+    },
+    fiscal: {
+      title: "<span>🏛️</span> Fiscal & Tributário",
+      subtitle: "Apuração do Simples Nacional (DAS), NFs de Faturamento (NFC-e) e NFs de Entrada (Compras)",
+      defaultSubTab: "fiscal-taxes",
+      subtabs: [
+        { id: "fiscal-taxes", label: "🏛️ Apuração & Impostos" },
+        { id: "fiscal-sales-invoices", label: "📤 NFs de Faturamento (Saída)" },
+        { id: "fiscal-inbound-invoices", label: "📥 NFs de Compra (Entrada)" },
+        { id: "fiscal-tax-book", label: "📑 Livro Fiscal & Cruzamento" }
       ]
     },
     growth: {
@@ -290,6 +301,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       else if (subtabId === "budget-base") ErpController.renderBudgetBase();
       else if (subtabId === "budget-scenarios") ErpController.renderBudgetScenarios();
       else if (subtabId === "budget-breakeven") ErpController.renderBudgetBreakeven();
+      else if (subtabId === "fiscal-taxes") ErpController.renderFiscalTaxes();
+      else if (subtabId === "fiscal-sales-invoices") ErpController.renderFiscalSalesInvoices();
+      else if (subtabId === "fiscal-inbound-invoices") ErpController.renderFiscalInboundInvoices();
+      else if (subtabId === "fiscal-tax-book") ErpController.renderFiscalTaxBook();
       else if (subtabId === "concierge-dashboard") ErpController.renderAiConciergeDashboard();
       else if (subtabId === "hr-employees") ErpController.renderHrEmployees();
       else if (subtabId === "hr-commissions") ErpController.renderHrCommissions();

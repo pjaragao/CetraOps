@@ -36,13 +36,17 @@
 
     <!-- Nav Menu (7 Thematic Macro-Modules) -->
     <ul class="nav-menu">
-      <li class="nav-item active" data-module="financial" title="Financeiro & DRE">
+      <li class="nav-item active" data-module="financial" title="Financeiro">
         <span class="nav-icon">📊</span>
-        <span>Financeiro & DRE</span>
+        <span>Financeiro</span>
       </li>
-      <li class="nav-item" data-module="budget" title="Orçamento & Cenários">
+      <li class="nav-item" data-module="budget" title="Orçamento">
         <span class="nav-icon">📈</span>
-        <span>Orçamento & Cenários</span>
+        <span>Orçamento</span>
+      </li>
+      <li class="nav-item" data-module="fiscal" title="Fiscal & Tributário">
+        <span class="nav-icon">🏛️</span>
+        <span>Fiscal</span>
       </li>
       <li class="nav-item" data-module="growth" title="Aquisição & Growth">
         <span class="nav-icon">🎯</span>
@@ -189,7 +193,7 @@
           <div class="content-card">
             <div class="card-header">
               <div>
-                <h4>📑 DRE Gerencial em Tempo Real (Realizado Stone vs. Orçado)</h4>
+                <h4>📑 DRE em Tempo Real (Realizado Stone vs. Orçado)</h4>
                 <p style="color:var(--text-secondary);font-size:0.8rem;">
                   Comparativo detalhado de receitas, deduções de Simples Nacional, CMV e despesas operacionais da boutique.
                 </p>
@@ -410,6 +414,31 @@
         <!-- Subpane 4: Ponto de Equilíbrio (Breakeven) -->
         <div id="subpane-budget-breakeven" class="module-subpane">
           <!-- Dynamically populated by ErpController.renderBudgetBreakeven() -->
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           MODULE: FISCAL & TRIBUTÁRIO (IMPOSTOS, NFS SAÍDA & NFS ENTRADA)
+           ===================================================================== -->
+      <section id="module-fiscal" class="module-container">
+        <!-- Subpane 1: Apuração de Impostos & Simples Nacional -->
+        <div id="subpane-fiscal-taxes" class="module-subpane active">
+          <!-- Dynamically populated by ErpController.renderFiscalTaxes() -->
+        </div>
+
+        <!-- Subpane 2: NFs de Saída / Faturamento (NFC-e Stone & NF-e) -->
+        <div id="subpane-fiscal-sales-invoices" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderFiscalSalesInvoices() -->
+        </div>
+
+        <!-- Subpane 3: NFs de Entrada / Compras (XML & Fornecedores) -->
+        <div id="subpane-fiscal-inbound-invoices" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderFiscalInboundInvoices() -->
+        </div>
+
+        <!-- Subpane 4: Livro Fiscal & Cruzamento Entrada vs. Saída -->
+        <div id="subpane-fiscal-tax-book" class="module-subpane">
+          <!-- Dynamically populated by ErpController.renderFiscalTaxBook() -->
         </div>
       </section>
 

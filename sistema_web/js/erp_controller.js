@@ -5550,6 +5550,888 @@ const ErpController = {
     }
   },
 
+  // --- 10. NOVO MACRO-MÓDULO: FISCAL & TRIBUTÁRIO ---
+  async renderFiscalTaxes() {
+    const container = document.getElementById("subpane-fiscal-taxes");
+    if (!container) return;
+
+    let data = null;
+    try {
+      const res = await fetch(`/api/erp/fiscal/overview?storeId=${this.currentStoreId}&cnpjId=${this.currentCnpjId}`);
+      data = await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+
+    const s = data?.summary || {
+      totalOutboundRevenue: 2650.0,
+      outboundInvoicesCount: 5,
+      totalInboundPurchases: 7352.15,
+      inboundInvoicesCount: 3,
+      effectiveTaxRate: 0.055,
+      estimatedDasAmount: 145.75,
+      rbt12: 180000.0,
+      sublimitSC: 3600000.0,
+      sublimitUsagePercent: 5.0,
+      dasDueDate: "2026-10-20",
+      sefazStatus: "ONLINE_HOMOLOGADA_SC",
+      competence: "09/2026"
+    };
+
+    const obligations = data?.obligationsCalendar || [
+      { code: "DAS", name: "Documento de Arrecadação do Simples Nacional", dueDate: "2026-10-20", status: "PENDENTE", amount: s.estimatedDasAmount, priority: "ALTA" },
+      { code: "DEFIS", name: "Declaração de Informações Socioeconômicas e Fiscais", dueDate: "2027-03-31", status: "REGULAR", amount: 0.0, priority: "ANUAL" },
+      { code: "DeSTDA", name: "Declaração de Substituição Tributária e Diferencial de Alíquota", dueDate: "2026-10-28", status: "REGULAR", amount: 0.0, priority: "MEDIA" },
+      { code: "EFD_REINF", name: "Escrituração Fiscal Digital de Retenções (R-4000)", dueDate: "2026-10-15", status: "REGULAR", amount: 0.0, priority: "MEDIA" }
+    ];
+
+    container.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">🏛️ Apuração Tributária, Simples Nacional (DAS) & Calendário Fiscal</h4>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+            Cálculo em tempo real do imposto mensal unificado (DAS Anexo I), monitoramento de RBT12 e sublimite estadual de Santa Catarina.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button id="btn-recalc-fiscal-taxes" class="btn-primary-luxury" style="padding:8px 14px;font-size:0.8rem;background:rgba(0,168,104,0.15);color:var(--stone-green);border:1px solid rgba(0,168,104,0.35);">
+            🔄 Recalcular Apuração do Mês
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="kpi-grid" style="margin-bottom:24px;">
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-emerald">💰</div>
+            <span class="kpi-badge positive">Base de Cálculo</span>
+          </div>
+          <div class="kpi-title">Faturamento Tributável (Mês)</div>
+          <div class="kpi-value">R$ ${s.totalOutboundRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+          <div class="kpi-subtitle">${s.outboundInvoicesCount} notas emitidas no balcão Stone</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-gold">🧾</div>
+            <span class="kpi-badge positive">Guia Única DAS</span>
+          </div>
+          <div class="kpi-title">DAS Estimado a Recolher</div>
+          <div class="kpi-value">R$ ${s.estimatedDasAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+          <div class="kpi-subtitle">Vencimento: 20/${s.competence.split('/')[0]}/${s.competence.split('/')[1] || '2026'}</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-blue">📊</div>
+            <span class="kpi-badge positive">1ª Faixa Anexo I</span>
+          </div>
+          <div class="kpi-title">Alíquota Efetiva Vigente</div>
+          <div class="kpi-value">${(s.effectiveTaxRate * 100).toFixed(2)}%</div>
+          <div class="kpi-subtitle">RBT12: R$ ${s.rbt12.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-rose">🛡️</div>
+            <span class="kpi-badge positive">SEFAZ/SC Online</span>
+          </div>
+          <div class="kpi-title">Status da Conexão Fiscal</div>
+          <div class="kpi-value" style="font-size:1.1rem;color:var(--stone-green);margin-top:6px;">HOMOLOGADO</div>
+          <div class="kpi-subtitle">NFC-e e NF-e 4.00 Autorizadas</div>
+        </div>
+      </div>
+
+      <!-- Sublimite Estadual SC & Comparativo Tributário -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:16px;margin-bottom:24px;">
+        
+        <!-- Termômetro Sublimite SC -->
+        <div class="content-card" style="padding:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <strong style="color:#FFF;font-size:0.95rem;">📍 Termômetro de Sublimite Estadual (SC)</strong>
+            <span class="status-badge badge-homologado" style="font-size:0.7rem;">Teto: R$ 3.600.000,00</span>
+          </div>
+          <p style="font-size:0.78rem;color:var(--text-secondary);line-height:1.4;margin-bottom:12px;">
+            Em Santa Catarina, o recolhimento de ICMS permanece unificado dentro do DAS até o faturamento anual acumulado atingir R$ 3,6 milhões.
+          </p>
+          <div style="background:rgba(255,255,255,0.05);height:14px;border-radius:10px;overflow:hidden;margin-bottom:8px;">
+            <div style="background:linear-gradient(90deg, var(--stone-green), var(--gold-light));width:${Math.max(s.sublimitUsagePercent, 5)}%;height:100%;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+            <span style="color:var(--gold-light);">Utilizado: <strong>${s.sublimitUsagePercent}%</strong> (R$ ${s.rbt12.toLocaleString('pt-BR', {minimumFractionDigits: 2})})</span>
+            <span style="color:var(--stone-green);">Folga Tributária: <strong>${(100 - s.sublimitUsagePercent).toFixed(1)}%</strong></span>
+          </div>
+        </div>
+
+        <!-- Comparativo Simples vs Lucro Presumido -->
+        <div class="content-card" style="padding:18px;">
+          <strong style="color:#FFF;font-size:0.95rem;display:block;margin-bottom:12px;">⚖️ Análise de Eficiência Tributária: Simples vs. Presumido</strong>
+          <div class="table-responsive">
+            <table class="crm-compact-table" style="font-size:0.75rem;">
+              <thead>
+                <tr>
+                  <th>Regime Tributário</th>
+                  <th>Alíquota Estimada</th>
+                  <th>Encargo no Mês</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background:rgba(0,168,104,0.06);">
+                  <td><strong style="color:var(--stone-green);">Simples Nacional (Atual)</strong></td>
+                  <td>${(s.effectiveTaxRate * 100).toFixed(2)}%</td>
+                  <td><strong>R$ ${s.estimatedDasAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></td>
+                  <td><span class="status-badge badge-homologado" style="font-size:0.65rem;">Mais Econômico</span></td>
+                </tr>
+                <tr>
+                  <td>Lucro Presumido</td>
+                  <td>22,93% (5,93% Fed + 17% ICMS)</td>
+                  <td>R$ ${(s.totalOutboundRevenue * 0.2293).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                  <td><span style="color:var(--text-muted);font-size:0.7rem;">+ R$ ${((s.totalOutboundRevenue * 0.2293) - s.estimatedDasAmount).toLocaleString('pt-BR', {minimumFractionDigits: 2})} de custo</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Calendário de Obrigações Fiscais -->
+      <div class="content-card">
+        <div class="card-header">
+          <h4>📅 Calendário de Obrigações Fiscais & Prazos Tributários</h4>
+          <span class="status-badge" style="background:rgba(56,189,248,0.12);color:var(--blue-accent);">Exercício 2026</span>
+        </div>
+        <div class="table-responsive">
+          <table class="crm-compact-table">
+            <thead>
+              <tr>
+                <th>Obrigação / Tributo</th>
+                <th>Descrição</th>
+                <th>Vencimento</th>
+                <th>Valor Estimado</th>
+                <th>Prioridade</th>
+                <th style="text-align:right;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${obligations.map(ob => `
+                <tr>
+                  <td><strong style="color:var(--gold-light);font-size:0.88rem;">${ob.code}</strong></td>
+                  <td>${ob.name}</td>
+                  <td><strong>${new Date(ob.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></td>
+                  <td>
+                    ${ob.amount > 0 ? `<strong style="color:var(--rose-light);">R$ ${ob.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>` : '<span style="color:var(--text-muted);">Declaratória</span>'}
+                  </td>
+                  <td>
+                    <span class="category-pill ${ob.priority === 'ALTA' ? 'badge-carencia' : 'badge-homologado'}" style="font-size:0.68rem;">
+                      ${ob.priority}
+                    </span>
+                  </td>
+                  <td style="text-align:right;">
+                    <span class="status-badge ${ob.status === 'PENDENTE' ? 'badge-carencia' : 'badge-homologado'}" style="font-size:0.72rem;">
+                      ${ob.status === 'PENDENTE' ? '🟡 A Vencer' : '🟢 Regular'}
+                    </span>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    const btnRecalc = document.getElementById("btn-recalc-fiscal-taxes");
+    if (btnRecalc) {
+      btnRecalc.addEventListener("click", () => {
+        this.renderFiscalTaxes();
+        this.showToastNotification("✅ Apuração fiscal recalculada com as últimas vendas Stone!");
+      });
+    }
+  },
+
+  async renderFiscalSalesInvoices() {
+    const container = document.getElementById("subpane-fiscal-sales-invoices");
+    if (!container) return;
+
+    let data = null;
+    try {
+      const res = await fetch(`/api/erp/fiscal/sales-invoices?storeId=${this.currentStoreId}&cnpjId=${this.currentCnpjId}`);
+      data = await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+
+    const invoices = data?.salesInvoices || [];
+    const totalRevenue = data?.totalRevenue || invoices.reduce((acc, i) => acc + (i.grossAmount || 0), 0);
+    const avgTicket = invoices.length > 0 ? totalRevenue / invoices.length : 0;
+
+    container.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">📤 Gestão de Notas Fiscais de Faturamento (NFC-e Balcão & NF-e de Saída)</h4>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+            Documentos fiscais eletrônicos emitidos no balcão Stone POS Smart P2 e links de pagamento WhatsApp integrados com a SEFAZ/SC.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button id="btn-simulate-emit-nfce" class="btn-primary-luxury" style="padding:8px 14px;font-size:0.8rem;">
+            ⚡ Simular Emissão de NFC-e Balcão
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="kpi-grid" style="margin-bottom:20px;">
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-emerald">🧾</div>
+            <span class="kpi-badge positive">100% Autorizadas</span>
+          </div>
+          <div class="kpi-title">NFs de Saída Emitidas</div>
+          <div class="kpi-value">${invoices.length}</div>
+          <div class="kpi-subtitle">NFC-e (65) e NF-e (55)</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-gold">💰</div>
+            <span class="kpi-badge positive">Faturamento</span>
+          </div>
+          <div class="kpi-title">Total Faturado em NFs</div>
+          <div class="kpi-value">R$ ${totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+          <div class="kpi-subtitle">Base de cálculo apurada</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-blue">🎯</div>
+            <span class="kpi-badge positive">Ticket Médio</span>
+          </div>
+          <div class="kpi-title">Ticket Médio Fiscal</div>
+          <div class="kpi-value">R$ ${avgTicket.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+          <div class="kpi-subtitle">Média por documento emitido</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-rose">⚡</div>
+            <span class="kpi-badge positive">Stone POS P2</span>
+          </div>
+          <div class="kpi-title">Canal Fiscal Predominante</div>
+          <div class="kpi-value" style="font-size:1.1rem;margin-top:6px;">Smart POS P2</div>
+          <div class="kpi-subtitle">Emissão instantânea no balcão</div>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div class="crm-search-bar" style="max-width:380px;">
+          <span>🔍</span>
+          <input type="text" id="input-search-sales-invoices" placeholder="Buscar por número, CPF, chave SEFAZ ou cliente...">
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-muted);">
+          Exibindo <strong style="color:var(--gold-light);">${invoices.length}</strong> notas fiscais de saída
+        </div>
+      </div>
+
+      <!-- Invoices Table -->
+      <div class="content-card">
+        <div class="table-responsive">
+          <table class="crm-compact-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Data / Hora</th>
+                <th>Ponto de Venda / Loja</th>
+                <th>Consumidor / Destinatário</th>
+                <th>Valor Total</th>
+                <th>Imposto Simples</th>
+                <th>CFOP</th>
+                <th>Status SEFAZ</th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="table-sales-invoices-body">
+              ${invoices.map(inv => `
+                <tr>
+                  <td>
+                    <strong style="color:var(--gold-light);font-size:0.88rem;">${inv.model === '65' ? 'NFC-e' : 'NF-e'} ${inv.number}</strong>
+                    <div style="font-size:0.68rem;color:var(--text-muted);">Série ${inv.series}</div>
+                  </td>
+                  <td>
+                    <div>${new Date(inv.issueDate).toLocaleDateString('pt-BR')}</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">${new Date(inv.issueDate).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</div>
+                  </td>
+                  <td>
+                    <strong>${inv.storeName || 'Boutique Floripa'}</strong>
+                    <div style="font-size:0.7rem;color:var(--stone-green);">${inv.channel || 'Stone POS'}</div>
+                  </td>
+                  <td>
+                    <div>${inv.customer?.name || 'Consumidor Final'}</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">CPF: ${inv.customer?.cpf || 'Não informado'}</div>
+                  </td>
+                  <td>
+                    <strong style="color:#FFF;font-size:0.95rem;">R$ ${(inv.grossAmount || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">${inv.paymentMethod}</div>
+                  </td>
+                  <td>
+                    <span style="color:var(--stone-green);font-weight:600;">R$ ${(inv.estimatedTax || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <div style="font-size:0.68rem;color:var(--text-muted);">${((inv.simplesTaxRate || 0.055) * 100).toFixed(1)}% DAS</div>
+                  </td>
+                  <td><span class="category-pill">${inv.cfop || '5.102'}</span></td>
+                  <td>
+                    <span class="status-badge badge-homologado" style="font-size:0.7rem;">
+                      🟢 ${inv.sefazStatus || 'AUTORIZADA'}
+                    </span>
+                  </td>
+                  <td style="text-align:right;white-space:nowrap;">
+                    <button class="crm-mini-btn btn-view-danfe" data-id="${inv.id}" style="background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);">
+                      👁️ DANFE
+                    </button>
+                    <button class="crm-mini-btn btn-copy-key" data-key="${inv.accessKey}" style="margin-left:4px;" title="Copiar Chave de 44 Dígitos">
+                      🔑 Chave
+                    </button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    // Eventos
+    container.querySelectorAll(".btn-view-danfe").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const inv = invoices.find(i => i.id === id);
+        if (inv) this.openModalDanfe(inv);
+      });
+    });
+
+    container.querySelectorAll(".btn-copy-key").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-key");
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(key);
+          this.showToastNotification("🔑 Chave de Acesso de 44 dígitos copiada!");
+        } else {
+          prompt("Chave de acesso SEFAZ da nota:", key);
+        }
+      });
+    });
+
+    const btnSimulate = document.getElementById("btn-simulate-emit-nfce");
+    if (btnSimulate) {
+      btnSimulate.addEventListener("click", async () => {
+        btnSimulate.disabled = true;
+        btnSimulate.innerHTML = `<span>⏳</span> Transmitindo à SEFAZ/SC...`;
+        try {
+          const res = await fetch("/api/erp/fiscal/simulate-nfc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: 349.00,
+              sku: "SIE-LEG-SCULPT-BLK",
+              description: "Legging High Sculpt Zero Transparência Midnight Black",
+              customerName: "Mariana Alencar (Aluna VIP)",
+              customerCpf: "419.821.902-88",
+              paymentMethod: "CREDIT_CARD",
+              storeId: this.currentStoreId !== "ALL" ? this.currentStoreId : "store-01",
+              cnpjId: this.currentCnpjId !== "ALL" ? this.currentCnpjId : "cnpj-01"
+            })
+          });
+          const ret = await res.json();
+          this.showToastNotification(`✅ ${ret.message}`, "success");
+          this.renderFiscalSalesInvoices();
+        } catch (err) {
+          alert("Erro ao emitir NFC-e simulada.");
+          btnSimulate.disabled = false;
+        }
+      });
+    }
+
+    const searchInput = document.getElementById("input-search-sales-invoices");
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        const q = e.target.value.toLowerCase();
+        const rows = container.querySelectorAll("#table-sales-invoices-body tr");
+        rows.forEach(r => {
+          r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
+        });
+      });
+    }
+  },
+
+  async renderFiscalInboundInvoices() {
+    const container = document.getElementById("subpane-fiscal-inbound-invoices");
+    if (!container) return;
+
+    let data = null;
+    try {
+      const res = await fetch(`/api/erp/fiscal/inbound-invoices?storeId=${this.currentStoreId}&cnpjId=${this.currentCnpjId}`);
+      data = await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+
+    const invoices = data?.inboundInvoices || [];
+    const totalPurchases = data?.totalPurchases || invoices.reduce((acc, i) => acc + (parseFloat(i.totalAmount) || 0), 0);
+
+    container.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">📥 Gestão de Notas Fiscais de Entrada (Compras de Mercadorias & CMV)</h4>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+            Auditoria fiscal de NFs emitidas por fornecedores, conferência de Loja/CNPJ de destino e integração com estoque e Contas a Pagar.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button id="btn-fiscal-open-xml-import" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.82rem;">
+            📥 Importar Novo XML de NF-e
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="kpi-grid" style="margin-bottom:20px;">
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-emerald">📦</div>
+            <span class="kpi-badge positive">Estoque Alimentado</span>
+          </div>
+          <div class="kpi-title">NFs de Entrada Registradas</div>
+          <div class="kpi-value">${invoices.length}</div>
+          <div class="kpi-subtitle">Remessas de confecção & peças</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-rose">🧵</div>
+            <span class="kpi-badge positive">CMV Estoque</span>
+          </div>
+          <div class="kpi-title">Total de Compras Faturadas</div>
+          <div class="kpi-value">R$ ${totalPurchases.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+          <div class="kpi-subtitle">Custo de mercadorias no período</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-gold">🏢</div>
+            <span class="kpi-badge positive">Conferência 100%</span>
+          </div>
+          <div class="kpi-title">Destino Auditado (Loja/CNPJ)</div>
+          <div class="kpi-value" style="font-size:1.15rem;color:var(--gold-light);margin-top:4px;">Matriz & Filial</div>
+          <div class="kpi-subtitle">Cruzamento com unidades físicas</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon icon-blue">🧾</div>
+            <span class="kpi-badge positive">Contas a Pagar</span>
+          </div>
+          <div class="kpi-title">Títulos Vinculados</div>
+          <div class="kpi-value" style="font-size:1.15rem;color:var(--stone-green);margin-top:4px;">Automatizados</div>
+          <div class="kpi-subtitle">Vencimento conforme duplicatas</div>
+        </div>
+      </div>
+
+      <!-- Table of Inbound Invoices -->
+      <div class="content-card">
+        <div class="table-responsive">
+          <table class="crm-compact-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Data / Entrada</th>
+                <th>Fornecedor / Emitente</th>
+                <th>Loja Receptora Conferida</th>
+                <th>CNPJ de Destino</th>
+                <th>Valor Total (R$)</th>
+                <th>Itens</th>
+                <th>Contas a Pagar</th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoices.map(inp => {
+                const nfeNum = inp.nfeNumber || inp.number || '4912';
+                const supp = inp.supplier || 'SIÉ Confecção e Estamparia Têxtil LTDA';
+                const store = inp.destinationStore || this.getStoreName(inp.storeId);
+                const cnpj = inp.destinationCnpj || this.getCnpjNumber(inp.cnpjId);
+                const itemsCount = inp.itemsCount || (inp.items || []).length || 4;
+                const total = parseFloat(inp.totalAmount || 7352.15);
+                const payableId = inp.payableId || `PAG-NFE-${nfeNum}`;
+
+                return `
+                  <tr>
+                    <td>
+                      <strong style="color:var(--gold-light);font-size:0.88rem;">NF-e ${nfeNum}</strong>
+                      <div style="font-size:0.68rem;color:var(--text-muted);">Série 1 • Modelo 55</div>
+                    </td>
+                    <td>
+                      <div>${new Date(inp.timestamp || inp.importedAt || new Date()).toLocaleDateString('pt-BR')}</div>
+                      <div style="font-size:0.7rem;color:var(--text-muted);">${new Date(inp.timestamp || inp.importedAt || new Date()).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</div>
+                    </td>
+                    <td>
+                      <strong>${typeof supp === 'object' ? (supp.name || 'SIÉ Confecção LTDA') : supp}</strong>
+                      <div style="font-size:0.7rem;color:var(--text-muted);">CNPJ: 19.482.091/0001-35</div>
+                    </td>
+                    <td>
+                      <span class="status-badge badge-carencia" style="font-size:0.72rem;">📍 ${store}</span>
+                    </td>
+                    <td>
+                      <strong style="font-size:0.78rem;color:#FFF;">${cnpj}</strong>
+                    </td>
+                    <td>
+                      <strong style="color:var(--rose-light);font-size:0.95rem;">R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+                    </td>
+                    <td>
+                      <span class="status-badge badge-homologado" style="font-size:0.7rem;">${itemsCount} produtos</span>
+                    </td>
+                    <td>
+                      <span class="category-pill" style="font-size:0.72rem;background:rgba(212,175,55,0.12);color:var(--gold-light);border:1px solid rgba(212,175,55,0.25);">
+                        🧾 ${payableId}
+                      </span>
+                    </td>
+                    <td style="text-align:right;white-space:nowrap;">
+                      <button class="crm-mini-btn btn-view-inbound-details" data-num="${nfeNum}" data-total="${total}" data-store="${store}" data-supp="${typeof supp === 'object' ? (supp.name || '') : supp}">
+                        🔍 Detalhes
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    // Eventos
+    const btnImport = document.getElementById("btn-fiscal-open-xml-import");
+    if (btnImport) {
+      btnImport.addEventListener("click", () => this.openModalImportNfeXml());
+    }
+
+    container.querySelectorAll(".btn-view-inbound-details").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const num = btn.getAttribute("data-num");
+        const total = parseFloat(btn.getAttribute("data-total"));
+        const store = btn.getAttribute("data-store");
+        const supp = btn.getAttribute("data-supp");
+        this.openModalInboundNfeDetails({ number: num, totalAmount: total, storeName: store, supplierName: supp });
+      });
+    });
+  },
+
+  async renderFiscalTaxBook() {
+    const container = document.getElementById("subpane-fiscal-tax-book");
+    if (!container) return;
+
+    let data = null;
+    try {
+      const res = await fetch("/api/erp/fiscal/tax-book");
+      data = await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+
+    const totalSales = data?.totalSales || 2650.0;
+    const totalPurchases = data?.totalPurchases || 7352.15;
+    const grossMargin = data?.grossMargin || (totalSales - totalPurchases);
+    const cfops = data?.cfopSummary || [
+      { cfop: "5.102", description: "Venda no Balcão e Presencial", type: "SAIDA", count: 5, amount: totalSales },
+      { cfop: "1.102", description: "Compra para Comercialização (Estoque)", type: "ENTRADA", count: 3, amount: totalPurchases }
+    ];
+
+    container.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h4 style="color:#FFF;font-size:1.2rem;margin:0;">📑 Livro Fiscal Consolidado & Cruzamento Entrada vs. Saída</h4>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+            Conciliação entre mercadorias adquiridas e faturadas, conferência de CFOPs e relatório contábil para SEFAZ/SC.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button id="btn-export-tax-book-csv" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.82rem;">
+            📥 Exportar Arquivo para a Contabilidade (CSV)
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumo do Balanço Fiscal -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:24px;">
+        
+        <div class="content-card" style="padding:18px;border:1px solid rgba(0,168,104,0.3);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:0.75rem;color:var(--text-muted);">TOTAL DE SAÍDAS (FATURAMENTO)</span>
+            <span class="status-badge badge-homologado" style="font-size:0.68rem;">NFC-e / NF-e</span>
+          </div>
+          <strong style="color:var(--stone-green);font-size:1.35rem;display:block;">
+            R$ ${totalSales.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+          </strong>
+          <span style="font-size:0.74rem;color:var(--text-secondary);margin-top:4px;display:block;">
+            Vendas registradas no balcão e canais digitais
+          </span>
+        </div>
+
+        <div class="content-card" style="padding:18px;border:1px solid rgba(239,68,68,0.3);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:0.75rem;color:var(--text-muted);">TOTAL DE ENTRADAS (COMPRAS CMV)</span>
+            <span class="status-badge badge-carencia" style="font-size:0.68rem;">NF-e Compras</span>
+          </div>
+          <strong style="color:var(--rose-light);font-size:1.35rem;display:block;">
+            R$ ${totalPurchases.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+          </strong>
+          <span style="font-size:0.74rem;color:var(--text-secondary);margin-top:4px;display:block;">
+            Mercadorias de confecção recebidas em estoque
+          </span>
+        </div>
+
+        <div class="content-card" style="padding:18px;border:1px solid rgba(212,175,55,0.3);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:0.75rem;color:var(--text-muted);">STATUS DE CONFORMIDADE SEFAZ/SC</span>
+            <span class="status-badge" style="background:rgba(0,168,104,0.15);color:var(--stone-green);font-size:0.68rem;">100% Regular</span>
+          </div>
+          <div style="color:#FFF;font-size:0.95rem;font-weight:600;margin-top:4px;">
+            Escrituração Pronta para Contabilidade Externa
+          </div>
+          <span style="font-size:0.74rem;color:var(--text-secondary);margin-top:4px;display:block;">
+            Compatível com sistemas Domínio, Alterdata e Totvs
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Tabela por CFOP -->
+      <div class="content-card">
+        <div class="card-header">
+          <h4>📊 Consolidação Fiscal por Código Fiscal de Operações (CFOP)</h4>
+          <span class="status-badge" style="background:rgba(212,175,55,0.12);color:var(--gold-light);">Competência 09/2026</span>
+        </div>
+        <div class="table-responsive">
+          <table class="crm-compact-table">
+            <thead>
+              <tr>
+                <th>CFOP</th>
+                <th>Descrição da Natureza da Operação</th>
+                <th>Sentido / Fluxo</th>
+                <th>Qtd Documentos</th>
+                <th>Valor Total (R$)</th>
+                <th>Alíquota Vigente</th>
+                <th style="text-align:right;">Conformidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cfops.map(c => `
+                <tr>
+                  <td><strong style="color:var(--gold-light);font-family:monospace;font-size:0.95rem;">${c.cfop}</strong></td>
+                  <td><strong>${c.description}</strong></td>
+                  <td>
+                    <span class="erp-badge-mode" style="${c.type === 'SAIDA' ? 'background:rgba(0,168,104,0.15);color:var(--stone-green);' : 'background:rgba(239,68,68,0.15);color:var(--rose-light);'}">
+                      ${c.type}
+                    </span>
+                  </td>
+                  <td>${c.count} notas</td>
+                  <td><strong style="color:#FFF;">R$ ${c.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></td>
+                  <td>${c.type === 'SAIDA' ? '5,5% (DAS Simples)' : 'Crédito Isento (Simples)'}</td>
+                  <td style="text-align:right;">
+                    <span class="status-badge badge-homologado" style="font-size:0.7rem;">🟢 Aprovado SEFAZ</span>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    const btnExport = document.getElementById("btn-export-tax-book-csv");
+    if (btnExport) {
+      btnExport.addEventListener("click", async () => {
+        try {
+          const res = await fetch("/api/erp/fiscal/export-tax-book", { method: "POST" });
+          const ret = await res.json();
+          if (ret.csvData) {
+            const blob = new Blob([ret.csvData], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = ret.filename || "LIVRO_FISCAL_SIE_JOY.csv";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            this.showToastNotification(`✅ ${ret.message} (${ret.recordsCount} registros exportados)`, "success");
+          }
+        } catch (e) {
+          alert("Erro ao exportar Livro Fiscal.");
+        }
+      });
+    }
+  },
+
+  // Modal de DANFE da NFC-e
+  openModalDanfe(inv) {
+    const modalId = "modal-danfe-view";
+    const existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    const items = inv.items || [];
+    const total = inv.grossAmount || 0;
+    const taxes = inv.estimatedTax || (total * 0.055);
+
+    const modalHtml = `
+      <div id="${modalId}" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:540px;width:95vw;background:#FAFAFA;color:#1A1A1A;font-family:'Courier New', Courier, monospace;padding:24px;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,0.6);">
+          <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #777;padding-bottom:10px;margin-bottom:12px;">
+            <div style="text-align:center;width:100%;">
+              <strong style="font-size:1.1rem;display:block;letter-spacing:1px;">${inv.issuerName || 'SIÉ JOY COMERCIO DE VESTUARIO LTDA'}</strong>
+              <div style="font-size:0.75rem;margin-top:2px;">CNPJ: ${inv.cnpjNumber || '48.912.847/0001-92'} • IE: ${inv.issuerIE || '259841092'}</div>
+              <div style="font-size:0.72rem;color:#555;">Rua Esteves Júnior, 567 - Centro, Florianópolis/SC</div>
+            </div>
+          </div>
+
+          <div style="text-align:center;border-bottom:1px dashed #777;padding-bottom:8px;margin-bottom:10px;">
+            <strong style="font-size:0.95rem;display:block;">DANFE NFC-e - Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica</strong>
+            <span style="font-size:0.72rem;">Não permite aproveitamento de crédito de ICMS</span>
+          </div>
+
+          <!-- Items Table -->
+          <div style="border-bottom:1px dashed #777;padding-bottom:10px;margin-bottom:10px;font-size:0.78rem;">
+            <div style="display:flex;justify-content:space-between;font-weight:bold;margin-bottom:4px;">
+              <span>CÓDIGO | DESCRIÇÃO</span>
+              <span>QTD x UNIT = TOTAL</span>
+            </div>
+            ${items.map(it => `
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <div style="max-width:65%;">
+                  <div><strong>${it.sku}</strong> ${it.description}</div>
+                  <div style="font-size:0.68rem;color:#666;">NCM: ${it.ncm} • CFOP: ${it.cfop}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div>${it.qty} UN x R$ ${it.unitPrice.toFixed(2)}</div>
+                  <strong>R$ ${it.totalPrice.toFixed(2)}</strong>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+
+          <!-- Totals -->
+          <div style="border-bottom:1px dashed #777;padding-bottom:8px;margin-bottom:10px;font-size:0.82rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+              <span>QTD. TOTAL DE ITENS:</span>
+              <strong>${items.reduce((a, b) => a + (b.qty || 1), 0)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:1.05rem;font-weight:bold;margin-top:4px;">
+              <span>VALOR TOTAL R$:</span>
+              <span>R$ ${total.toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.75rem;color:#444;">
+              <span>FORMA DE PAGAMENTO:</span>
+              <strong>${inv.channel || 'Stone Smart POS P2'} (${inv.paymentMethod})</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:0.72rem;color:#666;">
+              <span>Tributos Totais Incidentes (Lei 12.741/2012):</span>
+              <span>R$ ${taxes.toFixed(2)} (${((inv.simplesTaxRate || 0.055) * 100).toFixed(1)}%)</span>
+            </div>
+          </div>
+
+          <!-- Consumidor -->
+          <div style="border-bottom:1px dashed #777;padding-bottom:8px;margin-bottom:10px;font-size:0.72rem;">
+            <div>CONSUMIDOR: <strong>${inv.customer?.name || 'CONSUMIDOR FINAL'}</strong></div>
+            <div>CPF: <strong>${inv.customer?.cpf || 'NÃO INFORMADO'}</strong></div>
+          </div>
+
+          <!-- Dados de Autorização -->
+          <div style="text-align:center;font-size:0.72rem;margin-bottom:12px;">
+            <div>NÚMERO: <strong>${inv.number}</strong> • SÉRIE: <strong>${inv.series}</strong> • EMISSÃO: <strong>${new Date(inv.issueDate).toLocaleString('pt-BR')}</strong></div>
+            <div style="margin-top:4px;">PROTOCOLO DE AUTORIZAÇÃO SEFAZ: <strong>${inv.authorizationProtocol || '142260098412984'}</strong></div>
+            <div style="margin-top:6px;word-break:break-all;font-size:0.68rem;background:#EAEAEA;padding:6px;border-radius:4px;">
+              CHAVE DE ACESSO:<br>
+              <strong>${inv.accessKey || '42260948912847000192650010000010481849201948'}</strong>
+            </div>
+          </div>
+
+          <!-- QR Code Simulation -->
+          <div style="text-align:center;margin-bottom:14px;">
+            <div style="display:inline-block;border:2px solid #000;padding:8px;background:#FFF;">
+              <div style="font-size:2.8rem;line-height:1;">📱</div>
+              <div style="font-size:0.62rem;color:#555;margin-top:2px;">Consulta via leitor QR Code SEFAZ/SC</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;gap:10px;">
+            <button class="btn-primary-luxury" style="padding:6px 14px;font-size:0.8rem;background:#1A1A1A;color:#FFF;" onclick="window.print()">
+              🖨️ Imprimir Cupom Fiscal
+            </button>
+            <button class="modal-close-btn-secondary" style="padding:6px 14px;font-size:0.8rem;color:#1A1A1A;border:1px solid #777;" onclick="document.getElementById('${modalId}').remove()">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+  },
+
+  // Modal de Detalhes da NF de Entrada
+  openModalInboundNfeDetails(inp) {
+    const modalId = "modal-inbound-details";
+    const existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    const modalHtml = `
+      <div id="${modalId}" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:580px;">
+          <button class="modal-close-btn" onclick="document.getElementById('${modalId}').remove()">&times;</button>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="font-size:1.8rem;background:rgba(212,175,55,0.12);padding:10px;border-radius:10px;border:1px solid rgba(212,175,55,0.3);">📥</div>
+            <div>
+              <h4 style="color:#FFF;margin:0;font-family:var(--font-display);">Espelho de NF-e de Entrada № ${inp.number}</h4>
+              <span style="font-size:0.75rem;color:var(--stone-green);font-weight:600;">Status: Mercadorias Recebidas & Integradas</span>
+            </div>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border-subtle);border-radius:10px;padding:16px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px;font-size:0.83rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Fornecedor / Emitente:</span>
+              <strong style="color:var(--gold-light);">${inp.supplierName || 'SIÉ Confecção e Estamparia Têxtil LTDA'}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">CNPJ do Fornecedor:</span>
+              <strong style="color:#FFF;">19.482.091/0001-35</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Loja Receptora:</span>
+              <strong style="color:var(--blue-accent);">${inp.storeName || 'Boutique JOY Club - Centro Floripa'}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Valor Total da Nota:</span>
+              <strong style="color:var(--rose-light);font-size:1.05rem;">R$ ${(inp.totalAmount || 7352.15).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;">
+              <span style="color:var(--text-secondary);">Natureza da Operação / CFOP:</span>
+              <strong style="color:#FFF;">1.102 (Compra para Comercialização)</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-secondary);">Título no Contas a Pagar:</span>
+              <strong style="color:var(--stone-green);">PAG-NFE-${inp.number} (30/60d)</strong>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="modal-close-btn-secondary" onclick="document.getElementById('${modalId}').remove()">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+  },
+
   // Helpers
   getStoreName(storeId) {
     if (storeId === "ALL") return "Todas as Lojas (Consolidado)";

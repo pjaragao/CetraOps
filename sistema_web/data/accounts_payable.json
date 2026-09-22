@@ -112,6 +112,72 @@
       "amount": 1200.0,
       "paymentMethod": "BOLETO",
       "status": "PENDING"
+    },
+    {
+      "id": "PAG-NFE-2019",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "costCenterId": "CC-01",
+      "costCenterName": "Boutique JOY Club - Centro Floripa",
+      "chartOfAccountId": "2.1.1.01",
+      "chartOfAccountName": "Fornecedores Confecção Têxtil (30/60/90d)",
+      "category": "",
+      "supplier": "Fornecedor Têxtil",
+      "description": "Faturamento NF-e 2019 (4 itens recebidos em estoque)",
+      "documentNumber": "NF-e 2019",
+      "issueDate": "2026-09-22",
+      "dueDate": "2026-10-22",
+      "amount": 7352.15,
+      "paymentMethod": "BOLETO",
+      "status": "PENDING",
+      "customFields": {
+        "purchaseOrder": "NFE-2019"
+      },
+      "notes": "Entrada gerada automaticamente via importação de XML de NF-e."
+    },
+    {
+      "id": "PAG-NFE-2157",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "costCenterId": "CC-01",
+      "costCenterName": "Boutique JOY Club - Centro Floripa",
+      "chartOfAccountId": "2.1.1.01",
+      "chartOfAccountName": "Fornecedores Confecção Têxtil (30/60/90d)",
+      "category": "",
+      "supplier": "Fornecedor Têxtil",
+      "description": "Faturamento NF-e 2157 (4 itens recebidos em estoque)",
+      "documentNumber": "NF-e 2157",
+      "issueDate": "2026-09-22",
+      "dueDate": "2026-10-22",
+      "amount": 7352.15,
+      "paymentMethod": "BOLETO",
+      "status": "PENDING",
+      "customFields": {
+        "purchaseOrder": "NFE-2157"
+      },
+      "notes": "Entrada gerada automaticamente via importação de XML de NF-e."
+    },
+    {
+      "id": "PAG-NFE-2434",
+      "storeId": "store-01",
+      "cnpjId": "cnpj-01",
+      "costCenterId": "CC-01",
+      "costCenterName": "Boutique JOY Club - Centro Floripa",
+      "chartOfAccountId": "2.1.1.01",
+      "chartOfAccountName": "Fornecedores Confecção Têxtil (30/60/90d)",
+      "category": "",
+      "supplier": "Fornecedor Têxtil",
+      "description": "Faturamento NF-e 2434 (4 itens recebidos em estoque)",
+      "documentNumber": "NF-e 2434",
+      "issueDate": "2026-09-22",
+      "dueDate": "2026-10-22",
+      "amount": 7352.15,
+      "paymentMethod": "BOLETO",
+      "status": "PENDING",
+      "customFields": {
+        "purchaseOrder": "NFE-2434"
+      },
+      "notes": "Entrada gerada automaticamente via importação de XML de NF-e."
     }
   ]
 }

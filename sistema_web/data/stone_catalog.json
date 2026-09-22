@@ -5,14 +5,14 @@
     "name": "Legging High Sculpt Zero Transparência",
     "category": "Leggings",
     "color": "Midnight Black",
-    "price": 289.0,
+    "price": 310.0,
     "cost": 120.42,
-    "markup": 2.4,
+    "markup": 2.57,
     "currentStock": {
-      "P": 4,
-      "M": 4,
-      "G": 3,
-      "GG": 1
+      "P": 19,
+      "M": 28,
+      "G": 18,
+      "GG": 7
     },
     "minStockTarget": {
       "P": 8,
@@ -35,14 +35,14 @@
     "name": "Top Cross Back Alta Sustentação",
     "category": "Tops",
     "color": "Emerald Forest",
-    "price": 189.0,
+    "price": 196.88,
     "cost": 78.75,
-    "markup": 2.4,
+    "markup": 2.5,
     "currentStock": {
-      "P": 5,
-      "M": 8,
-      "G": 4,
-      "GG": 2
+      "P": 23,
+      "M": 38,
+      "G": 22,
+      "GG": 11
     },
     "minStockTarget": {
       "P": 6,
@@ -177,6 +177,66 @@
       "Musculação",
       "Corrida",
       "Beach Tennis"
+    ]
+  },
+  {
+    "id": "PROD-007",
+    "stoneSku": "SIE-SHR-LUX-OAT",
+    "name": "Shorts Biker Seamless Alta Compressão Oat Milk",
+    "category": "Coleção Nova",
+    "color": "Padrão",
+    "price": 212.5,
+    "cost": 85.0,
+    "markup": 2.5,
+    "currentStock": {
+      "P": 12,
+      "M": 18,
+      "G": 12,
+      "GG": 3
+    },
+    "minStockTarget": {
+      "P": 6,
+      "M": 10,
+      "G": 5,
+      "GG": 2
+    },
+    "salesVelocityWeekly": 5.0,
+    "leadTimeDays": 20,
+    "imageEmoji": "✨",
+    "bestFor": [
+      "Treino",
+      "Lifestyle",
+      "Pilates"
+    ]
+  },
+  {
+    "id": "PROD-008",
+    "stoneSku": "SIE-MAC-FLEX-BUR",
+    "name": "Macacão Body Sculpt Joy Club Burgundy Especial",
+    "category": "Coleção Nova",
+    "color": "Padrão",
+    "price": 425.0,
+    "cost": 170.0,
+    "markup": 2.5,
+    "currentStock": {
+      "P": 6,
+      "M": 12,
+      "G": 6,
+      "GG": 6
+    },
+    "minStockTarget": {
+      "P": 6,
+      "M": 10,
+      "G": 5,
+      "GG": 2
+    },
+    "salesVelocityWeekly": 5.0,
+    "leadTimeDays": 20,
+    "imageEmoji": "✨",
+    "bestFor": [
+      "Treino",
+      "Lifestyle",
+      "Pilates"
     ]
   }
 ]

@@ -318,19 +318,33 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
             type_filter = qs.get("type", [None])[0]
             cat_filter = qs.get("category", [None])[0]
             search_query = qs.get("search", [None])[0]
+            supplier_filter = qs.get("isSupplier", [None])[0]
 
             if type_filter and type_filter != "ALL":
-                entities = [e for e in entities if e.get("type") == type_filter]
+                if type_filter == "SUPPLIER":
+                    entities = [e for e in entities if e.get("isSupplier") is True or e.get("category") == "FORNECEDOR_CMV"]
+                else:
+                    entities = [e for e in entities if e.get("type") == type_filter]
+            if supplier_filter is not None:
+                if supplier_filter.lower() in ["true", "1"]:
+                    entities = [e for e in entities if e.get("isSupplier") is True or e.get("category") == "FORNECEDOR_CMV"]
+                elif supplier_filter.lower() in ["false", "0"]:
+                    entities = [e for e in entities if not (e.get("isSupplier") is True or e.get("category") == "FORNECEDOR_CMV")]
             if cat_filter and cat_filter != "ALL":
                 entities = [e for e in entities if e.get("category") == cat_filter]
             if search_query:
                 sq = search_query.lower()
                 entities = [
                     e for e in entities 
-                    if sq in (e.get("name") or e.get("razaoSocial") or "").lower()
+                    if sq in (e.get("name") or e.get("razaoSocial") or e.get("nomeFantasia") or "").lower()
                     or sq in (e.get("cpf") or e.get("cnpj") or "").lower()
                     or sq in (e.get("email") or "").lower()
                     or sq in (e.get("city") or "").lower()
+                    or sq in (e.get("supplierCategory") or "").lower()
+                    or sq in (e.get("paymentCondition") or "").lower()
+                    or sq in (e.get("pixKey") or "").lower()
+                    or sq in (e.get("bankInfo") or "").lower()
+                    or sq in (e.get("notes") or "").lower()
                 ]
 
             return self.send_json({
@@ -353,7 +367,11 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         length = int(self.headers.get("Content-Length", 0))
-        post_data = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+        raw_bytes = self.rfile.read(length) if length > 0 else b"{}"
+        try:
+            post_data = raw_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            post_data = raw_bytes.decode("latin-1", errors="replace")
         
         try:
             payload = json.loads(post_data) if post_data else {}
@@ -822,6 +840,10 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "saleCode": payload.get("saleCode", f"FAT-{datetime.now().strftime('%Y%m%d%H%M')}"),
                 "storeId": payload.get("storeId", "store-01"),
                 "cnpjId": payload.get("cnpjId", "cnpj-01"),
+                "costCenterId": payload.get("costCenterId", "CC-01"),
+                "costCenterName": payload.get("costCenterName", "Boutique JOY Club - Centro Floripa"),
+                "chartOfAccountId": payload.get("chartOfAccountId", "1.1.2.02"),
+                "chartOfAccountName": payload.get("chartOfAccountName", "Contas a Receber - Faturamento Corporativo D+30"),
                 "customerName": payload.get("customerName", "Cliente Corporativo"),
                 "paymentMethod": method,
                 "installments": int(payload.get("installments", 1)),
@@ -845,6 +867,10 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "id": new_id,
                 "storeId": payload.get("storeId", "store-01"),
                 "cnpjId": payload.get("cnpjId", "cnpj-01"),
+                "costCenterId": payload.get("costCenterId", "CC-01"),
+                "costCenterName": payload.get("costCenterName", "Boutique JOY Club - Centro Floripa"),
+                "chartOfAccountId": payload.get("chartOfAccountId", "2.1.1.01"),
+                "chartOfAccountName": payload.get("chartOfAccountName", "Fornecedores Confecção Têxtil (30/60/90d)"),
                 "category": payload.get("category", "FORNECEDOR_CMV"),
                 "supplier": payload.get("supplier", "").strip(),
                 "description": payload.get("description", "").strip(),
@@ -976,6 +1002,11 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
             data = load_json("contacts_entities.json")
             new_id = payload.get("id") or f"ENT-{len(data.get('entities', [])) + 1:03d}"
             entity_type = payload.get("type", "PF")
+            is_supplier = bool(payload.get("isSupplier") or payload.get("category") == "FORNECEDOR_CMV")
+            supplier_category = payload.get("supplierCategory", "CMV_CONFECCAO" if is_supplier else "").strip()
+            payment_condition = payload.get("paymentCondition", "30/60/90 dias" if is_supplier else "").strip()
+            pix_key = payload.get("pixKey", "").strip()
+            bank_info = payload.get("bankInfo", "").strip()
             
             if entity_type == "PF":
                 new_ent = {
@@ -989,8 +1020,13 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                     "email": payload.get("email", "").strip(),
                     "city": payload.get("city", "").strip(),
                     "address": payload.get("address", "").strip(),
-                    "category": payload.get("category", "CLIENTE_VIP"),
-                    "relationship": payload.get("relationship", "Cliente"),
+                    "category": payload.get("category", "FORNECEDOR_CMV" if is_supplier else "CLIENTE_VIP"),
+                    "relationship": payload.get("relationship", "Fornecedor Homologado" if is_supplier else "Cliente"),
+                    "isSupplier": is_supplier,
+                    "supplierCategory": supplier_category,
+                    "paymentCondition": payment_condition,
+                    "pixKey": pix_key,
+                    "bankInfo": bank_info,
                     "notes": payload.get("notes", ""),
                     "totalSpent": float(payload.get("totalSpent", 0.0)),
                     "stoneSynced": payload.get("stoneSynced", False),
@@ -1011,9 +1047,13 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                     "email": payload.get("email", "").strip(),
                     "city": payload.get("city", "").strip(),
                     "address": payload.get("address", "").strip(),
-                    "category": payload.get("category", "FORNECEDOR_CMV"),
-                    "relationship": payload.get("relationship", "Fornecedor"),
-                    "paymentCondition": payload.get("paymentCondition", "30 dias"),
+                    "category": payload.get("category", "FORNECEDOR_CMV" if is_supplier else "PARCEIRO"),
+                    "relationship": payload.get("relationship", "Fornecedor Homologado" if is_supplier else "Parceiro"),
+                    "isSupplier": is_supplier,
+                    "supplierCategory": supplier_category,
+                    "paymentCondition": payment_condition,
+                    "pixKey": pix_key,
+                    "bankInfo": bank_info,
                     "notes": payload.get("notes", ""),
                     "stoneSynced": False,
                     "createdAt": datetime.now().isoformat()
@@ -1162,6 +1202,7 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
         elif path == "/api/erp/bank-reconciliation/approve":
             match_ids = payload.get("matchIds", [])
             approved_by = payload.get("approvedBy", "Paulo Júnior (Diretor Executivo)")
+            overrides = payload.get("overrides", {})
             data = load_json("bank_reconciliation.json")
             approved_count = 0
             for m in data.get("reconciledTransactions", []):
@@ -1171,6 +1212,12 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                     m["approvedAt"] = datetime.now().isoformat()
                     m["difference"] = 0.0
                     m["bankStatementAmount"] = m["stoneSettledAmount"]
+                    if m["id"] in overrides:
+                        ov = overrides[m["id"]]
+                        if "costCenterId" in ov: m["costCenterId"] = ov["costCenterId"]
+                        if "costCenterName" in ov: m["costCenterName"] = ov["costCenterName"]
+                        if "chartOfAccountId" in ov: m["chartOfAccountId"] = ov["chartOfAccountId"]
+                        if "chartOfAccountName" in ov: m["chartOfAccountName"] = ov["chartOfAccountName"]
                     approved_count += 1
             save_json("bank_reconciliation.json", data)
             return self.send_json({"success": True, "approvedCount": approved_count, "approvedBy": approved_by})

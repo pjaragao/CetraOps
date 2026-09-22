@@ -97,10 +97,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
     cadastros: {
       title: "<span>📇</span> Central de Cadastros Gerais",
-      subtitle: "Pessoas Físicas e Jurídicas, Unidades de Negócio (1:N) e CNPJs Gerenciados",
+      subtitle: "Pessoas Físicas e Jurídicas, Fornecedores Homologados, Lojas (1:N) e CNPJs do Grupo",
       defaultSubTab: "cadastros-pessoas",
       subtabs: [
-        { id: "cadastros-pessoas", label: "👤 Pessoas (Física / Jurídica)" },
+        { id: "cadastros-pessoas", label: "👤 Pessoas (PF / PJ)" },
+        { id: "cadastros-fornecedores", label: "🚚 Fornecedores" },
         { id: "cadastros-lojas", label: "🏬 Lojas & Unidades" },
         { id: "cadastros-cnpjs", label: "🏢 CNPJs do Grupo" }
       ]
@@ -293,6 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       else if (subtabId === "hr-payroll") ErpController.renderHrPayroll();
       else if (subtabId === "hr-prolabore") ErpController.renderHrProLabore();
       else if (subtabId === "cadastros-pessoas") ErpController.renderCentralEntities();
+      else if (subtabId === "cadastros-fornecedores") ErpController.renderSuppliersRegistration();
       else if (subtabId === "cadastros-lojas") ErpController.renderStoresRegistration();
       else if (subtabId === "cadastros-cnpjs") ErpController.renderCnpjsRegistration();
       else if (subtabId === "settings-sync-dashboard") ErpController.renderSyncDashboard();

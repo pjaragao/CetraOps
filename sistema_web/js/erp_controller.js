@@ -236,6 +236,7 @@ const ErpController = {
               <tr>
                 <th>Código / Ref.</th>
                 <th>Loja & CNPJ</th>
+                <th>Centro de Custo & Plano de Contas</th>
                 <th>Cliente</th>
                 <th>Meio / Parcelas</th>
                 <th>Data Venda</th>
@@ -256,6 +257,19 @@ const ErpController = {
                     </span>
                     <span style="font-size:0.7rem;color:var(--text-muted);">• ${r.cnpjId === 'cnpj-01' ? 'Matriz' : 'Filial'}</span>
                   </td>
+                  <td>
+                    <div style="font-weight:600;font-size:0.78rem;display:flex;align-items:center;gap:4px;">
+                      <span class="category-pill" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);padding:2px 6px;font-size:0.7rem;font-weight:600;">
+                        ${r.costCenterId || 'CC-01'}
+                      </span>
+                      <span style="font-size:0.74rem;color:#FFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="${r.costCenterName || ''}">
+                        ${(r.costCenterName || 'Boutique Floripa').split(' - ')[0]}
+                      </span>
+                    </div>
+                    <div style="font-size:0.7rem;color:var(--gold-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;" title="${r.chartOfAccountName || ''}">
+                      ${r.chartOfAccountId || '1.1.2.01'} • ${(r.chartOfAccountName || 'Contas a Receber').split(' - ').slice(-1)[0]}
+                    </div>
+                  </td>
                   <td>${r.customerName}</td>
                   <td>
                     <span class="payment-badge-pill">${r.paymentMethod}</span>
@@ -273,7 +287,7 @@ const ErpController = {
                   </td>
                 </tr>
               `).join("") : `
-                <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum recebível registrado para esta unidade.</td></tr>
+                <tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum recebível registrado para esta unidade.</td></tr>
               `}
             </tbody>
           </table>
@@ -364,6 +378,7 @@ const ErpController = {
               <tr>
                 <th>Código</th>
                 <th>Categoria</th>
+                <th>Centro de Custo & Plano de Contas</th>
                 <th>Fornecedor / Beneficiário</th>
                 <th>Descrição / Parcela</th>
                 <th>Documento</th>
@@ -380,6 +395,19 @@ const ErpController = {
                   <td><strong>${p.id}</strong></td>
                   <td>
                     <span class="category-pill ${(p.category || '').toLowerCase()}">${p.category}</span>
+                  </td>
+                  <td>
+                    <div style="font-weight:600;font-size:0.78rem;display:flex;align-items:center;gap:4px;">
+                      <span class="category-pill" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);padding:2px 6px;font-size:0.7rem;font-weight:600;">
+                        ${p.costCenterId || 'CC-01'}
+                      </span>
+                      <span style="font-size:0.74rem;color:#FFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;" title="${p.costCenterName || ''}">
+                        ${(p.costCenterName || 'Boutique Floripa').split(' - ')[0]}
+                      </span>
+                    </div>
+                    <div style="font-size:0.7rem;color:var(--gold-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;" title="${p.chartOfAccountName || ''}">
+                      ${p.chartOfAccountId || '2.1.1.01'} • ${(p.chartOfAccountName || 'Fornecedores').split(' - ').slice(-1)[0]}
+                    </div>
                   </td>
                   <td><strong>${p.supplier}</strong></td>
                   <td>
@@ -413,7 +441,7 @@ const ErpController = {
                   </td>
                 </tr>
               `).join("") : `
-                <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum título a pagar encontrado para esta unidade.</td></tr>
+                <tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum título a pagar encontrado para esta unidade.</td></tr>
               `}
             </tbody>
           </table>
@@ -516,7 +544,8 @@ const ErpController = {
                 <th>1ª Via: Venda</th>
                 <th>2ª Via: Stone D+1</th>
                 <th>3ª Via: Extrato Inter</th>
-                <th>Recomendação & Confiança IA</th>
+                <th>Centro de Custo & Plano de Contas</th>
+                <th>Sugestão de Batimento & Confiança IA</th>
                 <th>Status & Auditoria</th>
                 <th style="text-align:right;">Ação Humana</th>
               </tr>
@@ -532,10 +561,30 @@ const ErpController = {
                   <td><strong style="color:var(--blue-accent);">R$ ${m.stoneSettledAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></td>
                   <td><strong style="color:var(--emerald-light);">R$ ${m.bankStatementAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></td>
                   <td>
-                    <span class="engine-pill-badge engine-apify" style="font-size:0.7rem;padding:2px 8px;">
-                      🤖 ${((m.aiConfidence || 0.95) * 100).toFixed(0)}% Confiança IA
-                    </span>
-                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${m.aiRecommendation || m.notes}</div>
+                    <div style="font-weight:600;font-size:0.78rem;display:flex;align-items:center;gap:4px;">
+                      <span class="category-pill" style="background:rgba(59,130,246,0.15);color:var(--blue-accent);padding:2px 6px;font-size:0.7rem;font-weight:600;">
+                        ${m.costCenterId || 'CC-01'}
+                      </span>
+                      <span style="font-size:0.74rem;color:#FFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;" title="${m.costCenterName || ''}">
+                        ${(m.costCenterName || 'Boutique Floripa').split(' - ')[0]}
+                      </span>
+                    </div>
+                    <div style="font-size:0.7rem;color:var(--gold-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;" title="${m.chartOfAccountName || ''}">
+                      ${m.chartOfAccountId || '5.1.1.01'} • ${(m.chartOfAccountName || 'Vendas Balcão').split(' - ').slice(-1)[0]}
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                      <span class="engine-pill-badge engine-apify" style="font-size:0.7rem;padding:2px 8px;">
+                        🤖 ${((m.aiConfidence || 0.95) * 100).toFixed(0)}% Confiança IA
+                      </span>
+                      <span style="font-size:0.68rem;background:rgba(212,175,55,0.15);color:var(--gold-light);padding:1px 6px;border-radius:4px;border:1px solid rgba(212,175,55,0.3);">
+                        🎯 Classificação Sugerida
+                      </span>
+                    </div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;line-height:1.3;">
+                      ${m.aiRecommendation || m.notes}
+                    </div>
                   </td>
                   <td>
                     <span class="erp-status-badge ${isApproved ? 'settled' : 'pending'}">
@@ -545,10 +594,10 @@ const ErpController = {
                   </td>
                   <td style="text-align:right;">
                     ${!isApproved ? `
-                      <button class="crm-mini-btn btn-approve-single-rec" data-id="${m.id}" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border-color:rgba(0,168,104,0.3);">
-                        👍 Aprovar Match
+                      <button class="crm-mini-btn btn-approve-single-rec" data-id="${m.id}" style="background:rgba(0,168,104,0.15);color:var(--stone-green);border-color:rgba(0,168,104,0.3);font-size:0.75rem;">
+                        👍 Aprovar Match & Contabilidade
                       </button>
-                    ` : '<span style="font-size:0.75rem;color:var(--stone-green);">✔ Conciliado</span>'}
+                    ` : '<span style="font-size:0.75rem;color:var(--stone-green);">✔ Conciliado & Classificado</span>'}
                   </td>
                 </tr>
                 `;
@@ -568,7 +617,7 @@ const ErpController = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ matchIds: [id], approvedBy: "Paulo Júnior (Diretor Executivo)" })
         });
-        this.showToastNotification("Conciliação aprovada com sucesso!", "success");
+        this.showToastNotification("Conciliação e classificação contábil aprovadas com sucesso!", "success");
         this.renderBankReconciliation();
       });
     });
@@ -1033,10 +1082,11 @@ const ErpController = {
     `;
   },
 
-  // --- 7. CENTRAL DE CADASTROS (PESSOAS PF/PJ, LOJAS & CNPJS) ---
+  // --- 7. CENTRAL DE CADASTROS (PESSOAS PF/PJ, FORNECEDORES, LOJAS & CNPJS) ---
   async loadCentralEntities() {
     try {
-      const res = await fetch(`/api/erp/entities?type=${this.activeEntityTypeFilter}`);
+      const typeParam = this.activeEntityTypeFilter || "ALL";
+      const res = await fetch(`/api/erp/entities?type=${typeParam}`);
       this.entitiesData = await res.json();
     } catch (e) {
       console.error(e);
@@ -1048,14 +1098,28 @@ const ErpController = {
     if (!container) return;
     await this.loadCentralEntities();
 
+    // Fetch all for accurate counts
+    let allEntities = [];
+    try {
+      const allRes = await fetch("/api/erp/entities");
+      const allData = await allRes.json();
+      allEntities = allData.entities || [];
+    } catch (err) {
+      allEntities = this.entitiesData?.entities || [];
+    }
+
     const entities = this.entitiesData?.entities || [];
+    const totalCount = allEntities.length;
+    const pfCount = allEntities.filter(e => e.type === "PF").length;
+    const pjCount = allEntities.filter(e => e.type === "PJ").length;
+    const supplierCount = allEntities.filter(e => e.isSupplier || e.category === "FORNECEDOR_CMV").length;
 
     container.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
           <h4 style="color:#FFF;font-size:1.2rem;margin:0;">👤 Cadastro Centralizado de Pessoas Físicas & Jurídicas</h4>
           <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
-            Clientes VIP, Alunas JOY, Fornecedores CMV, Parceiros e Contatos com sincronização com a maquininha Stone.
+            Clientes VIP, Alunas JOY, Fornecedores Homologados, Parceiros e Contatos com sincronização com a maquininha Stone.
           </p>
         </div>
         <div style="display:flex;gap:10px;">
@@ -1071,14 +1135,17 @@ const ErpController = {
       <!-- Filters & Type Selector -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="crm-view-toggle">
-          <button class="crm-view-btn entity-type-btn ${this.activeEntityTypeFilter === 'ALL' ? 'active' : ''}" data-type="ALL">
-            Todos (${entities.length})
+          <button class="crm-view-btn entity-type-btn ${(!this.activeEntityTypeFilter || this.activeEntityTypeFilter === 'ALL') ? 'active' : ''}" data-type="ALL">
+            Todos (${totalCount})
           </button>
           <button class="crm-view-btn entity-type-btn ${this.activeEntityTypeFilter === 'PF' ? 'active' : ''}" data-type="PF">
-            👤 Pessoas Físicas (PF)
+            👤 Pessoas Físicas (${pfCount})
           </button>
           <button class="crm-view-btn entity-type-btn ${this.activeEntityTypeFilter === 'PJ' ? 'active' : ''}" data-type="PJ">
-            🏢 Pessoas Jurídicas (PJ)
+            🏢 Pessoas Jurídicas (${pjCount})
+          </button>
+          <button class="crm-view-btn entity-type-btn ${this.activeEntityTypeFilter === 'SUPPLIER' ? 'active' : ''}" data-type="SUPPLIER">
+            🚚 Fornecedores (${supplierCount})
           </button>
         </div>
 
@@ -1111,6 +1178,7 @@ const ErpController = {
                     <span class="erp-badge-mode" style="${e.type === 'PF' ? 'background:rgba(56,189,248,0.15);color:var(--blue-accent);' : 'background:rgba(212,175,55,0.15);color:var(--gold-light);'}">
                       ${e.type}
                     </span>
+                    ${e.isSupplier ? `<span class="status-badge badge-homologado" style="font-size:0.62rem;background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);display:block;margin-top:4px;">🚚 Fornecedor</span>` : ''}
                   </td>
                   <td>
                     <strong>${e.type === 'PF' ? e.name : (e.nomeFantasia || e.razaoSocial)}</strong>
@@ -1133,8 +1201,9 @@ const ErpController = {
                       ${e.stoneSynced ? '🟢 Maquininha Stone' : 'Manual ERP'}
                     </span>
                   </td>
-                  <td style="text-align:right;">
+                  <td style="text-align:right;white-space:nowrap;">
                     <button class="crm-mini-btn btn-view-entity" data-id="${e.id}">Ver Ficha</button>
+                    ${e.isSupplier ? `<button class="crm-mini-btn btn-direct-pay" data-name="${e.type === 'PF' ? e.name : (e.nomeFantasia || e.razaoSocial)}" data-cat="${e.category}" style="background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);margin-left:4px;" title="Lançar Conta a Pagar">🧾 Pagar</button>` : ''}
                   </td>
                 </tr>
               `).join("")}
@@ -1152,6 +1221,18 @@ const ErpController = {
       });
     });
 
+    // Bind search
+    const inputSearch = document.getElementById("input-search-entities");
+    if (inputSearch) {
+      inputSearch.addEventListener("input", (e) => {
+        const q = e.target.value.toLowerCase();
+        const rows = container.querySelectorAll("#table-entities-body tr");
+        rows.forEach(r => {
+          r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
+        });
+      });
+    }
+
     // Bind sync stone button
     const btnSyncStone = document.getElementById("btn-sync-stone-customers");
     if (btnSyncStone) {
@@ -1165,6 +1246,198 @@ const ErpController = {
 
     const btnAdd = document.getElementById("btn-add-central-entity");
     if (btnAdd) btnAdd.addEventListener("click", () => this.openModalNewEntity());
+
+    // Bind view entity buttons
+    container.querySelectorAll(".btn-view-entity").forEach(btn => {
+      btn.addEventListener("click", () => this.openModalViewEntity(btn.getAttribute("data-id")));
+    });
+
+    container.querySelectorAll(".btn-direct-pay").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const supName = btn.getAttribute("data-name");
+        const supCat = btn.getAttribute("data-cat");
+        this.openModalNewPayable({ supplierName: supName, category: supCat });
+      });
+    });
+  },
+
+  async renderSuppliersRegistration() {
+    const container = document.getElementById("subpane-cadastros-fornecedores");
+    if (!container) return;
+
+    try {
+      const res = await fetch("/api/erp/entities?type=SUPPLIER");
+      const data = await res.json();
+      const suppliers = data.entities || [];
+
+      // KPIs
+      const totalSuppliers = suppliers.length;
+      const cmvCount = suppliers.filter(s => (s.supplierCategory || '').includes('CMV') || s.category === 'FORNECEDOR_CMV').length;
+      const servicesCount = suppliers.filter(s => (s.supplierCategory || '').includes('Serviço') || (s.supplierCategory || '').includes('Eventos') || (s.supplierCategory || '').includes('Contabilidade') || (s.supplierCategory || '').includes('Locação')).length;
+      const withPixCount = suppliers.filter(s => s.pixKey && s.pixKey.trim() !== '').length;
+
+      container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h4 style="color:#FFF;font-size:1.2rem;margin:0;">🚚 Gestão de Fornecedores Homologados & Parceiros</h4>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">
+              Fornecedores de Confecção CMV (30/60/90d), Locação, Eventos, Contabilidade e Prestadores de Serviços (PF/PJ).
+            </p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button id="btn-add-supplier-direct" class="btn-primary-luxury" style="padding:8px 14px;font-size:0.8rem;">
+              ➕ Novo Fornecedor
+            </button>
+            <button id="btn-supplier-new-payable" class="btn-primary-luxury" style="padding:8px 14px;font-size:0.8rem;background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);">
+              🧾 Lançar Conta a Pagar
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Cards -->
+        <div class="kpi-grid" style="margin-bottom:20px;">
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-icon icon-gold">🚚</div>
+              <span class="kpi-badge positive">Cadastrados</span>
+            </div>
+            <div class="kpi-title">Fornecedores Ativos</div>
+            <div class="kpi-value">${totalSuppliers}</div>
+            <div class="kpi-subtitle">Parceiros PF & PJ Homologados</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-icon icon-rose">🧵</div>
+              <span class="kpi-badge positive">CMV & Peças</span>
+            </div>
+            <div class="kpi-title">Confecção & Tecidos</div>
+            <div class="kpi-value">${cmvCount}</div>
+            <div class="kpi-subtitle">Faturamento 30/60/90d</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-icon icon-blue">💼</div>
+              <span class="kpi-badge positive">Operação</span>
+            </div>
+            <div class="kpi-title">Serviços & Parcerias</div>
+            <div class="kpi-value">${servicesCount}</div>
+            <div class="kpi-subtitle">Locação, Drops & Contábil</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <div class="kpi-icon icon-emerald">⚡</div>
+              <span class="kpi-badge positive">Chave Pronta</span>
+            </div>
+            <div class="kpi-title">Com Chave PIX Ativa</div>
+            <div class="kpi-value">${withPixCount}</div>
+            <div class="kpi-subtitle">Liquidação rápida sem atrito</div>
+          </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div class="crm-search-bar" style="max-width:380px;">
+            <span>🔍</span>
+            <input type="text" id="input-search-suppliers" placeholder="Buscar fornecedor por razão social, CNPJ/CPF ou ramo...">
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">
+            Exibindo <strong style="color:var(--gold-light);">${suppliers.length}</strong> fornecedores homologados
+          </div>
+        </div>
+
+        <!-- Suppliers Table -->
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="crm-compact-table">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Razão Social / Nome</th>
+                  <th>CNPJ / CPF</th>
+                  <th>Ramo / Especialidade</th>
+                  <th>Condição de Pagamento</th>
+                  <th>PIX / Dados Bancários</th>
+                  <th>Contato</th>
+                  <th style="text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="table-suppliers-body">
+                ${suppliers.map(s => `
+                  <tr>
+                    <td>
+                      <span class="erp-badge-mode" style="${s.type === 'PF' ? 'background:rgba(56,189,248,0.15);color:var(--blue-accent);' : 'background:rgba(212,175,55,0.15);color:var(--gold-light);'}">
+                        ${s.type}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>${s.type === 'PF' ? s.name : (s.nomeFantasia || s.razaoSocial)}</strong>
+                      ${s.type === 'PJ' && s.razaoSocial && s.razaoSocial !== s.nomeFantasia ? `<div style="font-size:0.7rem;color:var(--text-muted);">${s.razaoSocial}</div>` : ''}
+                    </td>
+                    <td><strong style="color:var(--text-secondary);">${s.type === 'PF' ? s.cpf : s.cnpj}</strong></td>
+                    <td>
+                      <span class="category-pill ${s.type === 'PJ' ? 'fornecedor_cmv' : 'parceiro'}" style="font-size:0.72rem;">
+                        ${s.supplierCategory || (s.category === 'FORNECEDOR_CMV' ? 'Confecção CMV' : s.category)}
+                      </span>
+                    </td>
+                    <td>
+                      <strong style="color:var(--gold-light);font-size:0.78rem;">${s.paymentCondition || '30 dias'}</strong>
+                    </td>
+                    <td>
+                      ${s.pixKey ? `<div style="font-size:0.75rem;color:var(--emerald-light);">🔑 PIX: ${s.pixKey}</div>` : ''}
+                      ${s.bankInfo ? `<div style="font-size:0.7rem;color:var(--text-muted);">${s.bankInfo}</div>` : (!s.pixKey ? '<span style="color:var(--text-muted);font-size:0.75rem;">-</span>' : '')}
+                    </td>
+                    <td>
+                      <div style="font-size:0.75rem;">${s.phone || '-'}</div>
+                      <div style="font-size:0.7rem;color:var(--text-muted);">${s.email || s.city || '-'}</div>
+                    </td>
+                    <td style="text-align:right;white-space:nowrap;">
+                      <button class="crm-mini-btn btn-view-entity" data-id="${s.id}" title="Ver Ficha Completa">Ficha</button>
+                      <button class="crm-mini-btn btn-supplier-pay" data-name="${s.type === 'PF' ? s.name : (s.nomeFantasia || s.razaoSocial)}" data-cat="${s.category}" style="background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);margin-left:4px;" title="Lançar Nova Conta a Pagar">🧾 Pagar</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // Event bindings
+      const btnAddSup = document.getElementById("btn-add-supplier-direct");
+      if (btnAddSup) btnAddSup.addEventListener("click", () => this.openModalNewEntity({ isSupplier: true }));
+
+      const btnPayable = document.getElementById("btn-supplier-new-payable");
+      if (btnPayable) btnPayable.addEventListener("click", () => this.openModalNewPayable());
+
+      container.querySelectorAll(".btn-view-entity").forEach(b => {
+        b.addEventListener("click", () => this.openModalViewEntity(b.getAttribute("data-id")));
+      });
+
+      container.querySelectorAll(".btn-supplier-pay").forEach(b => {
+        b.addEventListener("click", () => {
+          const supName = b.getAttribute("data-name");
+          const supCat = b.getAttribute("data-cat");
+          this.openModalNewPayable({ supplierName: supName, category: supCat });
+        });
+      });
+
+      const inputSearch = document.getElementById("input-search-suppliers");
+      if (inputSearch) {
+        inputSearch.addEventListener("input", (e) => {
+          const q = e.target.value.toLowerCase();
+          const rows = container.querySelectorAll("#table-suppliers-body tr");
+          rows.forEach(r => {
+            const text = r.textContent.toLowerCase();
+            r.style.display = text.includes(q) ? "" : "none";
+          });
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
   },
 
   renderStoresRegistration() {
@@ -1737,31 +2010,48 @@ const ErpController = {
   // --- MODALS & FORMS ---
   setupModalsAndEvents() {},
 
-  openModalNewEntity() {
+  openModalNewEntity(options = {}) {
     const modalHtml = `
       <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
-        <div class="modal-window" style="max-width:600px;">
+        <div class="modal-window" style="max-width:620px;">
           <button class="modal-close-btn" onclick="document.getElementById('modal-erp-temp').remove()">&times;</button>
-          <h4 style="color:#FFF;font-family:var(--font-display);margin-bottom:12px;">➕ Cadastrar Nova Pessoa Física ou Jurídica</h4>
+          <h4 style="color:#FFF;font-family:var(--font-display);margin-bottom:12px;">
+            ${options?.isSupplier ? '🚚 Cadastrar Novo Fornecedor (PF / PJ)' : '➕ Cadastrar Nova Pessoa Física ou Jurídica'}
+          </h4>
           
-          <div style="display:flex;gap:12px;margin-bottom:16px;">
+          <div style="display:flex;gap:12px;margin-bottom:12px;">
             <label style="cursor:pointer;display:flex;align-items:center;gap:6px;color:#FFF;font-size:0.85rem;">
-              <input type="radio" name="entity-type-radio" value="PF" checked id="radio-pf">
+              <input type="radio" name="entity-type-radio" value="PF" ${options?.isSupplier && options?.defaultType !== 'PF' ? '' : 'checked'} id="radio-pf">
               <strong>👤 Pessoa Física (PF)</strong>
             </label>
             <label style="cursor:pointer;display:flex;align-items:center;gap:6px;color:#FFF;font-size:0.85rem;">
-              <input type="radio" name="entity-type-radio" value="PJ" id="radio-pj">
+              <input type="radio" name="entity-type-radio" value="PJ" ${options?.isSupplier && options?.defaultType !== 'PF' ? 'checked' : ''} id="radio-pj">
               <strong>🏢 Pessoa Jurídica (PJ)</strong>
+            </label>
+          </div>
+
+          <!-- Supplier Flag Toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:1.3rem;">🚚</span>
+              <div>
+                <strong style="color:var(--gold-light);font-size:0.85rem;display:block;">Classificação como Fornecedor</strong>
+                <span style="font-size:0.72rem;color:var(--text-secondary);">Habilita condições comerciais, faturamento e dados bancários/PIX</span>
+              </div>
+            </div>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:8px;font-size:0.85rem;font-weight:600;color:#FFF;">
+              <input type="checkbox" id="in-ent-is-supplier" ${options?.isSupplier ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--gold-light);cursor:pointer;">
+              Sim, é Fornecedor
             </label>
           </div>
 
           <form id="form-central-entity">
             <!-- PF Fields -->
-            <div id="fields-pf-box">
+            <div id="fields-pf-box" style="${options?.isSupplier && options?.defaultType !== 'PF' ? 'display:none;' : ''}">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                 <div>
                   <label class="erp-label">Nome Completo:</label>
-                  <input type="text" id="in-ent-name" class="erp-input-sm" style="width:100%;" placeholder="Nome da cliente ou parceiro">
+                  <input type="text" id="in-ent-name" class="erp-input-sm" style="width:100%;" placeholder="Nome completo">
                 </div>
                 <div>
                   <label class="erp-label">CPF:</label>
@@ -1780,16 +2070,16 @@ const ErpController = {
               </div>
             </div>
 
-            <!-- PJ Fields (Hidden by default) -->
-            <div id="fields-pj-box" style="display:none;">
+            <!-- PJ Fields -->
+            <div id="fields-pj-box" style="${options?.isSupplier && options?.defaultType !== 'PF' ? '' : 'display:none;'}">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                 <div>
                   <label class="erp-label">Razão Social:</label>
-                  <input type="text" id="in-ent-razao" class="erp-input-sm" style="width:100%;" placeholder="Nome empresarial">
+                  <input type="text" id="in-ent-razao" class="erp-input-sm" style="width:100%;" placeholder="Nome empresarial oficial">
                 </div>
                 <div>
                   <label class="erp-label">Nome Fantasia:</label>
-                  <input type="text" id="in-ent-fantasia" class="erp-input-sm" style="width:100%;" placeholder="Marca / Nome fantasia">
+                  <input type="text" id="in-ent-fantasia" class="erp-input-sm" style="width:100%;" placeholder="Marca ou nome de exibição">
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
@@ -1820,7 +2110,7 @@ const ErpController = {
               </div>
               <div>
                 <label class="erp-label">E-mail:</label>
-                <input type="email" id="in-ent-email" class="erp-input-sm" style="width:100%;" placeholder="contato@exemplo.com">
+                <input type="email" id="in-ent-email" class="erp-input-sm" style="width:100%;" placeholder="contato@empresa.com">
               </div>
             </div>
 
@@ -1828,10 +2118,10 @@ const ErpController = {
               <div>
                 <label class="erp-label">Categoria / Perfil:</label>
                 <select id="in-ent-cat" class="erp-input-sm" style="width:100%;">
-                  <option value="CLIENTE_VIP">CLIENTE_VIP</option>
+                  <option value="FORNECEDOR_CMV" ${options?.isSupplier ? 'selected' : ''}>FORNECEDOR_CMV (Confecção & Matéria-prima)</option>
+                  <option value="CLIENTE_VIP" ${options?.isSupplier ? '' : 'selected'}>CLIENTE_VIP</option>
                   <option value="ALUNA_JOY">ALUNA_JOY</option>
-                  <option value="FORNECEDOR_CMV">FORNECEDOR_CMV</option>
-                  <option value="PARCEIRO">PARCEIRO</option>
+                  <option value="PARCEIRO">PARCEIRO / LOCADOR</option>
                   <option value="CLIENTE_CORP">CLIENTE_CORP</option>
                   <option value="COLABORADOR">COLABORADOR (Equipe & RH)</option>
                 </select>
@@ -1842,7 +2132,43 @@ const ErpController = {
               </div>
             </div>
 
-            <!-- RH & Colaborador Dynamic Fields (Integrated with Equipe & RH) -->
+            <!-- Supplier Dynamic Fields Box -->
+            <div id="fields-supplier-box" style="${options?.isSupplier ? 'display:block;' : 'display:none;'}background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.25);border-radius:8px;padding:12px;margin-bottom:12px;">
+              <div style="font-size:0.8rem;font-weight:600;color:var(--gold-light);margin-bottom:8px;">
+                🚚 Condições Comerciais & Financeiras do Fornecedor
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                  <label class="erp-label">Ramo / Especialidade:</label>
+                  <select id="in-ent-sup-cat" class="erp-input-sm" style="width:100%;">
+                    <option value="Matéria-prima & Confecção (CMV)">Matéria-prima & Confecção (CMV)</option>
+                    <option value="Locação & Espaço Físico">Locação & Espaço Físico</option>
+                    <option value="Serviços Operacionais / Manutenção">Serviços Operacionais / Manutenção</option>
+                    <option value="Marketing & Eventos / Drops">Marketing & Eventos / Drops</option>
+                    <option value="Contabilidade & Consultoria Tributária">Contabilidade & Consultoria Tributária</option>
+                    <option value="Tecnologia & Softwares">Tecnologia & Softwares</option>
+                    <option value="Serviços Criativos & Design (PF/RPA)">Serviços Criativos & Design (PF/RPA)</option>
+                    <option value="Outros Fornecedores">Outros Fornecedores</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="erp-label">Condição de Pagamento Padrão:</label>
+                  <input type="text" id="in-ent-sup-payment" class="erp-input-sm" style="width:100%;" value="30/60/90 dias no boleto" placeholder="Ex: 30/60/90 dias no boleto, À vista, D+30">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                  <label class="erp-label">Chave PIX:</label>
+                  <input type="text" id="in-ent-sup-pix" class="erp-input-sm" style="width:100%;" placeholder="CNPJ, CPF, Celular, E-mail ou Aleatória">
+                </div>
+                <div>
+                  <label class="erp-label">Dados Bancários (Banco, Ag, Conta):</label>
+                  <input type="text" id="in-ent-sup-bank" class="erp-input-sm" style="width:100%;" placeholder="Ex: Banco Itaú (341) Ag 1234 CC 56789-0">
+                </div>
+              </div>
+            </div>
+
+            <!-- RH & Colaborador Dynamic Fields -->
             <div id="fields-colab-box" style="display:none;background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.25);border-radius:8px;padding:12px;margin-bottom:12px;">
               <div style="font-size:0.8rem;font-weight:600;color:var(--gold-light);margin-bottom:8px;">
                 👥 Parâmetros de Equipe & RH (Sincronização Automática com Módulo Equipe)
@@ -1907,6 +2233,8 @@ const ErpController = {
     const colabBox = document.getElementById("fields-colab-box");
     const contractSelect = document.getElementById("in-ent-contract");
     const salaryInput = document.getElementById("in-ent-salary");
+    const chkSupplier = document.getElementById("in-ent-is-supplier");
+    const supBox = document.getElementById("fields-supplier-box");
 
     const checkColab = () => {
       if (radioPf.checked && catSelect.value === "COLABORADOR") {
@@ -1915,6 +2243,17 @@ const ErpController = {
         colabBox.style.display = "none";
       }
     };
+
+    const toggleSupplierBox = () => {
+      supBox.style.display = chkSupplier.checked ? "block" : "none";
+    };
+
+    chkSupplier.addEventListener("change", () => {
+      toggleSupplierBox();
+      if (chkSupplier.checked && catSelect.value === "CLIENTE_VIP") {
+        catSelect.value = "FORNECEDOR_CMV";
+      }
+    });
 
     radioPf.addEventListener("change", () => {
       if (radioPf.checked) {
@@ -1931,7 +2270,13 @@ const ErpController = {
       }
     });
 
-    catSelect.addEventListener("change", checkColab);
+    catSelect.addEventListener("change", () => {
+      if (catSelect.value === "FORNECEDOR_CMV") {
+        chkSupplier.checked = true;
+        toggleSupplierBox();
+      }
+      checkColab();
+    });
 
     contractSelect.addEventListener("change", () => {
       if (contractSelect.value === "COMMISSION_ONLY") {
@@ -1951,6 +2296,8 @@ const ErpController = {
       e.preventDefault();
       const isPf = radioPf.checked;
       const isColab = isPf && catSelect.value === "COLABORADOR";
+      const isSupplier = chkSupplier.checked;
+
       const payload = {
         type: isPf ? "PF" : "PJ",
         name: isPf ? document.getElementById("in-ent-name").value : document.getElementById("in-ent-fantasia").value,
@@ -1967,7 +2314,12 @@ const ErpController = {
         city: document.getElementById("in-ent-city").value,
         address: document.getElementById("in-ent-address").value,
         category: catSelect.value,
-        relationship: isColab ? "Colaboradora Equipe" : (isPf ? "Cliente / Aluna" : "Empresa / Fornecedor")
+        relationship: isSupplier ? "Fornecedor Homologado" : (isColab ? "Colaboradora Equipe" : (isPf ? "Cliente / Aluna" : "Empresa / Parceiro")),
+        isSupplier: isSupplier,
+        supplierCategory: isSupplier ? document.getElementById("in-ent-sup-cat").value : "",
+        paymentCondition: isSupplier ? document.getElementById("in-ent-sup-payment").value : "",
+        pixKey: isSupplier ? document.getElementById("in-ent-sup-pix").value : "",
+        bankInfo: isSupplier ? document.getElementById("in-ent-sup-bank").value : ""
       };
 
       if (isColab) {
@@ -1985,9 +2337,135 @@ const ErpController = {
         body: JSON.stringify(payload)
       });
       document.getElementById("modal-erp-temp").remove();
-      this.showToastNotification(isColab ? "Colaborador cadastrado e sincronizado com Equipe & RH!" : "Cadastro salvo com sucesso!", "success");
+      this.showToastNotification(isSupplier ? "Fornecedor homologado e salvo com sucesso!" : (isColab ? "Colaborador cadastrado e sincronizado com Equipe & RH!" : "Cadastro salvo com sucesso!"), "success");
       this.renderCentralEntities();
+      this.renderSuppliersRegistration();
     });
+  },
+
+  async openModalViewEntity(id) {
+    let entity = (this.entitiesData?.entities || []).find(e => e.id === id);
+    if (!entity) {
+      try {
+        const res = await fetch("/api/erp/entities");
+        const data = await res.json();
+        entity = (data.entities || []).find(e => e.id === id);
+      } catch (e) {}
+    }
+    if (!entity) {
+      alert("Cadastro não encontrado.");
+      return;
+    }
+
+    const isPf = entity.type === "PF";
+    const modalHtml = `
+      <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:620px;">
+          <button class="modal-close-btn" onclick="document.getElementById('modal-erp-temp').remove()">&times;</button>
+          
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="font-size:2rem;background:rgba(255,255,255,0.05);padding:10px 14px;border-radius:10px;border:1px solid var(--border-subtle);">
+              ${entity.isSupplier ? '🚚' : (isPf ? '👤' : '🏢')}
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <h4 style="color:#FFF;font-family:var(--font-display);font-size:1.2rem;margin:0;">
+                  ${isPf ? entity.name : (entity.nomeFantasia || entity.razaoSocial)}
+                </h4>
+                <span class="erp-badge-mode" style="${isPf ? 'background:rgba(56,189,248,0.15);color:var(--blue-accent);' : 'background:rgba(212,175,55,0.15);color:var(--gold-light);'}">
+                  ${entity.type}
+                </span>
+                ${entity.isSupplier ? `<span class="status-badge badge-homologado" style="font-size:0.65rem;background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);">🚚 Fornecedor</span>` : ''}
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">
+                ${!isPf && entity.razaoSocial && entity.razaoSocial !== entity.nomeFantasia ? `${entity.razaoSocial} • ` : ''}ID: ${entity.id}
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border-subtle);border-radius:8px;padding:14px;margin-bottom:16px;font-size:0.8rem;">
+            <div>
+              <span style="color:var(--text-muted);display:block;">Documento (${isPf ? 'CPF' : 'CNPJ'}):</span>
+              <strong style="color:#FFF;">${isPf ? (entity.cpf || '-') : (entity.cnpj || '-')}</strong>
+            </div>
+            <div>
+              <span style="color:var(--text-muted);display:block;">${isPf ? 'RG' : 'Inscrição Estadual (IE)'}:</span>
+              <strong style="color:#FFF;">${isPf ? (entity.rg || '-') : (entity.ie || '-')}</strong>
+            </div>
+            <div>
+              <span style="color:var(--text-muted);display:block;">Telefone / WhatsApp:</span>
+              <strong style="color:var(--emerald-light);">${entity.phone || '-'}</strong>
+            </div>
+            <div>
+              <span style="color:var(--text-muted);display:block;">E-mail:</span>
+              <strong style="color:#FFF;">${entity.email || '-'}</strong>
+            </div>
+            <div style="grid-column:1 / -1;">
+              <span style="color:var(--text-muted);display:block;">Endereço & Cidade:</span>
+              <strong style="color:#FFF;">${entity.address ? `${entity.address} - ` : ''}${entity.city || '-'}</strong>
+            </div>
+          </div>
+
+          ${entity.isSupplier ? `
+            <div style="background:rgba(212,175,55,0.05);border:1px solid rgba(212,175,55,0.25);border-radius:8px;padding:14px;margin-bottom:16px;font-size:0.8rem;">
+              <div style="font-weight:600;color:var(--gold-light);margin-bottom:8px;">
+                🚚 Dados Comerciais & Financeiros de Fornecedor
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                  <span style="color:var(--text-muted);display:block;">Ramo / Categoria:</span>
+                  <strong style="color:#FFF;">${entity.supplierCategory || entity.category}</strong>
+                </div>
+                <div>
+                  <span style="color:var(--text-muted);display:block;">Condição de Pagamento:</span>
+                  <strong style="color:var(--gold-light);">${entity.paymentCondition || '30 dias'}</strong>
+                </div>
+                <div>
+                  <span style="color:var(--text-muted);display:block;">Chave PIX:</span>
+                  <strong style="color:var(--emerald-light);">${entity.pixKey || 'Não informada'}</strong>
+                </div>
+                <div>
+                  <span style="color:var(--text-muted);display:block;">Dados Bancários:</span>
+                  <strong style="color:#FFF;">${entity.bankInfo || 'Não informado'}</strong>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${entity.notes ? `
+            <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-bottom:16px;font-size:0.78rem;">
+              <span style="color:var(--text-muted);display:block;margin-bottom:2px;">Observações:</span>
+              <div style="color:var(--text-secondary);">${entity.notes}</div>
+            </div>
+          ` : ''}
+
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              ${entity.isSupplier ? `
+                <button id="btn-view-sup-payable" class="btn-primary-luxury" style="padding:6px 12px;font-size:0.78rem;background:rgba(212,175,55,0.15);color:var(--gold-light);border:1px solid rgba(212,175,55,0.3);">
+                  🧾 Lançar Conta a Pagar
+                </button>
+              ` : ''}
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="modal-close-btn-secondary" onclick="document.getElementById('modal-erp-temp').remove()">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+    const btnPay = document.getElementById("btn-view-sup-payable");
+    if (btnPay) {
+      btnPay.addEventListener("click", () => {
+        document.getElementById("modal-erp-temp").remove();
+        this.openModalNewPayable({
+          supplierName: isPf ? entity.name : (entity.nomeFantasia || entity.razaoSocial),
+          category: entity.category
+        });
+      });
+    }
   },
 
   openModalNewReceivable() {
@@ -2016,6 +2494,29 @@ const ErpController = {
                 </select>
               </div>
             </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Centro de Custo:</label>
+                <select id="in-rec-cost-center" class="erp-input-sm" style="width:100%;">
+                  <option value="CC-01" data-name="Boutique JOY Club - Centro Floripa">CC-01 - Boutique JOY Floripa (Flagship)</option>
+                  <option value="CC-02" data-name="Corner JOY Club - Balneário Camboriú">CC-02 - Corner Balneário Camboriú</option>
+                  <option value="CC-03" data-name="Pop-up Store - Jurerê Internacional">CC-03 - Pop-up Jurerê Internacional</option>
+                  <option value="CC-04" data-name="Corner Clube Porto Alegre">CC-04 - Corner Porto Alegre</option>
+                  <option value="CC-05" data-name="Canal Digital WhatsApp & Concierge IA">CC-05 - Canal Digital & IA Concierge</option>
+                  <option value="CC-06" data-name="Administração Geral & Governança SIÉ">CC-06 - Administração & Governança</option>
+                </select>
+              </div>
+              <div>
+                <label class="erp-label">Plano de Contas:</label>
+                <select id="in-rec-chart-account" class="erp-input-sm" style="width:100%;">
+                  <option value="1.1.2.02" data-name="Contas a Receber - Faturamento Corporativo D+30">1.1.2.02 - Contas a Receber Corporativo (D+30)</option>
+                  <option value="1.1.2.01" data-name="Contas a Receber - Stone D+1 Cartões">1.1.2.01 - Contas a Receber Stone D+1 Cartões</option>
+                  <option value="5.1.1.03" data-name="Vendas Faturamento Corporativo & Parcerias VIP">5.1.1.03 - Vendas Corporativo & Parcerias VIP</option>
+                  <option value="5.1.1.01" data-name="Vendas Balcão Boutique - Smart POS P2">5.1.1.01 - Vendas Balcão Boutique POS P2</option>
+                  <option value="5.1.1.02" data-name="Vendas WhatsApp Assistida - Links Stone">5.1.1.02 - Vendas WhatsApp Links Stone</option>
+                </select>
+              </div>
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
               <div>
                 <label class="erp-label">Unidade / Loja:</label>
@@ -2041,10 +2542,19 @@ const ErpController = {
       e.preventDefault();
       const storeId = document.getElementById("in-rec-store").value;
       const store = this.stores.find(s => s.id === storeId);
+      const ccSelect = document.getElementById("in-rec-cost-center");
+      const ccOption = ccSelect ? ccSelect.options[ccSelect.selectedIndex] : null;
+      const caSelect = document.getElementById("in-rec-chart-account");
+      const caOption = caSelect ? caSelect.options[caSelect.selectedIndex] : null;
+
       const payload = {
         customerName: document.getElementById("in-rec-customer").value,
         grossAmount: parseFloat(document.getElementById("in-rec-amount").value),
         paymentMethod: document.getElementById("in-rec-method").value,
+        costCenterId: ccSelect ? ccSelect.value : "CC-01",
+        costCenterName: ccOption ? (ccOption.getAttribute("data-name") || ccOption.text) : "Boutique JOY Club - Centro Floripa",
+        chartOfAccountId: caSelect ? caSelect.value : "1.1.2.02",
+        chartOfAccountName: caOption ? (caOption.getAttribute("data-name") || caOption.text) : "Contas a Receber - Faturamento Corporativo D+30",
         storeId: storeId,
         cnpjId: store ? store.cnpjId : "cnpj-01",
         expectedSettlementDate: document.getElementById("in-rec-date").value,
@@ -2060,7 +2570,12 @@ const ErpController = {
     });
   },
 
-  openModalNewPayable() {
+  openModalNewPayable(options = {}) {
+    // Collect registered suppliers for autocomplete
+    const suppliers = (this.entitiesData?.entities || []).filter(e => e.isSupplier || e.category === "FORNECEDOR_CMV");
+    const defaultSupplier = options?.supplierName || "";
+    const defaultCat = options?.category || "FORNECEDOR_CMV";
+
     const modalHtml = `
       <div id="modal-erp-temp" class="modal-backdrop" style="display:flex;">
         <div class="modal-window">
@@ -2069,8 +2584,14 @@ const ErpController = {
           
           <form id="form-new-payable">
             <div style="margin-bottom:12px;">
-              <label class="erp-label">Fornecedor / Favorecido:</label>
-              <input type="text" id="in-pay-supplier" required class="erp-input-sm" style="width:100%;" placeholder="Ex: Tecidos de Alta Performance SC">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <label class="erp-label" style="margin:0;">Fornecedor / Favorecido:</label>
+                <span style="font-size:0.7rem;color:var(--gold-light);">💡 Selecione ou digite</span>
+              </div>
+              <input type="text" id="in-pay-supplier" list="suppliers-datalist" required class="erp-input-sm" style="width:100%;" placeholder="Ex: SIÉ Confecção e Estamparia Têxtil LTDA" value="${defaultSupplier}">
+              <datalist id="suppliers-datalist">
+                ${suppliers.map(s => `<option value="${s.type === 'PF' ? s.name : (s.nomeFantasia || s.razaoSocial)}">${s.type} • ${s.supplierCategory || s.category}</option>`).join("")}
+              </datalist>
             </div>
             <div style="margin-bottom:12px;">
               <label class="erp-label">Descrição da Despesa:</label>
@@ -2084,11 +2605,39 @@ const ErpController = {
               <div>
                 <label class="erp-label">Categoria:</label>
                 <select id="in-pay-cat" class="erp-input-sm" style="width:100%;">
-                  <option value="FORNECEDOR_CMV">FORNECEDOR_CMV</option>
-                  <option value="ALUGUEL">ALUGUEL</option>
-                  <option value="MARKETING_DROPS">MARKETING_DROPS</option>
-                  <option value="CONTABILIDADE">CONTABILIDADE</option>
-                  <option value="IMPOSTOS">IMPOSTOS / TRIBUTOS</option>
+                  <option value="FORNECEDOR_CMV" ${defaultCat === 'FORNECEDOR_CMV' ? 'selected' : ''}>FORNECEDOR_CMV (Confecção / Peças)</option>
+                  <option value="ALUGUEL" ${defaultCat === 'ALUGUEL' ? 'selected' : ''}>ALUGUEL</option>
+                  <option value="MARKETING_DROPS" ${defaultCat === 'MARKETING_DROPS' ? 'selected' : ''}>MARKETING_DROPS</option>
+                  <option value="CONTABILIDADE" ${defaultCat === 'CONTABILIDADE' ? 'selected' : ''}>CONTABILIDADE</option>
+                  <option value="IMPOSTOS" ${defaultCat === 'IMPOSTOS' ? 'selected' : ''}>IMPOSTOS / TRIBUTOS</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div>
+                <label class="erp-label">Centro de Custo:</label>
+                <select id="in-pay-cost-center" class="erp-input-sm" style="width:100%;">
+                  <option value="CC-01" data-name="Boutique JOY Club - Centro Floripa">CC-01 - Boutique JOY Floripa (Flagship)</option>
+                  <option value="CC-02" data-name="Corner JOY Club - Balneário Camboriú">CC-02 - Corner Balneário Camboriú</option>
+                  <option value="CC-03" data-name="Pop-up Store - Jurerê Internacional">CC-03 - Pop-up Jurerê Internacional</option>
+                  <option value="CC-04" data-name="Corner Clube Porto Alegre">CC-04 - Corner Porto Alegre</option>
+                  <option value="CC-05" data-name="Canal Digital WhatsApp & Concierge IA">CC-05 - Canal Digital & IA Concierge</option>
+                  <option value="CC-06" data-name="Administração Geral & Governança SIÉ">CC-06 - Administração & Governança</option>
+                </select>
+              </div>
+              <div>
+                <label class="erp-label">Plano de Contas:</label>
+                <select id="in-pay-chart-account" class="erp-input-sm" style="width:100%;">
+                  <option value="2.1.1.01" data-name="Fornecedores Confecção Têxtil (30/60/90d)">2.1.1.01 - Fornecedores Confecção Têxtil (30/60/90d)</option>
+                  <option value="3.1.1.01" data-name="Custo das Peças Vendidas - Confecção Têxtil">3.1.1.01 - CMV Peças Vendidas Confecção</option>
+                  <option value="3.1.1.02" data-name="Custo de Embalagens de Luxo, Laços e Perfumes">3.1.1.02 - Custo Embalagens de Luxo & Laços</option>
+                  <option value="4.1.3.01" data-name="Fretes e Entregas Motoboy VIP / Sedex Express">4.1.3.01 - Fretes Motoboy VIP / Sedex</option>
+                  <option value="4.2.1.01" data-name="Eventos de Lançamento de Drops (DJ, Espumante)">4.2.1.01 - Eventos de Drops (DJ, Espumante)</option>
+                  <option value="4.2.2.01" data-name="Tráfego Pago Meta Ads (Instagram / Facebook)">4.2.2.01 - Tráfego Pago Meta Ads</option>
+                  <option value="4.3.1.01" data-name="Aluguel Fixo Boutique JOY Club (R$ 6.000/mês)">4.3.1.01 - Aluguel Boutique JOY Club</option>
+                  <option value="4.3.2.01" data-name="Honorários Contábeis & Fiscais">4.3.2.01 - Honorários Contábeis & Fiscais</option>
+                  <option value="4.3.4.01" data-name="Energia, Internet & Limpeza Boutique">4.3.4.01 - Energia, Internet & Limpeza</option>
+                  <option value="2.1.4.01" data-name="DAS - Simples Nacional a Recolher">2.1.4.01 - DAS Simples Nacional a Recolher</option>
                 </select>
               </div>
             </div>
@@ -2111,13 +2660,52 @@ const ErpController = {
     `;
     document.body.insertAdjacentHTML("beforeend", modalHtml);
 
+    // Auto-select corresponding cost center & chart of account when category changes
+    const catSelect = document.getElementById("in-pay-cat");
+    const ccSelect = document.getElementById("in-pay-cost-center");
+    const caSelect = document.getElementById("in-pay-chart-account");
+    if (catSelect && ccSelect && caSelect) {
+      catSelect.addEventListener("change", (e) => {
+        const cat = e.target.value;
+        if (cat === "FORNECEDOR_CMV") {
+          ccSelect.value = "CC-01";
+          caSelect.value = "2.1.1.01";
+        } else if (cat === "ALUGUEL") {
+          ccSelect.value = "CC-01";
+          caSelect.value = "4.3.1.01";
+        } else if (cat === "MARKETING_DROPS") {
+          ccSelect.value = "CC-01";
+          caSelect.value = "4.2.1.01";
+        } else if (cat === "CONTABILIDADE") {
+          ccSelect.value = "CC-06";
+          caSelect.value = "4.3.2.01";
+        } else if (cat === "IMPOSTOS") {
+          ccSelect.value = "CC-06";
+          caSelect.value = "2.1.4.01";
+        }
+      });
+      // Trigger initial classification sync if defaultCat given
+      if (defaultCat) {
+        catSelect.dispatchEvent(new Event("change"));
+      }
+    }
+
     document.getElementById("form-new-payable").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const currentCc = document.getElementById("in-pay-cost-center");
+      const currentCcOpt = currentCc ? currentCc.options[currentCc.selectedIndex] : null;
+      const currentCa = document.getElementById("in-pay-chart-account");
+      const currentCaOpt = currentCa ? currentCa.options[currentCa.selectedIndex] : null;
+
       const payload = {
         supplier: document.getElementById("in-pay-supplier").value,
         description: document.getElementById("in-pay-desc").value,
         amount: parseFloat(document.getElementById("in-pay-amount").value),
         category: document.getElementById("in-pay-cat").value,
+        costCenterId: currentCc ? currentCc.value : "CC-01",
+        costCenterName: currentCcOpt ? (currentCcOpt.getAttribute("data-name") || currentCcOpt.text) : "Boutique JOY Club - Centro Floripa",
+        chartOfAccountId: currentCa ? currentCa.value : "2.1.1.01",
+        chartOfAccountName: currentCaOpt ? (currentCaOpt.getAttribute("data-name") || currentCaOpt.text) : "Fornecedores Confecção Têxtil (30/60/90d)",
         documentNumber: document.getElementById("in-pay-doc").value,
         dueDate: document.getElementById("in-pay-due").value,
         storeId: this.currentStoreId === "ALL" ? "store-01" : this.currentStoreId,

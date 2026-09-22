@@ -945,13 +945,16 @@
         <!-- Subpane 2: Catálogo & Grade P/M/G -->
         <div id="subpane-retail-catalog" class="module-subpane">
           <div class="content-card">
-            <div class="card-header">
+            <div class="card-header" style="flex-wrap:wrap;gap:12px;">
               <div>
                 <h4>📦 Catálogo de Peças & Estoque por Tamanho (ERP Stone)</h4>
                 <p style="color:var(--text-secondary);font-size:0.8rem;">
                   Acompanhamento de grade física disponível no balcão e no estoque de apoio do clube JOY.
                 </p>
               </div>
+              <button id="btn-open-import-nfe" class="btn-primary-luxury" style="padding:6px 14px;font-size:0.8rem;background:linear-gradient(135deg,#D4AF37,#B8860B);color:#0B0F17;font-weight:700;">
+                📥 Importar XML de NF-e (Entrada & Precificação)
+              </button>
             </div>
             <div id="retail-catalog-table-container" style="margin-top:16px;">
               <!-- Dynamic catalog inventory table -->

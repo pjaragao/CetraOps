@@ -518,6 +518,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           </table>
         </div>
       `;
+
+      const btnImportNfe = document.getElementById("btn-open-import-nfe");
+      if (btnImportNfe && !btnImportNfe._bound) {
+        btnImportNfe._bound = true;
+        btnImportNfe.addEventListener("click", () => {
+          if (window.ErpController) window.ErpController.openModalImportNfeXml();
+        });
+      }
     } catch (e) {
       console.error("Erro ao carregar catálogo:", e);
     }

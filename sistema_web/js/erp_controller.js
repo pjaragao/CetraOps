@@ -4882,6 +4882,674 @@ const ErpController = {
     document.body.insertAdjacentHTML("beforeend", modalHtml);
   },
 
+  // --- 9. IMPORTAÇÃO DE XML DE NF-E, CONFERÊNCIA FISCAL, PRECIFICAÇÃO & ESTOQUE ---
+  async openModalImportNfeXml() {
+    this.currentNfeData = null;
+    this.currentDestinationMatch = null;
+
+    const modalId = "modal-nfe-import";
+    const existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    const modalHtml = `
+      <div id="${modalId}" class="modal-backdrop" style="display:flex;">
+        <div class="modal-window" style="max-width:1150px;width:95vw;max-height:92vh;display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid var(--border-subtle);">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="font-size:2rem;background:rgba(0,168,104,0.12);padding:10px;border-radius:12px;border:1px solid rgba(0,168,104,0.25);">📥</div>
+              <div>
+                <h3 style="color:#FFF;margin:0;font-family:var(--font-display);font-size:1.35rem;">Importação de XML de NF-e & Formação de Preço</h3>
+                <p style="margin:2px 0 0 0;font-size:0.8rem;color:var(--text-secondary);">
+                  Conferência fiscal de destino (Loja & CNPJ), aplicação de markup global e individual e entrada automática no estoque.
+                </p>
+              </div>
+            </div>
+            <button class="modal-close-btn" onclick="document.getElementById('${modalId}').remove()">&times;</button>
+          </div>
+
+          <div id="nfe-modal-body" style="flex:1;overflow-y:auto;padding:16px 4px 8px 4px;">
+            <!-- Dynamic Content: Upload Screen or Pricing Table -->
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+    await this.renderNfeUploadView();
+  },
+
+  async renderNfeUploadView() {
+    const container = document.getElementById("nfe-modal-body");
+    if (!container) return;
+
+    // Carregar histórico recente
+    let history = [];
+    try {
+      const res = await fetch("/api/erp/nfe/history");
+      history = await res.json();
+      if (!Array.isArray(history)) history = history.imports || [];
+    } catch (e) {
+      console.warn("Sem histórico recente:", e);
+    }
+
+    container.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:20px;max-width:850px;margin:10px auto;">
+        
+        <!-- Drag & Drop Zone -->
+        <div id="nfe-dropzone" style="border:2px dashed rgba(212,175,55,0.4);border-radius:14px;padding:36px 24px;text-align:center;background:rgba(212,175,55,0.02);transition:all 0.3s ease;cursor:pointer;">
+          <div style="font-size:2.8rem;margin-bottom:8px;">📄</div>
+          <h4 style="color:#FFF;margin:0 0 6px 0;font-size:1.15rem;">Arraste e solte aqui o arquivo XML da NF-e</h4>
+          <p style="color:var(--text-secondary);font-size:0.83rem;margin:0 0 16px 0;">
+            Padrão oficial SEFAZ NF-e 4.00 (Layout com fornecedor, destinatário, itens e duplicatas)
+          </p>
+          <input type="file" id="nfe-file-input" accept=".xml,text/xml" style="display:none;">
+          <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+            <button type="button" id="btn-browse-nfe-xml" class="btn-primary-luxury" style="padding:10px 20px;font-size:0.88rem;">
+              📂 Selecionar Arquivo XML do Computador
+            </button>
+            <button type="button" id="btn-load-sample-nfe" class="btn-primary-luxury" style="padding:10px 20px;font-size:0.88rem;background:rgba(0,168,104,0.18);color:var(--stone-green);border:1px solid rgba(0,168,104,0.35);">
+              ✨ Carregar XML Exemplo Oficial (SIÉ Confecções - NF 4912)
+            </button>
+          </div>
+        </div>
+
+        <!-- Instruções e Recursos -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px;">
+          <div class="content-card" style="padding:14px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="color:var(--gold-light);font-size:1.1rem;margin-bottom:6px;">🏢 Conferência de Destinatário</div>
+            <p style="font-size:0.78rem;color:var(--text-secondary);margin:0;line-height:1.4;">
+              O sistema cruza o CNPJ e o endereço da nota com as unidades do grupo, conferindo se o destino é a Matriz SC ou Filial Sul e a qual loja física pertence.
+            </p>
+          </div>
+          <div class="content-card" style="padding:14px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="color:var(--stone-green);font-size:1.1rem;margin-bottom:6px;">⚡ Precificação com Margem</div>
+            <p style="font-size:0.78rem;color:var(--text-secondary);margin:0;line-height:1.4;">
+              Aplique markup geral (ex: 2.40x) em toda a nota com um clique ou altere item a item na lista, acompanhando em tempo real o lucro e a margem percentual.
+            </p>
+          </div>
+          <div class="content-card" style="padding:14px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="color:var(--blue-accent);font-size:1.1rem;margin-bottom:6px;">📦 Entrada no Catálogo & CP</div>
+            <p style="font-size:0.78rem;color:var(--text-secondary);margin:0;line-height:1.4;">
+              Alimenta automaticamente as grades no catálogo Stone, atualiza os custos médios e pode gerar as parcelas do fornecedor no Contas a Pagar.
+            </p>
+          </div>
+        </div>
+
+        ${history.length > 0 ? `
+          <div class="content-card" style="padding:16px;">
+            <h5 style="color:#FFF;margin:0 0 10px 0;font-size:0.9rem;">📜 Últimas Notas Fiscais Importadas:</h5>
+            <div class="table-responsive">
+              <table class="crm-compact-table" style="font-size:0.78rem;">
+                <thead>
+                  <tr>
+                    <th>Data Importação</th>
+                    <th>NF-e</th>
+                    <th>Fornecedor</th>
+                    <th>Loja Destino</th>
+                    <th>CNPJ Destino</th>
+                    <th>Valor Total</th>
+                    <th>Itens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${history.slice(0, 4).map(h => `
+                    <tr>
+                      <td>${new Date(h.timestamp).toLocaleDateString('pt-BR')} ${new Date(h.timestamp).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</td>
+                      <td><strong style="color:var(--gold-light);">NF-e ${h.nfeNumber || '-'}</strong></td>
+                      <td>${h.supplier || '-'}</td>
+                      <td><span class="status-badge badge-carencia" style="font-size:0.68rem;">${h.destinationStore || '-'}</span></td>
+                      <td><strong>${h.destinationCnpj || '-'}</strong></td>
+                      <td><strong style="color:var(--stone-green);">R$ ${(h.totalAmount || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></td>
+                      <td>${h.itemsCount || (h.items || []).length} itens</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ` : ''}
+
+      </div>
+    `;
+
+    // Eventos de Upload
+    const dropzone = document.getElementById("nfe-dropzone");
+    const fileInput = document.getElementById("nfe-file-input");
+    const btnBrowse = document.getElementById("btn-browse-nfe-xml");
+    const btnSample = document.getElementById("btn-load-sample-nfe");
+
+    if (btnBrowse && fileInput) {
+      btnBrowse.addEventListener("click", () => fileInput.click());
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) this.readAndProcessNfeFile(file);
+      });
+    }
+
+    if (dropzone) {
+      dropzone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = "var(--stone-green)";
+        dropzone.style.background = "rgba(0,168,104,0.06)";
+      });
+      dropzone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = "rgba(212,175,55,0.4)";
+        dropzone.style.background = "rgba(212,175,55,0.02)";
+      });
+      dropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = "rgba(212,175,55,0.4)";
+        dropzone.style.background = "rgba(212,175,55,0.02)";
+        const file = e.dataTransfer.files[0];
+        if (file) this.readAndProcessNfeFile(file);
+      });
+    }
+
+    if (btnSample) {
+      btnSample.addEventListener("click", async () => {
+        btnSample.disabled = true;
+        btnSample.innerHTML = `<span>⏳</span> Carregando e processando XML...`;
+        await this.parseNfePayload({ useSample: true });
+      });
+    }
+  },
+
+  readAndProcessNfeFile(file) {
+    const reader = new FileReader();
+    const dropzone = document.getElementById("nfe-dropzone");
+    if (dropzone) {
+      dropzone.innerHTML = `
+        <div style="padding:20px;font-size:1.1rem;color:#FFF;">
+          <div style="font-size:2rem;margin-bottom:8px;">⏳</div>
+          Lendo e validando arquivo XML: <strong>${file.name}</strong>...
+        </div>
+      `;
+    }
+    reader.onload = async (event) => {
+      const xmlText = event.target.result;
+      await this.parseNfePayload({ xmlText });
+    };
+    reader.onerror = () => {
+      alert("Erro ao ler o arquivo XML selecionado.");
+      this.renderNfeUploadView();
+    };
+    reader.readAsText(file);
+  },
+
+  async parseNfePayload(payload) {
+    try {
+      const res = await fetch("/api/erp/nfe/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || "Erro ao processar o XML da NF-e.");
+        this.renderNfeUploadView();
+        return;
+      }
+
+      this.currentNfeData = data.nfe;
+      this.currentDestinationMatch = data.destinationMatch;
+      this.renderNfePricingInterface();
+    } catch (e) {
+      console.error(e);
+      alert("Erro de conexão com o servidor ao processar NF-e.");
+      this.renderNfeUploadView();
+    }
+  },
+
+  renderNfePricingInterface() {
+    const container = document.getElementById("nfe-modal-body");
+    if (!container || !this.currentNfeData) return;
+
+    const nfe = this.currentNfeData;
+    const destMatch = this.currentDestinationMatch || {};
+    const items = nfe.items || [];
+
+    // Formatar valores
+    const totalNF = nfe.nfeInfo?.totalAmount || items.reduce((acc, it) => acc + (it.totalCost || 0), 0);
+    const supplierName = nfe.supplier?.fantasyName || nfe.supplier?.name || "Fornecedor";
+    const destName = nfe.destination?.name || "SIÉ JOY";
+
+    container.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:18px;">
+
+        <!-- 1. PAINEL DE CONFERÊNCIA FISCAL DE DESTINO (CNPJ & LOJA) -->
+        <div class="content-card" style="padding:16px;border:1px solid rgba(212,175,55,0.3);background:linear-gradient(135deg, rgba(20,20,25,0.95), rgba(30,25,18,0.95));">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:1.3rem;">🛡️</span>
+              <h4 style="color:#FFF;margin:0;font-size:1.05rem;">Auditoria & Conferência Fiscal de Destinatário</h4>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="status-badge ${destMatch.isValid ? 'badge-homologado' : 'badge-carencia'}" style="font-size:0.75rem;padding:4px 10px;">
+                ${destMatch.statusMessage || (destMatch.isValid ? '✅ Destino Conferido' : '⚠️ Conferência Necessária')}
+              </span>
+              <button id="btn-change-xml" class="crm-mini-btn" style="padding:4px 8px;font-size:0.72rem;">🔄 Trocar XML</button>
+            </div>
+          </div>
+
+          <!-- Grade de Conferência -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;font-size:0.8rem;">
+            
+            <!-- Dados da NF & Emitente -->
+            <div style="background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="color:var(--text-secondary);margin-bottom:4px;">EMITENTE / FORNECEDOR:</div>
+              <strong style="color:var(--gold-light);font-size:0.92rem;display:block;">${supplierName}</strong>
+              <div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">CNPJ: ${nfe.supplier?.cnpj || '-'} • IE: ${nfe.supplier?.ie || '-'}</div>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;">
+                <span>NF-e: <strong>№ ${nfe.nfeInfo?.number || '-'}</strong> (Série ${nfe.nfeInfo?.series || '1'})</span>
+                <span>Emissão: <strong>${nfe.nfeInfo?.issueDate ? new Date(nfe.nfeInfo.issueDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</strong></span>
+              </div>
+            </div>
+
+            <!-- Conferência de CNPJ Destinatário -->
+            <div style="background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="color:var(--text-secondary);">CNPJ DESTINATÁRIO (NA NF):</span>
+                <span style="color:var(--stone-green);font-size:0.7rem;font-weight:700;">CONFIRMADO</span>
+              </div>
+              <strong style="color:#FFF;font-size:0.92rem;display:block;">${destName}</strong>
+              <div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">CNPJ na NF: <strong style="color:var(--gold-light);">${nfe.destination?.cnpj || '-'}</strong></div>
+              
+              <div style="margin-top:8px;">
+                <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:3px;">Vincular à Empresa Mantenedora do ERP:</label>
+                <select id="select-nfe-dest-cnpj" class="crm-filter-select" style="width:100%;font-size:0.78rem;padding:5px 8px;">
+                  ${this.cnpjs.map(c => `
+                    <option value="${c.id}" ${c.id === destMatch.matchedCnpjId ? 'selected' : ''}>
+                      ${c.nomeFantasia} (${c.cnpj})
+                    </option>
+                  `).join("")}
+                </select>
+              </div>
+            </div>
+
+            <!-- Conferência de Loja Física de Entrada -->
+            <div style="background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="color:var(--text-secondary);">ENDEREÇO DE ENTREGA (NA NF):</span>
+                <span style="color:var(--gold-light);font-size:0.7rem;font-weight:700;">LOCALIZAÇÃO FÍSICA</span>
+              </div>
+              <div style="color:#FFF;font-size:0.78rem;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${nfe.destination?.address}">
+                📍 ${nfe.destination?.address || 'Endereço não informado'}
+              </div>
+              
+              <div style="margin-top:8px;">
+                <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:3px;">Loja Física de Entrada no Estoque:</label>
+                <select id="select-nfe-dest-store" class="crm-filter-select" style="width:100%;font-size:0.78rem;padding:5px 8px;">
+                  ${this.stores.map(s => `
+                    <option value="${s.id}" ${s.id === destMatch.matchedStoreId ? 'selected' : ''}>
+                      ${s.name} (${s.type} - ${s.city})
+                    </option>
+                  `).join("")}
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 2. BARRA DE PRECIFICAÇÃO POR MARKUP GERAL -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:rgba(0,168,104,0.08);border:1px solid rgba(0,168,104,0.25);border-radius:12px;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:1.6rem;">🏷️</div>
+            <div>
+              <strong style="color:#FFF;font-size:0.95rem;display:block;">Precificação por Markup Global</strong>
+              <span style="font-size:0.76rem;color:var(--text-secondary);">
+                Multiplicador padrão sobre o custo da NF (<code style="color:var(--stone-green);">Preço = Custo × Markup</code>). Você pode editar 1 a 1 na tabela abaixo.
+              </span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);padding:4px 10px;border-radius:8px;border:1px solid var(--border-subtle);">
+              <span style="font-size:0.8rem;color:var(--text-secondary);">Markup Geral:</span>
+              <input type="number" id="in-global-markup" step="0.05" min="1.0" max="10.0" value="2.40" 
+                     style="width:72px;background:transparent;border:none;color:var(--gold-light);font-size:1.1rem;font-weight:700;text-align:center;">
+              <span style="color:var(--gold-light);font-weight:700;">x</span>
+            </div>
+            <button id="btn-apply-global-markup" class="btn-primary-luxury" style="padding:8px 16px;font-size:0.82rem;background:rgba(0,168,104,0.2);color:var(--stone-green);border:1px solid rgba(0,168,104,0.4);">
+              ⚡ Aplicar em Todos os Itens
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. TABELA / LISTA DE PRODUTOS PARA EDIÇÃO 1 A 1 -->
+        <div class="content-card" style="padding:0;overflow:hidden;border:1px solid var(--border-subtle);">
+          <div style="padding:12px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <h5 style="margin:0;color:#FFF;font-size:0.9rem;">📦 Itens da NF-e (${items.length} produtos localizados)</h5>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Edite o Markup ou o Preço de Venda em qualquer linha</span>
+          </div>
+
+          <div class="table-responsive" style="max-height:360px;overflow-y:auto;">
+            <table class="crm-compact-table" style="margin:0;font-size:0.8rem;">
+              <thead style="position:sticky;top:0;background:var(--bg-dark);z-index:2;">
+                <tr>
+                  <th style="width:36px;">#</th>
+                  <th>SKU / Código</th>
+                  <th>Descrição do Produto</th>
+                  <th style="text-align:center;">Qtd NF</th>
+                  <th style="text-align:right;">Custo Unit.</th>
+                  <th style="text-align:right;">Custo Total</th>
+                  <th style="text-align:center;width:110px;">Markup (x)</th>
+                  <th style="text-align:center;width:130px;">Preço de Venda</th>
+                  <th style="text-align:right;width:150px;">Margem Bruta</th>
+                </tr>
+              </thead>
+              <tbody id="nfe-items-table-body">
+                ${items.map((item, idx) => `
+                  <tr data-idx="${idx}">
+                    <td><span style="color:var(--text-muted);">${item.itemIndex || (idx + 1)}</span></td>
+                    <td>
+                      <strong style="color:var(--gold-light);font-family:monospace;font-size:0.78rem;">${item.cProd}</strong>
+                    </td>
+                    <td>
+                      <div style="font-weight:600;color:#FFF;">${item.xProd}</div>
+                      <div style="font-size:0.68rem;color:var(--text-muted);">NCM: ${item.ncm || '-'} • CFOP: ${item.cfop || '-'}</div>
+                    </td>
+                    <td style="text-align:center;">
+                      <span class="status-badge badge-homologado" style="font-size:0.75rem;padding:3px 8px;">
+                        ${item.quantity} ${item.uCom || 'UN'}
+                      </span>
+                    </td>
+                    <td style="text-align:right;">
+                      <strong>R$ ${item.unitCost.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+                    </td>
+                    <td style="text-align:right;color:var(--text-secondary);">
+                      R$ ${item.totalCost.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </td>
+                    <td style="text-align:center;">
+                      <div style="display:inline-flex;align-items:center;gap:2px;">
+                        <input type="number" class="in-item-markup" data-idx="${idx}" step="0.05" min="1.0" max="10.0" 
+                               value="${(item.markup || 2.40).toFixed(2)}" 
+                               style="width:70px;text-align:center;padding:4px 6px;border-radius:6px;border:1px solid rgba(212,175,55,0.35);background:rgba(0,0,0,0.4);color:var(--gold-light);font-weight:700;font-size:0.85rem;">
+                        <span style="color:var(--gold-light);font-size:0.8rem;">x</span>
+                      </div>
+                    </td>
+                    <td style="text-align:center;">
+                      <div style="display:inline-flex;align-items:center;gap:4px;">
+                        <span style="color:var(--stone-green);font-size:0.78rem;">R$</span>
+                        <input type="number" class="in-item-price" data-idx="${idx}" step="0.50" min="${item.unitCost}" 
+                               value="${(item.salePrice || (item.unitCost * 2.4)).toFixed(2)}" 
+                               style="width:85px;text-align:center;padding:4px 6px;border-radius:6px;border:1px solid rgba(0,168,104,0.4);background:rgba(0,0,0,0.4);color:var(--stone-green);font-weight:700;font-size:0.88rem;">
+                      </div>
+                    </td>
+                    <td style="text-align:right;">
+                      <div class="margin-preview-cell" data-idx="${idx}">
+                        <strong style="color:var(--stone-green);display:block;font-size:0.82rem;">
+                          + R$ ${(item.grossMarginVal || (item.salePrice - item.unitCost)).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                        </strong>
+                        <span class="status-badge" style="background:rgba(0,168,104,0.12);color:var(--stone-green);font-size:0.65rem;padding:2px 6px;margin-top:2px;display:inline-block;">
+                          ${item.grossMarginPct || 58.3}% margem
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4. RESUMO PROJETADO & AÇÕES FINAIS -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;" id="nfe-totals-cards">
+          <!-- Totals rendered by updateNfePricingTotals() -->
+        </div>
+
+        <!-- 5. OPÇÕES DE FECHAMENTO & SUBMISSÃO -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:rgba(255,255,255,0.02);border:1px solid var(--border-subtle);border-radius:12px;flex-wrap:wrap;gap:14px;">
+          <div>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+              <input type="checkbox" id="chk-create-payable" checked style="width:18px;height:18px;accent-color:var(--stone-green);cursor:pointer;">
+              <div>
+                <strong style="color:#FFF;font-size:0.88rem;display:block;">🧾 Gerar Conta a Pagar automaticamente para o fornecedor</strong>
+                <span style="font-size:0.74rem;color:var(--text-secondary);">
+                  Cria o título financeiro com centro de custo da loja selecionada e vencimentos conforme duplicatas da NF-e.
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button id="btn-cancel-import" class="modal-close-btn-secondary" style="padding:10px 18px;">
+              Cancelar
+            </button>
+            <button id="btn-submit-stock-import" class="btn-primary-luxury" style="padding:10px 24px;font-size:0.92rem;display:flex;align-items:center;gap:8px;">
+              <span>🚀</span>
+              <span>Confirmar Entrada no Estoque & Precificação</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    this.bindNfePricingEvents();
+    this.updateNfePricingTotals();
+  },
+
+  bindNfePricingEvents() {
+    const container = document.getElementById("nfe-modal-body");
+    if (!container || !this.currentNfeData) return;
+
+    // Botão Trocar XML
+    const btnChange = document.getElementById("btn-change-xml");
+    if (btnChange) {
+      btnChange.addEventListener("click", () => this.renderNfeUploadView());
+    }
+
+    const btnCancel = document.getElementById("btn-cancel-import");
+    if (btnCancel) {
+      btnCancel.addEventListener("click", () => document.getElementById("modal-nfe-import")?.remove());
+    }
+
+    // Botão Aplicar Markup Geral
+    const btnApplyGlobal = document.getElementById("btn-apply-global-markup");
+    const inGlobalMarkup = document.getElementById("in-global-markup");
+    if (btnApplyGlobal && inGlobalMarkup) {
+      btnApplyGlobal.addEventListener("click", () => {
+        const globalMarkup = parseFloat(inGlobalMarkup.value) || 2.40;
+        this.currentNfeData.items.forEach((item, idx) => {
+          item.markup = globalMarkup;
+          item.salePrice = Math.round(item.unitCost * globalMarkup * 100) / 100;
+          item.grossMarginVal = Math.round((item.salePrice - item.unitCost) * 100) / 100;
+          item.grossMarginPct = item.salePrice > 0 ? Math.round((item.grossMarginVal / item.salePrice * 100) * 10) / 10 : 0;
+
+          // Atualiza inputs visuais
+          const markupIn = container.querySelector(`.in-item-markup[data-idx="${idx}"]`);
+          const priceIn = container.querySelector(`.in-item-price[data-idx="${idx}"]`);
+          if (markupIn) markupIn.value = globalMarkup.toFixed(2);
+          if (priceIn) priceIn.value = item.salePrice.toFixed(2);
+          this.updateItemMarginPreview(idx);
+        });
+        this.updateNfePricingTotals();
+        this.showToastNotification(`Markup ${globalMarkup.toFixed(2)}x aplicado em todos os produtos!`, "success");
+      });
+    }
+
+    // Edição individual 1 a 1: Markup do item
+    container.querySelectorAll(".in-item-markup").forEach(input => {
+      input.addEventListener("input", (e) => {
+        const idx = parseInt(e.target.getAttribute("data-idx"), 10);
+        const item = this.currentNfeData.items[idx];
+        if (!item) return;
+
+        const markup = parseFloat(e.target.value) || 1.0;
+        item.markup = markup;
+        item.salePrice = Math.round(item.unitCost * markup * 100) / 100;
+        item.grossMarginVal = Math.round((item.salePrice - item.unitCost) * 100) / 100;
+        item.grossMarginPct = item.salePrice > 0 ? Math.round((item.grossMarginVal / item.salePrice * 100) * 10) / 10 : 0;
+
+        const priceIn = container.querySelector(`.in-item-price[data-idx="${idx}"]`);
+        if (priceIn) priceIn.value = item.salePrice.toFixed(2);
+        this.updateItemMarginPreview(idx);
+        this.updateNfePricingTotals();
+      });
+    });
+
+    // Edição individual 1 a 1: Preço de Venda do item
+    container.querySelectorAll(".in-item-price").forEach(input => {
+      input.addEventListener("input", (e) => {
+        const idx = parseInt(e.target.getAttribute("data-idx"), 10);
+        const item = this.currentNfeData.items[idx];
+        if (!item) return;
+
+        const price = parseFloat(e.target.value) || item.unitCost;
+        item.salePrice = price;
+        item.markup = item.unitCost > 0 ? Math.round((price / item.unitCost) * 100) / 100 : 1.0;
+        item.grossMarginVal = Math.round((price - item.unitCost) * 100) / 100;
+        item.grossMarginPct = price > 0 ? Math.round((item.grossMarginVal / price * 100) * 10) / 10 : 0;
+
+        const markupIn = container.querySelector(`.in-item-markup[data-idx="${idx}"]`);
+        if (markupIn) markupIn.value = item.markup.toFixed(2);
+        this.updateItemMarginPreview(idx);
+        this.updateNfePricingTotals();
+      });
+    });
+
+    // Submissão Final
+    const btnSubmit = document.getElementById("btn-submit-stock-import");
+    if (btnSubmit) {
+      btnSubmit.addEventListener("click", () => this.submitNfeStockImport());
+    }
+  },
+
+  updateItemMarginPreview(idx) {
+    const item = this.currentNfeData?.items[idx];
+    if (!item) return;
+    const cell = document.querySelector(`.margin-preview-cell[data-idx="${idx}"]`);
+    if (!cell) return;
+
+    cell.innerHTML = `
+      <strong style="color:var(--stone-green);display:block;font-size:0.82rem;">
+        + R$ ${item.grossMarginVal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+      </strong>
+      <span class="status-badge" style="background:rgba(0,168,104,0.12);color:var(--stone-green);font-size:0.65rem;padding:2px 6px;margin-top:2px;display:inline-block;">
+        ${item.grossMarginPct}% margem
+      </span>
+    `;
+  },
+
+  updateNfePricingTotals() {
+    const container = document.getElementById("nfe-totals-cards");
+    if (!container || !this.currentNfeData) return;
+
+    const items = this.currentNfeData.items || [];
+    const totalCost = items.reduce((acc, it) => acc + (it.totalCost || (it.unitCost * it.quantity)), 0);
+    const totalRevenue = items.reduce((acc, it) => acc + (it.salePrice * it.quantity), 0);
+    const totalGrossProfit = totalRevenue - totalCost;
+    const avgMarginPct = totalRevenue > 0 ? Math.round((totalGrossProfit / totalRevenue * 100) * 10) / 10 : 0;
+    const totalUnits = items.reduce((acc, it) => acc + it.quantity, 0);
+
+    container.innerHTML = `
+      <div class="kpi-card" style="padding:12px 14px;">
+        <div style="font-size:0.72rem;color:var(--text-muted);">CUSTO TOTAL DA NF-E</div>
+        <strong style="color:#FFF;font-size:1.15rem;display:block;margin-top:2px;">
+          R$ ${totalCost.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+        </strong>
+        <span style="font-size:0.7rem;color:var(--text-secondary);">${totalUnits} peças recebidas</span>
+      </div>
+
+      <div class="kpi-card" style="padding:12px 14px;">
+        <div style="font-size:0.72rem;color:var(--text-muted);">FATURAMENTO PROJETADO</div>
+        <strong style="color:var(--gold-light);font-size:1.15rem;display:block;margin-top:2px;">
+          R$ ${totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+        </strong>
+        <span style="font-size:0.7rem;color:var(--text-secondary);">Com os preços de venda definidos</span>
+      </div>
+
+      <div class="kpi-card" style="padding:12px 14px;">
+        <div style="font-size:0.72rem;color:var(--text-muted);">LUCRO BRUTO ESTIMADO</div>
+        <strong style="color:var(--stone-green);font-size:1.15rem;display:block;margin-top:2px;">
+          + R$ ${totalGrossProfit.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+        </strong>
+        <span style="font-size:0.7rem;color:var(--stone-green);">Margem média de ${avgMarginPct}%</span>
+      </div>
+
+      <div class="kpi-card" style="padding:12px 14px;">
+        <div style="font-size:0.72rem;color:var(--text-muted);">CONDIÇÃO DE COBRANÇA</div>
+        <strong style="color:var(--blue-accent);font-size:1.05rem;display:block;margin-top:2px;">
+          ${(this.currentNfeData.installments || []).length > 0 ? `${this.currentNfeData.installments.length}x Boletos Faturados` : '30 dias (NF-e)'}
+        </strong>
+        <span style="font-size:0.7rem;color:var(--text-secondary);">Fornecedor CMV Homologado</span>
+      </div>
+    `;
+  },
+
+  async submitNfeStockImport() {
+    const btn = document.getElementById("btn-submit-stock-import");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳</span><span>Atualizando Estoque e Catálogo...</span>`;
+    }
+
+    try {
+      const selectStore = document.getElementById("select-nfe-dest-store");
+      const selectCnpj = document.getElementById("select-nfe-dest-cnpj");
+      const chkPayable = document.getElementById("chk-create-payable");
+
+      const storeId = selectStore ? selectStore.value : (this.currentDestinationMatch?.matchedStoreId || "store-01");
+      const storeName = selectStore ? selectStore.selectedOptions[0]?.text?.split(" (")[0] : (this.currentDestinationMatch?.matchedStoreName || "Boutique Floripa");
+      const cnpjId = selectCnpj ? selectCnpj.value : (this.currentDestinationMatch?.matchedCnpjId || "cnpj-01");
+      const cnpjNumber = selectCnpj ? (selectCnpj.selectedOptions[0]?.text?.match(/\((.*?)\)/)?.[1] || this.currentDestinationMatch?.matchedCnpjNumber) : this.currentDestinationMatch?.matchedCnpjNumber;
+
+      const payload = {
+        nfe: this.currentNfeData,
+        destinationMatch: {
+          matchedStoreId: storeId,
+          matchedStoreName: storeName,
+          matchedCnpjId: cnpjId,
+          matchedCnpjNumber: cnpjNumber
+        },
+        items: this.currentNfeData.items,
+        createPayable: chkPayable ? chkPayable.checked : true
+      };
+
+      const res = await fetch("/api/erp/nfe/import-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert(data.error || "Erro ao dar entrada no estoque.");
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>🚀</span><span>Confirmar Entrada no Estoque & Precificação</span>`;
+        }
+        return;
+      }
+
+      // Sucesso!
+      this.showToastNotification(`✅ ${data.message} Estoque atualizado na loja: ${data.store}`, "success");
+      document.getElementById("modal-nfe-import")?.remove();
+
+      // Recarrega o catálogo da loja se a função existir
+      if (typeof window.renderRetailCatalog === "function") {
+        await window.renderRetailCatalog();
+      }
+
+      // Se estiver visualizando o Contas a Pagar, recarrega
+      if (typeof this.renderAccountsPayable === "function") {
+        await this.renderAccountsPayable();
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao enviar dados de entrada de estoque para o servidor.");
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>🚀</span><span>Confirmar Entrada no Estoque & Precificação</span>`;
+      }
+    }
+  },
+
   // Helpers
   getStoreName(storeId) {
     if (storeId === "ALL") return "Todas as Lojas (Consolidado)";

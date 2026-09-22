@@ -7,14 +7,22 @@ import os
 import json
 import mimetypes
 import hashlib
-import random
+import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
+from datetime import datetime, timedelta
 
 PORT = int(os.environ.get("PORT", 3001))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+
+try:
+    import xml_nfe_parser
+except ImportError:
+    try:
+        from sistema_web import xml_nfe_parser
+    except ImportError:
+        xml_nfe_parser = None
 
 try:
     import supabase_client
@@ -376,6 +384,18 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
         elif path == "/api/erp/bank-reconciliation":
             data = load_json("bank_reconciliation.json")
             return self.send_json(data)
+
+        elif path == "/api/erp/nfe/sample":
+            sample_path = os.path.join(DATA_DIR, "nfe_sample.xml")
+            if os.path.exists(sample_path):
+                with open(sample_path, "r", encoding="utf-8") as f:
+                    xml_text = f.read()
+                return self.send_json({"success": True, "xmlText": xml_text})
+            return self.send_json({"error": "XML de exemplo não encontrado"}, 404)
+
+        elif path == "/api/erp/nfe/history":
+            data = load_json("nfe_imports.json")
+            return self.send_json(data if isinstance(data, list) else data.get("imports", []))
 
         elif path == "/api/erp/tax-forecast":
             tax_data = load_json("tax_settings.json")
@@ -1028,6 +1048,165 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
             save_json("custom_fields_config.json", data)
             return self.send_json({"success": True, "customFields": data})
 
+        elif path == "/api/erp/nfe/parse":
+            xml_text = payload.get("xmlText", "")
+            if payload.get("useSample") or not xml_text:
+                sample_path = os.path.join(DATA_DIR, "nfe_sample.xml")
+                if os.path.exists(sample_path):
+                    with open(sample_path, "r", encoding="utf-8") as f:
+                        xml_text = f.read()
+
+            if not xml_text:
+                return self.send_json({"error": "Conteúdo XML não fornecido"}, 400)
+
+            try:
+                parsed = xml_nfe_parser.parse_nfe_xml(xml_text)
+                cnpjs_data = load_json("cnpjs_and_stores.json")
+                dest_match = xml_nfe_parser.match_nfe_destination(parsed["destination"], cnpjs_data)
+                return self.send_json({
+                    "success": True,
+                    "nfe": parsed,
+                    "destinationMatch": dest_match
+                })
+            except Exception as e:
+                return self.send_json({"error": f"Erro ao processar XML da NF-e: {str(e)}"}, 500)
+
+        elif path == "/api/erp/nfe/import-stock":
+            store_id = payload.get("storeId", "store-01")
+            cnpj_id = payload.get("cnpjId", "cnpj-01")
+            nfe_info = payload.get("nfeInfo", {})
+            supplier = payload.get("supplier", {})
+            items = payload.get("items", [])
+            generate_payable = payload.get("generatePayable", True)
+
+            catalog = load_json("stone_catalog.json")
+            if not isinstance(catalog, list):
+                catalog = []
+
+            for item in items:
+                c_prod = item.get("cProd")
+                qty = float(item.get("quantity", 1))
+                unit_cost = float(item.get("unitCost", 0))
+                sale_price = float(item.get("salePrice", unit_cost * 2.4))
+                markup = float(item.get("markup", 2.4))
+
+                matched_prod = None
+                for p in catalog:
+                    if p.get("stoneSku") == c_prod or p.get("name", "").strip().lower() == item.get("xProd", "").strip().lower():
+                        matched_prod = p
+                        break
+
+                if matched_prod:
+                    matched_prod["cost"] = round(unit_cost, 2)
+                    matched_prod["price"] = round(sale_price, 2)
+                    matched_prod["markup"] = round(markup, 2)
+                    stock = matched_prod.get("currentStock", {})
+                    if isinstance(stock, dict):
+                        p_qty = int(round(qty * 0.25))
+                        m_qty = int(round(qty * 0.40))
+                        g_qty = int(round(qty * 0.25))
+                        gg_qty = int(qty) - p_qty - m_qty - g_qty
+                        stock["P"] = stock.get("P", 0) + p_qty
+                        stock["M"] = stock.get("M", 0) + m_qty
+                        stock["G"] = stock.get("G", 0) + g_qty
+                        stock["GG"] = stock.get("GG", 0) + max(0, gg_qty)
+                    else:
+                        matched_prod["currentStock"] = (matched_prod.get("currentStock", 0) or 0) + int(qty)
+                else:
+                    p_qty = int(round(qty * 0.25))
+                    m_qty = int(round(qty * 0.40))
+                    g_qty = int(round(qty * 0.25))
+                    gg_qty = int(qty) - p_qty - m_qty - g_qty
+                    new_prod = {
+                        "id": f"PROD-{len(catalog) + 1:03d}",
+                        "stoneSku": c_prod,
+                        "name": item.get("xProd", "Peça Fitness SIÉ"),
+                        "category": item.get("category", "Coleção Nova"),
+                        "color": item.get("color", "Padrão"),
+                        "price": round(sale_price, 2),
+                        "cost": round(unit_cost, 2),
+                        "markup": round(markup, 2),
+                        "currentStock": {
+                            "P": p_qty,
+                            "M": m_qty,
+                            "G": g_qty,
+                            "GG": max(0, gg_qty)
+                        },
+                        "minStockTarget": { "P": 6, "M": 10, "G": 5, "GG": 2 },
+                        "salesVelocityWeekly": 5.0,
+                        "leadTimeDays": 20,
+                        "imageEmoji": "✨",
+                        "bestFor": ["Treino", "Lifestyle", "Pilates"]
+                    }
+                    catalog.append(new_prod)
+
+            save_json("stone_catalog.json", catalog)
+
+            new_pag = None
+            if generate_payable:
+                pay_data = load_json("accounts_payable.json")
+                cnpjs_data = load_json("cnpjs_and_stores.json")
+                store_obj = next((s for s in cnpjs_data.get("stores", []) if s["id"] == store_id), None)
+                store_name = store_obj["name"] if store_obj else "Boutique JOY Club - Centro Floripa"
+
+                nfe_num = nfe_info.get("number") or str(int(time.time()) % 10000)
+                tot_amt = float(nfe_info.get("totalAmount", sum(float(i.get("totalCost", 0)) for i in items)))
+
+                new_pag = {
+                    "id": f"PAG-NFE-{nfe_num}",
+                    "storeId": store_id,
+                    "cnpjId": cnpj_id,
+                    "costCenterId": "CC-01" if store_id == "store-01" else ("CC-02" if store_id == "store-02" else "CC-CNPJ-01"),
+                    "costCenterName": store_name,
+                    "chartOfAccountId": "2.1.1.01",
+                    "chartOfAccountName": "Fornecedores Confecção Têxtil (30/60/90d)",
+                    "category": "",
+                    "supplier": supplier.get("name", "Fornecedor Têxtil"),
+                    "description": f"Faturamento NF-e {nfe_num} ({len(items)} itens recebidos em estoque)",
+                    "documentNumber": f"NF-e {nfe_num}",
+                    "issueDate": nfe_info.get("issueDate", datetime.now().strftime("%Y-%m-%d")),
+                    "dueDate": (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
+                    "amount": round(tot_amt, 2),
+                    "paymentMethod": "BOLETO",
+                    "status": "PENDING",
+                    "customFields": {
+                        "purchaseOrder": f"NFE-{nfe_num}"
+                    },
+                    "notes": "Entrada gerada automaticamente via importação de XML de NF-e."
+                }
+                pay_data.setdefault("payables", []).append(new_pag)
+                save_json("accounts_payable.json", pay_data)
+
+            history_data = load_json("nfe_imports.json")
+            if not isinstance(history_data, list):
+                history_data = history_data.get("imports", [])
+
+            history_entry = {
+                "id": f"IMP-{len(history_data) + 1:03d}",
+                "accessKey": nfe_info.get("accessKey"),
+                "number": nfe_info.get("number"),
+                "series": nfe_info.get("series"),
+                "issueDate": nfe_info.get("issueDate"),
+                "importedAt": datetime.now().isoformat(),
+                "supplier": supplier,
+                "storeId": store_id,
+                "cnpjId": cnpj_id,
+                "itemsCount": len(items),
+                "totalAmount": float(nfe_info.get("totalAmount", 0.0)),
+                "payableId": new_pag["id"] if new_pag else None,
+                "status": "CONCLUIDO"
+            }
+            history_data.insert(0, history_entry)
+            save_json("nfe_imports.json", {"imports": history_data})
+
+            return self.send_json({
+                "success": True,
+                "message": f"Entrada de {len(items)} itens no estoque realizada com sucesso!",
+                "importRecord": history_entry,
+                "catalogCount": len(catalog),
+                "payableGenerated": new_pag is not None
+            })
+
         elif path == "/api/erp/bank-reconciliation/match":
             match_id = payload.get("matchId")
             data = load_json("bank_reconciliation.json")
@@ -1440,6 +1619,207 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "success": True, 
                 "message": "Centros de custo salvos com sucesso!",
                 "costCenters": data.get("costCenters", [])
+            })
+
+        # --- PARSING E CONFERÊNCIA FISCAL DE XML NF-e ---
+        elif path == "/api/erp/nfe/parse":
+            if not xml_nfe_parser:
+                return self.send_json({"error": "Módulo xml_nfe_parser não disponível"}, 500)
+            
+            xml_text = payload.get("xmlText", "")
+            if payload.get("useSample"):
+                sample_path = os.path.join(DATA_DIR, "nfe_sample.xml")
+                if os.path.exists(sample_path):
+                    with open(sample_path, "r", encoding="utf-8") as f:
+                        xml_text = f.read()
+                else:
+                    return self.send_json({"error": "Arquivo nfe_sample.xml não encontrado"}, 404)
+            
+            if not xml_text:
+                return self.send_json({"error": "Nenhum conteúdo XML fornecido"}, 400)
+            
+            try:
+                nfe_data = xml_nfe_parser.parse_nfe_xml(xml_text)
+                cnpjs_and_stores = load_json("cnpjs_and_stores.json")
+                destination_match = xml_nfe_parser.match_nfe_destination(nfe_data.get("destination", {}), cnpjs_and_stores)
+                return self.send_json({
+                    "success": True,
+                    "nfe": nfe_data,
+                    "destinationMatch": destination_match
+                })
+            except Exception as e:
+                return self.send_json({"error": f"Erro no processamento do XML: {str(e)}"}, 400)
+
+        # --- ENTRADA NO ESTOQUE & PRECIFICAÇÃO DA NF-e ---
+        elif path == "/api/erp/nfe/import-stock":
+            nfe = payload.get("nfe", {})
+            destination = payload.get("destinationMatch", {})
+            items = payload.get("items", [])
+            create_payable = payload.get("createPayable", True)
+
+            catalog = load_json("stone_catalog.json")
+            if not isinstance(catalog, list):
+                catalog = []
+
+            updated_count = 0
+            created_count = 0
+
+            for it in items:
+                sku = it.get("cProd", "").strip()
+                name = it.get("xProd", "").strip()
+                cost = float(it.get("unitCost", 0.0))
+                price = float(it.get("salePrice", 0.0))
+                markup = float(it.get("markup", 2.4))
+                qty = int(float(it.get("quantity", 1.0)))
+
+                # Procura no catálogo Stone por SKU ou por nome
+                found_item = None
+                for cat_item in catalog:
+                    if cat_item.get("stoneSku", "").upper() == sku.upper() or (sku and sku.upper() in cat_item.get("stoneSku", "").upper()):
+                        found_item = cat_item
+                        break
+                    if name and cat_item.get("name", "").lower() == name.lower():
+                        found_item = cat_item
+                        break
+
+                if found_item:
+                    found_item["cost"] = cost
+                    found_item["price"] = price
+                    found_item["markup"] = markup
+                    stock = found_item.setdefault("currentStock", {"P": 0, "M": 0, "G": 0, "GG": 0})
+                    # Distribuição da grade recebida
+                    base = qty // 4
+                    rem = qty % 4
+                    stock["P"] = stock.get("P", 0) + base
+                    stock["M"] = stock.get("M", 0) + base + rem
+                    stock["G"] = stock.get("G", 0) + base
+                    stock["GG"] = stock.get("GG", 0) + base
+                    updated_count += 1
+                else:
+                    base = qty // 4
+                    rem = qty % 4
+                    new_item = {
+                        "id": f"PROD-{len(catalog) + 1:03d}",
+                        "stoneSku": sku or f"SIE-SKU-{len(catalog)+1}",
+                        "name": name or f"Produto Importado NF {nfe.get('nfeInfo', {}).get('number', '')}",
+                        "category": "Fitness & Beachwear",
+                        "color": "Coleção Nova",
+                        "price": price,
+                        "cost": cost,
+                        "markup": markup,
+                        "currentStock": {
+                            "P": base,
+                            "M": base + rem,
+                            "G": base,
+                            "GG": base
+                        },
+                        "minStockTarget": {"P": 6, "M": 10, "G": 6, "GG": 2},
+                        "salesVelocityWeekly": 4.5,
+                        "leadTimeDays": 20,
+                        "imageEmoji": "✨",
+                        "bestFor": ["Treino", "Lifestyle", "Moda Fitness"]
+                    }
+                    catalog.append(new_item)
+                    created_count += 1
+
+            save_json("stone_catalog.json", catalog)
+
+            # Geração automática no Contas a Pagar se selecionado
+            created_payable_id = None
+            if create_payable:
+                payables_data = load_json("accounts_payable.json")
+                payables_list = payables_data.setdefault("payables", [])
+                
+                nfe_num = nfe.get("nfeInfo", {}).get("number", "S/N")
+                supplier_name = nfe.get("supplier", {}).get("name", "Fornecedor Homologado")
+                total_nfe = float(nfe.get("nfeInfo", {}).get("totalAmount", 0.0))
+                issue_date = nfe.get("nfeInfo", {}).get("issueDate") or datetime.now().strftime("%Y-%m-%d")
+
+                installments = nfe.get("installments", [])
+                if installments:
+                    for idx, inst in enumerate(installments):
+                        due = inst.get("dueDate") or (datetime.now() + timedelta(days=30 * (idx + 1))).strftime("%Y-%m-%d")
+                        amt = float(inst.get("amount", total_nfe / len(installments)))
+                        p_id = f"PAG-NFE-{nfe_num}-{idx+1}"
+                        new_pay = {
+                            "id": p_id,
+                            "storeId": destination.get("matchedStoreId", "store-01"),
+                            "cnpjId": destination.get("matchedCnpjId", "cnpj-01"),
+                            "costCenterId": "CC-01",
+                            "costCenterName": destination.get("matchedStoreName", "Boutique JOY Club - Centro Floripa"),
+                            "chartOfAccountId": "2.1.1.01",
+                            "chartOfAccountName": "Fornecedores Confecção Têxtil (30/60/90d)",
+                            "category": "FORNECEDOR_CMV",
+                            "supplier": supplier_name,
+                            "description": f"Entrada NF-e {nfe_num} - {supplier_name} (Parcela {idx+1}/{len(installments)})",
+                            "documentNumber": f"NF-e {nfe_num}",
+                            "issueDate": issue_date,
+                            "dueDate": due,
+                            "amount": amt,
+                            "paymentMethod": "BOLETO",
+                            "status": "APPROVED",
+                            "installmentsInfo": f"{idx+1} de {len(installments)} (Entrada NF-e)"
+                        }
+                        payables_list.insert(0, new_pay)
+                        if not created_payable_id: created_payable_id = p_id
+                else:
+                    due = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+                    p_id = f"PAG-NFE-{nfe_num}"
+                    new_pay = {
+                        "id": p_id,
+                        "storeId": destination.get("matchedStoreId", "store-01"),
+                        "cnpjId": destination.get("matchedCnpjId", "cnpj-01"),
+                        "costCenterId": "CC-01",
+                        "costCenterName": destination.get("matchedStoreName", "Boutique JOY Club - Centro Floripa"),
+                        "chartOfAccountId": "2.1.1.01",
+                        "chartOfAccountName": "Fornecedores Confecção Têxtil (30/60/90d)",
+                        "category": "FORNECEDOR_CMV",
+                        "supplier": supplier_name,
+                        "description": f"Entrada NF-e {nfe_num} - {supplier_name} (Mercadorias)",
+                        "documentNumber": f"NF-e {nfe_num}",
+                        "issueDate": issue_date,
+                        "dueDate": due,
+                        "amount": total_nfe,
+                        "paymentMethod": "BOLETO",
+                        "status": "APPROVED",
+                        "installmentsInfo": "À vista / 30 dias (NF-e)"
+                    }
+                    payables_list.insert(0, new_pay)
+                    created_payable_id = p_id
+
+                save_json("accounts_payable.json", payables_data)
+
+            # Histórico de Importação de NF-e
+            history_data = load_json("nfe_imports.json")
+            if not isinstance(history_data, list):
+                history_data = history_data.get("imports", []) if isinstance(history_data, dict) else []
+            
+            import_record = {
+                "id": f"IMP-{int(time.time())}",
+                "timestamp": datetime.now().isoformat(),
+                "nfeNumber": nfe.get("nfeInfo", {}).get("number"),
+                "accessKey": nfe.get("nfeInfo", {}).get("accessKey"),
+                "supplier": nfe.get("supplier", {}).get("name"),
+                "totalAmount": nfe.get("nfeInfo", {}).get("totalAmount"),
+                "destinationStore": destination.get("matchedStoreName"),
+                "destinationStoreId": destination.get("matchedStoreId"),
+                "destinationCnpj": destination.get("matchedCnpjNumber"),
+                "destinationCnpjId": destination.get("matchedCnpjId"),
+                "itemsCount": len(items),
+                "items": items,
+                "payableGenerated": created_payable_id is not None
+            }
+            history_data.insert(0, import_record)
+            save_json("nfe_imports.json", {"imports": history_data})
+
+            return self.send_json({
+                "success": True,
+                "message": f"Entrada no estoque concluída! {updated_count} itens atualizados e {created_count} novos itens cadastrados.",
+                "updatedCount": updated_count,
+                "createdCount": created_count,
+                "store": destination.get("matchedStoreName"),
+                "cnpj": destination.get("matchedCnpjNumber"),
+                "payableId": created_payable_id
             })
 
         else:

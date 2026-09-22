@@ -12,9 +12,17 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 
-PORT = 3001
+PORT = int(os.environ.get("PORT", 3001))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+
+try:
+    import supabase_client
+except ImportError:
+    try:
+        from sistema_web import supabase_client
+    except ImportError:
+        supabase_client = None
 
 def load_json(filename):
     filepath = os.path.join(DATA_DIR, filename)
@@ -94,8 +102,14 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
                 "joyLocation": "Rua Esteves Júnior, 567 - Centro Florianópolis",
                 "inauguration": "Outubro/2026",
                 "rent": 6000.0,
-                "gracePeriod": "3 meses de carência (R$ 18.000 de economia)"
+                "gracePeriod": "3 meses de carência (R$ 18.000 de economia)",
+                "supabase": supabase_client.get_status() if supabase_client else {"configured": False}
             })
+
+        elif path == "/api/supabase/status":
+            if supabase_client:
+                return self.send_json(supabase_client.get_status())
+            return self.send_json({"configured": False, "error": "supabase_client não inicializado"})
 
         elif path == "/api/financial-targets":
             return self.send_json(load_json("financial_targets.json"))
@@ -346,8 +360,20 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
         except Exception:
             payload = {}
 
+        # --- SUPABASE INTEGRATION ENDPOINTS ---
+        if path == "/api/supabase/test":
+            if supabase_client:
+                return self.send_json(supabase_client.test_connection())
+            return self.send_json({"success": False, "error": "supabase_client não inicializado"})
+
+        elif path == "/api/supabase/sync":
+            if supabase_client:
+                res = supabase_client.sync_all_local_to_supabase(DATA_DIR)
+                return self.send_json(res)
+            return self.send_json({"success": False, "error": "supabase_client não inicializado"})
+
         # --- CRM & QUALIFICATION ---
-        if path == "/api/crm/leads/update-stage":
+        elif path == "/api/crm/leads/update-stage":
             lead_id = payload.get("leadId")
             new_stage = payload.get("newStage")
             leads = load_json("crm_leads.json")
@@ -1217,11 +1243,16 @@ class SieJoyHandler(SimpleHTTPRequestHandler):
             return self.send_json({"error": "Rota não encontrada"}, 404)
 
 def run_server():
-    server_address = ("", PORT)
+    host = os.environ.get("HOST", "0.0.0.0")
+    server_address = (host, PORT)
     httpd = HTTPServer(server_address, SieJoyHandler)
     print(f"===========================================================")
-    print(f"SIÉ JOY OS - Web Management Server running on port {PORT}")
+    print(f"SIÉ JOY OS - Web Management Server running on {host}:{PORT}")
     print(f"CRM & Growth Hub: http://localhost:{PORT}")
+    if supabase_client and supabase_client.is_configured():
+        print(f"Supabase: CONECTADO ({supabase_client.SUPABASE_URL})")
+    else:
+        print(f"Supabase: MODO LOCAL (JSON fallback - configure .env para ativar)")
     print(f"===========================================================")
     httpd.serve_forever()
 

@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cetraops_web
+    ports:
+      - "${PORT:-3001}:3001"
+    environment:
+      - PORT=3001
+      - HOST=0.0.0.0
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - SUPABASE_AUTO_SYNC=${SUPABASE_AUTO_SYNC:-false}
+    volumes:
+      - ./sistema_web/data:/app/sistema_web/data
+    restart: unless-stopped

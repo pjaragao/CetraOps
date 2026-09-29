@@ -1,0 +1,2512 @@
+
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export type Database = {
+  
+  "ai": {
+          Tables: {
+            "customer_memories": {
+                  Row: {
+                    "category": string | null,"confidence": number | null,"created_at": string,"expires_at": string | null,"fact": string,"id": string,"org_id": string,"party_id": string,"source_message_id": string | null,"verified": boolean
+                  }
+                  Insert: {
+                    "category"?: string | null,"confidence"?: number | null,"created_at"?: string,"expires_at"?: string | null,"fact": string,"id"?: string,"org_id": string,"party_id": string,"source_message_id"?: string | null,"verified"?: boolean
+                  }
+                  Update: {
+                    "category"?: string | null,"confidence"?: number | null,"created_at"?: string,"expires_at"?: string | null,"fact"?: string,"id"?: string,"org_id"?: string,"party_id"?: string,"source_message_id"?: string | null,"verified"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"model_route_changes": {
+                  Row: {
+                    "after": NonNullable<Json>,"before": Json | null,"changed_at": string,"changed_by": string | null,"id": number,"org_id": string,"task": string
+                  }
+                  Insert: {
+                    "after": NonNullable<Json>,"before"?: Json | null,"changed_at"?: string,"changed_by"?: string | null,"id"?: never,"org_id": string,"task": string
+                  }
+                  Update: {
+                    "after"?: NonNullable<Json>,"before"?: Json | null,"changed_at"?: string,"changed_by"?: string | null,"id"?: never,"org_id"?: string,"task"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"model_routes": {
+                  Row: {
+                    "active": boolean,"daily_budget_usd": number | null,"fallback_models": (string)[],"id": string,"org_id": string,"params": NonNullable<Json>,"primary_model": string,"provider_prefs": NonNullable<Json>,"requires_json_schema": boolean,"requires_tools": boolean,"task": string,"updated_at": string,"updated_by": string | null
+                  }
+                  Insert: {
+                    "active"?: boolean,"daily_budget_usd"?: number | null,"fallback_models"?: (string)[],"id"?: string,"org_id": string,"params"?: NonNullable<Json>,"primary_model": string,"provider_prefs"?: NonNullable<Json>,"requires_json_schema"?: boolean,"requires_tools"?: boolean,"task": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "active"?: boolean,"daily_budget_usd"?: number | null,"fallback_models"?: (string)[],"id"?: string,"org_id"?: string,"params"?: NonNullable<Json>,"primary_model"?: string,"provider_prefs"?: NonNullable<Json>,"requires_json_schema"?: boolean,"requires_tools"?: boolean,"task"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"persona_versions": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"created_at": string,"eval_score": Json | null,"guardrails": NonNullable<Json>,"id": string,"org_id": string,"persona_id": string,"style_profile": NonNullable<Json>,"system_prompt": string | null,"version": number
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"created_at"?: string,"eval_score"?: Json | null,"guardrails"?: NonNullable<Json>,"id"?: string,"org_id": string,"persona_id": string,"style_profile"?: NonNullable<Json>,"system_prompt"?: string | null,"version": number
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"created_at"?: string,"eval_score"?: Json | null,"guardrails"?: NonNullable<Json>,"id"?: string,"org_id"?: string,"persona_id"?: string,"style_profile"?: NonNullable<Json>,"system_prompt"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "persona_versions_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"personas": {
+                  Row: {
+                    "active_version_id": string | null,"created_at": string,"id": string,"member_id": string | null,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "active_version_id"?: string | null,"created_at"?: string,"id"?: string,"member_id"?: string | null,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "active_version_id"?: string | null,"created_at"?: string,"id"?: string,"member_id"?: string | null,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "personas_active_version_fk"
+      columns: ["active_version_id"]
+isOneToOne: false
+      referencedRelation: "persona_versions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"runs": {
+                  Row: {
+                    "cache_read_tokens": number | null,"confidence": number | null,"conversation_id": string | null,"cost_usd": number | null,"created_at": string,"error": string | null,"id": string,"latency_ms": number | null,"model": string | null,"org_id": string,"party_id": string | null,"persona_version_id": string | null,"provider": string | null,"route_task": string,"status": string,"tokens_in": number | null,"tokens_out": number | null,"trace_id": string | null
+                  }
+                  Insert: {
+                    "cache_read_tokens"?: number | null,"confidence"?: number | null,"conversation_id"?: string | null,"cost_usd"?: number | null,"created_at"?: string,"error"?: string | null,"id"?: string,"latency_ms"?: number | null,"model"?: string | null,"org_id": string,"party_id"?: string | null,"persona_version_id"?: string | null,"provider"?: string | null,"route_task": string,"status"?: string,"tokens_in"?: number | null,"tokens_out"?: number | null,"trace_id"?: string | null
+                  }
+                  Update: {
+                    "cache_read_tokens"?: number | null,"confidence"?: number | null,"conversation_id"?: string | null,"cost_usd"?: number | null,"created_at"?: string,"error"?: string | null,"id"?: string,"latency_ms"?: number | null,"model"?: string | null,"org_id"?: string,"party_id"?: string | null,"persona_version_id"?: string | null,"provider"?: string | null,"route_task"?: string,"status"?: string,"tokens_in"?: number | null,"tokens_out"?: number | null,"trace_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "runs_persona_version_id_fkey"
+      columns: ["persona_version_id"]
+isOneToOne: false
+      referencedRelation: "persona_versions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"suggestions": {
+                  Row: {
+                    "confidence": number | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"id": string,"kind": string,"org_id": string,"payload": NonNullable<Json>,"status": string,"target_id": string | null,"target_type": string | null
+                  }
+                  Insert: {
+                    "confidence"?: number | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"kind": string,"org_id": string,"payload": NonNullable<Json>,"status"?: string,"target_id"?: string | null,"target_type"?: string | null
+                  }
+                  Update: {
+                    "confidence"?: number | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"kind"?: string,"org_id"?: string,"payload"?: NonNullable<Json>,"status"?: string,"target_id"?: string | null,"target_type"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"tool_calls": {
+                  Row: {
+                    "args": NonNullable<Json>,"created_at": string,"id": number,"ms": number | null,"ok": boolean,"result_digest": Json | null,"run_id": string,"tool": string
+                  }
+                  Insert: {
+                    "args"?: NonNullable<Json>,"created_at"?: string,"id"?: never,"ms"?: number | null,"ok": boolean,"result_digest"?: Json | null,"run_id": string,"tool": string
+                  }
+                  Update: {
+                    "args"?: NonNullable<Json>,"created_at"?: string,"id"?: never,"ms"?: number | null,"ok"?: boolean,"result_digest"?: Json | null,"run_id"?: string,"tool"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tool_calls_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "runs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            [_ in never]: never
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"catalog": {
+          Tables: {
+            "brands": {
+                  Row: {
+                    "id": string,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "id"?: string,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"categories": {
+                  Row: {
+                    "id": string,"name": string,"ncm_default": string | null,"org_id": string,"parent_id": string | null
+                  }
+                  Insert: {
+                    "id"?: string,"name": string,"ncm_default"?: string | null,"org_id": string,"parent_id"?: string | null
+                  }
+                  Update: {
+                    "id"?: string,"name"?: string,"ncm_default"?: string | null,"org_id"?: string,"parent_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "categories_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "categories"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"collections": {
+                  Row: {
+                    "created_at": string,"event_id": string | null,"id": string,"kind": string,"launch_date": string | null,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"event_id"?: string | null,"id"?: string,"kind": string,"launch_date"?: string | null,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"event_id"?: string | null,"id"?: string,"kind"?: string,"launch_date"?: string | null,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"colors": {
+                  Row: {
+                    "code": string | null,"hex": string | null,"id": string,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "code"?: string | null,"hex"?: string | null,"id"?: string,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "code"?: string | null,"hex"?: string | null,"id"?: string,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"price_lists": {
+                  Row: {
+                    "id": string,"is_default": boolean,"kind": string,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"is_default"?: boolean,"kind": string,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "id"?: string,"is_default"?: boolean,"kind"?: string,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"prices": {
+                  Row: {
+                    "id": string,"org_id": string,"price": number,"price_list_id": string,"product_id": string | null,"valid_from": string,"valid_to": string | null,"variant_id": string | null
+                  }
+                  Insert: {
+                    "id"?: string,"org_id": string,"price": number,"price_list_id": string,"product_id"?: string | null,"valid_from"?: string,"valid_to"?: string | null,"variant_id"?: string | null
+                  }
+                  Update: {
+                    "id"?: string,"org_id"?: string,"price"?: number,"price_list_id"?: string,"product_id"?: string | null,"valid_from"?: string,"valid_to"?: string | null,"variant_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "prices_price_list_id_fkey"
+      columns: ["price_list_id"]
+isOneToOne: false
+      referencedRelation: "price_lists"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "prices_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "prices_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "variants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_media": {
+                  Row: {
+                    "color_id": string | null,"id": string,"org_id": string,"position": number,"product_id": string,"storage_path": string
+                  }
+                  Insert: {
+                    "color_id"?: string | null,"id"?: string,"org_id": string,"position"?: number,"product_id": string,"storage_path": string
+                  }
+                  Update: {
+                    "color_id"?: string | null,"id"?: string,"org_id"?: string,"position"?: number,"product_id"?: string,"storage_path"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_media_color_id_fkey"
+      columns: ["color_id"]
+isOneToOne: false
+      referencedRelation: "colors"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "product_media_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"products": {
+                  Row: {
+                    "activities": (string)[],"assortment_class": Database["catalog"]['Enums']["assortment_class"],"brand_id": string | null,"care": string | null,"category_id": string | null,"cest": string | null,"collection_id": string | null,"composition": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"description": string | null,"gender": Database["catalog"]['Enums']["gender"],"id": string,"name": string,"ncm": string | null,"org_id": string,"origin": number,"product_kind": Database["catalog"]['Enums']["product_kind"],"reference_code": string,"size_chart_id": string | null,"size_grid_id": string | null,"status": Database["catalog"]['Enums']["product_status"],"updated_at": string
+                  }
+                  Insert: {
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]['Enums']["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender": Database["catalog"]['Enums']["gender"],"id"?: string,"name": string,"ncm"?: string | null,"org_id": string,"origin"?: number,"product_kind"?: Database["catalog"]['Enums']["product_kind"],"reference_code": string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]['Enums']["product_status"],"updated_at"?: string
+                  }
+                  Update: {
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]['Enums']["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender"?: Database["catalog"]['Enums']["gender"],"id"?: string,"name"?: string,"ncm"?: string | null,"org_id"?: string,"origin"?: number,"product_kind"?: Database["catalog"]['Enums']["product_kind"],"reference_code"?: string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]['Enums']["product_status"],"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "products_brand_id_fkey"
+      columns: ["brand_id"]
+isOneToOne: false
+      referencedRelation: "brands"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "products_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "products_collection_id_fkey"
+      columns: ["collection_id"]
+isOneToOne: false
+      referencedRelation: "collections"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "products_size_chart_id_fkey"
+      columns: ["size_chart_id"]
+isOneToOne: false
+      referencedRelation: "size_charts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "products_size_grid_id_fkey"
+      columns: ["size_grid_id"]
+isOneToOne: false
+      referencedRelation: "size_grids"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"size_charts": {
+                  Row: {
+                    "id": string,"measurements": NonNullable<Json>,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"measurements"?: NonNullable<Json>,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "id"?: string,"measurements"?: NonNullable<Json>,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"size_grids": {
+                  Row: {
+                    "id": string,"name": string,"org_id": string,"sizes": (string)[]
+                  }
+                  Insert: {
+                    "id"?: string,"name": string,"org_id": string,"sizes": (string)[]
+                  }
+                  Update: {
+                    "id"?: string,"name"?: string,"org_id"?: string,"sizes"?: (string)[]
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"supplier_items": {
+                  Row: {
+                    "confidence": number | null,"confirmed_by": string | null,"created_at": string,"factor": number,"id": string,"org_id": string,"supplier_cprod": string,"supplier_desc": string | null,"supplier_ean": string | null,"supplier_party_id": string,"variant_id": string
+                  }
+                  Insert: {
+                    "confidence"?: number | null,"confirmed_by"?: string | null,"created_at"?: string,"factor"?: number,"id"?: string,"org_id": string,"supplier_cprod": string,"supplier_desc"?: string | null,"supplier_ean"?: string | null,"supplier_party_id": string,"variant_id": string
+                  }
+                  Update: {
+                    "confidence"?: number | null,"confirmed_by"?: string | null,"created_at"?: string,"factor"?: number,"id"?: string,"org_id"?: string,"supplier_cprod"?: string,"supplier_desc"?: string | null,"supplier_ean"?: string | null,"supplier_party_id"?: string,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "supplier_items_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "variants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"variants": {
+                  Row: {
+                    "active": boolean,"color_id": string | null,"created_at": string,"gtin": string | null,"id": string,"org_id": string,"product_id": string,"size": string,"sku": string,"supplier_sku": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"color_id"?: string | null,"created_at"?: string,"gtin"?: string | null,"id"?: string,"org_id": string,"product_id": string,"size": string,"sku": string,"supplier_sku"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"color_id"?: string | null,"created_at"?: string,"gtin"?: string | null,"id"?: string,"org_id"?: string,"product_id"?: string,"size"?: string,"sku"?: string,"supplier_sku"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "variants_color_id_fkey"
+      columns: ["color_id"]
+isOneToOne: false
+      referencedRelation: "colors"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "variants_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "current_price":
+{ Args: { "p_price_list"?: string,"p_variant": string }; Returns: number
+                           },
+"import_rows":
+{ Args: { "p": Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            "assortment_class": "CORE"|"DROP"|"ACCESSORY","gender": "FEM"|"MASC"|"UNISSEX","product_kind": "GOODS"|"SERVICE"|"GIFT_WRAP"|"FEE","product_status": "DRAFT"|"ACTIVE"|"DISCONTINUED"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"core": {
+          Tables: {
+            "attachments": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"entity_id": string,"entity_type": string,"id": string,"mime": string | null,"org_id": string,"sha256": string | null,"storage_path": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"entity_id": string,"entity_type": string,"id"?: string,"mime"?: string | null,"org_id": string,"sha256"?: string | null,"storage_path": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"entity_id"?: string,"entity_type"?: string,"id"?: string,"mime"?: string | null,"org_id"?: string,"sha256"?: string | null,"storage_path"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "attachments_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attachments_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"cost_centers": {
+                  Row: {
+                    "archived_at": string | null,"channel": string | null,"code": string,"created_at": string,"id": string,"kind": Database["core"]['Enums']["cost_center_kind"],"legal_entity_id": string | null,"name": string,"org_id": string,"parent_id": string | null,"store_id": string | null,"updated_at": string,"valid_from": string,"valid_to": string | null
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"channel"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": Database["core"]['Enums']["cost_center_kind"],"legal_entity_id"?: string | null,"name": string,"org_id": string,"parent_id"?: string | null,"store_id"?: string | null,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"channel"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: Database["core"]['Enums']["cost_center_kind"],"legal_entity_id"?: string | null,"name"?: string,"org_id"?: string,"parent_id"?: string | null,"store_id"?: string | null,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cost_centers_legal_entity_id_fkey"
+      columns: ["legal_entity_id"]
+isOneToOne: false
+      referencedRelation: "legal_entities"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cost_centers_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cost_centers_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "cost_centers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cost_centers_store_fk"
+      columns: ["store_id"]
+isOneToOne: false
+      referencedRelation: "stores"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"custom_field_defs": {
+                  Row: {
+                    "active": boolean,"entity_type": string,"id": string,"key": string,"label": string,"options": NonNullable<Json>,"org_id": string,"position": number,"required": boolean,"type": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"entity_type": string,"id"?: string,"key": string,"label": string,"options"?: NonNullable<Json>,"org_id": string,"position"?: number,"required"?: boolean,"type": string
+                  }
+                  Update: {
+                    "active"?: boolean,"entity_type"?: string,"id"?: string,"key"?: string,"label"?: string,"options"?: NonNullable<Json>,"org_id"?: string,"position"?: number,"required"?: boolean,"type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "custom_field_defs_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"document_sequences": {
+                  Row: {
+                    "doc_type": string,"last_value": number,"org_id": string,"year": number
+                  }
+                  Insert: {
+                    "doc_type": string,"last_value"?: number,"org_id": string,"year": number
+                  }
+                  Update: {
+                    "doc_type"?: string,"last_value"?: number,"org_id"?: string,"year"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "document_sequences_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"feature_flags": {
+                  Row: {
+                    "enabled": boolean,"key": string,"org_id": string,"scope": NonNullable<Json>,"updated_at": string
+                  }
+                  Insert: {
+                    "enabled"?: boolean,"key": string,"org_id": string,"scope"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Update: {
+                    "enabled"?: boolean,"key"?: string,"org_id"?: string,"scope"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feature_flags_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"integration_connections": {
+                  Row: {
+                    "capability": string,"config": NonNullable<Json>,"created_at": string,"id": string,"last_error": string | null,"last_sync_at": string | null,"legal_entity_id": string | null,"org_id": string,"provider": string,"secret_ref": string | null,"status": string,"updated_at": string
+                  }
+                  Insert: {
+                    "capability": string,"config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"last_error"?: string | null,"last_sync_at"?: string | null,"legal_entity_id"?: string | null,"org_id": string,"provider": string,"secret_ref"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "capability"?: string,"config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"last_error"?: string | null,"last_sync_at"?: string | null,"legal_entity_id"?: string | null,"org_id"?: string,"provider"?: string,"secret_ref"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_connections_legal_entity_id_fkey"
+      columns: ["legal_entity_id"]
+isOneToOne: false
+      referencedRelation: "legal_entities"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_connections_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"legacy_id_map": {
+                  Row: {
+                    "entity": string,"legacy_id": string,"new_id": string,"org_id": string
+                  }
+                  Insert: {
+                    "entity": string,"legacy_id": string,"new_id": string,"org_id": string
+                  }
+                  Update: {
+                    "entity"?: string,"legacy_id"?: string,"new_id"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "legacy_id_map_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"legal_entities": {
+                  Row: {
+                    "address": NonNullable<Json>,"cert_expires_at": string | null,"cnae_principal": string | null,"cnaes_secundarios": (string)[],"cnpj": string,"created_at": string,"crt": number,"fiscal_provider_ref": string | null,"id": string,"ie": string | null,"im": string | null,"kind": Database["core"]['Enums']["legal_entity_kind"],"nfce_series": number | null,"nfe_series": number | null,"nome_fantasia": string | null,"org_id": string,"parent_id": string | null,"razao_social": string,"status": string,"tax_regime": string,"updated_at": string
+                  }
+                  Insert: {
+                    "address"?: NonNullable<Json>,"cert_expires_at"?: string | null,"cnae_principal"?: string | null,"cnaes_secundarios"?: (string)[],"cnpj": string,"created_at"?: string,"crt"?: number,"fiscal_provider_ref"?: string | null,"id"?: string,"ie"?: string | null,"im"?: string | null,"kind"?: Database["core"]['Enums']["legal_entity_kind"],"nfce_series"?: number | null,"nfe_series"?: number | null,"nome_fantasia"?: string | null,"org_id": string,"parent_id"?: string | null,"razao_social": string,"status"?: string,"tax_regime"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "address"?: NonNullable<Json>,"cert_expires_at"?: string | null,"cnae_principal"?: string | null,"cnaes_secundarios"?: (string)[],"cnpj"?: string,"created_at"?: string,"crt"?: number,"fiscal_provider_ref"?: string | null,"id"?: string,"ie"?: string | null,"im"?: string | null,"kind"?: Database["core"]['Enums']["legal_entity_kind"],"nfce_series"?: number | null,"nfe_series"?: number | null,"nome_fantasia"?: string | null,"org_id"?: string,"parent_id"?: string | null,"razao_social"?: string,"status"?: string,"tax_regime"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "legal_entities_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "legal_entities_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "legal_entities"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"member_roles": {
+                  Row: {
+                    "member_id": string,"role_id": string
+                  }
+                  Insert: {
+                    "member_id": string,"role_id": string
+                  }
+                  Update: {
+                    "member_id"?: string,"role_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "member_roles_member_id_fkey"
+      columns: ["member_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "member_roles_role_id_fkey"
+      columns: ["role_id"]
+isOneToOne: false
+      referencedRelation: "roles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"member_store_access": {
+                  Row: {
+                    "all_stores": boolean,"id": string,"member_id": string,"store_id": string | null
+                  }
+                  Insert: {
+                    "all_stores"?: boolean,"id"?: string,"member_id": string,"store_id"?: string | null
+                  }
+                  Update: {
+                    "all_stores"?: boolean,"id"?: string,"member_id"?: string,"store_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "member_store_access_member_id_fkey"
+      columns: ["member_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "member_store_access_store_id_fkey"
+      columns: ["store_id"]
+isOneToOne: false
+      referencedRelation: "stores"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"members": {
+                  Row: {
+                    "created_at": string,"default_store_id": string | null,"display_name": string,"id": string,"org_id": string,"pin_hash": string | null,"status": string,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"default_store_id"?: string | null,"display_name": string,"id"?: string,"org_id": string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"default_store_id"?: string | null,"display_name"?: string,"id"?: string,"org_id"?: string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "members_default_store_id_fkey"
+      columns: ["default_store_id"]
+isOneToOne: false
+      referencedRelation: "stores"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "members_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"notifications": {
+                  Row: {
+                    "created_at": string,"id": string,"kind": string,"member_id": string,"org_id": string,"payload": NonNullable<Json>,"read_at": string | null,"title": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"kind": string,"member_id": string,"org_id": string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"title": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"kind"?: string,"member_id"?: string,"org_id"?: string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notifications_member_id_fkey"
+      columns: ["member_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"orgs": {
+                  Row: {
+                    "created_at": string,"id": string,"name": string,"settings": NonNullable<Json>,"slug": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"name": string,"settings"?: NonNullable<Json>,"slug": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"name"?: string,"settings"?: NonNullable<Json>,"slug"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"role_permissions": {
+                  Row: {
+                    "permission_key": string,"role_id": string
+                  }
+                  Insert: {
+                    "permission_key": string,"role_id": string
+                  }
+                  Update: {
+                    "permission_key"?: string,"role_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "role_permissions_role_id_fkey"
+      columns: ["role_id"]
+isOneToOne: false
+      referencedRelation: "roles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"roles": {
+                  Row: {
+                    "id": string,"is_superuser": boolean,"key": string,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"is_superuser"?: boolean,"key": string,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "id"?: string,"is_superuser"?: boolean,"key"?: string,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "roles_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"settings": {
+                  Row: {
+                    "key": string,"org_id": string,"updated_at": string,"value": NonNullable<Json>
+                  }
+                  Insert: {
+                    "key": string,"org_id": string,"updated_at"?: string,"value": NonNullable<Json>
+                  }
+                  Update: {
+                    "key"?: string,"org_id"?: string,"updated_at"?: string,"value"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "settings_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"stores": {
+                  Row: {
+                    "area_m2": number | null,"business_hours": NonNullable<Json>,"closed_at": string | null,"code": string,"cost_center_id": string | null,"created_at": string,"fiscal_mode": string,"format": Database["core"]['Enums']["store_format"],"host_partner_party_id": string | null,"id": string,"legal_entity_id": string,"name": string,"opened_at": string | null,"org_id": string,"status": Database["core"]['Enums']["store_status"],"updated_at": string
+                  }
+                  Insert: {
+                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code": string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format": Database["core"]['Enums']["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id": string,"name": string,"opened_at"?: string | null,"org_id": string,"status"?: Database["core"]['Enums']["store_status"],"updated_at"?: string
+                  }
+                  Update: {
+                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code"?: string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format"?: Database["core"]['Enums']["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id"?: string,"name"?: string,"opened_at"?: string | null,"org_id"?: string,"status"?: Database["core"]['Enums']["store_status"],"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stores_cost_center_id_fkey"
+      columns: ["cost_center_id"]
+isOneToOne: false
+      referencedRelation: "cost_centers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stores_legal_entity_id_fkey"
+      columns: ["legal_entity_id"]
+isOneToOne: false
+      referencedRelation: "legal_entities"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stores_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "next_number":
+{ Args: { "p_doc_type": string,"p_org": string }; Returns: string
+                           }
+          }
+          Enums: {
+            "cost_center_kind": "CORPORATE"|"LEGAL_ENTITY"|"STORE"|"CHANNEL"|"PROJECT_EVENT"|"POOL","legal_entity_kind": "OPERATING"|"HOLDING","store_format": "SHOP_IN_SHOP"|"CONSIGNMENT_CORNER"|"POPUP"|"DIGITAL"|"WAREHOUSE"|"B2B","store_status": "PLANNED"|"ACTIVE"|"CLOSED"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"crm": {
+          Tables: {
+            "consents": {
+                  Row: {
+                    "created_at": string,"evidence": NonNullable<Json>,"granted": boolean,"id": string,"legal_basis": Database["crm"]['Enums']["legal_basis"],"org_id": string,"party_id": string,"purpose": Database["crm"]['Enums']["consent_purpose"],"recorded_by": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"evidence"?: NonNullable<Json>,"granted": boolean,"id"?: string,"legal_basis": Database["crm"]['Enums']["legal_basis"],"org_id": string,"party_id": string,"purpose": Database["crm"]['Enums']["consent_purpose"],"recorded_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"evidence"?: NonNullable<Json>,"granted"?: boolean,"id"?: string,"legal_basis"?: Database["crm"]['Enums']["legal_basis"],"org_id"?: string,"party_id"?: string,"purpose"?: Database["crm"]['Enums']["consent_purpose"],"recorded_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "consents_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"deal_stage_history": {
+                  Row: {
+                    "changed_at": string,"changed_by": string | null,"deal_id": string,"from_stage_id": string | null,"id": number,"org_id": string,"to_stage_id": string
+                  }
+                  Insert: {
+                    "changed_at"?: string,"changed_by"?: string | null,"deal_id": string,"from_stage_id"?: string | null,"id"?: never,"org_id": string,"to_stage_id": string
+                  }
+                  Update: {
+                    "changed_at"?: string,"changed_by"?: string | null,"deal_id"?: string,"from_stage_id"?: string | null,"id"?: never,"org_id"?: string,"to_stage_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deal_stage_history_deal_id_fkey"
+      columns: ["deal_id"]
+isOneToOne: false
+      referencedRelation: "deals"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deal_stage_history_from_stage_id_fkey"
+      columns: ["from_stage_id"]
+isOneToOne: false
+      referencedRelation: "pipeline_stages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deal_stage_history_to_stage_id_fkey"
+      columns: ["to_stage_id"]
+isOneToOne: false
+      referencedRelation: "pipeline_stages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"deals": {
+                  Row: {
+                    "conversation_id": string | null,"created_at": string,"id": string,"lost_reason": string | null,"org_id": string,"owner_member_id": string | null,"party_id": string,"pipeline_id": string,"stage_id": string,"status": string,"title": string,"updated_at": string,"value_estimated": number | null,"won_order_id": string | null
+                  }
+                  Insert: {
+                    "conversation_id"?: string | null,"created_at"?: string,"id"?: string,"lost_reason"?: string | null,"org_id": string,"owner_member_id"?: string | null,"party_id": string,"pipeline_id": string,"stage_id": string,"status"?: string,"title": string,"updated_at"?: string,"value_estimated"?: number | null,"won_order_id"?: string | null
+                  }
+                  Update: {
+                    "conversation_id"?: string | null,"created_at"?: string,"id"?: string,"lost_reason"?: string | null,"org_id"?: string,"owner_member_id"?: string | null,"party_id"?: string,"pipeline_id"?: string,"stage_id"?: string,"status"?: string,"title"?: string,"updated_at"?: string,"value_estimated"?: number | null,"won_order_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deals_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deals_pipeline_id_fkey"
+      columns: ["pipeline_id"]
+isOneToOne: false
+      referencedRelation: "pipelines"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deals_stage_id_fkey"
+      columns: ["stage_id"]
+isOneToOne: false
+      referencedRelation: "pipeline_stages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"lead_scoring_rules": {
+                  Row: {
+                    "active": boolean,"created_at": string,"id": string,"org_id": string,"rules": NonNullable<Json>,"version": number
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"id"?: string,"org_id": string,"rules": NonNullable<Json>,"version": number
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"id"?: string,"org_id"?: string,"rules"?: NonNullable<Json>,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"outreach_items": {
+                  Row: {
+                    "assigned_member_id": string | null,"channel": Database["crm"]['Enums']["contact_type"],"created_at": string,"due_on": string,"evidence_message_id": string | null,"id": string,"org_id": string,"party_id": string,"playbook_step": string,"status": string,"suggested_message": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "assigned_member_id"?: string | null,"channel": Database["crm"]['Enums']["contact_type"],"created_at"?: string,"due_on"?: string,"evidence_message_id"?: string | null,"id"?: string,"org_id": string,"party_id": string,"playbook_step": string,"status"?: string,"suggested_message"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "assigned_member_id"?: string | null,"channel"?: Database["crm"]['Enums']["contact_type"],"created_at"?: string,"due_on"?: string,"evidence_message_id"?: string | null,"id"?: string,"org_id"?: string,"party_id"?: string,"playbook_step"?: string,"status"?: string,"suggested_message"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "outreach_items_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parties": {
+                  Row: {
+                    "anonymized_at": string | null,"archived_at": string | null,"birth_date": string | null,"city": string | null,"cnpj": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"display_name": string,"first_purchase_at": string | null,"first_touch_at": string,"gender": string | null,"home_store_id": string | null,"id": string,"instagram_handle": string | null,"joy_member_status": string,"kind": Database["crm"]['Enums']["party_kind"],"last_purchase_at": string | null,"lead_score": number,"legal_name": string | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id": string | null,"org_id": string,"preferences": NonNullable<Json>,"profession": string | null,"relationship_owner_member_id": string | null,"score_breakdown": NonNullable<Json>,"sizes": NonNullable<Json>,"source": string | null,"tags": (string)[],"tier": Database["crm"]['Enums']["tier"],"uf": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name": string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id": string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"uf"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name"?: string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id"?: string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"uf"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parties_merged_into_id_fkey"
+      columns: ["merged_into_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"party_addresses": {
+                  Row: {
+                    "cep": string | null,"city": string | null,"complement": string | null,"created_at": string,"district": string | null,"id": string,"is_default": boolean,"label": string | null,"number": string | null,"org_id": string,"party_id": string,"street": string | null,"uf": string | null
+                  }
+                  Insert: {
+                    "cep"?: string | null,"city"?: string | null,"complement"?: string | null,"created_at"?: string,"district"?: string | null,"id"?: string,"is_default"?: boolean,"label"?: string | null,"number"?: string | null,"org_id": string,"party_id": string,"street"?: string | null,"uf"?: string | null
+                  }
+                  Update: {
+                    "cep"?: string | null,"city"?: string | null,"complement"?: string | null,"created_at"?: string,"district"?: string | null,"id"?: string,"is_default"?: boolean,"label"?: string | null,"number"?: string | null,"org_id"?: string,"party_id"?: string,"street"?: string | null,"uf"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "party_addresses_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"party_contact_points": {
+                  Row: {
+                    "created_at": string,"id": string,"is_primary": boolean,"org_id": string,"party_id": string,"type": Database["crm"]['Enums']["contact_type"],"value_display": string,"value_normalized": string,"verified_at": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"is_primary"?: boolean,"org_id": string,"party_id": string,"type": Database["crm"]['Enums']["contact_type"],"value_display": string,"value_normalized": string,"verified_at"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_primary"?: boolean,"org_id"?: string,"party_id"?: string,"type"?: Database["crm"]['Enums']["contact_type"],"value_display"?: string,"value_normalized"?: string,"verified_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "party_contact_points_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"party_roles": {
+                  Row: {
+                    "created_at": string,"org_id": string,"party_id": string,"role": Database["crm"]['Enums']["party_role"]
+                  }
+                  Insert: {
+                    "created_at"?: string,"org_id": string,"party_id": string,"role": Database["crm"]['Enums']["party_role"]
+                  }
+                  Update: {
+                    "created_at"?: string,"org_id"?: string,"party_id"?: string,"role"?: Database["crm"]['Enums']["party_role"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "party_roles_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"party_sensitive": {
+                  Row: {
+                    "cpf_encrypted": string | null,"cpf_hmac": string | null,"cpf_last4": string | null,"org_id": string,"party_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "cpf_encrypted"?: string | null,"cpf_hmac"?: string | null,"cpf_last4"?: string | null,"org_id": string,"party_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "cpf_encrypted"?: string | null,"cpf_hmac"?: string | null,"cpf_last4"?: string | null,"org_id"?: string,"party_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "party_sensitive_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: true
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"pipeline_stages": {
+                  Row: {
+                    "id": string,"is_lost": boolean,"is_won": boolean,"name": string,"org_id": string,"pipeline_id": string,"position": number,"probability": number,"sla_hours": number | null
+                  }
+                  Insert: {
+                    "id"?: string,"is_lost"?: boolean,"is_won"?: boolean,"name": string,"org_id": string,"pipeline_id": string,"position": number,"probability"?: number,"sla_hours"?: number | null
+                  }
+                  Update: {
+                    "id"?: string,"is_lost"?: boolean,"is_won"?: boolean,"name"?: string,"org_id"?: string,"pipeline_id"?: string,"position"?: number,"probability"?: number,"sla_hours"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "pipeline_stages_pipeline_id_fkey"
+      columns: ["pipeline_id"]
+isOneToOne: false
+      referencedRelation: "pipelines"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"pipelines": {
+                  Row: {
+                    "active": boolean,"id": string,"kind": string,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"id"?: string,"kind": string,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"segment_members": {
+                  Row: {
+                    "added_at": string,"org_id": string,"party_id": string,"segment_id": string
+                  }
+                  Insert: {
+                    "added_at"?: string,"org_id": string,"party_id": string,"segment_id": string
+                  }
+                  Update: {
+                    "added_at"?: string,"org_id"?: string,"party_id"?: string,"segment_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "segment_members_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "segment_members_segment_id_fkey"
+      columns: ["segment_id"]
+isOneToOne: false
+      referencedRelation: "segments"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"segments": {
+                  Row: {
+                    "created_at": string,"definition": NonNullable<Json>,"id": string,"is_dynamic": boolean,"name": string,"org_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"definition"?: NonNullable<Json>,"id"?: string,"is_dynamic"?: boolean,"name": string,"org_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"definition"?: NonNullable<Json>,"id"?: string,"is_dynamic"?: boolean,"name"?: string,"org_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"tasks": {
+                  Row: {
+                    "assignee_member_id": string | null,"body": string | null,"completed_at": string | null,"created_at": string,"created_by_ai": boolean,"deal_id": string | null,"due_at": string | null,"id": string,"org_id": string,"party_id": string | null,"source_rule": string | null,"status": string,"suggested_message": string | null,"title": string,"type": string,"updated_at": string
+                  }
+                  Insert: {
+                    "assignee_member_id"?: string | null,"body"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by_ai"?: boolean,"deal_id"?: string | null,"due_at"?: string | null,"id"?: string,"org_id": string,"party_id"?: string | null,"source_rule"?: string | null,"status"?: string,"suggested_message"?: string | null,"title": string,"type"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "assignee_member_id"?: string | null,"body"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by_ai"?: boolean,"deal_id"?: string | null,"due_at"?: string | null,"id"?: string,"org_id"?: string,"party_id"?: string | null,"source_rule"?: string | null,"status"?: string,"suggested_message"?: string | null,"title"?: string,"type"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tasks_deal_id_fkey"
+      columns: ["deal_id"]
+isOneToOne: false
+      referencedRelation: "deals"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"timeline_events": {
+                  Row: {
+                    "id": number,"kind": string,"occurred_at": string,"org_id": string,"party_id": string,"payload": NonNullable<Json>,"source_id": string | null,"source_type": string | null,"summary": string
+                  }
+                  Insert: {
+                    "id"?: never,"kind": string,"occurred_at"?: string,"org_id": string,"party_id": string,"payload"?: NonNullable<Json>,"source_id"?: string | null,"source_type"?: string | null,"summary": string
+                  }
+                  Update: {
+                    "id"?: never,"kind"?: string,"occurred_at"?: string,"org_id"?: string,"party_id"?: string,"payload"?: NonNullable<Json>,"source_id"?: string | null,"source_type"?: string | null,"summary"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "timeline_events_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            "v_current_consents": {
+                  Row: {
+                    "created_at": string | null,"evidence": Json | null,"granted": boolean | null,"legal_basis": Database["crm"]['Enums']["legal_basis"] | null,"org_id": string | null,"party_id": string | null,"purpose": Database["crm"]['Enums']["consent_purpose"] | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "consents_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Functions: {
+            "quick_customer":
+{ Args: { "p_marketing_whatsapp"?: boolean,"p_name"?: string,"p_phone": string }; Returns: string
+                           },
+"resolve_identity":
+{ Args: { "p_display_name"?: string,"p_org": string,"p_source"?: string,"p_type": Database["crm"]['Enums']["contact_type"],"p_value": string }; Returns: string
+                           }
+          }
+          Enums: {
+            "consent_purpose": "TRANSACTIONAL"|"MARKETING_WHATSAPP"|"MARKETING_EMAIL"|"MARKETING_IG"|"AI_PROFILING"|"ENRICHMENT"|"IMAGE_USE","contact_type": "PHONE"|"EMAIL"|"WHATSAPP"|"INSTAGRAM"|"TELEGRAM"|"TIKTOK","legal_basis": "CONSENT"|"LEGITIMATE_INTEREST"|"CONTRACT"|"LEGAL_OBLIGATION","lifecycle_stage": "LEAD"|"PROSPECT"|"CUSTOMER"|"VIP"|"INACTIVE"|"LOST","party_kind": "PERSON"|"COMPANY","party_role": "CUSTOMER"|"SUPPLIER"|"EMPLOYEE"|"AFFILIATE_TRAINER"|"PARTNER_GYM"|"INFLUENCER"|"CARRIER"|"SERVICE_PROVIDER"|"SHAREHOLDER"|"ACQUIRER"|"BANK","tier": "STANDARD"|"VIP"|"VIP_BLACK"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"fin": {
+          Tables: {
+            "acquirer_fee_plans": {
+                  Row: {
+                    "acquirer": string,"anticipation_mode": string,"id": string,"inst_from": number,"inst_to": number,"method": string,"org_id": string,"rate": number,"settlement_days": number,"valid_from": string,"valid_to": string | null
+                  }
+                  Insert: {
+                    "acquirer": string,"anticipation_mode": string,"id"?: string,"inst_from"?: number,"inst_to"?: number,"method": string,"org_id": string,"rate": number,"settlement_days"?: number,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Update: {
+                    "acquirer"?: string,"anticipation_mode"?: string,"id"?: string,"inst_from"?: number,"inst_to"?: number,"method"?: string,"org_id"?: string,"rate"?: number,"settlement_days"?: number,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"bank_accounts": {
+                  Row: {
+                    "active": boolean,"agency": string | null,"bank_code": string | null,"chart_account_id": string | null,"connection_id": string | null,"created_at": string,"id": string,"kind": string,"legal_entity_id": string,"name": string,"number": string | null,"opening_balance": number,"opening_date": string | null,"org_id": string,"pix_keys": (string)[],"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"agency"?: string | null,"bank_code"?: string | null,"chart_account_id"?: string | null,"connection_id"?: string | null,"created_at"?: string,"id"?: string,"kind": string,"legal_entity_id": string,"name": string,"number"?: string | null,"opening_balance"?: number,"opening_date"?: string | null,"org_id": string,"pix_keys"?: (string)[],"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"agency"?: string | null,"bank_code"?: string | null,"chart_account_id"?: string | null,"connection_id"?: string | null,"created_at"?: string,"id"?: string,"kind"?: string,"legal_entity_id"?: string,"name"?: string,"number"?: string | null,"opening_balance"?: number,"opening_date"?: string | null,"org_id"?: string,"pix_keys"?: (string)[],"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "bank_accounts_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"chart_accounts": {
+                  Row: {
+                    "accountant_code": string | null,"archived_at": string | null,"cash_flow_group": string | null,"code": string,"created_at": string,"dre_line_id": string | null,"group": Database["fin"]['Enums']["account_group"],"id": string,"kind": string,"name": string,"nature": string,"org_id": string,"parent_id": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "accountant_code"?: string | null,"archived_at"?: string | null,"cash_flow_group"?: string | null,"code": string,"created_at"?: string,"dre_line_id"?: string | null,"group": Database["fin"]['Enums']["account_group"],"id"?: string,"kind": string,"name": string,"nature": string,"org_id": string,"parent_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "accountant_code"?: string | null,"archived_at"?: string | null,"cash_flow_group"?: string | null,"code"?: string,"created_at"?: string,"dre_line_id"?: string | null,"group"?: Database["fin"]['Enums']["account_group"],"id"?: string,"kind"?: string,"name"?: string,"nature"?: string,"org_id"?: string,"parent_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chart_accounts_dre_line_id_fkey"
+      columns: ["dre_line_id"]
+isOneToOne: false
+      referencedRelation: "dre_lines"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chart_accounts_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"contract_obligations": {
+                  Row: {
+                    "contract_id": string,"description": string,"done_at": string | null,"due_date": string,"evidence": NonNullable<Json>,"id": string,"kind": string,"org_id": string,"status": string
+                  }
+                  Insert: {
+                    "contract_id": string,"description": string,"done_at"?: string | null,"due_date": string,"evidence"?: NonNullable<Json>,"id"?: string,"kind": string,"org_id": string,"status"?: string
+                  }
+                  Update: {
+                    "contract_id"?: string,"description"?: string,"done_at"?: string | null,"due_date"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"kind"?: string,"org_id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "contract_obligations_contract_id_fkey"
+      columns: ["contract_id"]
+isOneToOne: false
+      referencedRelation: "contracts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"contracts": {
+                  Row: {
+                    "adjustment_index": string | null,"attachment_id": string | null,"chart_account_id": string | null,"cost_center_id": string | null,"created_at": string,"due_day": number | null,"exit_penalty_pct": number | null,"id": string,"in_kind_description": string | null,"in_kind_months": number,"installment_amount": number | null,"kind": string,"late_fee_pct": number | null,"legal_entity_id": string,"monthly_interest_pct": number | null,"months": number,"org_id": string,"party_id": string,"revenue_share_pct": number | null,"start_date": string,"status": string,"store_id": string | null,"title": string,"updated_at": string
+                  }
+                  Insert: {
+                    "adjustment_index"?: string | null,"attachment_id"?: string | null,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"due_day"?: number | null,"exit_penalty_pct"?: number | null,"id"?: string,"in_kind_description"?: string | null,"in_kind_months"?: number,"installment_amount"?: number | null,"kind": string,"late_fee_pct"?: number | null,"legal_entity_id": string,"monthly_interest_pct"?: number | null,"months": number,"org_id": string,"party_id": string,"revenue_share_pct"?: number | null,"start_date": string,"status"?: string,"store_id"?: string | null,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "adjustment_index"?: string | null,"attachment_id"?: string | null,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"due_day"?: number | null,"exit_penalty_pct"?: number | null,"id"?: string,"in_kind_description"?: string | null,"in_kind_months"?: number,"installment_amount"?: number | null,"kind"?: string,"late_fee_pct"?: number | null,"legal_entity_id"?: string,"monthly_interest_pct"?: number | null,"months"?: number,"org_id"?: string,"party_id"?: string,"revenue_share_pct"?: number | null,"start_date"?: string,"status"?: string,"store_id"?: string | null,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "contracts_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"dre_lines": {
+                  Row: {
+                    "code": string,"formula": string | null,"id": string,"is_subtotal": boolean,"name": string,"org_id": string,"position": number,"sign": number
+                  }
+                  Insert: {
+                    "code": string,"formula"?: string | null,"id"?: string,"is_subtotal"?: boolean,"name": string,"org_id": string,"position": number,"sign": number
+                  }
+                  Update: {
+                    "code"?: string,"formula"?: string | null,"id"?: string,"is_subtotal"?: boolean,"name"?: string,"org_id"?: string,"position"?: number,"sign"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"title_installments": {
+                  Row: {
+                    "amount": number,"amount_settled": number,"barcode": string | null,"boleto_ref": string | null,"discount": number,"due_date": string,"expected_date": string | null,"fee_expected": number,"fine": number,"id": string,"interest": number,"n": number,"org_id": string,"pix_emv": string | null,"status": Database["fin"]['Enums']["title_status"],"title_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "amount": number,"amount_settled"?: number,"barcode"?: string | null,"boleto_ref"?: string | null,"discount"?: number,"due_date": string,"expected_date"?: string | null,"fee_expected"?: number,"fine"?: number,"id"?: string,"interest"?: number,"n": number,"org_id": string,"pix_emv"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"title_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount"?: number,"amount_settled"?: number,"barcode"?: string | null,"boleto_ref"?: string | null,"discount"?: number,"due_date"?: string,"expected_date"?: string | null,"fee_expected"?: number,"fine"?: number,"id"?: string,"interest"?: number,"n"?: number,"org_id"?: string,"pix_emv"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"title_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "title_installments_title_id_fkey"
+      columns: ["title_id"]
+isOneToOne: false
+      referencedRelation: "titles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"titles": {
+                  Row: {
+                    "approval_status": string,"approved_at": string | null,"approved_by": string | null,"chart_account_id": string | null,"competence_date": string,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"custom_fields": NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind": string | null,"document_number": string | null,"id": string,"issue_date": string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id": string | null,"origin_type": string,"party_id": string | null,"status": Database["fin"]['Enums']["title_status"],"store_id": string | null,"tags": (string)[],"total_amount": number,"updated_at": string
+                  }
+                  Insert: {
+                    "approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount": number,"updated_at"?: string
+                  }
+                  Update: {
+                    "approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description"?: string,"direction"?: Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id"?: string,"number"?: string,"org_id"?: string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "titles_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "approve_title":
+{ Args: { "p_title": string }; Returns: undefined
+                           },
+"create_title":
+{ Args: { "p": Json }; Returns: {
+              "approval_status": string,
+"approved_at": string | null,
+"approved_by": string | null,
+"chart_account_id": string | null,
+"competence_date": string,
+"cost_center_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"custom_fields": NonNullable<Json>,
+"description": string,
+"direction": Database["fin"]['Enums']["title_direction"],
+"document_kind": string | null,
+"document_number": string | null,
+"id": string,
+"issue_date": string,
+"legal_entity_id": string,
+"number": string,
+"org_id": string,
+"origin_id": string | null,
+"origin_type": string,
+"party_id": string | null,
+"status": Database["fin"]['Enums']["title_status"],
+"store_id": string | null,
+"tags": (string)[],
+"total_amount": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "titles"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"expected_fee_rate":
+{ Args: { "p_acquirer": string,"p_installments": number,"p_method": string,"p_mode": string,"p_on"?: string,"p_org": string }; Returns: number
+                           },
+"generate_contract_schedule":
+{ Args: { "p_contract": string }; Returns: number
+                           },
+"settle_installment":
+{ Args: { "p_amount"?: number,"p_installment": string }; Returns: undefined
+                           }
+          }
+          Enums: {
+            "account_group": "ASSET"|"LIABILITY"|"EQUITY"|"REVENUE"|"DEDUCTION"|"COGS"|"EXPENSE"|"FINANCIAL","title_direction": "RECEIVABLE"|"PAYABLE","title_status": "OPEN"|"PARTIAL"|"SETTLED"|"CANCELLED"|"RENEGOTIATED"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"fiscal": {
+          Tables: {
+            "simples_brackets": {
+                  Row: {
+                    "annex": string,"bracket": number,"deduction": number,"icms_share": number | null,"id": string,"max_rbt12": number,"nominal_rate": number,"valid_from": string
+                  }
+                  Insert: {
+                    "annex": string,"bracket": number,"deduction": number,"icms_share"?: number | null,"id"?: string,"max_rbt12": number,"nominal_rate": number,"valid_from"?: string
+                  }
+                  Update: {
+                    "annex"?: string,"bracket"?: number,"deduction"?: number,"icms_share"?: number | null,"id"?: string,"max_rbt12"?: number,"nominal_rate"?: number,"valid_from"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "simples_effective_rate":
+{ Args: { "p_annex": string,"p_rbt12": number }; Returns: number
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"inv": {
+          Tables: {
+            "count_items": {
+                  Row: {
+                    "count_id": string,"counted": number,"expected": number | null,"id": string,"org_id": string,"variant_id": string
+                  }
+                  Insert: {
+                    "count_id": string,"counted": number,"expected"?: number | null,"id"?: string,"org_id": string,"variant_id": string
+                  }
+                  Update: {
+                    "count_id"?: string,"counted"?: number,"expected"?: number | null,"id"?: string,"org_id"?: string,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "count_items_count_id_fkey"
+      columns: ["count_id"]
+isOneToOne: false
+      referencedRelation: "counts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "count_items_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "v_stock_matrix"
+      referencedColumns: ["variant_id"]
+    }
+                  ]
+                },"counts": {
+                  Row: {
+                    "created_at": string,"id": string,"kind": string,"location_id": string,"org_id": string,"posted_at": string | null,"status": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"kind": string,"location_id": string,"org_id": string,"posted_at"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"kind"?: string,"location_id"?: string,"org_id"?: string,"posted_at"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "counts_location_id_fkey"
+      columns: ["location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"item_costs": {
+                  Row: {
+                    "avg_cost": number,"last_cost": number | null,"legal_entity_id": string,"org_id": string,"updated_at": string,"variant_id": string
+                  }
+                  Insert: {
+                    "avg_cost"?: number,"last_cost"?: number | null,"legal_entity_id": string,"org_id": string,"updated_at"?: string,"variant_id": string
+                  }
+                  Update: {
+                    "avg_cost"?: number,"last_cost"?: number | null,"legal_entity_id"?: string,"org_id"?: string,"updated_at"?: string,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "item_costs_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "v_stock_matrix"
+      referencedColumns: ["variant_id"]
+    }
+                  ]
+                },"locations": {
+                  Row: {
+                    "allow_negative": boolean,"created_at": string,"id": string,"is_sellable": boolean,"kind": Database["inv"]['Enums']["location_kind"],"legal_entity_id": string,"name": string,"org_id": string,"store_id": string | null
+                  }
+                  Insert: {
+                    "allow_negative"?: boolean,"created_at"?: string,"id"?: string,"is_sellable"?: boolean,"kind": Database["inv"]['Enums']["location_kind"],"legal_entity_id": string,"name": string,"org_id": string,"store_id"?: string | null
+                  }
+                  Update: {
+                    "allow_negative"?: boolean,"created_at"?: string,"id"?: string,"is_sellable"?: boolean,"kind"?: Database["inv"]['Enums']["location_kind"],"legal_entity_id"?: string,"name"?: string,"org_id"?: string,"store_id"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"lockers": {
+                  Row: {
+                    "code": string,"id": string,"org_id": string,"status": string,"store_id": string
+                  }
+                  Insert: {
+                    "code": string,"id"?: string,"org_id": string,"status"?: string,"store_id": string
+                  }
+                  Update: {
+                    "code"?: string,"id"?: string,"org_id"?: string,"status"?: string,"store_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"movements": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": number,"location_id": string,"movement_type": Database["inv"]['Enums']["movement_type"],"notes": string | null,"occurred_at": string,"org_id": string,"qty": number,"reversal_of_id": number | null,"source_id": string | null,"source_line_id": string | null,"source_type": string | null,"total_cost": number | null,"unit_cost": number | null,"variant_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: never,"location_id": string,"movement_type": Database["inv"]['Enums']["movement_type"],"notes"?: string | null,"occurred_at"?: string,"org_id": string,"qty": number,"reversal_of_id"?: number | null,"source_id"?: string | null,"source_line_id"?: string | null,"source_type"?: string | null,"total_cost"?: number | null,"unit_cost"?: number | null,"variant_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: never,"location_id"?: string,"movement_type"?: Database["inv"]['Enums']["movement_type"],"notes"?: string | null,"occurred_at"?: string,"org_id"?: string,"qty"?: number,"reversal_of_id"?: number | null,"source_id"?: string | null,"source_line_id"?: string | null,"source_type"?: string | null,"total_cost"?: number | null,"unit_cost"?: number | null,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "movements_location_id_fkey"
+      columns: ["location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "movements_reversal_of_id_fkey"
+      columns: ["reversal_of_id"]
+isOneToOne: false
+      referencedRelation: "movements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "movements_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "v_stock_matrix"
+      referencedColumns: ["variant_id"]
+    }
+                  ]
+                },"reservations": {
+                  Row: {
+                    "conversation_id": string | null,"created_at": string,"created_by_kind": string,"expires_at": string | null,"id": string,"location_id": string,"locker_id": string | null,"order_id": string | null,"org_id": string,"party_id": string | null,"qty": number,"reason": string,"status": string,"updated_at": string,"variant_id": string
+                  }
+                  Insert: {
+                    "conversation_id"?: string | null,"created_at"?: string,"created_by_kind"?: string,"expires_at"?: string | null,"id"?: string,"location_id": string,"locker_id"?: string | null,"order_id"?: string | null,"org_id": string,"party_id"?: string | null,"qty": number,"reason": string,"status"?: string,"updated_at"?: string,"variant_id": string
+                  }
+                  Update: {
+                    "conversation_id"?: string | null,"created_at"?: string,"created_by_kind"?: string,"expires_at"?: string | null,"id"?: string,"location_id"?: string,"locker_id"?: string | null,"order_id"?: string | null,"org_id"?: string,"party_id"?: string | null,"qty"?: number,"reason"?: string,"status"?: string,"updated_at"?: string,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reservations_location_id_fkey"
+      columns: ["location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reservations_locker_id_fkey"
+      columns: ["locker_id"]
+isOneToOne: false
+      referencedRelation: "lockers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reservations_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "v_stock_matrix"
+      referencedColumns: ["variant_id"]
+    }
+                  ]
+                },"stock_levels": {
+                  Row: {
+                    "available": number | null,"location_id": string,"on_hand": number,"org_id": string,"reserved": number,"updated_at": string,"variant_id": string
+                  }
+                  Insert: {
+                    "available"?: never,"location_id": string,"on_hand"?: number,"org_id": string,"reserved"?: number,"updated_at"?: string,"variant_id": string
+                  }
+                  Update: {
+                    "available"?: never,"location_id"?: string,"on_hand"?: number,"org_id"?: string,"reserved"?: number,"updated_at"?: string,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stock_levels_location_id_fkey"
+      columns: ["location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stock_levels_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "v_stock_matrix"
+      referencedColumns: ["variant_id"]
+    }
+                  ]
+                },"transfer_items": {
+                  Row: {
+                    "id": string,"org_id": string,"qty": number,"qty_received": number | null,"transfer_id": string,"variant_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"org_id": string,"qty": number,"qty_received"?: number | null,"transfer_id": string,"variant_id": string
+                  }
+                  Update: {
+                    "id"?: string,"org_id"?: string,"qty"?: number,"qty_received"?: number | null,"transfer_id"?: string,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "transfer_items_transfer_id_fkey"
+      columns: ["transfer_id"]
+isOneToOne: false
+      referencedRelation: "transfers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "transfer_items_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "v_stock_matrix"
+      referencedColumns: ["variant_id"]
+    }
+                  ]
+                },"transfers": {
+                  Row: {
+                    "created_at": string,"fiscal_document_id": string | null,"from_location_id": string,"id": string,"number": string,"org_id": string,"status": string,"to_location_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"fiscal_document_id"?: string | null,"from_location_id": string,"id"?: string,"number": string,"org_id": string,"status"?: string,"to_location_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"fiscal_document_id"?: string | null,"from_location_id"?: string,"id"?: string,"number"?: string,"org_id"?: string,"status"?: string,"to_location_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "transfers_from_location_id_fkey"
+      columns: ["from_location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "transfers_to_location_id_fkey"
+      columns: ["to_location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            "v_stock_matrix": {
+                  Row: {
+                    "available": number | null,"color": string | null,"gender": Database["catalog"]['Enums']["gender"] | null,"location_id": string | null,"location_name": string | null,"on_hand": number | null,"org_id": string | null,"product_id": string | null,"product_name": string | null,"reference_code": string | null,"reserved": number | null,"size": string | null,"sku": string | null,"store_id": string | null,"variant_id": string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stock_levels_location_id_fkey"
+      columns: ["location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Functions: {
+            "expire_reservations":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"post_count":
+{ Args: { "p_count": string }; Returns: number
+                           }
+          }
+          Enums: {
+            "location_kind": "SALES_FLOOR"|"BACKROOM"|"VIP_LOCKERS"|"IN_TRANSIT"|"CONSIGNMENT_AT_PARTNER"|"POPUP"|"DAMAGED"|"MARKETING","movement_type": "INITIAL_BALANCE"|"PURCHASE_RECEIPT"|"SALE"|"SALE_RETURN"|"EXCHANGE_IN"|"EXCHANGE_OUT"|"TRANSFER_OUT"|"TRANSFER_IN"|"COUNT_ADJUST"|"LOSS"|"DAMAGE"|"SPONSORSHIP_IN_KIND"|"MARKETING_GIFT"|"CONSIGNMENT_OUT"|"CONSIGNMENT_RETURN"|"SUPPLIER_RETURN"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"omni": {
+          Tables: {
+            "channel_accounts": {
+                  Row: {
+                    "business_hours": NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id": string | null,"created_at": string,"default_ai_mode": Database["omni"]['Enums']["conv_mode"],"default_persona_id": string | null,"display_name": string,"id": string,"org_id": string,"provider_account_id": string,"status": string,"store_id": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "business_hours"?: NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name": string,"id"?: string,"org_id": string,"provider_account_id": string,"status"?: string,"store_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "business_hours"?: NonNullable<Json>,"channel"?: Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name"?: string,"id"?: string,"org_id"?: string,"provider_account_id"?: string,"status"?: string,"store_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"channel_identities": {
+                  Row: {
+                    "channel_account_id": string,"created_at": string,"external_id": string,"id": string,"org_id": string,"party_id": string,"profile": NonNullable<Json>
+                  }
+                  Insert: {
+                    "channel_account_id": string,"created_at"?: string,"external_id": string,"id"?: string,"org_id": string,"party_id": string,"profile"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "channel_account_id"?: string,"created_at"?: string,"external_id"?: string,"id"?: string,"org_id"?: string,"party_id"?: string,"profile"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "channel_identities_channel_account_id_fkey"
+      columns: ["channel_account_id"]
+isOneToOne: false
+      referencedRelation: "channel_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"conversations": {
+                  Row: {
+                    "ai_paused_until": string | null,"assignee_member_id": string | null,"channel_account_id": string,"channel_identity_id": string,"created_at": string,"deal_id": string | null,"human_agent_window_expires_at": string | null,"id": string,"intent": string | null,"last_inbound_at": string | null,"last_message_at": string | null,"mode": Database["omni"]['Enums']["conv_mode"],"org_id": string,"party_id": string,"pending_ai_at": string | null,"persona_id": string | null,"priority": number,"sentiment": string | null,"service_window_expires_at": string | null,"sla_due_at": string | null,"status": string,"summary": string | null,"tags": (string)[],"unread_count": number,"updated_at": string,"version": number
+                  }
+                  Insert: {
+                    "ai_paused_until"?: string | null,"assignee_member_id"?: string | null,"channel_account_id": string,"channel_identity_id": string,"created_at"?: string,"deal_id"?: string | null,"human_agent_window_expires_at"?: string | null,"id"?: string,"intent"?: string | null,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"mode"?: Database["omni"]['Enums']["conv_mode"],"org_id": string,"party_id": string,"pending_ai_at"?: string | null,"persona_id"?: string | null,"priority"?: number,"sentiment"?: string | null,"service_window_expires_at"?: string | null,"sla_due_at"?: string | null,"status"?: string,"summary"?: string | null,"tags"?: (string)[],"unread_count"?: number,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "ai_paused_until"?: string | null,"assignee_member_id"?: string | null,"channel_account_id"?: string,"channel_identity_id"?: string,"created_at"?: string,"deal_id"?: string | null,"human_agent_window_expires_at"?: string | null,"id"?: string,"intent"?: string | null,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"mode"?: Database["omni"]['Enums']["conv_mode"],"org_id"?: string,"party_id"?: string,"pending_ai_at"?: string | null,"persona_id"?: string | null,"priority"?: number,"sentiment"?: string | null,"service_window_expires_at"?: string | null,"sla_due_at"?: string | null,"status"?: string,"summary"?: string | null,"tags"?: (string)[],"unread_count"?: number,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conversations_channel_account_id_fkey"
+      columns: ["channel_account_id"]
+isOneToOne: false
+      referencedRelation: "channel_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conversations_channel_identity_id_fkey"
+      columns: ["channel_identity_id"]
+isOneToOne: false
+      referencedRelation: "channel_identities"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"internal_notes": {
+                  Row: {
+                    "body": string,"conversation_id": string,"created_at": string,"id": string,"member_id": string,"mentions": (string)[],"org_id": string
+                  }
+                  Insert: {
+                    "body": string,"conversation_id": string,"created_at"?: string,"id"?: string,"member_id": string,"mentions"?: (string)[],"org_id": string
+                  }
+                  Update: {
+                    "body"?: string,"conversation_id"?: string,"created_at"?: string,"id"?: string,"member_id"?: string,"mentions"?: (string)[],"org_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "internal_notes_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"message_drafts": {
+                  Row: {
+                    "ai_run_id": string | null,"confidence": number | null,"conversation_id": string,"created_at": string,"decided_by": string | null,"discard_reason": string | null,"final_message_id": string | null,"flags": (string)[],"id": string,"intent": string | null,"needs_human": boolean,"org_id": string,"stage": string | null,"status": string,"variants": NonNullable<Json>
+                  }
+                  Insert: {
+                    "ai_run_id"?: string | null,"confidence"?: number | null,"conversation_id": string,"created_at"?: string,"decided_by"?: string | null,"discard_reason"?: string | null,"final_message_id"?: string | null,"flags"?: (string)[],"id"?: string,"intent"?: string | null,"needs_human"?: boolean,"org_id": string,"stage"?: string | null,"status"?: string,"variants": NonNullable<Json>
+                  }
+                  Update: {
+                    "ai_run_id"?: string | null,"confidence"?: number | null,"conversation_id"?: string,"created_at"?: string,"decided_by"?: string | null,"discard_reason"?: string | null,"final_message_id"?: string | null,"flags"?: (string)[],"id"?: string,"intent"?: string | null,"needs_human"?: boolean,"org_id"?: string,"stage"?: string | null,"status"?: string,"variants"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_drafts_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_drafts_final_message_id_fkey"
+      columns: ["final_message_id"]
+isOneToOne: false
+      referencedRelation: "messages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"messages": {
+                  Row: {
+                    "ai_run_id": string | null,"author_member_id": string | null,"author_type": string,"body": string | null,"channel_account_id": string,"client_dedupe_key": string | null,"conversation_id": string,"created_at": string,"direction": string,"error": string | null,"id": string,"media_path": string | null,"org_id": string,"payload": NonNullable<Json>,"provider_message_id": string | null,"reply_to_id": string | null,"sent_at": string | null,"status": string,"template_name": string | null,"transcript": string | null,"type": string
+                  }
+                  Insert: {
+                    "ai_run_id"?: string | null,"author_member_id"?: string | null,"author_type": string,"body"?: string | null,"channel_account_id": string,"client_dedupe_key"?: string | null,"conversation_id": string,"created_at"?: string,"direction": string,"error"?: string | null,"id"?: string,"media_path"?: string | null,"org_id": string,"payload"?: NonNullable<Json>,"provider_message_id"?: string | null,"reply_to_id"?: string | null,"sent_at"?: string | null,"status"?: string,"template_name"?: string | null,"transcript"?: string | null,"type"?: string
+                  }
+                  Update: {
+                    "ai_run_id"?: string | null,"author_member_id"?: string | null,"author_type"?: string,"body"?: string | null,"channel_account_id"?: string,"client_dedupe_key"?: string | null,"conversation_id"?: string,"created_at"?: string,"direction"?: string,"error"?: string | null,"id"?: string,"media_path"?: string | null,"org_id"?: string,"payload"?: NonNullable<Json>,"provider_message_id"?: string | null,"reply_to_id"?: string | null,"sent_at"?: string | null,"status"?: string,"template_name"?: string | null,"transcript"?: string | null,"type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "messages_channel_account_id_fkey"
+      columns: ["channel_account_id"]
+isOneToOne: false
+      referencedRelation: "channel_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "messages_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "messages_reply_to_id_fkey"
+      columns: ["reply_to_id"]
+isOneToOne: false
+      referencedRelation: "messages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mode_events": {
+                  Row: {
+                    "actor_member_id": string | null,"actor_type": string,"conversation_id": string,"created_at": string,"from_mode": Database["omni"]['Enums']["conv_mode"] | null,"id": number,"org_id": string,"reason": string | null,"to_mode": Database["omni"]['Enums']["conv_mode"],"trigger": string
+                  }
+                  Insert: {
+                    "actor_member_id"?: string | null,"actor_type": string,"conversation_id": string,"created_at"?: string,"from_mode"?: Database["omni"]['Enums']["conv_mode"] | null,"id"?: never,"org_id": string,"reason"?: string | null,"to_mode": Database["omni"]['Enums']["conv_mode"],"trigger": string
+                  }
+                  Update: {
+                    "actor_member_id"?: string | null,"actor_type"?: string,"conversation_id"?: string,"created_at"?: string,"from_mode"?: Database["omni"]['Enums']["conv_mode"] | null,"id"?: never,"org_id"?: string,"reason"?: string | null,"to_mode"?: Database["omni"]['Enums']["conv_mode"],"trigger"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mode_events_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"quick_replies": {
+                  Row: {
+                    "body": string,"id": string,"org_id": string,"shortcut": string
+                  }
+                  Insert: {
+                    "body": string,"id"?: string,"org_id": string,"shortcut": string
+                  }
+                  Update: {
+                    "body"?: string,"id"?: string,"org_id"?: string,"shortcut"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"templates": {
+                  Row: {
+                    "category": string,"channel_account_id": string,"components": NonNullable<Json>,"id": string,"language": string,"name": string,"org_id": string,"quality": string | null,"status": string,"updated_at": string
+                  }
+                  Insert: {
+                    "category": string,"channel_account_id": string,"components"?: NonNullable<Json>,"id"?: string,"language"?: string,"name": string,"org_id": string,"quality"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "category"?: string,"channel_account_id"?: string,"components"?: NonNullable<Json>,"id"?: string,"language"?: string,"name"?: string,"org_id"?: string,"quality"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "templates_channel_account_id_fkey"
+      columns: ["channel_account_id"]
+isOneToOne: false
+      referencedRelation: "channel_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"webhook_events": {
+                  Row: {
+                    "error": string | null,"event_key": string,"id": number,"payload": NonNullable<Json>,"processed_at": string | null,"provider": string,"received_at": string,"signature_valid": boolean
+                  }
+                  Insert: {
+                    "error"?: string | null,"event_key": string,"id"?: never,"payload": NonNullable<Json>,"processed_at"?: string | null,"provider": string,"received_at"?: string,"signature_valid": boolean
+                  }
+                  Update: {
+                    "error"?: string | null,"event_key"?: string,"id"?: never,"payload"?: NonNullable<Json>,"processed_at"?: string | null,"provider"?: string,"received_at"?: string,"signature_valid"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "check_send_window":
+{ Args: { "p_author": string,"p_conversation": string }; Returns: {
+              "allowed": boolean,"mode": string,"reason": string
+            }[]
+                           },
+"discard_draft":
+{ Args: { "p_draft": string,"p_reason": string }; Returns: undefined
+                           },
+"mark_read":
+{ Args: { "p_conversation": string }; Returns: undefined
+                           },
+"send_message":
+{ Args: { "p_body": string,"p_conversation": string,"p_draft"?: string,"p_edited"?: boolean }; Returns: {
+              "ai_run_id": string | null,
+"author_member_id": string | null,
+"author_type": string,
+"body": string | null,
+"channel_account_id": string,
+"client_dedupe_key": string | null,
+"conversation_id": string,
+"created_at": string,
+"direction": string,
+"error": string | null,
+"id": string,
+"media_path": string | null,
+"org_id": string,
+"payload": NonNullable<Json>,
+"provider_message_id": string | null,
+"reply_to_id": string | null,
+"sent_at": string | null,
+"status": string,
+"template_name": string | null,
+"transcript": string | null,
+"type": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "messages"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_mode":
+{ Args: { "p_conversation": string,"p_mode": Database["omni"]['Enums']["conv_mode"],"p_reason"?: string }; Returns: {
+              "ai_paused_until": string | null,
+"assignee_member_id": string | null,
+"channel_account_id": string,
+"channel_identity_id": string,
+"created_at": string,
+"deal_id": string | null,
+"human_agent_window_expires_at": string | null,
+"id": string,
+"intent": string | null,
+"last_inbound_at": string | null,
+"last_message_at": string | null,
+"mode": Database["omni"]['Enums']["conv_mode"],
+"org_id": string,
+"party_id": string,
+"pending_ai_at": string | null,
+"persona_id": string | null,
+"priority": number,
+"sentiment": string | null,
+"service_window_expires_at": string | null,
+"sla_due_at": string | null,
+"status": string,
+"summary": string | null,
+"tags": (string)[],
+"unread_count": number,
+"updated_at": string,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "conversations"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
+          }
+          Enums: {
+            "channel": "WHATSAPP"|"INSTAGRAM"|"TELEGRAM"|"TIKTOK","conv_mode": "AI_AUTOPILOT"|"AI_COPILOT"|"HUMAN"|"WAITING_HUMAN"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"sales": {
+          Tables: {
+            "cash_registers": {
+                  Row: {
+                    "active": boolean,"device_id": string | null,"id": string,"name": string,"org_id": string,"store_id": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"device_id"?: string | null,"id"?: string,"name": string,"org_id": string,"store_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"device_id"?: string | null,"id"?: string,"name"?: string,"org_id"?: string,"store_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"cash_session_movements": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string | null,"id": number,"order_id": string | null,"org_id": string,"reason": string | null,"session_id": string,"type": string
+                  }
+                  Insert: {
+                    "amount": number,"created_at"?: string,"created_by"?: string | null,"id"?: never,"order_id"?: string | null,"org_id": string,"reason"?: string | null,"session_id": string,"type": string
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"id"?: never,"order_id"?: string | null,"org_id"?: string,"reason"?: string | null,"session_id"?: string,"type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cash_session_movements_session_id_fkey"
+      columns: ["session_id"]
+isOneToOne: false
+      referencedRelation: "cash_sessions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"cash_sessions": {
+                  Row: {
+                    "closed_at": string | null,"closed_by": string | null,"counted_cash": number | null,"difference": number | null,"expected_cash": number | null,"id": string,"notes": string | null,"opened_at": string,"opened_by": string,"opening_float": number,"org_id": string,"register_id": string,"status": string,"store_id": string
+                  }
+                  Insert: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"counted_cash"?: number | null,"difference"?: number | null,"expected_cash"?: number | null,"id"?: string,"notes"?: string | null,"opened_at"?: string,"opened_by": string,"opening_float"?: number,"org_id": string,"register_id": string,"status"?: string,"store_id": string
+                  }
+                  Update: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"counted_cash"?: number | null,"difference"?: number | null,"expected_cash"?: number | null,"id"?: string,"notes"?: string | null,"opened_at"?: string,"opened_by"?: string,"opening_float"?: number,"org_id"?: string,"register_id"?: string,"status"?: string,"store_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cash_sessions_register_id_fkey"
+      columns: ["register_id"]
+isOneToOne: false
+      referencedRelation: "cash_registers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"coupon_redemptions": {
+                  Row: {
+                    "amount": number,"coupon_id": string,"created_at": string,"id": string,"order_id": string,"org_id": string,"party_id": string | null
+                  }
+                  Insert: {
+                    "amount": number,"coupon_id": string,"created_at"?: string,"id"?: string,"order_id": string,"org_id": string,"party_id"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"coupon_id"?: string,"created_at"?: string,"id"?: string,"order_id"?: string,"org_id"?: string,"party_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+      columns: ["coupon_id"]
+isOneToOne: false
+      referencedRelation: "coupons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "coupon_redemptions_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"coupons": {
+                  Row: {
+                    "active": boolean,"affiliate_party_id": string | null,"code": string,"created_at": string,"id": string,"kind": string,"max_uses": number | null,"min_order": number | null,"org_id": string,"per_customer_limit": number | null,"valid_from": string,"valid_to": string | null,"value": number
+                  }
+                  Insert: {
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": string,"max_uses"?: number | null,"min_order"?: number | null,"org_id": string,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value": number
+                  }
+                  Update: {
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: string,"max_uses"?: number | null,"min_order"?: number | null,"org_id"?: string,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"order_credits": {
+                  Row: {
+                    "member_id": string | null,"order_id": string,"org_id": string,"role": string,"share_pct": number
+                  }
+                  Insert: {
+                    "member_id"?: string | null,"order_id": string,"org_id": string,"role": string,"share_pct": number
+                  }
+                  Update: {
+                    "member_id"?: string | null,"order_id"?: string,"org_id"?: string,"role"?: string,"share_pct"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_credits_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"order_items": {
+                  Row: {
+                    "cfop": string | null,"commissionable": boolean,"csosn": string | null,"discount_amount": number,"discount_reason": string | null,"id": string,"list_price": number,"ncm": string | null,"order_id": string,"org_id": string,"qty": number,"reservation_id": string | null,"returned_qty": number,"total": number,"unit_cost_snapshot": number | null,"unit_price": number,"variant_id": string
+                  }
+                  Insert: {
+                    "cfop"?: string | null,"commissionable"?: boolean,"csosn"?: string | null,"discount_amount"?: number,"discount_reason"?: string | null,"id"?: string,"list_price": number,"ncm"?: string | null,"order_id": string,"org_id": string,"qty": number,"reservation_id"?: string | null,"returned_qty"?: number,"total": number,"unit_cost_snapshot"?: number | null,"unit_price": number,"variant_id": string
+                  }
+                  Update: {
+                    "cfop"?: string | null,"commissionable"?: boolean,"csosn"?: string | null,"discount_amount"?: number,"discount_reason"?: string | null,"id"?: string,"list_price"?: number,"ncm"?: string | null,"order_id"?: string,"org_id"?: string,"qty"?: number,"reservation_id"?: string | null,"returned_qty"?: number,"total"?: number,"unit_cost_snapshot"?: number | null,"unit_price"?: number,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_items_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"orders": {
+                  Row: {
+                    "assisted_by_ai": boolean,"attribution": NonNullable<Json>,"cash_session_id": string | null,"channel": Database["sales"]['Enums']["channel"],"completed_at": string | null,"cost_total": number,"coupon_id": string | null,"cpf_on_invoice": string | null,"created_at": string,"created_by": string | null,"customer_confirmed_message_id": string | null,"discount_total": number,"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],"id": string,"idempotency_key": string,"legal_entity_id": string,"location_id": string,"notes": string | null,"number": string,"org_id": string,"origin_conversation_id": string | null,"paid_total": number,"party_id": string | null,"price_list_id": string | null,"profit_cost_center_id": string | null,"seller_member_id": string | null,"shipping_total": number,"status": Database["sales"]['Enums']["order_status"],"store_id": string,"subtotal": number,"total": number,"updated_at": string
+                  }
+                  Insert: {
+                    "assisted_by_ai"?: boolean,"attribution"?: NonNullable<Json>,"cash_session_id"?: string | null,"channel": Database["sales"]['Enums']["channel"],"completed_at"?: string | null,"cost_total"?: number,"coupon_id"?: string | null,"cpf_on_invoice"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_confirmed_message_id"?: string | null,"discount_total"?: number,"fulfillment_type"?: Database["sales"]['Enums']["fulfillment_type"],"id"?: string,"idempotency_key": string,"legal_entity_id": string,"location_id": string,"notes"?: string | null,"number": string,"org_id": string,"origin_conversation_id"?: string | null,"paid_total"?: number,"party_id"?: string | null,"price_list_id"?: string | null,"profit_cost_center_id"?: string | null,"seller_member_id"?: string | null,"shipping_total"?: number,"status"?: Database["sales"]['Enums']["order_status"],"store_id": string,"subtotal"?: number,"total"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "assisted_by_ai"?: boolean,"attribution"?: NonNullable<Json>,"cash_session_id"?: string | null,"channel"?: Database["sales"]['Enums']["channel"],"completed_at"?: string | null,"cost_total"?: number,"coupon_id"?: string | null,"cpf_on_invoice"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_confirmed_message_id"?: string | null,"discount_total"?: number,"fulfillment_type"?: Database["sales"]['Enums']["fulfillment_type"],"id"?: string,"idempotency_key"?: string,"legal_entity_id"?: string,"location_id"?: string,"notes"?: string | null,"number"?: string,"org_id"?: string,"origin_conversation_id"?: string | null,"paid_total"?: number,"party_id"?: string | null,"price_list_id"?: string | null,"profit_cost_center_id"?: string | null,"seller_member_id"?: string | null,"shipping_total"?: number,"status"?: Database["sales"]['Enums']["order_status"],"store_id"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "orders_cash_session_id_fkey"
+      columns: ["cash_session_id"]
+isOneToOne: false
+      referencedRelation: "cash_sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orders_coupon_id_fkey"
+      columns: ["coupon_id"]
+isOneToOne: false
+      referencedRelation: "coupons"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payment_links": {
+                  Row: {
+                    "amount": number,"created_at": string,"expires_at": string | null,"external_id": string | null,"id": string,"max_installments": number,"order_id": string,"org_id": string,"provider": string,"sent_message_id": string | null,"status": string,"url": string | null
+                  }
+                  Insert: {
+                    "amount": number,"created_at"?: string,"expires_at"?: string | null,"external_id"?: string | null,"id"?: string,"max_installments"?: number,"order_id": string,"org_id": string,"provider": string,"sent_message_id"?: string | null,"status"?: string,"url"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"expires_at"?: string | null,"external_id"?: string | null,"id"?: string,"max_installments"?: number,"order_id"?: string,"org_id"?: string,"provider"?: string,"sent_message_id"?: string | null,"status"?: string,"url"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_links_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payments": {
+                  Row: {
+                    "acquirer": string | null,"acquirer_connection_id": string | null,"amount": number,"anticipation_mode": string | null,"auth_code": string | null,"brand": string | null,"created_at": string,"external_id": string | null,"fee_expected": number | null,"fee_rate_expected": number | null,"id": string,"installments": number,"last4": string | null,"method": Database["sales"]['Enums']["payment_method"],"net_expected": number | null,"nsu": string | null,"order_id": string,"org_id": string,"status": string,"terminal_id": string | null
+                  }
+                  Insert: {
+                    "acquirer"?: string | null,"acquirer_connection_id"?: string | null,"amount": number,"anticipation_mode"?: string | null,"auth_code"?: string | null,"brand"?: string | null,"created_at"?: string,"external_id"?: string | null,"fee_expected"?: number | null,"fee_rate_expected"?: number | null,"id"?: string,"installments"?: number,"last4"?: string | null,"method": Database["sales"]['Enums']["payment_method"],"net_expected"?: number | null,"nsu"?: string | null,"order_id": string,"org_id": string,"status"?: string,"terminal_id"?: string | null
+                  }
+                  Update: {
+                    "acquirer"?: string | null,"acquirer_connection_id"?: string | null,"amount"?: number,"anticipation_mode"?: string | null,"auth_code"?: string | null,"brand"?: string | null,"created_at"?: string,"external_id"?: string | null,"fee_expected"?: number | null,"fee_rate_expected"?: number | null,"id"?: string,"installments"?: number,"last4"?: string | null,"method"?: Database["sales"]['Enums']["payment_method"],"net_expected"?: number | null,"nsu"?: string | null,"order_id"?: string,"org_id"?: string,"status"?: string,"terminal_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payments_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"return_items": {
+                  Row: {
+                    "id": string,"order_item_id": string,"org_id": string,"qty": number,"restock_location_id": string | null,"return_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"order_item_id": string,"org_id": string,"qty": number,"restock_location_id"?: string | null,"return_id": string
+                  }
+                  Update: {
+                    "id"?: string,"order_item_id"?: string,"org_id"?: string,"qty"?: number,"restock_location_id"?: string | null,"return_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "return_items_order_item_id_fkey"
+      columns: ["order_item_id"]
+isOneToOne: false
+      referencedRelation: "order_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "return_items_return_id_fkey"
+      columns: ["return_id"]
+isOneToOne: false
+      referencedRelation: "returns"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"returns": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string | null,"exchange_order_id": string | null,"fiscal_document_id": string | null,"id": string,"notes": string | null,"number": string,"order_id": string,"org_id": string,"reason": string,"type": string
+                  }
+                  Insert: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"exchange_order_id"?: string | null,"fiscal_document_id"?: string | null,"id"?: string,"notes"?: string | null,"number": string,"order_id": string,"org_id": string,"reason": string,"type": string
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"exchange_order_id"?: string | null,"fiscal_document_id"?: string | null,"id"?: string,"notes"?: string | null,"number"?: string,"order_id"?: string,"org_id"?: string,"reason"?: string,"type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "returns_exchange_order_id_fkey"
+      columns: ["exchange_order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "returns_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"store_credit_ledger": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": number,"org_id": string,"party_id": string,"reason": string,"source_id": string | null,"source_type": string | null
+                  }
+                  Insert: {
+                    "amount": number,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: never,"org_id": string,"party_id": string,"reason": string,"source_id"?: string | null,"source_type"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: never,"org_id"?: string,"party_id"?: string,"reason"?: string,"source_id"?: string | null,"source_type"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "cash_movement":
+{ Args: { "p_amount": number,"p_reason": string,"p_session": string,"p_type": string }; Returns: undefined
+                           },
+"cash_session_expected":
+{ Args: { "p_session": string }; Returns: number
+                           },
+"close_cash_session":
+{ Args: { "p_counted": number,"p_notes"?: string,"p_session": string }; Returns: {
+              "closed_at": string | null,
+"closed_by": string | null,
+"counted_cash": number | null,
+"difference": number | null,
+"expected_cash": number | null,
+"id": string,
+"notes": string | null,
+"opened_at": string,
+"opened_by": string,
+"opening_float": number,
+"org_id": string,
+"register_id": string,
+"status": string,
+"store_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cash_sessions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"create_pos_order":
+{ Args: { "p": Json }; Returns: {
+              "assisted_by_ai": boolean,
+"attribution": NonNullable<Json>,
+"cash_session_id": string | null,
+"channel": Database["sales"]['Enums']["channel"],
+"completed_at": string | null,
+"cost_total": number,
+"coupon_id": string | null,
+"cpf_on_invoice": string | null,
+"created_at": string,
+"created_by": string | null,
+"customer_confirmed_message_id": string | null,
+"discount_total": number,
+"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"id": string,
+"idempotency_key": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"origin_conversation_id": string | null,
+"paid_total": number,
+"party_id": string | null,
+"price_list_id": string | null,
+"profit_cost_center_id": string | null,
+"seller_member_id": string | null,
+"shipping_total": number,
+"status": Database["sales"]['Enums']["order_status"],
+"store_id": string,
+"subtotal": number,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"finalize_order":
+{ Args: { "p_order": string }; Returns: {
+              "assisted_by_ai": boolean,
+"attribution": NonNullable<Json>,
+"cash_session_id": string | null,
+"channel": Database["sales"]['Enums']["channel"],
+"completed_at": string | null,
+"cost_total": number,
+"coupon_id": string | null,
+"cpf_on_invoice": string | null,
+"created_at": string,
+"created_by": string | null,
+"customer_confirmed_message_id": string | null,
+"discount_total": number,
+"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"id": string,
+"idempotency_key": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"origin_conversation_id": string | null,
+"paid_total": number,
+"party_id": string | null,
+"price_list_id": string | null,
+"profit_cost_center_id": string | null,
+"seller_member_id": string | null,
+"shipping_total": number,
+"status": Database["sales"]['Enums']["order_status"],
+"store_id": string,
+"subtotal": number,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"open_cash_session":
+{ Args: { "p_opening_float": number,"p_register": string }; Returns: {
+              "closed_at": string | null,
+"closed_by": string | null,
+"counted_cash": number | null,
+"difference": number | null,
+"expected_cash": number | null,
+"id": string,
+"notes": string | null,
+"opened_at": string,
+"opened_by": string,
+"opening_float": number,
+"org_id": string,
+"register_id": string,
+"status": string,
+"store_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cash_sessions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"store_credit_balance":
+{ Args: { "p_party": string }; Returns: number
+                           }
+          }
+          Enums: {
+            "channel": "POS"|"WHATSAPP"|"INSTAGRAM"|"TELEGRAM"|"TIKTOK"|"PAYMENT_LINK"|"B2B"|"EVENT","fulfillment_type": "TAKEAWAY"|"LOCKER_PICKUP"|"STORE_PICKUP"|"MOTOBOY"|"CARRIER","order_status": "DRAFT"|"CONFIRMED"|"PENDING_PAYMENT"|"PAID"|"FULFILLING"|"READY_FOR_PICKUP"|"SHIPPED"|"COMPLETED"|"CANCELLED"|"PARTIALLY_RETURNED"|"RETURNED","payment_method": "PIX"|"DEBIT"|"CREDIT"|"CASH"|"PAYMENT_LINK"|"BOLETO"|"STORE_CREDIT"|"PERMUTA"|"B2B_INVOICE"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        }
+}
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
+
+export const Constants = {
+  "ai": {
+          Enums: {
+            
+          }
+        },"catalog": {
+          Enums: {
+            "assortment_class": ["CORE", "DROP", "ACCESSORY"],"gender": ["FEM", "MASC", "UNISSEX"],"product_kind": ["GOODS", "SERVICE", "GIFT_WRAP", "FEE"],"product_status": ["DRAFT", "ACTIVE", "DISCONTINUED"]
+          }
+        },"core": {
+          Enums: {
+            "cost_center_kind": ["CORPORATE", "LEGAL_ENTITY", "STORE", "CHANNEL", "PROJECT_EVENT", "POOL"],"legal_entity_kind": ["OPERATING", "HOLDING"],"store_format": ["SHOP_IN_SHOP", "CONSIGNMENT_CORNER", "POPUP", "DIGITAL", "WAREHOUSE", "B2B"],"store_status": ["PLANNED", "ACTIVE", "CLOSED"]
+          }
+        },"crm": {
+          Enums: {
+            "consent_purpose": ["TRANSACTIONAL", "MARKETING_WHATSAPP", "MARKETING_EMAIL", "MARKETING_IG", "AI_PROFILING", "ENRICHMENT", "IMAGE_USE"],"contact_type": ["PHONE", "EMAIL", "WHATSAPP", "INSTAGRAM", "TELEGRAM", "TIKTOK"],"legal_basis": ["CONSENT", "LEGITIMATE_INTEREST", "CONTRACT", "LEGAL_OBLIGATION"],"lifecycle_stage": ["LEAD", "PROSPECT", "CUSTOMER", "VIP", "INACTIVE", "LOST"],"party_kind": ["PERSON", "COMPANY"],"party_role": ["CUSTOMER", "SUPPLIER", "EMPLOYEE", "AFFILIATE_TRAINER", "PARTNER_GYM", "INFLUENCER", "CARRIER", "SERVICE_PROVIDER", "SHAREHOLDER", "ACQUIRER", "BANK"],"tier": ["STANDARD", "VIP", "VIP_BLACK"]
+          }
+        },"fin": {
+          Enums: {
+            "account_group": ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "DEDUCTION", "COGS", "EXPENSE", "FINANCIAL"],"title_direction": ["RECEIVABLE", "PAYABLE"],"title_status": ["OPEN", "PARTIAL", "SETTLED", "CANCELLED", "RENEGOTIATED"]
+          }
+        },"fiscal": {
+          Enums: {
+            
+          }
+        },"inv": {
+          Enums: {
+            "location_kind": ["SALES_FLOOR", "BACKROOM", "VIP_LOCKERS", "IN_TRANSIT", "CONSIGNMENT_AT_PARTNER", "POPUP", "DAMAGED", "MARKETING"],"movement_type": ["INITIAL_BALANCE", "PURCHASE_RECEIPT", "SALE", "SALE_RETURN", "EXCHANGE_IN", "EXCHANGE_OUT", "TRANSFER_OUT", "TRANSFER_IN", "COUNT_ADJUST", "LOSS", "DAMAGE", "SPONSORSHIP_IN_KIND", "MARKETING_GIFT", "CONSIGNMENT_OUT", "CONSIGNMENT_RETURN", "SUPPLIER_RETURN"]
+          }
+        },"omni": {
+          Enums: {
+            "channel": ["WHATSAPP", "INSTAGRAM", "TELEGRAM", "TIKTOK"],"conv_mode": ["AI_AUTOPILOT", "AI_COPILOT", "HUMAN", "WAITING_HUMAN"]
+          }
+        },"sales": {
+          Enums: {
+            "channel": ["POS", "WHATSAPP", "INSTAGRAM", "TELEGRAM", "TIKTOK", "PAYMENT_LINK", "B2B", "EVENT"],"fulfillment_type": ["TAKEAWAY", "LOCKER_PICKUP", "STORE_PICKUP", "MOTOBOY", "CARRIER"],"order_status": ["DRAFT", "CONFIRMED", "PENDING_PAYMENT", "PAID", "FULFILLING", "READY_FOR_PICKUP", "SHIPPED", "COMPLETED", "CANCELLED", "PARTIALLY_RETURNED", "RETURNED"],"payment_method": ["PIX", "DEBIT", "CREDIT", "CASH", "PAYMENT_LINK", "BOLETO", "STORE_CREDIT", "PERMUTA", "B2B_INVOICE"]
+          }
+        }
+} as const
+

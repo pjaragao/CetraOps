@@ -1,0 +1,22 @@
+{
+  "name": "sie-joy-os",
+  "private": true,
+  "packageManager": "pnpm@10.34.6",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types typescript --local --schema core,crm,catalog,inv,sales,fin,fiscal,omni,ai,audit > packages/db/src/database.types.ts"
+  },
+  "devDependencies": {
+    "supabase": "^2.118.0",
+    "turbo": "^2.11.5",
+    "typescript": "^5.9.0"
+  }
+}

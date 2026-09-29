@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Tokens da marca SIÉ JOY: off-white, champagne, burgundy e verde-floresta sobre neutros. */
+:root {
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface-2: #f3efe8;
+  --border: #e6dfd3;
+  --text: #1f1b17;
+  --muted: #6f665c;
+  --brand: #7a2e3a;          /* burgundy */
+  --brand-contrast: #ffffff;
+  --accent: #b89b6a;         /* champagne */
+  --success: #2f5d4a;        /* verde-floresta */
+  --warning: #a36a12;
+  --danger: #b3261e;
+  --info: #2b5a8a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141210;
+    --surface: #1c1916;
+    --surface-2: #26221e;
+    --border: #3a342d;
+    --text: #f2ede6;
+    --muted: #a89e92;
+    --brand: #c9737f;
+    --brand-contrast: #1c1916;
+    --accent: #d1b787;
+    --success: #6fae92;
+    --warning: #e0a44a;
+    --danger: #f08a82;
+    --info: #86b3e0;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141210;
+  --surface: #1c1916;
+  --surface-2: #26221e;
+  --border: #3a342d;
+  --text: #f2ede6;
+  --muted: #a89e92;
+  --brand: #c9737f;
+  --brand-contrast: #1c1916;
+  --accent: #d1b787;
+  --success: #6fae92;
+  --warning: #e0a44a;
+  --danger: #f08a82;
+  --info: #86b3e0;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-contrast: var(--brand-contrast);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-inter);
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+}
+body {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}

@@ -1,0 +1,2 @@
+[tool.uv.workspace]
+members = ["apps/worker", "apps/agent/mcp_server"]

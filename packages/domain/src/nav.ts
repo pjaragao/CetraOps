@@ -34,8 +34,9 @@ export const NAV: NavArea[] = [
     items: [
       { label: "PDV", href: "/vender/pdv", permission: "sales.write", ready: true },
       { label: "Pedidos", href: "/vender/pedidos", ready: true },
-      { label: "Reservas & Armário VIP", href: "/vender/reservas", ready: false },
-      { label: "Trocas & devoluções", href: "/vender/trocas", ready: false },
+      { label: "Reservas & Armário VIP", href: "/vender/reservas", ready: true },
+      { label: "Trocas & devoluções", href: "/vender/trocas", ready: true },
+      { label: "Entregas", href: "/vender/entregas", ready: true },
       { label: "Caixa", href: "/vender/caixa", ready: true },
     ],
   },
@@ -54,7 +55,7 @@ export const NAV: NavArea[] = [
     items: [
       { label: "Campanhas", href: "/marketing", ready: false },
       { label: "Eventos & Drops", href: "/marketing/eventos", ready: false },
-      { label: "Cupons", href: "/marketing/cupons", ready: false },
+      { label: "Cupons", href: "/marketing/cupons", ready: true },
     ],
   },
   {

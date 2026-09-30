@@ -15,6 +15,14 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
   const supabase = await createClient();
   const q = (str(sp.q) ?? "").replace(/[%,()]/g, " ").trim();
   const stage = str(sp.estagio);
+  const papel = str(sp.papel) ?? "clientes";
+  // clientes e leads: fora quem só é colaborador, fornecedor ou prestador (cadastro único, mas cada tela mostra o seu público)
+  const { data: internal } = papel === "clientes"
+    ? await supabase.schema("crm").from("party_roles").select("party_id").in("role", ["EMPLOYEE", "SUPPLIER", "SERVICE_PROVIDER", "CARRIER", "ACQUIRER", "BANK"])
+    : { data: [] as { party_id: string }[] };
+  const { data: byRole } = papel !== "clientes" && papel !== "todos"
+    ? await supabase.schema("crm").from("party_roles").select("party_id").eq("role", papel === "fornecedores" ? "SUPPLIER" : papel === "colaboradores" ? "EMPLOYEE" : "AFFILIATE_TRAINER")
+    : { data: null };
 
   let query = supabase.schema("crm").from("parties")
     .select("id, display_name, city, lifecycle_stage, tier, lead_score, last_purchase_at, tags, party_roles(role)")
@@ -22,6 +30,9 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
     .order("lead_score", { ascending: false }).order("display_name").limit(200);
   if (q) query = query.ilike("display_name", `%${q}%`);
   if (stage && (STAGES as readonly string[]).includes(stage)) query = query.eq("lifecycle_stage", stage as (typeof STAGES)[number]);
+  const hide = [...new Set((internal ?? []).map((r) => r.party_id))];
+  if (hide.length) query = query.not("id", "in", `(${hide.join(",")})`);
+  if (byRole) query = query.in("id", byRole.length ? byRole.map((r) => r.party_id) : ["00000000-0000-0000-0000-000000000000"]);
   const { data: parties } = await query;
 
   return (
@@ -32,6 +43,9 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
         <select name="estagio" defaultValue={stage ?? ""} className={`${inputClass} max-w-[180px]`} aria-label="Estágio">
           <option value="">Todos os estágios</option>
           {STAGES.map((s) => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
+        </select>
+        <select name="papel" defaultValue={papel} className={`${inputClass} max-w-[180px]`} aria-label="Público">
+          <option value="clientes">Clientes e leads</option><option value="fornecedores">Fornecedores</option><option value="colaboradores">Colaboradores</option><option value="afiliadas">Afiliadas / trainers</option><option value="todos">Todos</option>
         </select>
         <button className="rounded-lg border border-border px-3 text-sm">Filtrar</button>
       </form>

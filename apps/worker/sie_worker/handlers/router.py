@@ -5,15 +5,19 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import psycopg
+
 from sie_agent_contract import CONCIERGE_CAPS, COPILOT_CAPS, sign_ctx
 
 from .. import queues
 from ..adapters.errors import PermanentError as ProviderPermanent
 from ..adapters.errors import TransientError
 from ..ai import guardrails, prompts, rules
+from ..ai import llm as llm_mod
 from ..ai.agent import AgentInput, AgentOutput
 from ..db import call_fn, fetch_all, fetch_one
 from ..deps import Deps
+from ..persona.fewshot import embed_text, format_examples, mmr
 from ..runner import RetryLater
 
 log = logging.getLogger("sie_worker.router")
@@ -46,6 +50,26 @@ async def _handoff(deps: Deps, claim: dict[str, Any], reason: str, trigger: str,
         if wait_message:
             await call_fn(deps.pool, "omni.queue_system_message", claim["conversation_id"], WAIT_MESSAGE)
         await deps.notify(claim["org_id"], "HANDOFF", f"Cliente aguardando atendimento humano — {reason}", {"conversation_id": claim["conversation_id"]}, perm="omni.write")
+
+
+async def _examples(deps: Deps, claim: dict[str, Any], history: list[dict[str, str]]) -> str | None:
+    """Exemplos de ESTILO da persona (os pares mais parecidos com a conversa, com diversidade). Opcional: qualquer falha volta sem exemplos, nunca trava a resposta."""
+    if deps.llm is None or not claim.get("persona_id") or not history:
+        return None
+    ctx: list[dict[str, str]] = []
+    for h in history[-6:]:
+        role = "customer" if h["role"] == "user" else "owner"
+        if ctx and ctx[-1]["role"] == role:
+            ctx[-1]["text"] += "\n" + h["content"]
+        else:
+            ctx.append({"role": role, "text": h["content"]})
+    try:
+        vectors, _ = await deps.llm.embed(str(claim["org_id"]), [embed_text(ctx)])
+        rows = await fetch_all(deps.pool, "select id, context, reply, weight, distance, embedding from ai.similar_pairs(%s, %s, 20)", (claim["persona_id"], llm_mod.vector_text(vectors[0])))
+    except (TransientError, ProviderPermanent, psycopg.Error) as e:
+        log.info("sem exemplos de estilo nesta resposta: %s", e)
+        return None
+    return format_examples(mmr(rows, 6)) or None
 
 
 async def _history(deps: Deps, conversation_id: str) -> list[dict[str, str]]:
@@ -137,6 +161,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     caps = CONCIERGE_CAPS if mode == "AI_AUTOPILOT" else COPILOT_CAPS
     run_id = await _open_run(deps, claim, "conversation", route["primary_model"], str(persona["id"]) if persona else None)
     history = await _history(deps, conv_id)
+    examples = await _examples(deps, claim, history)
 
     async def ask(feedback: str | None = None) -> AgentOutput:
         token = sign_ctx(deps.settings.agent_ctx_secret, org=claim["org_id"], conv=conv_id, party=claim["party_id"], run=run_id, version=claim["version"],
@@ -145,7 +170,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         return await deps.agent.run(AgentInput(  # type: ignore[union-attr]
             run_id=run_id, ctx=ctx, ctx_token=token, system_stable=prompts.system_stable(persona["system_prompt"] if persona else None, persona["guardrails"] if persona else None),
             system_volatile=prompts.system_volatile(ctx_token=token, mode=mode, channel=claim["channel"], window_mode=claim.get("window_mode"),
-                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id),
+                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id, examples=examples),
             history=history, model=route["primary_model"], fallback_models=list(route.get("fallback_models") or []), params=route.get("params") or {},
             provider_prefs=route.get("provider_prefs") or {}))
 

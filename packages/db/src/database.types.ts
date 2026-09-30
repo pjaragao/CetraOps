@@ -5,7 +5,95 @@ export type Database = {
   
   "ai": {
           Tables: {
-            "customer_memories": {
+            "corpus_dialogues": {
+                  Row: {
+                    "classified_at": string | null,"commercial": boolean | null,"created_at": string,"digest": string,"id": string,"include": boolean,"org_id": string,"outcome": string | null,"persona_id": string,"source_id": string,"topics": (string)[],"turns": NonNullable<Json>
+                  }
+                  Insert: {
+                    "classified_at"?: string | null,"commercial"?: boolean | null,"created_at"?: string,"digest": string,"id"?: string,"include"?: boolean,"org_id": string,"outcome"?: string | null,"persona_id": string,"source_id": string,"topics"?: (string)[],"turns": NonNullable<Json>
+                  }
+                  Update: {
+                    "classified_at"?: string | null,"commercial"?: boolean | null,"created_at"?: string,"digest"?: string,"id"?: string,"include"?: boolean,"org_id"?: string,"outcome"?: string | null,"persona_id"?: string,"source_id"?: string,"topics"?: (string)[],"turns"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "corpus_dialogues_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "corpus_dialogues_source_id_fkey"
+      columns: ["source_id"]
+isOneToOne: false
+      referencedRelation: "corpus_sources"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"corpus_pairs": {
+                  Row: {
+                    "context": NonNullable<Json>,"created_at": string,"dialogue_id": string | null,"embedding": unknown,"embedding_model": string | null,"id": string,"intent": string | null,"message_id": string | null,"org_id": string,"persona_id": string,"position": number | null,"reply": NonNullable<Json>,"source": string,"stage": string | null,"weight": number
+                  }
+                  Insert: {
+                    "context": NonNullable<Json>,"created_at"?: string,"dialogue_id"?: string | null,"embedding"?: unknown,"embedding_model"?: string | null,"id"?: string,"intent"?: string | null,"message_id"?: string | null,"org_id": string,"persona_id": string,"position"?: number | null,"reply": NonNullable<Json>,"source": string,"stage"?: string | null,"weight"?: number
+                  }
+                  Update: {
+                    "context"?: NonNullable<Json>,"created_at"?: string,"dialogue_id"?: string | null,"embedding"?: unknown,"embedding_model"?: string | null,"id"?: string,"intent"?: string | null,"message_id"?: string | null,"org_id"?: string,"persona_id"?: string,"position"?: number | null,"reply"?: NonNullable<Json>,"source"?: string,"stage"?: string | null,"weight"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "corpus_pairs_dialogue_id_fkey"
+      columns: ["dialogue_id"]
+isOneToOne: false
+      referencedRelation: "corpus_dialogues"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "corpus_pairs_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"corpus_raw": {
+                  Row: {
+                    "content": string,"source_id": string
+                  }
+                  Insert: {
+                    "content": string,"source_id": string
+                  }
+                  Update: {
+                    "content"?: string,"source_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "corpus_raw_source_id_fkey"
+      columns: ["source_id"]
+isOneToOne: true
+      referencedRelation: "corpus_sources"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"corpus_sources": {
+                  Row: {
+                    "bytes": number | null,"created_at": string,"created_by": string | null,"error": string | null,"filename": string | null,"id": string,"kind": string,"org_id": string,"owner_name": string,"persona_id": string,"processed_at": string | null,"raw_deleted_at": string | null,"stats": NonNullable<Json>,"status": string
+                  }
+                  Insert: {
+                    "bytes"?: number | null,"created_at"?: string,"created_by"?: string | null,"error"?: string | null,"filename"?: string | null,"id"?: string,"kind": string,"org_id": string,"owner_name": string,"persona_id": string,"processed_at"?: string | null,"raw_deleted_at"?: string | null,"stats"?: NonNullable<Json>,"status"?: string
+                  }
+                  Update: {
+                    "bytes"?: number | null,"created_at"?: string,"created_by"?: string | null,"error"?: string | null,"filename"?: string | null,"id"?: string,"kind"?: string,"org_id"?: string,"owner_name"?: string,"persona_id"?: string,"processed_at"?: string | null,"raw_deleted_at"?: string | null,"stats"?: NonNullable<Json>,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "corpus_sources_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customer_memories": {
                   Row: {
                     "category": string | null,"confidence": number | null,"created_at": string,"expires_at": string | null,"fact": string,"id": string,"org_id": string,"party_id": string,"source_message_id": string | null,"verified": boolean
                   }
@@ -139,7 +227,117 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "approve_persona_version":
+{ Args: { "p_id": string }; Returns: {
+              "active_version_id": string | null,
+"created_at": string,
+"id": string,
+"member_id": string | null,
+"name": string,
+"org_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "personas"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"corpus_add_live_pair":
+{ Args: { "p": Json }; Returns: string
+                           },
+"corpus_embeddings":
+{ Args: { "p": Json }; Returns: number
+                           },
+"corpus_fail":
+{ Args: { "p_error": string,"p_source": string }; Returns: undefined
+                           },
+"corpus_ingest":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"corpus_labels":
+{ Args: { "p": Json }; Returns: number
+                           },
+"corpus_mark_processing":
+{ Args: { "p_source": string }; Returns: undefined
+                           },
+"create_corpus_source":
+{ Args: { "p": Json }; Returns: {
+              "bytes": number | null,
+"created_at": string,
+"created_by": string | null,
+"error": string | null,
+"filename": string | null,
+"id": string,
+"kind": string,
+"org_id": string,
+"owner_name": string,
+"persona_id": string,
+"processed_at": string | null,
+"raw_deleted_at": string | null,
+"stats": NonNullable<Json>,
+"status": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "corpus_sources"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"delete_corpus_source":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"persona_new_version":
+{ Args: { "p": Json }; Returns: string
+                           },
+"request_corpus_task":
+{ Args: { "p_action": string,"p_persona": string }; Returns: undefined
+                           },
+"request_persona_profile":
+{ Args: { "p_lexicon"?: (string)[],"p_persona": string }; Returns: undefined
+                           },
+"save_persona":
+{ Args: { "p": Json }; Returns: {
+              "active_version_id": string | null,
+"created_at": string,
+"id": string,
+"member_id": string | null,
+"name": string,
+"org_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "personas"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_persona_version":
+{ Args: { "p": Json }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"created_at": string,
+"eval_score": Json | null,
+"guardrails": NonNullable<Json>,
+"id": string,
+"org_id": string,
+"persona_id": string,
+"style_profile": NonNullable<Json>,
+"system_prompt": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "persona_versions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_dialogues_included":
+{ Args: { "p_ids": (string)[],"p_include": boolean }; Returns: number
+                           },
+"similar_pairs":
+{ Args: { "p_embedding": string,"p_k"?: number,"p_persona": string,"p_stage"?: string }; Returns: {
+              "context": Json,"distance": number,"embedding": (number)[],"id": string,"intent": string,"reply": Json,"source": string,"stage": string,"weight": number
+            }[]
+                           }
           }
           Enums: {
             [_ in never]: never

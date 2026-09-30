@@ -10,3 +10,6 @@ insert into core.settings (org_id, key, value) values ('00000000-0000-4000-8000-
   'entrega', jsonb_build_object('status', 'RASCUNHO — confirmar com os sócios', 'motoboy', 'Motoboy na região da loja; frete informado antes do pagamento.', 'retirada', 'Retirada na loja ou no Armário VIP sem custo.'),
   'desconto', jsonb_build_object('status', 'RASCUNHO', 'regra', 'A IA não concede desconto: só aplica cupom válido informado pela cliente.')))
 on conflict (org_id, key) do nothing;
+
+-- Persona da marca (as dos sócios são criadas na tela Inteligência › Personas, cada uma com o seu histórico)
+insert into ai.personas (org_id, name) values ('00000000-0000-4000-8000-000000000001', 'Concierge SIÉ') on conflict (org_id, name) do nothing;

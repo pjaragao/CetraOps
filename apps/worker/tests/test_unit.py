@@ -254,3 +254,28 @@ def test_whatsapp_template_webhooks_become_template_events() -> None:
     assert q["status"] is None and q["quality"] == "YELLOW"
     assert normalize("META_WA", change("message_template_quality_update", {"message_template_id": 1})) == []          # sem situação nem qualidade: nada
     assert normalize("META_WA", change("account_update", {"event": "x"})) == []
+
+
+# ---------- persona: rótulos e exemplos de estilo ----------
+def test_persona_fewshot_mmr_prefers_relevant_but_diverse_examples() -> None:
+    from sie_worker.persona.fewshot import cosine, format_examples, mmr
+
+    def cand(dist: float, vec: list[float], weight: float = 1.0) -> dict:
+        return {"distance": dist, "embedding": vec, "weight": weight, "context": [{"role": "customer", "text": "tem M?"}], "reply": ["Tem sim!", "Qual cor?"]}
+
+    a, b, c = cand(0.05, [1, 0, 0]), cand(0.06, [1, 0.01, 0]), cand(0.2, [0, 1, 0])
+    picked = mmr([a, b, c], k=2, lam=0.5)
+    assert picked[0] is a and picked[1] is c                      # o quase idêntico ao primeiro perde para um diferente
+    assert cosine([1, 0], [0, 1]) == 0.0 and cosine([0, 0], [1, 1]) == 0.0
+    text = format_examples(picked)
+    assert text.startswith("EXEMPLOS DE ESTILO") and "Resposta: Tem sim! / Qual cor?" in text and format_examples([]) == ""
+
+
+def test_persona_label_helpers_keep_only_known_values() -> None:
+    from sie_worker.persona import labels
+
+    turns = [{"role": "customer", "text": "oi"}, {"role": "owner", "text": "oi!"}, {"role": "owner", "text": "tudo bem?"}, {"role": "customer", "text": "sim"}, {"role": "owner", "text": "ótimo"}]
+    assert labels.owner_positions(turns) == [1, 4]               # só respostas a um turno da cliente
+    assert labels.clean_label("inventada", labels.INTENTS) == "outro" and labels.clean_label("PRECO", labels.INTENTS) == "preco"
+    assert labels.clean_topics(["Família", "familia", " Tamanho ", "a", "b"]) == ["família", "familia", "tamanho"]
+    assert "NUNCA diz que é Luisa" in labels.TRANSPARENCY.format(name="Luisa") and "{PRECO}" in labels.TRANSPARENCY.format(name="Luisa")

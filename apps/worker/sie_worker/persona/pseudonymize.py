@@ -29,7 +29,7 @@ HANDLE = re.compile(r"(?<![\w@])@[\w.]{2,30}")
 DEADLINE = re.compile(r"\b\d{1,2}\s?(?:dias?|horas?|semanas?)(?:\súteis)?\b", re.I)
 STOCK = re.compile(r"\b(tenho|temos|tem|sobrou|sobraram|restam|resta|restou|restaram)\s+(só\s+|apenas\s+)?(\d{1,3})\b(?=\s*(?:unidades?|pe[cç]as?|pç|no\b|na\b|em\b|do\b|da\b|de\b|tamanho|$|[,.!?]))", re.I)
 GREETING_NAME = re.compile(
-    r"\b((?i:oi|oie|ol[aá]|bom dia|boa tarde|boa noite|obrigad[ao]|obg|querida|lindona|amiga|amore|meu bem))[,!\s]+([A-ZÀ-Ú][a-zà-ú]{2,}(?:\s[A-ZÀ-Ú][a-zà-ú]{2,})?)")
+    r"\b((?i:oi|oie|ol[aá]|bom dia|boa tarde|boa noite|obrigad[ao]|obg|querida|lindona|amiga|amore|meu bem))[,\s]+([A-ZÀ-Ú][a-zà-ú]{2,}(?:\s[A-ZÀ-Ú][a-zà-ú]{2,})?)")
 # palavras capitalizadas comuns depois de saudação que NÃO são nome
 NOT_NAMES = {
     "tudo", "bem", "como", "gente", "pessoal", "meninas", "menina", "queridas", "linda", "lindas", "lindo", "amigas", "obrigada", "obrigado", "você", "vocês", "sim", "não", "claro",

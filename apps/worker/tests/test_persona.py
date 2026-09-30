@@ -167,3 +167,13 @@ def test_end_to_end_pipeline_anonymizes_and_drops_dialogues_with_residual_pii() 
     assert "Oi Luisa" in text                                                                  # o nome do sócio é estilo: fica
     assert out.report["replaced"]["preco"] >= 1 and len(out.pairs) == 3 and out.stats["bubbles"] == 3
     assert json.dumps(out.stats)                                                               # serializável para gravar no banco
+
+
+def test_greeting_followed_by_an_exclamation_mark_does_not_swallow_the_next_sentence() -> None:
+    from sie_worker.persona.pseudonymize import Pseudonymizer
+
+    p = Pseudonymizer([])
+    assert p.apply("Oi amiga! Tem sim 💛").text == "Oi amiga! Tem sim 💛"
+    assert p.apply("Oi! Temos o M").text == "Oi! Temos o M"
+    assert p.apply("Oi Maria, tudo bem?").text == "Oi {CLIENTE}, tudo bem?"          # saudação + nome continua trocado
+    assert p.apply("Obrigada Fernanda").text == "Obrigada {CLIENTE}"

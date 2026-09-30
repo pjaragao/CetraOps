@@ -28,7 +28,7 @@ def system_stable(persona_prompt: str | None, guardrails: dict | None = None) ->
 
 
 def system_volatile(*, ctx_token: str, mode: str, channel: str, window_mode: str | None, party_first_name: str | None, now: datetime | None = None,
-                    feedback: str | None = None, last_message_id: str | None = None) -> str:
+                    feedback: str | None = None, last_message_id: str | None = None, examples: str | None = None) -> str:
     now = now or datetime.now(ZoneInfo("America/Sao_Paulo"))
     lines = [
         f"ctx (use em toda ferramenta): {ctx_token}",
@@ -39,6 +39,8 @@ def system_volatile(*, ctx_token: str, mode: str, channel: str, window_mode: str
         lines.append(f"Id da última mensagem da cliente (use como customer_message_id ao confirmar um pedido que ela aceitou): {last_message_id}")
     if mode == "AI_COPILOT":
         lines.append("Modo COPILOTO: sua resposta vira rascunho para a vendedora aprovar; você não cria pedido, reserva nem link.")
+    if examples:
+        lines.append("\n" + examples)
     if feedback:
         lines.append("\n" + feedback)
     return "\n".join(lines)

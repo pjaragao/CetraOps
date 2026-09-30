@@ -8,6 +8,7 @@ import httpx
 from psycopg_pool import AsyncConnectionPool
 
 from .ai.agent import AgentClient
+from .ai.llm import LLM
 from .config import Settings
 from .db import call_fn
 
@@ -18,6 +19,7 @@ class Deps:
     settings: Settings
     http: httpx.AsyncClient
     agent: AgentClient | None = None
+    llm: LLM | None = None                 # chamadas de IA em volume (classificar, estilo, embeddings)
 
     async def secret(self, connection_id: str | None) -> dict[str, Any]:
         """Segredo da integração (Vault). Vazio quando a conexão não foi configurada."""

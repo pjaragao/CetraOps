@@ -14,10 +14,11 @@ from psycopg_pool import AsyncConnectionPool
 
 from . import queues
 from .ai.agent import AgentClient, FallbackAgent, HermesAgent, OpenRouterAgent
+from .ai.llm import LLM
 from .config import Settings, get_settings
 from .db import make_pool
 from .deps import Deps
-from .handlers import fiscal, inbound, integrations, media, notifications, outbound, router, templates
+from .handlers import fiscal, inbound, integrations, media, notifications, outbound, persona, router, templates
 from .runner import consume_forever, drain
 
 Handler = Callable[[Deps, queues.QueueMessage], Awaitable[None]]
@@ -31,6 +32,7 @@ HANDLERS: dict[str, Handler] = {
     "notifications": notifications.handle,
     "integration_checks": integrations.handle,
     "template_tasks": templates.handle,
+    "persona_tasks": persona.handle,
 }
 
 
@@ -65,7 +67,8 @@ async def main_async(once: bool) -> None:
     pool = make_pool(settings)
     await pool.open(wait=True)
     async with httpx.AsyncClient() as http:
-        deps = Deps(pool=pool, settings=settings, http=http, agent=build_agent(settings, pool, http))
+        llm = LLM(pool, http, settings.openrouter_base, settings.openrouter_key) if settings.openrouter_key else None
+        deps = Deps(pool=pool, settings=settings, http=http, agent=build_agent(settings, pool, http), llm=llm)
         names = settings.queues or list(HANDLERS)
         unknown = [q for q in names if q not in HANDLERS]
         if unknown:

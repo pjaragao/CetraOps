@@ -114,7 +114,7 @@ export const NAV: NavArea[] = [
     items: [
       { label: "Central de sugestões", href: "/ia", ready: false },
       { label: "Modelos & custos", href: "/ia/modelos", ready: true },
-      { label: "Personas", href: "/ia/personas", ready: false },
+      { label: "Personas", href: "/ia/personas", ready: true },
     ],
   },
   {

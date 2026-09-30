@@ -1,9 +1,10 @@
 "use client";
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useKeptForm } from "@/components/use-kept-form";
 import { Plus, Trash2 } from "lucide-react";
 import { formatBRL, splitInstallments } from "@sie/domain";
 import { Button, inputClass } from "@/components/ui";
-import { createTitleAction, type State } from "./actions";
+import { createTitleAction } from "./actions";
 
 interface Opt { id: string; label: string }
 type Mode = "single" | "template" | "manual";
@@ -24,7 +25,7 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
   stores: { id: string; name: string; legal_entity_id: string }[];
   parties: Opt[]; accounts: Opt[]; costCenters: Opt[]; templates: Opt[]; today: string;
 }) {
-  const [state, action, pending] = useActionState<State, FormData>(createTitleAction, null);
+  const { state, pending, formProps } = useKeptForm(createTitleAction);
   const [storeId, setStoreId] = useState(stores[0]?.id ?? "");
   const [partyId, setPartyId] = useState("");
   const [description, setDescription] = useState("");
@@ -67,7 +68,7 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
     && (mode === "manual" || !!account) && (mode !== "template" || !!template);
 
   return (
-    <form action={action} className="mt-3 grid gap-3 sm:grid-cols-6">
+    <form {...formProps} className="mt-3 grid gap-3 sm:grid-cols-6">
       <input type="hidden" name="payload" value={JSON.stringify(payload)} />
       <label className="sm:col-span-2 text-xs text-muted">Empresa / loja
         <select className={inputClass} value={storeId} onChange={(e) => setStoreId(e.target.value)}>{stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>

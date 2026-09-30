@@ -1,21 +1,22 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useKeptForm } from "@/components/use-kept-form";
 import { formatBRL } from "@sie/domain";
 import { Button, inputClass } from "@/components/ui";
-import { manualEntryAction, type State } from "../actions";
+import { manualEntryAction } from "../actions";
 
 interface Opt { id: string; label: string }
 const toNum = (s: string) => Number(String(s).replace(/\./g, "").replace(",", ".")) || 0;
 
 /** Lançamento contábil manual (ajustes do contador): partidas dobradas com conferência de débito × crédito. */
 export function ManualEntryForm({ entities, accounts, costCenters, today }: { entities: Opt[]; accounts: Opt[]; costCenters: Opt[]; today: string }) {
-  const [state, action, pending] = useActionState<State, FormData>(manualEntryAction, null);
+  const { state, pending, formProps } = useKeptForm(manualEntryAction);
   const [vals, setVals] = useState<{ d: string; c: string }[]>(Array.from({ length: 6 }, () => ({ d: "", c: "" })));
   const deb = vals.reduce((a, v) => a + toNum(v.d), 0);
   const cred = vals.reduce((a, v) => a + toNum(v.c), 0);
   const ok = deb > 0 && Math.abs(deb - cred) < 0.005;
   return (
-    <form action={action} className="space-y-3">
+    <form {...formProps} className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-4">
         <label className="text-xs text-muted">Empresa<select name="entity" className={inputClass} required>{entities.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</select></label>
         <label className="text-xs text-muted">Data<input name="date" type="date" defaultValue={today} className={inputClass} required /></label>

@@ -20,7 +20,7 @@ const friendly = (m: string) => m.replace(/^ERROR:\s*/, "");
 
 function back(path: string, params: Record<string, string | undefined>): never {
   const q = Object.entries(params).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v!)}`).join("&");
-  redirect(q ? `${path}?${q}` : path);
+  redirect(q ? `${path}${path.includes("?") ? "&" : "?"}${q}` : path);
 }
 
 // ---------------------------------------------------------------------

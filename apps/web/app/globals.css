@@ -75,3 +75,10 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
   font-feature-settings: "tnum" 1;
 }
+
+/* Impressão de documentos (holerite, rescisão, escala): esconde o menu e a barra superior */
+@media print {
+  nav[aria-label="Menu principal"], aside, header.sticky, [data-print-hide] { display: none !important; }
+  main { max-width: none !important; padding: 0 !important; }
+  body { background: #fff !important; color: #000 !important; }
+}

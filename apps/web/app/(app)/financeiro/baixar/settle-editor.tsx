@@ -1,12 +1,13 @@
 "use client";
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useKeptForm } from "@/components/use-kept-form";
 import { Plus, Sparkles, Trash2 } from "lucide-react";
 import {
   allocateOldestFirst, findExactCombination, formatBRL, kindsFor, lateCharges, netCash, roundCents,
   SETTLEMENT_KIND_LABEL, type Direction, type SettlementKind, type SettlementLineInput,
 } from "@sie/domain";
 import { Badge, Button, Card, inputClass } from "@/components/ui";
-import { settleAction, type State } from "../actions";
+import { settleAction } from "../actions";
 
 export interface EditorItem {
   id: string; title_number: string; description: string; party_name: string | null; party_id: string | null;
@@ -39,7 +40,7 @@ export function SettleEditor(props: {
   today: string; idempotencyKey: string; defaultBankId?: string;
 }) {
   const { direction, items, statement } = props;
-  const [state, action, pending] = useActionState<State, FormData>(settleAction, null);
+  const { state, pending, formProps } = useKeptForm(settleAction);
   const [rows, setRows] = useState<Record<string, Row>>(() =>
     Object.fromEntries(items.map((it) => [it.id, initRow(it, props.initialSelected.includes(it.id), direction)])));
   const [extras, setExtras] = useState<Extra[]>([]);
@@ -154,7 +155,7 @@ export function SettleEditor(props: {
   const noteRateio = "Juros, multa e desconto seguem o rateio do título (centros de custo); use “Outros itens” para direcionar a uma conta/centro específico.";
 
   return (
-    <form action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <input type="hidden" name="payload" value={JSON.stringify(payload)} />
 
       {statement && (

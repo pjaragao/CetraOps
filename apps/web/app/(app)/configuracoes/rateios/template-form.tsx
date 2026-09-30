@@ -1,16 +1,17 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useKeptForm } from "@/components/use-kept-form";
 import { Button, inputClass } from "@/components/ui";
-import { createTemplateAction, type State } from "../../financeiro/actions";
+import { createTemplateAction } from "../../financeiro/actions";
 
 const toNum = (s: string) => Number(String(s).replace(",", ".")) || 0;
 
 export function TemplateForm({ costCenters }: { costCenters: { id: string; label: string }[] }) {
-  const [state, action, pending] = useActionState<State, FormData>(createTemplateAction, null);
+  const { state, pending, formProps } = useKeptForm(createTemplateAction);
   const [pcts, setPcts] = useState<string[]>(["", "", "", "", "", ""]);
   const sum = pcts.reduce((a, p) => a + toNum(p), 0);
   return (
-    <form action={action} className="space-y-2">
+    <form {...formProps} className="space-y-2">
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-xs text-muted sm:col-span-1">Nome do modelo<input name="name" required className={inputClass} placeholder="Ex.: Mídia paga 80/20" maxLength={80} /></label>
         <label className="text-xs text-muted sm:col-span-2">Descrição<input name="description" className={inputClass} maxLength={200} /></label>

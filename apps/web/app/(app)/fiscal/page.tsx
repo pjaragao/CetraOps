@@ -1,51 +1,69 @@
+import Link from "next/link";
 import { formatBRL } from "@sie/domain";
 import { createClient } from "@/lib/supabase/server";
-import { requirePerm } from "@/lib/session";
-import { Card, PageHeader, Stat, Table } from "@/components/ui";
+import { can, requirePerm } from "@/lib/session";
+import { str, todayIsoSP, type SP } from "@/lib/context";
+import { Badge, Button, Card, inputClass, PageHeader, Stat, Table } from "@/components/ui";
+import { Field, Flash, fmtMonth } from "@/components/form";
+import { postDasAction } from "./actions";
 
 export const metadata = { title: "Apuração do Simples" };
 
 /**
- * Estimativa do DAS (Anexo I) com RBT12. No início de atividade (LC 123, art. 18 §2º):
- * 1º mês → receita do mês × 12; meses seguintes (< 12) → média dos meses anteriores × 12.
+ * Apuração do DAS a partir do razão contábil: receita por anexo, RBT12 (regra de início de atividade) e alíquota efetiva.
+ * A guia vira conta a pagar contabilizada. ESTIMATIVA — o PGDAS-D do contador é o oficial.
  */
-export default async function FiscalPage() {
-  await requirePerm("fiscal.read");
+export default async function FiscalPage({ searchParams }: { searchParams: SP }) {
+  const session = await requirePerm("fiscal.read");
+  const sp = await searchParams;
   const supabase = await createClient();
-  const now = new Date();
-  const start12 = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 12, 1)).toISOString();
+  const ym = str(sp.mes) ?? todayIsoSP().slice(0, 7);
+  const comp = `${ym}-01`;
 
-  const [{ data: orders }, { data: brackets }] = await Promise.all([
-    supabase.schema("sales").from("orders").select("total, created_at, legal_entity_id")
-      .in("status", ["PAID", "COMPLETED", "FULFILLING", "READY_FOR_PICKUP", "SHIPPED"]).gte("created_at", start12),
-    supabase.schema("fiscal").from("simples_brackets").select("bracket, max_rbt12, nominal_rate, deduction").eq("annex", "I").order("bracket"),
+  const { data: entities } = await supabase.schema("core").from("legal_entities").select("id, razao_social, nome_fantasia").order("razao_social");
+  const entity = str(sp.entity) ?? entities?.[0]?.id;
+  if (!entity) return (<><PageHeader title="Apuração do Simples" /><p className="text-muted">Cadastre a empresa em Configurações.</p></>);
+
+  const [calc, { data: period }, { data: brackets }, { data: upcoming }] = await Promise.all([
+    supabase.schema("fiscal").rpc("simples_calc", { p_entity: entity, p_competence: comp }),
+    supabase.schema("fiscal").from("tax_periods").select("id, das_estimated, title_id, status").eq("legal_entity_id", entity).eq("competence", comp).maybeSingle(),
+    supabase.schema("fiscal").from("simples_brackets").select("annex, bracket, max_rbt12, nominal_rate, deduction").eq("annex", "I").order("bracket"),
+    supabase.schema("fiscal").from("obligations").select("id, kind, competence, due_date, amount, status").eq("status", "PENDING").order("due_date").limit(6),
   ]);
-
-  const monthKey = (d: string) => new Date(d).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }).slice(0, 7);
-  const current = now.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }).slice(0, 7);
-  const byMonth = new Map<string, number>();
-  for (const o of orders ?? []) byMonth.set(monthKey(o.created_at), (byMonth.get(monthKey(o.created_at)) ?? 0) + Number(o.total));
-  const previous = [...byMonth.entries()].filter(([m]) => m < current).sort();
-  const currentRevenue = byMonth.get(current) ?? 0;
-
-  let rbt12: number; let method: string;
-  if (previous.length === 0) { rbt12 = currentRevenue * 12; method = "Início de atividade: receita do mês × 12"; }
-  else if (previous.length < 12) { rbt12 = (previous.reduce((a, [, v]) => a + v, 0) / previous.length) * 12; method = `Início de atividade: média de ${previous.length} mês(es) × 12`; }
-  else { rbt12 = previous.slice(-12).reduce((a, [, v]) => a + v, 0); method = "Receita bruta dos últimos 12 meses"; }
-
+  const c = calc.data?.[0];
+  const rbt12 = Number(c?.rbt12 ?? 0);
   const b = (brackets ?? []).find((x) => rbt12 <= Number(x.max_rbt12)) ?? brackets?.[brackets.length - 1];
-  const effective = !b ? 0 : rbt12 <= 0 ? Number(b.nominal_rate) / 100 : ((rbt12 * Number(b.nominal_rate) / 100) - Number(b.deduction)) / rbt12;
-  const das = currentRevenue * effective;
+  const base = Number(c?.revenue_annex1 ?? 0) + Number(c?.revenue_annex3 ?? 0) - Number(c?.returns_amount ?? 0);
 
   return (
     <>
-      <PageHeader title="Apuração do Simples Nacional" description="Estimativa do DAS do mês (Anexo I · comércio). Vencimento: dia 20 do mês seguinte. Confirme com o contador." />
+      <PageHeader title="Apuração do Simples Nacional" description="DAS do mês (Anexo I — comércio; serviços no Anexo III) calculado sobre o razão contábil. Vencimento no dia 20 do mês seguinte. Confirme com o contador." />
+      <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+      <form className="mb-4 flex flex-wrap items-end gap-2">
+        <Field label="Competência"><input name="mes" type="month" defaultValue={ym} className={inputClass} /></Field>
+        {(entities ?? []).length > 1 && <Field label="Empresa"><select name="entity" defaultValue={entity} className={inputClass}>{(entities ?? []).map((e) => <option key={e.id} value={e.id}>{e.nome_fantasia ?? e.razao_social}</option>)}</select></Field>}
+        <Button variant="secondary">Ver</Button>
+      </form>
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Receita do mês" value={formatBRL(currentRevenue)} />
-        <Stat label="RBT12" value={formatBRL(rbt12)} hint={method} />
-        <Stat label="Alíquota efetiva" value={`${(effective * 100).toFixed(2).replace(".", ",")}%`} hint={b ? `faixa ${b.bracket}` : undefined} />
-        <Stat label="DAS estimado" value={formatBRL(das)} />
+        <Stat label="Receita do mês" value={formatBRL(base)} hint={`Anexo I ${formatBRL(c?.revenue_annex1 ?? 0)} · Anexo III ${formatBRL(c?.revenue_annex3 ?? 0)}${Number(c?.returns_amount) > 0 ? ` · devoluções ${formatBRL(c?.returns_amount ?? 0)}` : ""}`} />
+        <Stat label="RBT12" value={formatBRL(rbt12)} hint={c?.rbt12_method} />
+        <Stat label="Alíquota efetiva (Anexo I)" value={`${String(Number(c?.rate1 ?? 0).toFixed(2)).replace(".", ",")}%`} hint={b ? `faixa ${b.bracket}` : undefined} />
+        <Stat label="DAS estimado" value={formatBRL(c?.das ?? 0)} tone={period ? "success" : undefined} hint={period ? "guia já gerada" : undefined} />
       </div>
+
+      <Card className="mt-4" title={`Guia de ${fmtMonth(comp)}`}>
+        {period ? (
+          <p className="text-sm">Guia gerada em <Link className="text-brand" href="/financeiro/pagar">Contas a pagar</Link> ({formatBRL(period.das_estimated)}). Ao pagar, a obrigação sai do calendário.</p>
+        ) : can(session, "fiscal.write") && can(session, "fin.write") ? (
+          <form action={postDasAction} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="entity" value={entity} /><input type="hidden" name="month" value={ym} />
+            <Button disabled={Number(c?.das ?? 0) <= 0}>Gerar guia do DAS ({formatBRL(c?.das ?? 0)})</Button>
+            <span className="text-xs text-muted">Cria a conta a pagar (vence dia 20), lança a dedução da receita e coloca no calendário de obrigações. Faça depois de fechar o mês.</span>
+          </form>
+        ) : <p className="text-sm text-muted">Sem permissão para gerar a guia.</p>}
+      </Card>
+
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Faixas do Anexo I">
           <Table head={["Faixa", "Até (RBT12)", "Nominal", "Dedução"]}>
@@ -57,13 +75,21 @@ export default async function FiscalPage() {
             ))}
           </Table>
         </Card>
-        <Card title="Limites">
-          <ul className="space-y-2 text-sm">
-            <li className="flex justify-between"><span>Limite do Simples (grupo, R$ 4,8 mi)</span><span>{((rbt12 / 4_800_000) * 100).toFixed(1).replace(".", ",")}%</span></li>
-            <li className="flex justify-between"><span>Sublimite de ICMS em SC (R$ 3,6 mi)</span><span>{((rbt12 / 3_600_000) * 100).toFixed(1).replace(".", ",")}%</span></li>
-          </ul>
-          <p className="mt-3 text-xs text-muted">Receitas de serviços (Anexo III: promoção de vendas e eventos) entram na apuração quando houver notas de serviço.</p>
-        </Card>
+        <div className="space-y-4">
+          <Card title="Limites">
+            <ul className="space-y-2 text-sm">
+              <li className="flex justify-between"><span>Limite do Simples (grupo, R$ 4,8 mi)</span><span>{((rbt12 / 4_800_000) * 100).toFixed(1).replace(".", ",")}%</span></li>
+              <li className="flex justify-between"><span>Sublimite de ICMS em SC (R$ 3,6 mi)</span><span>{((rbt12 / 3_600_000) * 100).toFixed(1).replace(".", ",")}%</span></li>
+            </ul>
+          </Card>
+          <Card title="Próximas obrigações" action={<Link className="text-xs text-brand" href="/fiscal/obrigacoes">ver todas</Link>}>
+            {(upcoming ?? []).length === 0 ? <p className="text-sm text-muted">Nada pendente.</p> : (
+              <ul className="divide-y divide-border text-sm">
+                {(upcoming ?? []).map((o) => <li key={o.id} className="flex justify-between py-1"><span><Badge>{o.kind}</Badge> {fmtMonth(o.competence)}</span><span>{o.due_date.split("-").reverse().join("/")} · {formatBRL(o.amount)}</span></li>)}
+              </ul>
+            )}
+          </Card>
+        </div>
       </div>
     </>
   );

@@ -84,15 +84,23 @@ export const NAV: NavArea[] = [
     key: "fiscal", label: "Fiscal", href: "/fiscal", icon: "FileText", permission: "fiscal.read",
     items: [
       { label: "Apuração do Simples", href: "/fiscal", ready: true },
+      { label: "Obrigações", href: "/fiscal/obrigacoes", ready: true },
+      { label: "eSocial", href: "/fiscal/esocial", ready: true },
       { label: "Notas emitidas", href: "/fiscal/emitidas", ready: false },
       { label: "Notas recebidas", href: "/fiscal/recebidas", ready: false },
     ],
   },
   {
-    key: "equipe", label: "Equipe", href: "/equipe", icon: "BadgeCheck", permission: "core.admin",
+    key: "equipe", label: "Equipe", href: "/equipe", icon: "BadgeCheck", permission: "hr.read",
     items: [
-      { label: "Pessoas & acessos", href: "/equipe", ready: true },
-      { label: "Metas & comissões", href: "/equipe/comissoes", ready: false },
+      { label: "Colaboradores", href: "/equipe", ready: true },
+      { label: "Escalas", href: "/equipe/escalas", ready: true },
+      { label: "Ponto e banco de horas", href: "/equipe/ponto", ready: true },
+      { label: "Férias", href: "/equipe/ferias", ready: true },
+      { label: "Folha de pagamento", href: "/equipe/folha", permission: "hr.payroll.read", ready: true },
+      { label: "Rescisões", href: "/equipe/rescisoes", permission: "hr.payroll.read", ready: true },
+      { label: "Metas & comissões", href: "/equipe/comissoes", ready: true },
+      { label: "Acessos ao sistema", href: "/equipe/acessos", permission: "core.admin", ready: true },
     ],
   },
   {

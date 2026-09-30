@@ -1,6 +1,7 @@
 "use client";
-import { useActionState } from "react";
+
 import { Button, inputClass } from "@/components/ui";
+import { useKeptForm } from "@/components/use-kept-form";
 import { cashMovementAction, transferAction, type State } from "../actions";
 
 interface Opt { id: string; label: string }
@@ -11,9 +12,9 @@ function Msg({ state }: { state: State }) {
 }
 
 export function TransferForm({ banks, today }: { banks: Opt[]; today: string }) {
-  const [state, action, pending] = useActionState<State, FormData>(transferAction, null);
+  const { state, pending, formProps } = useKeptForm(transferAction);
   return (
-    <form action={action} className="mt-3 grid gap-2 sm:grid-cols-6">
+    <form {...formProps} className="mt-3 grid gap-2 sm:grid-cols-6">
       <label className="text-xs text-muted sm:col-span-2">De
         <select name="from" className={inputClass} required defaultValue="">{[<option key="" value="" disabled>Conta de origem…</option>, ...banks.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)]}</select>
       </label>
@@ -42,9 +43,9 @@ const KINDS: [string, string, "IN" | "OUT" | "ANY"][] = [
 ];
 
 export function MovementForm({ banks, accounts, costCenters, today }: { banks: Opt[]; accounts: Opt[]; costCenters: Opt[]; today: string }) {
-  const [state, action, pending] = useActionState<State, FormData>(cashMovementAction, null);
+  const { state, pending, formProps } = useKeptForm(cashMovementAction);
   return (
-    <form action={action} className="mt-3 grid gap-2 sm:grid-cols-6">
+    <form {...formProps} className="mt-3 grid gap-2 sm:grid-cols-6">
       <label className="text-xs text-muted sm:col-span-2">Conta
         <select name="bank" className={inputClass} required defaultValue="">{[<option key="" value="" disabled>Conta…</option>, ...banks.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)]}</select>
       </label>

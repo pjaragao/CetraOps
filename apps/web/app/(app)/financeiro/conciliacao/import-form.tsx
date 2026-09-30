@@ -1,12 +1,12 @@
 "use client";
-import { useActionState } from "react";
+import { useKeptForm } from "@/components/use-kept-form";
 import { Button, inputClass } from "@/components/ui";
-import { importStatementAction, type State } from "../actions";
+import { importStatementAction } from "../actions";
 
 export function ImportForm({ bank }: { bank: string }) {
-  const [state, action, pending] = useActionState<State, FormData>(importStatementAction, null);
+  const { state, pending, formProps } = useKeptForm(importStatementAction);
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
+    <form {...formProps} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="bank" value={bank} />
       <label className="text-xs text-muted">Extrato (OFX ou CSV do Inter, BTG, Mercado Pago)
         <input name="file" type="file" accept=".ofx,.csv,.txt" required className={`${inputClass} file:mr-3 file:rounded file:border-0 file:bg-surface-2 file:px-2 file:py-1`} />

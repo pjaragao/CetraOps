@@ -408,6 +408,66 @@ isOneToOne: false
           CompositeTypes: {
             [_ in never]: never
           }
+        },"comm": {
+          Tables: {
+            "statements": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"base_amount": number,"bonus": number,"commission": number,"competence": string,"created_at": string,"detail": NonNullable<Json>,"id": string,"member_id": string,"org_id": string,"payslip_id": string | null,"sales_amount": number,"status": string,"store_id": string | null,"total": number,"updated_at": string
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"base_amount"?: number,"bonus"?: number,"commission"?: number,"competence": string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"member_id": string,"org_id": string,"payslip_id"?: string | null,"sales_amount"?: number,"status"?: string,"store_id"?: string | null,"total"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"base_amount"?: number,"bonus"?: number,"commission"?: number,"competence"?: string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"member_id"?: string,"org_id"?: string,"payslip_id"?: string | null,"sales_amount"?: number,"status"?: string,"store_id"?: string | null,"total"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "approve_statement":
+{ Args: { "p_statement": string }; Returns: undefined
+                           },
+"generate_statement":
+{ Args: { "p_competence": string,"p_member": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"base_amount": number,
+"bonus": number,
+"commission": number,
+"competence": string,
+"created_at": string,
+"detail": NonNullable<Json>,
+"id": string,
+"member_id": string,
+"org_id": string,
+"payslip_id": string | null,
+"sales_amount": number,
+"status": string,
+"store_id": string | null,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "statements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"reopen_statement":
+{ Args: { "p_statement": string }; Returns: undefined
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
         },"core": {
           Tables: {
             "attachments": {
@@ -1924,7 +1984,33 @@ isOneToOne: false
           }
         },"fiscal": {
           Tables: {
-            "simples_brackets": {
+            "esocial_events": {
+                  Row: {
+                    "competence": string | null,"created_at": string,"event": string,"id": string,"legal_entity_id": string,"org_id": string,"payload": NonNullable<Json>,"reference_id": string | null,"reference_type": string | null,"status": string
+                  }
+                  Insert: {
+                    "competence"?: string | null,"created_at"?: string,"event": string,"id"?: string,"legal_entity_id": string,"org_id": string,"payload"?: NonNullable<Json>,"reference_id"?: string | null,"reference_type"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "competence"?: string | null,"created_at"?: string,"event"?: string,"id"?: string,"legal_entity_id"?: string,"org_id"?: string,"payload"?: NonNullable<Json>,"reference_id"?: string | null,"reference_type"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"obligations": {
+                  Row: {
+                    "amount": number,"competence": string,"created_at": string,"due_date": string,"id": string,"kind": string,"legal_entity_id": string,"notes": string | null,"org_id": string,"source_id": string | null,"source_type": string | null,"status": string,"title_id": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "amount"?: number,"competence": string,"created_at"?: string,"due_date": string,"id"?: string,"kind": string,"legal_entity_id": string,"notes"?: string | null,"org_id": string,"source_id"?: string | null,"source_type"?: string | null,"status"?: string,"title_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount"?: number,"competence"?: string,"created_at"?: string,"due_date"?: string,"id"?: string,"kind"?: string,"legal_entity_id"?: string,"notes"?: string | null,"org_id"?: string,"source_id"?: string | null,"source_type"?: string | null,"status"?: string,"title_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"simples_brackets": {
                   Row: {
                     "annex": string,"bracket": number,"deduction": number,"icms_share": number | null,"id": string,"max_rbt12": number,"nominal_rate": number,"valid_from": string
                   }
@@ -1937,14 +2023,1011 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"tax_periods": {
+                  Row: {
+                    "competence": string,"created_at": string,"created_by": string | null,"das_estimated": number,"id": string,"legal_entity_id": string,"org_id": string,"rate1": number,"rate3": number,"rbt12": number,"rbt12_method": string,"returns_amount": number,"revenue_annex1": number,"revenue_annex3": number,"status": string,"title_id": string | null
+                  }
+                  Insert: {
+                    "competence": string,"created_at"?: string,"created_by"?: string | null,"das_estimated"?: number,"id"?: string,"legal_entity_id": string,"org_id": string,"rate1"?: number,"rate3"?: number,"rbt12"?: number,"rbt12_method": string,"returns_amount"?: number,"revenue_annex1"?: number,"revenue_annex3"?: number,"status"?: string,"title_id"?: string | null
+                  }
+                  Update: {
+                    "competence"?: string,"created_at"?: string,"created_by"?: string | null,"das_estimated"?: number,"id"?: string,"legal_entity_id"?: string,"org_id"?: string,"rate1"?: number,"rate3"?: number,"rbt12"?: number,"rbt12_method"?: string,"returns_amount"?: number,"revenue_annex1"?: number,"revenue_annex3"?: number,"status"?: string,"title_id"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "simples_effective_rate":
+            "post_das":
+{ Args: { "p_competence": string,"p_entity": string }; Returns: {
+              "competence": string,
+"created_at": string,
+"created_by": string | null,
+"das_estimated": number,
+"id": string,
+"legal_entity_id": string,
+"org_id": string,
+"rate1": number,
+"rate3": number,
+"rbt12": number,
+"rbt12_method": string,
+"returns_amount": number,
+"revenue_annex1": number,
+"revenue_annex3": number,
+"status": string,
+"title_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tax_periods"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"simples_calc":
+{ Args: { "p_competence": string,"p_entity": string }; Returns: {
+              "das": number,"rate1": number,"rate3": number,"rbt12": number,"rbt12_method": string,"returns_amount": number,"revenue_annex1": number,"revenue_annex3": number
+            }[]
+                           },
+"simples_effective_rate":
 { Args: { "p_annex": string,"p_rbt12": number }; Returns: number
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"hr": {
+          Tables: {
+            "benefit_types": {
+                  Row: {
+                    "active": boolean,"calc": string,"code": string,"employee_share_fixed": number,"employee_share_pct": number,"expense_role": string,"id": string,"kind": string,"name": string,"org_id": string,"pay_day": number | null,"share_base": string,"supplier_party_id": string | null,"taxable": boolean
+                  }
+                  Insert: {
+                    "active"?: boolean,"calc"?: string,"code": string,"employee_share_fixed"?: number,"employee_share_pct"?: number,"expense_role"?: string,"id"?: string,"kind": string,"name": string,"org_id": string,"pay_day"?: number | null,"share_base"?: string,"supplier_party_id"?: string | null,"taxable"?: boolean
+                  }
+                  Update: {
+                    "active"?: boolean,"calc"?: string,"code"?: string,"employee_share_fixed"?: number,"employee_share_pct"?: number,"expense_role"?: string,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string,"pay_day"?: number | null,"share_base"?: string,"supplier_party_id"?: string | null,"taxable"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"coverage_rules": {
+                  Row: {
+                    "end_time": string,"id": string,"label": string,"min_staff": number,"org_id": string,"start_time": string,"store_id": string,"weekday": number
+                  }
+                  Insert: {
+                    "end_time": string,"id"?: string,"label": string,"min_staff"?: number,"org_id": string,"start_time": string,"store_id": string,"weekday": number
+                  }
+                  Update: {
+                    "end_time"?: string,"id"?: string,"label"?: string,"min_staff"?: number,"org_id"?: string,"start_time"?: string,"store_id"?: string,"weekday"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"dependents": {
+                  Row: {
+                    "birth_date": string | null,"cpf": string | null,"created_at": string,"employee_id": string,"family_allowance": boolean,"id": string,"irrf": boolean,"name": string,"org_id": string,"relationship": string
+                  }
+                  Insert: {
+                    "birth_date"?: string | null,"cpf"?: string | null,"created_at"?: string,"employee_id": string,"family_allowance"?: boolean,"id"?: string,"irrf"?: boolean,"name": string,"org_id": string,"relationship"?: string
+                  }
+                  Update: {
+                    "birth_date"?: string | null,"cpf"?: string | null,"created_at"?: string,"employee_id"?: string,"family_allowance"?: boolean,"id"?: string,"irrf"?: boolean,"name"?: string,"org_id"?: string,"relationship"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "dependents_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"employee_benefits": {
+                  Row: {
+                    "benefit_type_id": string,"employee_id": string,"end_date": string | null,"id": string,"notes": string | null,"org_id": string,"share_pct_override": number | null,"start_date": string,"value": number
+                  }
+                  Insert: {
+                    "benefit_type_id": string,"employee_id": string,"end_date"?: string | null,"id"?: string,"notes"?: string | null,"org_id": string,"share_pct_override"?: number | null,"start_date"?: string,"value": number
+                  }
+                  Update: {
+                    "benefit_type_id"?: string,"employee_id"?: string,"end_date"?: string | null,"id"?: string,"notes"?: string | null,"org_id"?: string,"share_pct_override"?: number | null,"start_date"?: string,"value"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "employee_benefits_benefit_type_id_fkey"
+      columns: ["benefit_type_id"]
+isOneToOne: false
+      referencedRelation: "benefit_types"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "employee_benefits_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"employee_deductions": {
+                  Row: {
+                    "beneficiary_party_id": string | null,"calc": string,"employee_id": string,"end_date": string | null,"event_code": string,"id": string,"installments_left": number | null,"notes": string | null,"org_id": string,"start_date": string,"value": number
+                  }
+                  Insert: {
+                    "beneficiary_party_id"?: string | null,"calc"?: string,"employee_id": string,"end_date"?: string | null,"event_code": string,"id"?: string,"installments_left"?: number | null,"notes"?: string | null,"org_id": string,"start_date"?: string,"value": number
+                  }
+                  Update: {
+                    "beneficiary_party_id"?: string | null,"calc"?: string,"employee_id"?: string,"end_date"?: string | null,"event_code"?: string,"id"?: string,"installments_left"?: number | null,"notes"?: string | null,"org_id"?: string,"start_date"?: string,"value"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "employee_deductions_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"employee_private": {
+                  Row: {
+                    "address": NonNullable<Json>,"bank_account": string | null,"bank_agency": string | null,"bank_code": string | null,"cpf": string | null,"ctps": string | null,"education": string | null,"emergency_contact": NonNullable<Json>,"employee_id": string,"marital_status": string | null,"mother_name": string | null,"org_id": string,"pis": string | null,"pix_key": string | null,"rg": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "address"?: NonNullable<Json>,"bank_account"?: string | null,"bank_agency"?: string | null,"bank_code"?: string | null,"cpf"?: string | null,"ctps"?: string | null,"education"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_id": string,"marital_status"?: string | null,"mother_name"?: string | null,"org_id": string,"pis"?: string | null,"pix_key"?: string | null,"rg"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "address"?: NonNullable<Json>,"bank_account"?: string | null,"bank_agency"?: string | null,"bank_code"?: string | null,"cpf"?: string | null,"ctps"?: string | null,"education"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_id"?: string,"marital_status"?: string | null,"mother_name"?: string | null,"org_id"?: string,"pis"?: string | null,"pix_key"?: string | null,"rg"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "employee_private_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: true
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"employees": {
+                  Row: {
+                    "archived_at": string | null,"cbo": string | null,"commissioned": boolean,"contract_type": string,"cost_center_id": string | null,"created_at": string,"daily_minutes": number,"department": string | null,"experience_days": (number)[],"fgts": boolean,"hire_date": string,"id": string,"job_title": string,"legal_entity_id": string,"member_id": string | null,"notes": string | null,"org_id": string,"party_id": string,"registration": string,"status": string,"store_id": string | null,"termination_date": string | null,"time_bank": boolean,"track_time": boolean,"updated_at": string,"weekly_hours": number,"work_regime": string
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"cbo"?: string | null,"commissioned"?: boolean,"contract_type": string,"cost_center_id"?: string | null,"created_at"?: string,"daily_minutes"?: number,"department"?: string | null,"experience_days"?: (number)[],"fgts"?: boolean,"hire_date": string,"id"?: string,"job_title": string,"legal_entity_id": string,"member_id"?: string | null,"notes"?: string | null,"org_id": string,"party_id": string,"registration": string,"status"?: string,"store_id"?: string | null,"termination_date"?: string | null,"time_bank"?: boolean,"track_time"?: boolean,"updated_at"?: string,"weekly_hours"?: number,"work_regime"?: string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"cbo"?: string | null,"commissioned"?: boolean,"contract_type"?: string,"cost_center_id"?: string | null,"created_at"?: string,"daily_minutes"?: number,"department"?: string | null,"experience_days"?: (number)[],"fgts"?: boolean,"hire_date"?: string,"id"?: string,"job_title"?: string,"legal_entity_id"?: string,"member_id"?: string | null,"notes"?: string | null,"org_id"?: string,"party_id"?: string,"registration"?: string,"status"?: string,"store_id"?: string | null,"termination_date"?: string | null,"time_bank"?: boolean,"track_time"?: boolean,"updated_at"?: string,"weekly_hours"?: number,"work_regime"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"entity_settings": {
+                  Row: {
+                    "charge_profile": string,"inss_employer_pct": number,"legal_entity_id": string,"org_id": string,"pay_business_day": number,"rat_pct": number,"third_parties_pct": number,"updated_at": string
+                  }
+                  Insert: {
+                    "charge_profile"?: string,"inss_employer_pct"?: number,"legal_entity_id": string,"org_id": string,"pay_business_day"?: number,"rat_pct"?: number,"third_parties_pct"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "charge_profile"?: string,"inss_employer_pct"?: number,"legal_entity_id"?: string,"org_id"?: string,"pay_business_day"?: number,"rat_pct"?: number,"third_parties_pct"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"holidays": {
+                  Row: {
+                    "created_at": string,"holiday_date": string,"id": string,"name": string,"optional": boolean,"org_id": string,"scope": string,"store_id": string | null,"uf": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"holiday_date": string,"id"?: string,"name": string,"optional"?: boolean,"org_id": string,"scope"?: string,"store_id"?: string | null,"uf"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"holiday_date"?: string,"id"?: string,"name"?: string,"optional"?: boolean,"org_id"?: string,"scope"?: string,"store_id"?: string | null,"uf"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"leaves": {
+                  Row: {
+                    "cid": string | null,"created_at": string,"created_by": string | null,"doc_ref": string | null,"employee_id": string,"end_date": string,"id": string,"inss_leave": boolean,"kind": string,"notes": string | null,"org_id": string,"paid": boolean,"start_date": string
+                  }
+                  Insert: {
+                    "cid"?: string | null,"created_at"?: string,"created_by"?: string | null,"doc_ref"?: string | null,"employee_id": string,"end_date": string,"id"?: string,"inss_leave"?: boolean,"kind": string,"notes"?: string | null,"org_id": string,"paid"?: boolean,"start_date": string
+                  }
+                  Update: {
+                    "cid"?: string | null,"created_at"?: string,"created_by"?: string | null,"doc_ref"?: string | null,"employee_id"?: string,"end_date"?: string,"id"?: string,"inss_leave"?: boolean,"kind"?: string,"notes"?: string | null,"org_id"?: string,"paid"?: boolean,"start_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "leaves_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"medical_exams": {
+                  Row: {
+                    "employee_id": string,"exam_date": string,"id": string,"kind": string,"notes": string | null,"org_id": string,"result": string | null,"valid_until": string | null
+                  }
+                  Insert: {
+                    "employee_id": string,"exam_date": string,"id"?: string,"kind": string,"notes"?: string | null,"org_id": string,"result"?: string | null,"valid_until"?: string | null
+                  }
+                  Update: {
+                    "employee_id"?: string,"exam_date"?: string,"id"?: string,"kind"?: string,"notes"?: string | null,"org_id"?: string,"result"?: string | null,"valid_until"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "medical_exams_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payroll_events": {
+                  Row: {
+                    "active": boolean,"code": string,"esocial_code": string | null,"expense_role": string | null,"fgts": boolean,"id": string,"inss": boolean,"irrf": boolean,"kind": string,"liability_role": string | null,"name": string,"org_id": string,"vacation_avg": boolean,"variable": boolean
+                  }
+                  Insert: {
+                    "active"?: boolean,"code": string,"esocial_code"?: string | null,"expense_role"?: string | null,"fgts"?: boolean,"id"?: string,"inss"?: boolean,"irrf"?: boolean,"kind": string,"liability_role"?: string | null,"name": string,"org_id": string,"vacation_avg"?: boolean,"variable"?: boolean
+                  }
+                  Update: {
+                    "active"?: boolean,"code"?: string,"esocial_code"?: string | null,"expense_role"?: string | null,"fgts"?: boolean,"id"?: string,"inss"?: boolean,"irrf"?: boolean,"kind"?: string,"liability_role"?: string | null,"name"?: string,"org_id"?: string,"vacation_avg"?: boolean,"variable"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"payroll_runs": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"competence": string,"created_at": string,"created_by": string | null,"description": string | null,"id": string,"journal_entry_id": string | null,"kind": string,"legal_entity_id": string,"notes": string | null,"org_id": string,"pay_date": string | null,"reference_id": string | null,"reference_type": string | null,"source": string,"status": string,"totals": NonNullable<Json>,"updated_at": string
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"competence": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"kind": string,"legal_entity_id": string,"notes"?: string | null,"org_id": string,"pay_date"?: string | null,"reference_id"?: string | null,"reference_type"?: string | null,"source"?: string,"status"?: string,"totals"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"competence"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"kind"?: string,"legal_entity_id"?: string,"notes"?: string | null,"org_id"?: string,"pay_date"?: string | null,"reference_id"?: string | null,"reference_type"?: string | null,"source"?: string,"status"?: string,"totals"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"payslip_lines": {
+                  Row: {
+                    "amount": number,"beneficiary_party_id": string | null,"created_at": string,"description": string,"event_code": string,"id": string,"kind": string,"memo": string | null,"org_id": string,"payslip_id": string,"reference": number | null,"source": string,"supplier_party_id": string | null
+                  }
+                  Insert: {
+                    "amount": number,"beneficiary_party_id"?: string | null,"created_at"?: string,"description": string,"event_code": string,"id"?: string,"kind": string,"memo"?: string | null,"org_id": string,"payslip_id": string,"reference"?: number | null,"source"?: string,"supplier_party_id"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"beneficiary_party_id"?: string | null,"created_at"?: string,"description"?: string,"event_code"?: string,"id"?: string,"kind"?: string,"memo"?: string | null,"org_id"?: string,"payslip_id"?: string,"reference"?: number | null,"source"?: string,"supplier_party_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payslip_lines_payslip_id_fkey"
+      columns: ["payslip_id"]
+isOneToOne: false
+      referencedRelation: "payslips"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payslips": {
+                  Row: {
+                    "base_group": string,"deductions": number,"dependents": number,"employee_id": string,"employer_cost": number,"fgts": number,"fgts_base": number,"gross": number,"id": string,"inss": number,"inss_base": number,"irrf": number,"irrf_base": number,"net": number,"notes": string | null,"org_id": string,"run_id": string,"status": string,"title_id": string | null
+                  }
+                  Insert: {
+                    "base_group"?: string,"deductions"?: number,"dependents"?: number,"employee_id": string,"employer_cost"?: number,"fgts"?: number,"fgts_base"?: number,"gross"?: number,"id"?: string,"inss"?: number,"inss_base"?: number,"irrf"?: number,"irrf_base"?: number,"net"?: number,"notes"?: string | null,"org_id": string,"run_id": string,"status"?: string,"title_id"?: string | null
+                  }
+                  Update: {
+                    "base_group"?: string,"deductions"?: number,"dependents"?: number,"employee_id"?: string,"employer_cost"?: number,"fgts"?: number,"fgts_base"?: number,"gross"?: number,"id"?: string,"inss"?: number,"inss_base"?: number,"irrf"?: number,"irrf_base"?: number,"net"?: number,"notes"?: string | null,"org_id"?: string,"run_id"?: string,"status"?: string,"title_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payslips_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payslips_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "payroll_runs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"provision_runs": {
+                  Row: {
+                    "competence": string,"created_at": string,"created_by": string | null,"id": string,"journal_entry_id": string | null,"legal_entity_id": string,"org_id": string,"totals": NonNullable<Json>
+                  }
+                  Insert: {
+                    "competence": string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"legal_entity_id": string,"org_id": string,"totals"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "competence"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"legal_entity_id"?: string,"org_id"?: string,"totals"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"provisions": {
+                  Row: {
+                    "amount": number,"competence": string,"created_at": string,"employee_id": string,"id": number,"kind": string,"org_id": string,"source_id": string | null,"source_type": string | null
+                  }
+                  Insert: {
+                    "amount": number,"competence": string,"created_at"?: string,"employee_id": string,"id"?: never,"kind": string,"org_id": string,"source_id"?: string | null,"source_type"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"competence"?: string,"created_at"?: string,"employee_id"?: string,"id"?: never,"kind"?: string,"org_id"?: string,"source_id"?: string | null,"source_type"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "provisions_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"roster": {
+                  Row: {
+                    "break_minutes": number,"employee_id": string,"end_time": string | null,"id": string,"kind": string,"notes": string | null,"org_id": string,"shift_id": string | null,"start_time": string | null,"status": string,"store_id": string,"updated_at": string,"updated_by": string | null,"work_date": string
+                  }
+                  Insert: {
+                    "break_minutes"?: number,"employee_id": string,"end_time"?: string | null,"id"?: string,"kind"?: string,"notes"?: string | null,"org_id": string,"shift_id"?: string | null,"start_time"?: string | null,"status"?: string,"store_id": string,"updated_at"?: string,"updated_by"?: string | null,"work_date": string
+                  }
+                  Update: {
+                    "break_minutes"?: number,"employee_id"?: string,"end_time"?: string | null,"id"?: string,"kind"?: string,"notes"?: string | null,"org_id"?: string,"shift_id"?: string | null,"start_time"?: string | null,"status"?: string,"store_id"?: string,"updated_at"?: string,"updated_by"?: string | null,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "roster_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "roster_shift_id_fkey"
+      columns: ["shift_id"]
+isOneToOne: false
+      referencedRelation: "shift_templates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"salary_history": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string | null,"effective_from": string,"employee_id": string,"id": string,"org_id": string,"reason": string | null,"unit": string
+                  }
+                  Insert: {
+                    "amount": number,"created_at"?: string,"created_by"?: string | null,"effective_from": string,"employee_id": string,"id"?: string,"org_id": string,"reason"?: string | null,"unit"?: string
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"effective_from"?: string,"employee_id"?: string,"id"?: string,"org_id"?: string,"reason"?: string | null,"unit"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "salary_history_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shift_templates": {
+                  Row: {
+                    "active": boolean,"break_minutes": number,"code": string,"color": string,"end_time": string,"id": string,"name": string,"org_id": string,"start_time": string,"store_id": string | null
+                  }
+                  Insert: {
+                    "active"?: boolean,"break_minutes"?: number,"code": string,"color"?: string,"end_time": string,"id"?: string,"name": string,"org_id": string,"start_time": string,"store_id"?: string | null
+                  }
+                  Update: {
+                    "active"?: boolean,"break_minutes"?: number,"code"?: string,"color"?: string,"end_time"?: string,"id"?: string,"name"?: string,"org_id"?: string,"start_time"?: string,"store_id"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"tax_tables": {
+                  Row: {
+                    "data": NonNullable<Json>,"id": string,"kind": string,"notes": string | null,"source": string | null,"valid_from": string
+                  }
+                  Insert: {
+                    "data": NonNullable<Json>,"id"?: string,"kind": string,"notes"?: string | null,"source"?: string | null,"valid_from": string
+                  }
+                  Update: {
+                    "data"?: NonNullable<Json>,"id"?: string,"kind"?: string,"notes"?: string | null,"source"?: string | null,"valid_from"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"terminations": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"computed": NonNullable<Json>,"created_at": string,"created_by": string | null,"employee_id": string,"fgts_balance": number | null,"id": string,"kind": string,"notes": string | null,"notice_days": number | null,"notice_kind": string,"org_id": string,"reason": string | null,"run_id": string | null,"status": string,"termination_date": string,"updated_at": string
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"computed"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"employee_id": string,"fgts_balance"?: number | null,"id"?: string,"kind": string,"notes"?: string | null,"notice_days"?: number | null,"notice_kind"?: string,"org_id": string,"reason"?: string | null,"run_id"?: string | null,"status"?: string,"termination_date": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"computed"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"employee_id"?: string,"fgts_balance"?: number | null,"id"?: string,"kind"?: string,"notes"?: string | null,"notice_days"?: number | null,"notice_kind"?: string,"org_id"?: string,"reason"?: string | null,"run_id"?: string | null,"status"?: string,"termination_date"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "terminations_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "terminations_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "payroll_runs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"time_bank": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"employee_id": string,"id": number,"kind": string,"minutes": number,"note": string | null,"occurred_on": string,"org_id": string,"source_id": string | null,"source_type": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"employee_id": string,"id"?: never,"kind": string,"minutes": number,"note"?: string | null,"occurred_on": string,"org_id": string,"source_id"?: string | null,"source_type"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"employee_id"?: string,"id"?: never,"kind"?: string,"minutes"?: number,"note"?: string | null,"occurred_on"?: string,"org_id"?: string,"source_id"?: string | null,"source_type"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_bank_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"time_entries": {
+                  Row: {
+                    "approved": boolean,"break_minutes": number,"employee_id": string,"end_time": string,"id": string,"notes": string | null,"org_id": string,"source": string,"start_time": string,"work_date": string
+                  }
+                  Insert: {
+                    "approved"?: boolean,"break_minutes"?: number,"employee_id": string,"end_time": string,"id"?: string,"notes"?: string | null,"org_id": string,"source"?: string,"start_time": string,"work_date": string
+                  }
+                  Update: {
+                    "approved"?: boolean,"break_minutes"?: number,"employee_id"?: string,"end_time"?: string,"id"?: string,"notes"?: string | null,"org_id"?: string,"source"?: string,"start_time"?: string,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_entries_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"timesheets": {
+                  Row: {
+                    "absence_days": number,"bank_delta_min": number,"closed_at": string | null,"closed_by": string | null,"competence": string,"detail": NonNullable<Json>,"dsr_lost_days": number,"employee_id": string,"id": string,"late_min": number,"night_min": number,"org_id": string,"ot100_min": number,"ot50_min": number,"regular_min": number,"status": string
+                  }
+                  Insert: {
+                    "absence_days"?: number,"bank_delta_min"?: number,"closed_at"?: string | null,"closed_by"?: string | null,"competence": string,"detail"?: NonNullable<Json>,"dsr_lost_days"?: number,"employee_id": string,"id"?: string,"late_min"?: number,"night_min"?: number,"org_id": string,"ot100_min"?: number,"ot50_min"?: number,"regular_min"?: number,"status"?: string
+                  }
+                  Update: {
+                    "absence_days"?: number,"bank_delta_min"?: number,"closed_at"?: string | null,"closed_by"?: string | null,"competence"?: string,"detail"?: NonNullable<Json>,"dsr_lost_days"?: number,"employee_id"?: string,"id"?: string,"late_min"?: number,"night_min"?: number,"org_id"?: string,"ot100_min"?: number,"ot50_min"?: number,"regular_min"?: number,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "timesheets_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"vacation_periods": {
+                  Row: {
+                    "absences": number,"closed_reason": string | null,"concessive_end": string,"days_entitled": number,"employee_id": string,"id": string,"org_id": string,"period_end": string,"period_start": string
+                  }
+                  Insert: {
+                    "absences"?: number,"closed_reason"?: string | null,"concessive_end": string,"days_entitled"?: number,"employee_id": string,"id"?: string,"org_id": string,"period_end": string,"period_start": string
+                  }
+                  Update: {
+                    "absences"?: number,"closed_reason"?: string | null,"concessive_end"?: string,"days_entitled"?: number,"employee_id"?: string,"id"?: string,"org_id"?: string,"period_end"?: string,"period_start"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vacation_periods_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"vacations": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"days": number,"double_pay": boolean,"employee_id": string,"end_date": string,"id": string,"notes": string | null,"org_id": string,"pay_date": string | null,"payslip_id": string | null,"period_id": string,"sell_days": number,"start_date": string,"status": string,"thirteenth_advance": boolean,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"days": number,"double_pay"?: boolean,"employee_id": string,"end_date": string,"id"?: string,"notes"?: string | null,"org_id": string,"pay_date"?: string | null,"payslip_id"?: string | null,"period_id": string,"sell_days"?: number,"start_date": string,"status"?: string,"thirteenth_advance"?: boolean,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"days"?: number,"double_pay"?: boolean,"employee_id"?: string,"end_date"?: string,"id"?: string,"notes"?: string | null,"org_id"?: string,"pay_date"?: string | null,"payslip_id"?: string | null,"period_id"?: string,"sell_days"?: number,"start_date"?: string,"status"?: string,"thirteenth_advance"?: boolean,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vacations_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "vacations_payslip_fk"
+      columns: ["payslip_id"]
+isOneToOne: false
+      referencedRelation: "payslips"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "vacations_period_id_fkey"
+      columns: ["period_id"]
+isOneToOne: false
+      referencedRelation: "v_vacation_balance"
+      referencedColumns: ["period_id"]
+    },{
+      foreignKeyName: "vacations_period_id_fkey"
+      columns: ["period_id"]
+isOneToOne: false
+      referencedRelation: "vacation_periods"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            "v_time_bank_balance": {
+                  Row: {
+                    "balance_min": number | null,"employee_id": string | null,"org_id": string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_bank_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"v_vacation_balance": {
+                  Row: {
+                    "absences": number | null,"acquired": boolean | null,"concessive_end": string | null,"days_entitled": number | null,"days_left": number | null,"days_to_expire": number | null,"employee_id": string | null,"org_id": string | null,"period_end": string | null,"period_id": string | null,"period_start": string | null,"sold_days": number | null,"used_days": number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vacation_periods_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Functions: {
+            "accrue_provisions":
+{ Args: { "p_competence": string,"p_entity": string }; Returns: {
+              "competence": string,
+"created_at": string,
+"created_by": string | null,
+"id": string,
+"journal_entry_id": string | null,
+"legal_entity_id": string,
+"org_id": string,
+"totals": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "provision_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"add_leave":
+{ Args: { "p": Json }; Returns: {
+              "cid": string | null,
+"created_at": string,
+"created_by": string | null,
+"doc_ref": string | null,
+"employee_id": string,
+"end_date": string,
+"id": string,
+"inss_leave": boolean,
+"kind": string,
+"notes": string | null,
+"org_id": string,
+"paid": boolean,
+"start_date": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "leaves"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"add_manual_line":
+{ Args: { "p_amount": number,"p_code": string,"p_desc"?: string,"p_payslip": string,"p_source"?: string }; Returns: undefined
+                           },
+"approve_run":
+{ Args: { "p_run": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"competence": string,
+"created_at": string,
+"created_by": string | null,
+"description": string | null,
+"id": string,
+"journal_entry_id": string | null,
+"kind": string,
+"legal_entity_id": string,
+"notes": string | null,
+"org_id": string,
+"pay_date": string | null,
+"reference_id": string | null,
+"reference_type": string | null,
+"source": string,
+"status": string,
+"totals": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "payroll_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"approve_termination":
+{ Args: { "p_termination": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"computed": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"employee_id": string,
+"fgts_balance": number | null,
+"id": string,
+"kind": string,
+"notes": string | null,
+"notice_days": number | null,
+"notice_kind": string,
+"org_id": string,
+"reason": string | null,
+"run_id": string | null,
+"status": string,
+"termination_date": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "terminations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"approve_vacation":
+{ Args: { "p_vacation": string }; Returns: {
+              "created_at": string,
+"created_by": string | null,
+"days": number,
+"double_pay": boolean,
+"employee_id": string,
+"end_date": string,
+"id": string,
+"notes": string | null,
+"org_id": string,
+"pay_date": string | null,
+"payslip_id": string | null,
+"period_id": string,
+"sell_days": number,
+"start_date": string,
+"status": string,
+"thirteenth_advance": boolean,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "vacations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"calc_inss":
+{ Args: { "p_base": number,"p_on": string }; Returns: number
+                           },
+"calc_inss_prolabore":
+{ Args: { "p_base": number,"p_on": string }; Returns: number
+                           },
+"calc_irrf":
+{ Args: { "p_apply_reducer"?: boolean,"p_dependents": number,"p_inss": number,"p_on": string,"p_other_deductions"?: number,"p_taxable": number }; Returns: number
+                           },
+"calc_run":
+{ Args: { "p_run": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"competence": string,
+"created_at": string,
+"created_by": string | null,
+"description": string | null,
+"id": string,
+"journal_entry_id": string | null,
+"kind": string,
+"legal_entity_id": string,
+"notes": string | null,
+"org_id": string,
+"pay_date": string | null,
+"reference_id": string | null,
+"reference_type": string | null,
+"source": string,
+"status": string,
+"totals": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "payroll_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"cancel_run":
+{ Args: { "p_reason"?: string,"p_run": string }; Returns: undefined
+                           },
+"cancel_termination":
+{ Args: { "p_reason"?: string,"p_termination": string }; Returns: undefined
+                           },
+"cancel_vacation":
+{ Args: { "p_reason"?: string,"p_vacation": string }; Returns: undefined
+                           },
+"change_salary":
+{ Args: { "p_amount": number,"p_effective_from": string,"p_employee": string,"p_reason"?: string,"p_unit"?: string }; Returns: undefined
+                           },
+"close_timesheet":
+{ Args: { "p_competence": string,"p_employee": string,"p_force"?: boolean }; Returns: {
+              "absence_days": number,
+"bank_delta_min": number,
+"closed_at": string | null,
+"closed_by": string | null,
+"competence": string,
+"detail": NonNullable<Json>,
+"dsr_lost_days": number,
+"employee_id": string,
+"id": string,
+"late_min": number,
+"night_min": number,
+"org_id": string,
+"ot100_min": number,
+"ot50_min": number,
+"regular_min": number,
+"status": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "timesheets"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"copy_roster":
+{ Args: { "p_days": number,"p_source_from": string,"p_store": string,"p_target_from": string }; Returns: number
+                           },
+"create_employee":
+{ Args: { "p": Json }; Returns: {
+              "archived_at": string | null,
+"cbo": string | null,
+"commissioned": boolean,
+"contract_type": string,
+"cost_center_id": string | null,
+"created_at": string,
+"daily_minutes": number,
+"department": string | null,
+"experience_days": (number)[],
+"fgts": boolean,
+"hire_date": string,
+"id": string,
+"job_title": string,
+"legal_entity_id": string,
+"member_id": string | null,
+"notes": string | null,
+"org_id": string,
+"party_id": string,
+"registration": string,
+"status": string,
+"store_id": string | null,
+"termination_date": string | null,
+"time_bank": boolean,
+"track_time": boolean,
+"updated_at": string,
+"weekly_hours": number,
+"work_regime": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "employees"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"create_run":
+{ Args: { "p": Json }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"competence": string,
+"created_at": string,
+"created_by": string | null,
+"description": string | null,
+"id": string,
+"journal_entry_id": string | null,
+"kind": string,
+"legal_entity_id": string,
+"notes": string | null,
+"org_id": string,
+"pay_date": string | null,
+"reference_id": string | null,
+"reference_type": string | null,
+"source": string,
+"status": string,
+"totals": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "payroll_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"create_termination":
+{ Args: { "p": Json }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"computed": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"employee_id": string,
+"fgts_balance": number | null,
+"id": string,
+"kind": string,
+"notes": string | null,
+"notice_days": number | null,
+"notice_kind": string,
+"org_id": string,
+"reason": string | null,
+"run_id": string | null,
+"status": string,
+"termination_date": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "terminations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"link_member":
+{ Args: { "p_employee": string,"p_member": string }; Returns: undefined
+                           },
+"pay_vacation":
+{ Args: { "p_vacation": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"competence": string,
+"created_at": string,
+"created_by": string | null,
+"description": string | null,
+"id": string,
+"journal_entry_id": string | null,
+"kind": string,
+"legal_entity_id": string,
+"notes": string | null,
+"org_id": string,
+"pay_date": string | null,
+"reference_id": string | null,
+"reference_type": string | null,
+"source": string,
+"status": string,
+"totals": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "payroll_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"publish_roster":
+{ Args: { "p_from": string,"p_store": string,"p_to": string }; Returns: number
+                           },
+"recalc_termination":
+{ Args: { "p"?: Json,"p_termination": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"computed": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"employee_id": string,
+"fgts_balance": number | null,
+"id": string,
+"kind": string,
+"notes": string | null,
+"notice_days": number | null,
+"notice_kind": string,
+"org_id": string,
+"reason": string | null,
+"run_id": string | null,
+"status": string,
+"termination_date": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "terminations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"remove_line":
+{ Args: { "p_line": string }; Returns: undefined
+                           },
+"reopen_timesheet":
+{ Args: { "p_timesheet": string }; Returns: undefined
+                           },
+"roll_vacation_status":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"schedule_vacation":
+{ Args: { "p": Json }; Returns: {
+              "created_at": string,
+"created_by": string | null,
+"days": number,
+"double_pay": boolean,
+"employee_id": string,
+"end_date": string,
+"id": string,
+"notes": string | null,
+"org_id": string,
+"pay_date": string | null,
+"payslip_id": string | null,
+"period_id": string,
+"sell_days": number,
+"start_date": string,
+"status": string,
+"thirteenth_advance": boolean,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "vacations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_roster_cell":
+{ Args: { "p_date": string,"p_employee": string,"p_kind": string,"p_shift"?: string }; Returns: {
+              "break_minutes": number,
+"employee_id": string,
+"end_time": string | null,
+"id": string,
+"kind": string,
+"notes": string | null,
+"org_id": string,
+"shift_id": string | null,
+"start_time": string | null,
+"status": string,
+"store_id": string,
+"updated_at": string,
+"updated_by": string | null,
+"work_date": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "roster"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"tax_data":
+{ Args: { "p_kind": string,"p_on": string }; Returns: Json
+                           },
+"validate_roster":
+{ Args: { "p_from": string,"p_store": string,"p_to": string }; Returns: {
+              "code": string,"employee_id": string,"message": string,"severity": string,"work_date": string
+            }[]
                            }
           }
           Enums: {
@@ -3022,6 +4105,10 @@ export const Constants = {
           Enums: {
             "assortment_class": ["CORE", "DROP", "ACCESSORY"],"gender": ["FEM", "MASC", "UNISSEX"],"product_kind": ["GOODS", "SERVICE", "GIFT_WRAP", "FEE"],"product_status": ["DRAFT", "ACTIVE", "DISCONTINUED"]
           }
+        },"comm": {
+          Enums: {
+            
+          }
         },"core": {
           Enums: {
             "cost_center_kind": ["CORPORATE", "LEGAL_ENTITY", "STORE", "CHANNEL", "PROJECT_EVENT", "POOL"],"legal_entity_kind": ["OPERATING", "HOLDING"],"store_format": ["SHOP_IN_SHOP", "CONSIGNMENT_CORNER", "POPUP", "DIGITAL", "WAREHOUSE", "B2B"],"store_status": ["PLANNED", "ACTIVE", "CLOSED"]
@@ -3035,6 +4122,10 @@ export const Constants = {
             "account_group": ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "DEDUCTION", "COGS", "EXPENSE", "FINANCIAL"],"title_direction": ["RECEIVABLE", "PAYABLE"],"title_status": ["OPEN", "PARTIAL", "SETTLED", "CANCELLED", "RENEGOTIATED"]
           }
         },"fiscal": {
+          Enums: {
+            
+          }
+        },"hr": {
           Enums: {
             
           }

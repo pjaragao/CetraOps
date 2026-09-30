@@ -1984,7 +1984,58 @@ isOneToOne: false
           }
         },"fiscal": {
           Tables: {
-            "esocial_events": {
+            "document_installments": {
+                  Row: {
+                    "amount": number,"document_id": string,"due_date": string,"id": string,"n_dup": string | null,"org_id": string
+                  }
+                  Insert: {
+                    "amount": number,"document_id": string,"due_date": string,"id"?: string,"n_dup"?: string | null,"org_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"document_id"?: string,"due_date"?: string,"id"?: string,"n_dup"?: string | null,"org_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "document_installments_document_id_fkey"
+      columns: ["document_id"]
+isOneToOne: false
+      referencedRelation: "documents"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"document_items": {
+                  Row: {
+                    "cean": string | null,"cest": string | null,"cfop": string | null,"cprod": string | null,"csosn": string | null,"cst": string | null,"document_id": string,"id": string,"n_item": number,"ncm": string | null,"org_id": string,"qcom": number | null,"taxes": NonNullable<Json>,"ucom": string | null,"variant_id": string | null,"vdesc": number,"vfrete": number,"vicmsst": number,"vipi": number,"voutro": number,"vprod": number | null,"vseg": number,"vuncom": number | null,"xprod": string | null
+                  }
+                  Insert: {
+                    "cean"?: string | null,"cest"?: string | null,"cfop"?: string | null,"cprod"?: string | null,"csosn"?: string | null,"cst"?: string | null,"document_id": string,"id"?: string,"n_item": number,"ncm"?: string | null,"org_id": string,"qcom"?: number | null,"taxes"?: NonNullable<Json>,"ucom"?: string | null,"variant_id"?: string | null,"vdesc"?: number,"vfrete"?: number,"vicmsst"?: number,"vipi"?: number,"voutro"?: number,"vprod"?: number | null,"vseg"?: number,"vuncom"?: number | null,"xprod"?: string | null
+                  }
+                  Update: {
+                    "cean"?: string | null,"cest"?: string | null,"cfop"?: string | null,"cprod"?: string | null,"csosn"?: string | null,"cst"?: string | null,"document_id"?: string,"id"?: string,"n_item"?: number,"ncm"?: string | null,"org_id"?: string,"qcom"?: number | null,"taxes"?: NonNullable<Json>,"ucom"?: string | null,"variant_id"?: string | null,"vdesc"?: number,"vfrete"?: number,"vicmsst"?: number,"vipi"?: number,"voutro"?: number,"vprod"?: number | null,"vseg"?: number,"vuncom"?: number | null,"xprod"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "document_items_document_id_fkey"
+      columns: ["document_id"]
+isOneToOne: false
+      referencedRelation: "documents"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"documents": {
+                  Row: {
+                    "access_key": string | null,"cfop_main": string | null,"counterpart_cnpj": string | null,"counterpart_name": string | null,"counterpart_party_id": string | null,"created_at": string,"created_by": string | null,"danfe_path": string | null,"direction": string,"events": NonNullable<Json>,"fin_nfe": number,"id": string,"idempotency_key": string | null,"issue_at": string | null,"legal_entity_id": string,"model": string,"number": number | null,"operation_nature": string | null,"order_id": string | null,"org_id": string,"protocol": string | null,"provider_ref": string | null,"receipt_id": string | null,"referenced_keys": (string)[],"return_id": string | null,"sefaz_code": string | null,"sefaz_msg": string | null,"series": number | null,"status": string,"totals": NonNullable<Json>,"transfer_id": string | null,"updated_at": string,"xml": string | null,"xml_path": string | null
+                  }
+                  Insert: {
+                    "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction": string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id": string,"model": string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id": string,"protocol"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
+                  }
+                  Update: {
+                    "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction"?: string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id"?: string,"model"?: string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id"?: string,"protocol"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"esocial_events": {
                   Row: {
                     "competence": string | null,"created_at": string,"event": string,"id": string,"legal_entity_id": string,"org_id": string,"payload": NonNullable<Json>,"reference_id": string | null,"reference_type": string | null,"status": string
                   }
@@ -1996,6 +2047,25 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"inbound_dfe": {
+                  Row: {
+                    "access_key": string,"amount": number | null,"created_at": string,"document_id": string | null,"id": string,"issue_at": string | null,"issuer_cnpj": string | null,"issuer_name": string | null,"legal_entity_id": string,"manifest_status": string,"nsu": string | null,"org_id": string,"xml_downloaded": boolean
+                  }
+                  Insert: {
+                    "access_key": string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"legal_entity_id": string,"manifest_status"?: string,"nsu"?: string | null,"org_id": string,"xml_downloaded"?: boolean
+                  }
+                  Update: {
+                    "access_key"?: string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"legal_entity_id"?: string,"manifest_status"?: string,"nsu"?: string | null,"org_id"?: string,"xml_downloaded"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "inbound_dfe_document_id_fkey"
+      columns: ["document_id"]
+isOneToOne: false
+      referencedRelation: "documents"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"obligations": {
                   Row: {
@@ -2042,7 +2112,16 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "post_das":
+            "nfe_key_dv":
+{ Args: { "p_key43": string }; Returns: number
+                           },
+"nfe_key_valid":
+{ Args: { "p_key": string }; Returns: boolean
+                           },
+"parse_nfe":
+{ Args: { "p_xml": string }; Returns: Json
+                           },
+"post_das":
 { Args: { "p_competence": string,"p_entity": string }; Returns: {
               "competence": string,
 "created_at": string,
@@ -3583,6 +3662,399 @@ isOneToOne: false
           CompositeTypes: {
             [_ in never]: never
           }
+        },"purch": {
+          Tables: {
+            "payment_terms": {
+                  Row: {
+                    "active": boolean,"id": string,"installments": NonNullable<Json>,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"id"?: string,"installments"?: NonNullable<Json>,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"id"?: string,"installments"?: NonNullable<Json>,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"po_items": {
+                  Row: {
+                    "id": string,"org_id": string,"po_id": string,"qty_ordered": number,"qty_received": number,"unit_cost": number,"variant_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"org_id": string,"po_id": string,"qty_ordered": number,"qty_received"?: number,"unit_cost": number,"variant_id": string
+                  }
+                  Update: {
+                    "id"?: string,"org_id"?: string,"po_id"?: string,"qty_ordered"?: number,"qty_received"?: number,"unit_cost"?: number,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "po_items_po_id_fkey"
+      columns: ["po_id"]
+isOneToOne: false
+      referencedRelation: "purchase_orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"purchase_orders": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"cancelled_reason": string | null,"collection_id": string | null,"created_at": string,"created_by": string | null,"expected_date": string | null,"id": string,"legal_entity_id": string,"location_id": string,"notes": string | null,"number": string,"org_id": string,"payment_terms_id": string | null,"status": string,"store_id": string | null,"supplier_party_id": string,"total": number,"updated_at": string
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"cancelled_reason"?: string | null,"collection_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"expected_date"?: string | null,"id"?: string,"legal_entity_id": string,"location_id": string,"notes"?: string | null,"number": string,"org_id": string,"payment_terms_id"?: string | null,"status"?: string,"store_id"?: string | null,"supplier_party_id": string,"total"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"cancelled_reason"?: string | null,"collection_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"expected_date"?: string | null,"id"?: string,"legal_entity_id"?: string,"location_id"?: string,"notes"?: string | null,"number"?: string,"org_id"?: string,"payment_terms_id"?: string | null,"status"?: string,"store_id"?: string | null,"supplier_party_id"?: string,"total"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "purchase_orders_payment_terms_id_fkey"
+      columns: ["payment_terms_id"]
+isOneToOne: false
+      referencedRelation: "payment_terms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"receipt_items": {
+                  Row: {
+                    "cean": string | null,"cfop": string | null,"description": string | null,"id": string,"item_total": number,"landed_unit_cost": number | null,"match_confidence": number | null,"match_status": string,"movement_id": number | null,"n_item": number,"ncm": string | null,"org_id": string,"qty_counted": number | null,"qty_nfe": number,"receipt_id": string,"supplier_cprod": string | null,"unit": string | null,"unit_cost_nfe": number | null,"variant_id": string | null
+                  }
+                  Insert: {
+                    "cean"?: string | null,"cfop"?: string | null,"description"?: string | null,"id"?: string,"item_total": number,"landed_unit_cost"?: number | null,"match_confidence"?: number | null,"match_status"?: string,"movement_id"?: number | null,"n_item": number,"ncm"?: string | null,"org_id": string,"qty_counted"?: number | null,"qty_nfe": number,"receipt_id": string,"supplier_cprod"?: string | null,"unit"?: string | null,"unit_cost_nfe"?: number | null,"variant_id"?: string | null
+                  }
+                  Update: {
+                    "cean"?: string | null,"cfop"?: string | null,"description"?: string | null,"id"?: string,"item_total"?: number,"landed_unit_cost"?: number | null,"match_confidence"?: number | null,"match_status"?: string,"movement_id"?: number | null,"n_item"?: number,"ncm"?: string | null,"org_id"?: string,"qty_counted"?: number | null,"qty_nfe"?: number,"receipt_id"?: string,"supplier_cprod"?: string | null,"unit"?: string | null,"unit_cost_nfe"?: number | null,"variant_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "receipt_items_receipt_id_fkey"
+      columns: ["receipt_id"]
+isOneToOne: false
+      referencedRelation: "receipts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"receipts": {
+                  Row: {
+                    "checked_at": string | null,"checked_by": string | null,"created_at": string,"created_by": string | null,"credit_id": string | null,"document_id": string | null,"entry_id": string | null,"id": string,"landed_total": number | null,"legal_entity_id": string,"location_id": string,"nf_total": number,"notes": string | null,"number": string,"org_id": string,"po_id": string | null,"post_ref": string | null,"posted_at": string | null,"posted_by": string | null,"shortage_total": number,"status": string,"store_id": string | null,"supplier_party_id": string,"title_id": string | null
+                  }
+                  Insert: {
+                    "checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"credit_id"?: string | null,"document_id"?: string | null,"entry_id"?: string | null,"id"?: string,"landed_total"?: number | null,"legal_entity_id": string,"location_id": string,"nf_total": number,"notes"?: string | null,"number": string,"org_id": string,"po_id"?: string | null,"post_ref"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"shortage_total"?: number,"status"?: string,"store_id"?: string | null,"supplier_party_id": string,"title_id"?: string | null
+                  }
+                  Update: {
+                    "checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"credit_id"?: string | null,"document_id"?: string | null,"entry_id"?: string | null,"id"?: string,"landed_total"?: number | null,"legal_entity_id"?: string,"location_id"?: string,"nf_total"?: number,"notes"?: string | null,"number"?: string,"org_id"?: string,"po_id"?: string | null,"post_ref"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"shortage_total"?: number,"status"?: string,"store_id"?: string | null,"supplier_party_id"?: string,"title_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "receipts_po_id_fkey"
+      columns: ["po_id"]
+isOneToOne: false
+      referencedRelation: "purchase_orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "accept_suggestions":
+{ Args: { "p_receipt": string }; Returns: number
+                           },
+"approve_po":
+{ Args: { "p_po": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"cancelled_reason": string | null,
+"collection_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"expected_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"payment_terms_id": string | null,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "purchase_orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"cancel_po":
+{ Args: { "p_po": string,"p_reason": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"cancelled_reason": string | null,
+"collection_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"expected_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"payment_terms_id": string | null,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "purchase_orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"close_po":
+{ Args: { "p_po": string }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"cancelled_reason": string | null,
+"collection_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"expected_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"payment_terms_id": string | null,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "purchase_orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"confirm_receipt":
+{ Args: { "p_receipt": string }; Returns: {
+              "checked_at": string | null,
+"checked_by": string | null,
+"created_at": string,
+"created_by": string | null,
+"credit_id": string | null,
+"document_id": string | null,
+"entry_id": string | null,
+"id": string,
+"landed_total": number | null,
+"legal_entity_id": string,
+"location_id": string,
+"nf_total": number,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"po_id": string | null,
+"post_ref": string | null,
+"posted_at": string | null,
+"posted_by": string | null,
+"shortage_total": number,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"title_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "receipts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"count_all":
+{ Args: { "p_receipt": string }; Returns: number
+                           },
+"discard_receipt":
+{ Args: { "p_receipt": string }; Returns: undefined
+                           },
+"ensure_supplier":
+{ Args: { "p_cnpj": string,"p_name": string }; Returns: string
+                           },
+"import_nfe":
+{ Args: { "p_location": string,"p_po"?: string,"p_xml": string }; Returns: {
+              "checked_at": string | null,
+"checked_by": string | null,
+"created_at": string,
+"created_by": string | null,
+"credit_id": string | null,
+"document_id": string | null,
+"entry_id": string | null,
+"id": string,
+"landed_total": number | null,
+"legal_entity_id": string,
+"location_id": string,
+"nf_total": number,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"po_id": string | null,
+"post_ref": string | null,
+"posted_at": string | null,
+"posted_by": string | null,
+"shortage_total": number,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"title_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "receipts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"post_receipt":
+{ Args: { "p_installments"?: Json,"p_receipt": string }; Returns: {
+              "checked_at": string | null,
+"checked_by": string | null,
+"created_at": string,
+"created_by": string | null,
+"credit_id": string | null,
+"document_id": string | null,
+"entry_id": string | null,
+"id": string,
+"landed_total": number | null,
+"legal_entity_id": string,
+"location_id": string,
+"nf_total": number,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"po_id": string | null,
+"post_ref": string | null,
+"posted_at": string | null,
+"posted_by": string | null,
+"shortage_total": number,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"title_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "receipts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"replenishment":
+{ Args: { "p_cover"?: number,"p_lead"?: number,"p_location": string,"p_lookback"?: number,"p_safety"?: number }; Returns: {
+              "color": string,"days_cover": number,"last_cost": number,"on_hand": number,"on_order": number,"product_name": string,"reserved": number,"size": string,"sku": string,"sold": number,"suggested": number,"supplier_party_id": string,"target": number,"variant_id": string,"velocity": number
+            }[]
+                           },
+"reverse_receipt":
+{ Args: { "p_reason": string,"p_receipt": string }; Returns: {
+              "checked_at": string | null,
+"checked_by": string | null,
+"created_at": string,
+"created_by": string | null,
+"credit_id": string | null,
+"document_id": string | null,
+"entry_id": string | null,
+"id": string,
+"landed_total": number | null,
+"legal_entity_id": string,
+"location_id": string,
+"nf_total": number,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"po_id": string | null,
+"post_ref": string | null,
+"posted_at": string | null,
+"posted_by": string | null,
+"shortage_total": number,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"title_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "receipts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_po":
+{ Args: { "p": Json }; Returns: {
+              "approved_at": string | null,
+"approved_by": string | null,
+"cancelled_reason": string | null,
+"collection_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"expected_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"payment_terms_id": string | null,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "purchase_orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_receipt_item":
+{ Args: { "p": Json,"p_item": string }; Returns: {
+              "cean": string | null,
+"cfop": string | null,
+"description": string | null,
+"id": string,
+"item_total": number,
+"landed_unit_cost": number | null,
+"match_confidence": number | null,
+"match_status": string,
+"movement_id": number | null,
+"n_item": number,
+"ncm": string | null,
+"org_id": string,
+"qty_counted": number | null,
+"qty_nfe": number,
+"receipt_id": string,
+"supplier_cprod": string | null,
+"unit": string | null,
+"unit_cost_nfe": number | null,
+"variant_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "receipt_items"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
         },"sales": {
           Tables: {
             "cash_registers": {
@@ -4136,6 +4608,10 @@ export const Constants = {
         },"omni": {
           Enums: {
             "channel": ["WHATSAPP", "INSTAGRAM", "TELEGRAM", "TIKTOK"],"conv_mode": ["AI_AUTOPILOT", "AI_COPILOT", "HUMAN", "WAITING_HUMAN"]
+          }
+        },"purch": {
+          Enums: {
+            
           }
         },"sales": {
           Enums: {

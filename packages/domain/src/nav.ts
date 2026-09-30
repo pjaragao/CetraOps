@@ -63,7 +63,9 @@ export const NAV: NavArea[] = [
       { label: "Catálogo", href: "/produtos", ready: true },
       { label: "Estoque", href: "/produtos/estoque", permission: "inv.read", ready: true },
       { label: "Importar catálogo", href: "/produtos/importar", permission: "catalog.write", ready: true },
-      { label: "Compras & recebimento", href: "/produtos/compras", ready: false },
+      { label: "Pedidos de compra", href: "/produtos/compras", permission: "purch.read", ready: true },
+      { label: "Recebimento de NF-e", href: "/produtos/recebimento", permission: "purch.read", ready: true },
+      { label: "Reposição", href: "/produtos/reposicao", permission: "purch.read", ready: true },
     ],
   },
   {
@@ -87,7 +89,7 @@ export const NAV: NavArea[] = [
       { label: "Obrigações", href: "/fiscal/obrigacoes", ready: true },
       { label: "eSocial", href: "/fiscal/esocial", ready: true },
       { label: "Notas emitidas", href: "/fiscal/emitidas", ready: false },
-      { label: "Notas recebidas", href: "/fiscal/recebidas", ready: false },
+      { label: "Notas recebidas", href: "/fiscal/recebidas", ready: true },
     ],
   },
   {

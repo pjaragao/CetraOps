@@ -46,8 +46,8 @@ export const NAV: NavArea[] = [
       { label: "Clientes & Leads", href: "/clientes", ready: true },
       { label: "Funis", href: "/clientes/funis", ready: true },
       { label: "Tarefas", href: "/clientes/tarefas", ready: true },
-      { label: "Prospecção assistida", href: "/clientes/prospeccao", ready: false },
-      { label: "Afiliados", href: "/clientes/afiliados", ready: false },
+      { label: "Prospecção assistida", href: "/clientes/prospeccao", ready: true },
+      { label: "Afiliados", href: "/clientes/afiliados", ready: true },
     ],
   },
   {

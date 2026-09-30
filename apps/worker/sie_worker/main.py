@@ -18,7 +18,7 @@ from .ai.llm import LLM
 from .config import Settings, get_settings
 from .db import make_pool
 from .deps import Deps
-from .handlers import fiscal, inbound, integrations, media, notifications, outbound, persona, router, templates
+from .handlers import ai_tasks, fiscal, inbound, integrations, media, notifications, outbound, persona, router, templates
 from .runner import consume_forever, drain
 
 Handler = Callable[[Deps, queues.QueueMessage], Awaitable[None]]
@@ -33,6 +33,7 @@ HANDLERS: dict[str, Handler] = {
     "integration_checks": integrations.handle,
     "template_tasks": templates.handle,
     "persona_tasks": persona.handle,
+    "ai_tasks": ai_tasks.handle,
 }
 
 

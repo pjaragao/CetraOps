@@ -3,7 +3,148 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type Database = {
   
-  "ai": {
+  "aff": {
+          Tables: {
+            "affiliates": {
+                  Row: {
+                    "commission_pct": number,"coupon_id": string,"created_at": string,"id": string,"notes": string | null,"org_id": string,"party_id": string,"payout_mode": string,"status": string,"student_discount_pct": number,"updated_at": string
+                  }
+                  Insert: {
+                    "commission_pct"?: number,"coupon_id": string,"created_at"?: string,"id"?: string,"notes"?: string | null,"org_id": string,"party_id": string,"payout_mode"?: string,"status"?: string,"student_discount_pct"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "commission_pct"?: number,"coupon_id"?: string,"created_at"?: string,"id"?: string,"notes"?: string | null,"org_id"?: string,"party_id"?: string,"payout_mode"?: string,"status"?: string,"student_discount_pct"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"statements": {
+                  Row: {
+                    "affiliate_id": string,"approved_at": string | null,"approved_by": string | null,"commission": number,"commission_pct": number,"competence": string,"created_at": string,"detail": NonNullable<Json>,"id": string,"orders_count": number,"org_id": string,"paid_at": string | null,"payable_title_ids": (string)[],"payout_mode": string,"returns_amount": number,"sales_amount": number,"status": string,"updated_at": string
+                  }
+                  Insert: {
+                    "affiliate_id": string,"approved_at"?: string | null,"approved_by"?: string | null,"commission"?: number,"commission_pct": number,"competence": string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"orders_count"?: number,"org_id": string,"paid_at"?: string | null,"payable_title_ids"?: (string)[],"payout_mode": string,"returns_amount"?: number,"sales_amount"?: number,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "affiliate_id"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"commission"?: number,"commission_pct"?: number,"competence"?: string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"orders_count"?: number,"org_id"?: string,"paid_at"?: string | null,"payable_title_ids"?: (string)[],"payout_mode"?: string,"returns_amount"?: number,"sales_amount"?: number,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "statements_affiliate_id_fkey"
+      columns: ["affiliate_id"]
+isOneToOne: false
+      referencedRelation: "affiliates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "approve_statement":
+{ Args: { "p_id": string }; Returns: {
+              "affiliate_id": string,
+"approved_at": string | null,
+"approved_by": string | null,
+"commission": number,
+"commission_pct": number,
+"competence": string,
+"created_at": string,
+"detail": NonNullable<Json>,
+"id": string,
+"orders_count": number,
+"org_id": string,
+"paid_at": string | null,
+"payable_title_ids": (string)[],
+"payout_mode": string,
+"returns_amount": number,
+"sales_amount": number,
+"status": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "statements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"generate_statement":
+{ Args: { "p_affiliate": string,"p_competence": string }; Returns: {
+              "affiliate_id": string,
+"approved_at": string | null,
+"approved_by": string | null,
+"commission": number,
+"commission_pct": number,
+"competence": string,
+"created_at": string,
+"detail": NonNullable<Json>,
+"id": string,
+"orders_count": number,
+"org_id": string,
+"paid_at": string | null,
+"payable_title_ids": (string)[],
+"payout_mode": string,
+"returns_amount": number,
+"sales_amount": number,
+"status": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "statements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_affiliate":
+{ Args: { "p": Json }; Returns: {
+              "commission_pct": number,
+"coupon_id": string,
+"created_at": string,
+"id": string,
+"notes": string | null,
+"org_id": string,
+"party_id": string,
+"payout_mode": string,
+"status": string,
+"student_discount_pct": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "affiliates"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_affiliate_status":
+{ Args: { "p_id": string,"p_status": string }; Returns: {
+              "commission_pct": number,
+"coupon_id": string,
+"created_at": string,
+"id": string,
+"notes": string | null,
+"org_id": string,
+"party_id": string,
+"payout_mode": string,
+"status": string,
+"student_discount_pct": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "affiliates"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"ai": {
           Tables: {
             "corpus_dialogues": {
                   Row: {
@@ -1195,13 +1336,13 @@ isOneToOne: false
                   ]
                 },"outreach_items": {
                   Row: {
-                    "assigned_member_id": string | null,"channel": Database["crm"]['Enums']["contact_type"],"created_at": string,"due_on": string,"evidence_message_id": string | null,"id": string,"org_id": string,"party_id": string,"playbook_step": string,"status": string,"suggested_message": string | null,"updated_at": string
+                    "assigned_member_id": string | null,"channel": Database["crm"]['Enums']["contact_type"],"created_at": string,"done_at": string | null,"due_on": string,"evidence_message_id": string | null,"id": string,"org_id": string,"party_id": string,"playbook_step": string,"skip_reason": string | null,"status": string,"suggested_message": string | null,"updated_at": string
                   }
                   Insert: {
-                    "assigned_member_id"?: string | null,"channel": Database["crm"]['Enums']["contact_type"],"created_at"?: string,"due_on"?: string,"evidence_message_id"?: string | null,"id"?: string,"org_id": string,"party_id": string,"playbook_step": string,"status"?: string,"suggested_message"?: string | null,"updated_at"?: string
+                    "assigned_member_id"?: string | null,"channel": Database["crm"]['Enums']["contact_type"],"created_at"?: string,"done_at"?: string | null,"due_on"?: string,"evidence_message_id"?: string | null,"id"?: string,"org_id": string,"party_id": string,"playbook_step": string,"skip_reason"?: string | null,"status"?: string,"suggested_message"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "assigned_member_id"?: string | null,"channel"?: Database["crm"]['Enums']["contact_type"],"created_at"?: string,"due_on"?: string,"evidence_message_id"?: string | null,"id"?: string,"org_id"?: string,"party_id"?: string,"playbook_step"?: string,"status"?: string,"suggested_message"?: string | null,"updated_at"?: string
+                    "assigned_member_id"?: string | null,"channel"?: Database["crm"]['Enums']["contact_type"],"created_at"?: string,"done_at"?: string | null,"due_on"?: string,"evidence_message_id"?: string | null,"id"?: string,"org_id"?: string,"party_id"?: string,"playbook_step"?: string,"skip_reason"?: string | null,"status"?: string,"suggested_message"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1443,6 +1584,9 @@ isOneToOne: false
             "delete_deal":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"generate_outreach":
+{ Args: { "p_limit"?: number }; Returns: number
+                           },
 "move_deal":
 { Args: { "p_deal": string,"p_reason"?: string,"p_stage": string }; Returns: {
               "conversation_id": string | null,
@@ -1466,6 +1610,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"outreach_set_draft":
+{ Args: { "p_id": string,"p_message": string }; Returns: undefined
+                           },
 "quick_customer":
 { Args: { "p_marketing_whatsapp"?: boolean,"p_name"?: string,"p_phone": string }; Returns: string
                            },
@@ -1520,6 +1667,29 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_outreach_message":
+{ Args: { "p_id": string,"p_message": string }; Returns: {
+              "assigned_member_id": string | null,
+"channel": Database["crm"]['Enums']["contact_type"],
+"created_at": string,
+"done_at": string | null,
+"due_on": string,
+"evidence_message_id": string | null,
+"id": string,
+"org_id": string,
+"party_id": string,
+"playbook_step": string,
+"skip_reason": string | null,
+"status": string,
+"suggested_message": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "outreach_items"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_task":
 { Args: { "p": Json }; Returns: {
               "assignee_member_id": string | null,
@@ -1542,6 +1712,29 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "tasks"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_outreach_status":
+{ Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
+              "assigned_member_id": string | null,
+"channel": Database["crm"]['Enums']["contact_type"],
+"created_at": string,
+"done_at": string | null,
+"due_on": string,
+"evidence_message_id": string | null,
+"id": string,
+"org_id": string,
+"party_id": string,
+"playbook_step": string,
+"skip_reason": string | null,
+"status": string,
+"suggested_message": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "outreach_items"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -5648,7 +5841,11 @@ export type CompositeTypes<
   : never
 
 export const Constants = {
-  "ai": {
+  "aff": {
+          Enums: {
+            
+          }
+        },"ai": {
           Enums: {
             
           }

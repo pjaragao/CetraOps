@@ -279,3 +279,11 @@ def test_persona_label_helpers_keep_only_known_values() -> None:
     assert labels.clean_label("inventada", labels.INTENTS) == "outro" and labels.clean_label("PRECO", labels.INTENTS) == "preco"
     assert labels.clean_topics(["Família", "familia", " Tamanho ", "a", "b"]) == ["família", "familia", "tamanho"]
     assert "NUNCA diz que é Luisa" in labels.TRANSPARENCY.format(name="Luisa") and "{PRECO}" in labels.TRANSPARENCY.format(name="Luisa")
+
+
+def test_team_instruction_reaches_the_volatile_prompt_only_when_present() -> None:
+    from sie_worker.ai import prompts
+
+    base = dict(ctx_token="t", mode="AI_COPILOT", channel="WHATSAPP", window_mode="FREE_FORM", party_first_name="Ana")
+    assert "Instrução da equipe" not in prompts.system_volatile(**base)
+    assert "confirme o endereço" in prompts.system_volatile(**base, instruction="confirme o endereço")

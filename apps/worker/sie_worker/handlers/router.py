@@ -173,7 +173,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         return await deps.agent.run(AgentInput(  # type: ignore[union-attr]
             run_id=run_id, ctx=ctx, ctx_token=token, system_stable=prompts.system_stable(persona["system_prompt"] if persona else None, persona["guardrails"] if persona else None),
             system_volatile=prompts.system_volatile(ctx_token=token, mode=mode, channel=claim["channel"], window_mode=claim.get("window_mode"),
-                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id, examples=examples),
+                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id, examples=examples, instruction=claim.get("instruction")),
             history=history, model=route["primary_model"], fallback_models=list(route.get("fallback_models") or []), params=route.get("params") or {},
             provider_prefs=route.get("provider_prefs") or {}))
 

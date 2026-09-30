@@ -1,15 +1,18 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Bot, FileText, Send, Sparkles, UserRound } from "lucide-react";
+import { ArrowLeft, Bot, FileText, PauseCircle, PlayCircle, Send, Sparkles, StickyNote, Undo2, UserRound } from "lucide-react";
 import { canSend, firstName, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@sie/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
-import { discardDraft, markRead, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
+import { addNote, assignConversation, discardDraft, markRead, pauseAi, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
 
 interface Msg { id: string; direction: string; author_type: string; body: string | null; transcript: string | null; type: string; status: string; created_at: string }
 interface Draft { id: string; variants: { messages: string[] }[]; confidence: number | null; intent: string | null; needsHuman: boolean }
 interface Tpl { id: string; name: string; category: string; body: string; examples: string[] }
 interface QuickReply { id: string; shortcut: string; body: string }
+interface Member { id: string; name: string }
+interface Note { id: string; member_id: string | null; body: string; mentions: string[]; created_at: string }
+const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 
 const MODES: { value: ConvMode; label: string; icon: typeof Bot }[] = [
   { value: "AI_AUTOPILOT", label: "IA Piloto", icon: Bot },
@@ -20,6 +23,7 @@ const MODES: { value: ConvMode; label: string; icon: typeof Bot }[] = [
 export function ConversationPane(props: {
   conversationId: string; mode: ConvMode; channel: MessagingChannel; lastInboundAt: string | null;
   customerName: string; messages: Msg[]; draft: Draft | null; backHref: string; templates: Tpl[]; quickReplies: QuickReply[];
+  aiPausedUntil: string | null; aiInstruction: string | null; assigneeId: string | null; meId: string; members: Member[]; notes: Note[];
 }) {
   const [text, setText] = useState("");
   const [editingDraft, setEditingDraft] = useState<string | null>(null);
@@ -29,8 +33,12 @@ export function ConversationPane(props: {
   const [tplOpen, setTplOpen] = useState(false);
   const [tplId, setTplId] = useState("");
   const [tplParams, setTplParams] = useState<string[]>([]);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [instruction, setInstruction] = useState("");
 
-  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [props.messages.length]);
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [props.messages.length, props.notes.length]);
   useEffect(() => { void markRead(props.conversationId); }, [props.conversationId, props.messages.length]);
 
   const last = props.lastInboundAt ? new Date(props.lastInboundAt) : null;
@@ -40,6 +48,16 @@ export function ConversationPane(props: {
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) =>
     start(async () => { setError(null); const r = await fn(); if (!r.ok) setError(r.error ?? "Erro"); else after?.(); });
+
+  const [now] = useState(() => Date.now());
+  const paused = props.aiPausedUntil !== null && new Date(props.aiPausedUntil).getTime() > now;
+  const aiMode = props.mode === "AI_AUTOPILOT" || props.mode === "AI_COPILOT";
+  const who = new Map(props.members.map((m) => [m.id, m.name]));
+  const thread = [
+    ...props.messages.map((m) => ({ kind: "msg" as const, at: m.created_at, m })),
+    ...props.notes.map((n) => ({ kind: "note" as const, at: n.created_at, n })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
+  const mentionIds = props.members.filter((m) => note.includes(`@${m.name}`)).map((m) => m.id);
 
   const draftText = props.draft?.variants?.[0]?.messages?.join("\n\n") ?? "";
 
@@ -82,22 +100,83 @@ export function ConversationPane(props: {
         {props.mode === "WAITING_HUMAN" && <Badge tone="warning">Cliente aguardando humano</Badge>}
       </header>
 
+      <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-1.5 text-xs">
+        <label className="flex items-center gap-1 text-muted">Responsável
+          <select value={props.assigneeId ?? ""} disabled={pending} aria-label="Responsável"
+            onChange={(e) => run(() => assignConversation(props.conversationId, e.target.value))}
+            className="rounded-md border border-border bg-surface px-1.5 py-1 text-text">
+            <option value="">Sem dono</option>
+            {props.members.map((m) => <option key={m.id} value={m.id}>{m.name}{m.id === props.meId ? " (eu)" : ""}</option>)}
+          </select>
+        </label>
+        {aiMode && (paused ? (
+          <Button type="button" variant="secondary" className="px-2 py-1 text-xs" disabled={pending} onClick={() => run(() => pauseAi(props.conversationId, 0))}>
+            <PlayCircle size={13} /> IA pausada até {hhmm(props.aiPausedUntil!)} · Retomar
+          </Button>
+        ) : (
+          <Button type="button" variant="ghost" className="px-2 py-1 text-xs" disabled={pending} onClick={() => run(() => pauseAi(props.conversationId, 120))}>
+            <PauseCircle size={13} /> Pausar IA 2 h
+          </Button>
+        ))}
+        {(props.mode === "HUMAN" || props.mode === "WAITING_HUMAN") && (
+          <Button type="button" variant="ghost" className="px-2 py-1 text-xs" aria-expanded={returnOpen} onClick={() => setReturnOpen((o) => !o)}>
+            <Undo2 size={13} /> Devolver para a IA
+          </Button>
+        )}
+        <Button type="button" variant="ghost" className="ml-auto px-2 py-1 text-xs" aria-expanded={noteOpen} onClick={() => setNoteOpen((o) => !o)}>
+          <StickyNote size={13} /> Nota interna
+        </Button>
+      </div>
+      {aiMode && props.aiInstruction && <p className="border-b border-border bg-accent/10 px-3 py-1 text-xs"><span className="font-medium">Instrução para a IA:</span> {props.aiInstruction}</p>}
+      {returnOpen && (
+        <div className="space-y-2 border-b border-border bg-surface-2/50 px-3 py-2 text-sm">
+          <label className="block text-xs text-muted">Instrução para a IA (opcional, vale até alguém assumir de novo)
+            <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={2} maxLength={500} placeholder="Ex.: confirme o endereço e envie o link de pagamento" className={cn(inputClass, "mt-1 resize-none")} />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" disabled={pending} onClick={() => run(() => returnToAi(props.conversationId, "AI_COPILOT", instruction), () => { setInstruction(""); setReturnOpen(false); })}>Devolver em Copiloto</Button>
+            <Button type="button" variant="secondary" disabled={pending} onClick={() => run(() => returnToAi(props.conversationId, "AI_AUTOPILOT", instruction), () => { setInstruction(""); setReturnOpen(false); })}>Devolver em Piloto</Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
-        {props.messages.map((m) => (
-          <div key={m.id} className={cn("flex", m.direction === "OUT" ? "justify-end" : "justify-start")}>
+        {thread.map((t) => t.kind === "note" ? (
+          <div key={t.n.id} className="mx-auto max-w-[90%] rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
+            <p className="mb-0.5 font-medium text-muted"><StickyNote size={11} className="mr-1 inline" />Nota interna (a cliente não vê) · {t.n.member_id ? who.get(t.n.member_id) ?? "equipe" : "sistema"} · {hhmm(t.n.created_at)}</p>
+            <p className="whitespace-pre-line">{t.n.body}</p>
+          </div>
+        ) : (
+          <div key={t.m.id} className={cn("flex", t.m.direction === "OUT" ? "justify-end" : "justify-start")}>
             <div className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line",
-              m.direction === "OUT" ? "bg-brand/10" : "bg-surface-2")}>
-              {m.body ?? (m.transcript ? `🎙️ ${m.transcript}` : `[${m.type}]`)}
+              t.m.direction === "OUT" ? "bg-brand/10" : "bg-surface-2")}>
+              {t.m.body ?? (t.m.transcript ? `🎙️ ${t.m.transcript}` : `[${t.m.type}]`)}
               <span className="mt-1 block text-right text-[10px] text-muted">
-                {m.author_type === "AI" ? "IA · " : m.author_type === "ECHO_FROM_APP" ? "pelo app · " : m.author_type === "HUMAN" ? "equipe · " : ""}
-                {new Date(m.created_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
-                {m.direction === "OUT" && ` · ${m.status.toLowerCase()}`}
+                {t.m.author_type === "AI" ? "IA · " : t.m.author_type === "ECHO_FROM_APP" ? "pelo app · " : t.m.author_type === "HUMAN" ? "equipe · " : ""}
+                {new Date(t.m.created_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
+                {t.m.direction === "OUT" && ` · ${t.m.status.toLowerCase()}`}
               </span>
             </div>
           </div>
         ))}
         <div ref={endRef} />
       </div>
+
+      {noteOpen && (
+        <form className="mx-3 mb-2 space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm"
+          onSubmit={(e) => { e.preventDefault(); run(() => addNote(props.conversationId, note, mentionIds), () => { setNote(""); setNoteOpen(false); }); }}>
+          <label className="block text-xs text-muted">Nota interna: só a equipe vê. Use @nome para avisar alguém.
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={2000} className={cn(inputClass, "mt-1 resize-none")} aria-label="Nota interna" />
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {props.members.filter((m) => m.id !== props.meId).map((m) => (
+              <button key={m.id} type="button" className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-surface-2"
+                onClick={() => setNote((t) => `${t}${t && !t.endsWith(" ") ? " " : ""}@${m.name} `)}>@{m.name}</button>
+            ))}
+            <Button className="ml-auto" disabled={pending || !note.trim()}>Salvar nota</Button>
+          </div>
+        </form>
+      )}
 
       {props.draft && props.mode !== "HUMAN" && (
         <div className="mx-3 mb-2 rounded-xl border border-accent/40 bg-accent/10 p-3 text-sm">

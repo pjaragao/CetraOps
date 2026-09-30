@@ -46,3 +46,45 @@ export async function sendTemplate(conversationId: string, templateId: string, p
   revalidatePath("/atendimento");
   return error ? { ok: false, error: error.message.replace(/^ERROR:\s*/, "") } : { ok: true };
 }
+
+const clean = (m: string) => m.replace(/^ERROR:\s*/, "");
+
+/** Pausa a IA nesta conversa (0 = retomar). A conversa continua no mesmo modo. */
+export async function pauseAi(conversationId: string, minutes: number) {
+  const parsed = z.object({ c: z.string().uuid(), m: z.number().int().min(0).max(1440) }).safeParse({ c: conversationId, m: minutes });
+  if (!parsed.success) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("pause_ai", { p_conversation: conversationId, p_minutes: minutes });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
+/** Devolve a conversa para a IA (Copiloto ou Piloto), com uma instrução opcional que a IA segue nas próximas respostas. */
+export async function returnToAi(conversationId: string, mode: "AI_COPILOT" | "AI_AUTOPILOT", instruction: string) {
+  const parsed = z.object({ c: z.string().uuid(), m: z.enum(["AI_COPILOT", "AI_AUTOPILOT"]), i: z.string().max(500) }).safeParse({ c: conversationId, m: mode, i: instruction });
+  if (!parsed.success) return { ok: false, error: "Parâmetros inválidos (a instrução tem no máximo 500 caracteres)" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("return_to_ai", { p_conversation: conversationId, p_mode: mode, ...(instruction.trim() ? { p_instruction: instruction.trim() } : {}) });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
+/** Nota interna (nunca vai para a cliente). `mentions` = ids das pessoas avisadas. */
+export async function addNote(conversationId: string, body: string, mentions: string[]) {
+  const parsed = z.object({ c: z.string().uuid(), b: z.string().min(1).max(2000), m: z.array(z.string().uuid()).max(20) }).safeParse({ c: conversationId, b: body.trim(), m: mentions });
+  if (!parsed.success) return { ok: false, error: "Escreva a nota (até 2000 caracteres)" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("add_note", { p_conversation: conversationId, p_body: body.trim(), p_mentions: mentions });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
+/** Atribui a conversa a uma pessoa da equipe (vazio = sem dono). */
+export async function assignConversation(conversationId: string, memberId: string) {
+  const parsed = z.object({ c: z.string().uuid(), m: z.string().uuid().or(z.literal("")) }).safeParse({ c: conversationId, m: memberId });
+  if (!parsed.success) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("assign_conversation", { p_conversation: conversationId, ...(memberId ? { p_member: memberId } : {}) });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}

@@ -21,6 +21,8 @@ const KINDS: Record<string, (p: Payload) => NotificationView> = {
   HANDOFF: (p) => ({ label: "Atendimento humano", tone: "warning", href: conversation(p) }),
   SLA_BREACH: (p) => ({ label: "SLA estourado", tone: "danger", href: conversation(p) }),
   WINDOW_EXPIRING: (p) => ({ label: "Janela fechando", tone: "warning", href: conversation(p) }),
+  ASSIGNED: (p) => ({ label: "Conversa atribuída", tone: "info", href: conversation(p) }),
+  MENTION: (p) => ({ label: "Você foi mencionado", tone: "info", href: conversation(p) }),
   INTEGRATION_ERROR: () => ({ label: "Integração", tone: "danger", href: "/configuracoes/integracoes" }),
   DLQ_ALERT: () => ({ label: "Fila com falhas", tone: "danger", href: "/configuracoes/integracoes" }),
   FISCAL_REJECTED: () => ({ label: "Nota rejeitada", tone: "danger", href: "/fiscal/emitidas?status=REJECTED" }),

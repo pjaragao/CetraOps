@@ -50,14 +50,16 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
 
   let detail = null;
   if (selected) {
-    const [{ data: conv }, { data: messages }, { data: drafts }] = await Promise.all([
+    const [{ data: conv }, { data: messages }, { data: drafts }, { data: notes }, { data: members }] = await Promise.all([
       supabase.schema("omni").from("conversations")
-        .select("id, mode, last_inbound_at, party_id, channel_account_id, channel_accounts:channel_account_id(channel, display_name)")
+        .select("id, mode, last_inbound_at, ai_paused_until, ai_instruction, assignee_member_id, party_id, channel_account_id, channel_accounts:channel_account_id(channel, display_name)")
         .eq("id", selected).maybeSingle(),
       supabase.schema("omni").from("messages").select("id, direction, author_type, body, transcript, type, status, created_at")
         .eq("conversation_id", selected).order("created_at").order("seq").limit(300),
       supabase.schema("omni").from("message_drafts").select("id, variants, intent, confidence, needs_human, flags")
         .eq("conversation_id", selected).eq("status", "PENDING").order("created_at", { ascending: false }).limit(1),
+      supabase.schema("omni").from("internal_notes").select("id, member_id, body, mentions, created_at").eq("conversation_id", selected).order("created_at").limit(100),
+      supabase.schema("core").from("members").select("id, display_name").eq("status", "ACTIVE").order("display_name"),
     ]);
     if (conv) {
       const { data: party } = await supabase.schema("crm").from("parties")
@@ -73,7 +75,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         supabase.schema("omni").from("quick_replies").select("id, shortcut, body").order("shortcut"),
       ]);
       const templates = (tpls ?? []).map((t) => ({ id: t.id, name: t.name, category: t.category, body: templateParts(t.components as TemplateComponent[]).body, examples: templateExamples(t.components as TemplateComponent[]) }));
-      detail = { conv: { ...conv, parties: party }, messages: messages ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
+      detail = { conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
     }
   }
 
@@ -123,6 +125,12 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               mode={detail.conv.mode}
               channel={detail.conv.channel_accounts?.channel ?? "WHATSAPP"}
               lastInboundAt={detail.conv.last_inbound_at}
+              aiPausedUntil={detail.conv.ai_paused_until}
+              aiInstruction={detail.conv.ai_instruction}
+              assigneeId={detail.conv.assignee_member_id}
+              meId={session.memberId}
+              members={detail.members.map((m) => ({ id: m.id, name: m.display_name }))}
+              notes={detail.notes}
               customerName={detail.conv.parties?.display_name ?? ""}
               templates={detail.templates}
               quickReplies={detail.quickReplies}

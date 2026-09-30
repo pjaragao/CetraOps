@@ -6,5 +6,6 @@ export const metadata = { title: "Contas a pagar" };
 
 export default async function PagarPage({ searchParams }: { searchParams: SP }) {
   await requirePerm("fin.read");
-  return <TitlesView direction="PAYABLE" erro={str((await searchParams).erro)} />;
+  const sp = await searchParams;
+  return <TitlesView direction="PAYABLE" erro={str(sp.erro)} ok={str(sp.ok)} filtro={str(sp.filtro)} />;
 }

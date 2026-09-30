@@ -6,5 +6,6 @@ export const metadata = { title: "Contas a receber" };
 
 export default async function ReceberPage({ searchParams }: { searchParams: SP }) {
   await requirePerm("fin.read");
-  return <TitlesView direction="RECEIVABLE" erro={str((await searchParams).erro)} />;
+  const sp = await searchParams;
+  return <TitlesView direction="RECEIVABLE" erro={str(sp.erro)} ok={str(sp.ok)} filtro={str(sp.filtro)} />;
 }

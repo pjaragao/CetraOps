@@ -805,7 +805,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "next_number":
+            "cc_subtree":
+{ Args: { "p_root": string }; Returns: (string)[]
+                           },
+"next_number":
 { Args: { "p_doc_type": string,"p_org": string }; Returns: string
                            }
           }
@@ -1173,7 +1176,26 @@ isOneToOne: false
           }
         },"fin": {
           Tables: {
-            "acquirer_fee_plans": {
+            "account_roles": {
+                  Row: {
+                    "chart_account_id": string,"org_id": string,"role": string
+                  }
+                  Insert: {
+                    "chart_account_id": string,"org_id": string,"role": string
+                  }
+                  Update: {
+                    "chart_account_id"?: string,"org_id"?: string,"role"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "account_roles_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"acquirer_fee_plans": {
                   Row: {
                     "acquirer": string,"anticipation_mode": string,"id": string,"inst_from": number,"inst_to": number,"method": string,"org_id": string,"rate": number,"settlement_days": number,"valid_from": string,"valid_to": string | null
                   }
@@ -1186,15 +1208,47 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"bank_accounts": {
+                },"allocation_template_lines": {
                   Row: {
-                    "active": boolean,"agency": string | null,"bank_code": string | null,"chart_account_id": string | null,"connection_id": string | null,"created_at": string,"id": string,"kind": string,"legal_entity_id": string,"name": string,"number": string | null,"opening_balance": number,"opening_date": string | null,"org_id": string,"pix_keys": (string)[],"updated_at": string
+                    "cost_center_id": string,"id": string,"org_id": string,"pct": number,"template_id": string
                   }
                   Insert: {
-                    "active"?: boolean,"agency"?: string | null,"bank_code"?: string | null,"chart_account_id"?: string | null,"connection_id"?: string | null,"created_at"?: string,"id"?: string,"kind": string,"legal_entity_id": string,"name": string,"number"?: string | null,"opening_balance"?: number,"opening_date"?: string | null,"org_id": string,"pix_keys"?: (string)[],"updated_at"?: string
+                    "cost_center_id": string,"id"?: string,"org_id": string,"pct": number,"template_id": string
                   }
                   Update: {
-                    "active"?: boolean,"agency"?: string | null,"bank_code"?: string | null,"chart_account_id"?: string | null,"connection_id"?: string | null,"created_at"?: string,"id"?: string,"kind"?: string,"legal_entity_id"?: string,"name"?: string,"number"?: string | null,"opening_balance"?: number,"opening_date"?: string | null,"org_id"?: string,"pix_keys"?: (string)[],"updated_at"?: string
+                    "cost_center_id"?: string,"id"?: string,"org_id"?: string,"pct"?: number,"template_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "allocation_template_lines_template_id_fkey"
+      columns: ["template_id"]
+isOneToOne: false
+      referencedRelation: "allocation_templates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"allocation_templates": {
+                  Row: {
+                    "active": boolean,"description": string | null,"id": string,"name": string,"org_id": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"description"?: string | null,"id"?: string,"name": string,"org_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"description"?: string | null,"id"?: string,"name"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"bank_accounts": {
+                  Row: {
+                    "active": boolean,"agency": string | null,"bank_code": string | null,"chart_account_id": string | null,"connection_id": string | null,"created_at": string,"id": string,"kind": string,"legal_entity_id": string,"name": string,"number": string | null,"opening_balance": number,"opening_date": string | null,"org_id": string,"pix_keys": (string)[],"store_id": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"agency"?: string | null,"bank_code"?: string | null,"chart_account_id"?: string | null,"connection_id"?: string | null,"created_at"?: string,"id"?: string,"kind": string,"legal_entity_id": string,"name": string,"number"?: string | null,"opening_balance"?: number,"opening_date"?: string | null,"org_id": string,"pix_keys"?: (string)[],"store_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"agency"?: string | null,"bank_code"?: string | null,"chart_account_id"?: string | null,"connection_id"?: string | null,"created_at"?: string,"id"?: string,"kind"?: string,"legal_entity_id"?: string,"name"?: string,"number"?: string | null,"opening_balance"?: number,"opening_date"?: string | null,"org_id"?: string,"pix_keys"?: (string)[],"store_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1203,6 +1257,61 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "chart_accounts"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"cash_transactions": {
+                  Row: {
+                    "amount": number,"bank_account_id": string,"chart_account_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"description": string | null,"id": string,"journal_entry_id": string | null,"kind": string,"legal_entity_id": string,"occurred_on": string,"org_id": string,"party_id": string | null,"reconciled": boolean,"reconciled_amount": number,"reference": string | null,"reversal_of_id": string | null,"settlement_id": string | null,"transfer_group_id": string | null,"voided": boolean
+                  }
+                  Insert: {
+                    "amount": number,"bank_account_id": string,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"kind": string,"legal_entity_id": string,"occurred_on": string,"org_id": string,"party_id"?: string | null,"reconciled"?: boolean,"reconciled_amount"?: number,"reference"?: string | null,"reversal_of_id"?: string | null,"settlement_id"?: string | null,"transfer_group_id"?: string | null,"voided"?: boolean
+                  }
+                  Update: {
+                    "amount"?: number,"bank_account_id"?: string,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"kind"?: string,"legal_entity_id"?: string,"occurred_on"?: string,"org_id"?: string,"party_id"?: string | null,"reconciled"?: boolean,"reconciled_amount"?: number,"reference"?: string | null,"reversal_of_id"?: string | null,"settlement_id"?: string | null,"transfer_group_id"?: string | null,"voided"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cash_transactions_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "bank_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cash_transactions_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "v_bank_balances"
+      referencedColumns: ["bank_account_id"]
+    },{
+      foreignKeyName: "cash_transactions_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cash_transactions_journal_entry_id_fkey"
+      columns: ["journal_entry_id"]
+isOneToOne: false
+      referencedRelation: "journal_entries"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cash_transactions_reversal_of_id_fkey"
+      columns: ["reversal_of_id"]
+isOneToOne: false
+      referencedRelation: "cash_transactions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cash_transactions_settlement_id_fkey"
+      columns: ["settlement_id"]
+isOneToOne: false
+      referencedRelation: "settlements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cash_transactions_settlement_id_fkey"
+      columns: ["settlement_id"]
+isOneToOne: false
+      referencedRelation: "v_fee_audit"
+      referencedColumns: ["settlement_id"]
     }
                   ]
                 },"chart_accounts": {
@@ -1281,15 +1390,271 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"title_installments": {
+                },"journal_entries": {
                   Row: {
-                    "amount": number,"amount_settled": number,"barcode": string | null,"boleto_ref": string | null,"discount": number,"due_date": string,"expected_date": string | null,"fee_expected": number,"fine": number,"id": string,"interest": number,"n": number,"org_id": string,"pix_emv": string | null,"status": Database["fin"]['Enums']["title_status"],"title_id": string,"updated_at": string
+                    "created_at": string,"created_by": string | null,"description": string,"entry_date": string,"id": string,"kind": string,"ledger": string,"legal_entity_id": string,"number": string,"org_id": string,"reversal_of_id": string | null,"source_id": string | null,"source_type": string | null
                   }
                   Insert: {
-                    "amount": number,"amount_settled"?: number,"barcode"?: string | null,"boleto_ref"?: string | null,"discount"?: number,"due_date": string,"expected_date"?: string | null,"fee_expected"?: number,"fine"?: number,"id"?: string,"interest"?: number,"n": number,"org_id": string,"pix_emv"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"title_id": string,"updated_at"?: string
+                    "created_at"?: string,"created_by"?: string | null,"description": string,"entry_date": string,"id"?: string,"kind": string,"ledger"?: string,"legal_entity_id": string,"number": string,"org_id": string,"reversal_of_id"?: string | null,"source_id"?: string | null,"source_type"?: string | null
                   }
                   Update: {
-                    "amount"?: number,"amount_settled"?: number,"barcode"?: string | null,"boleto_ref"?: string | null,"discount"?: number,"due_date"?: string,"expected_date"?: string | null,"fee_expected"?: number,"fine"?: number,"id"?: string,"interest"?: number,"n"?: number,"org_id"?: string,"pix_emv"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"title_id"?: string,"updated_at"?: string
+                    "created_at"?: string,"created_by"?: string | null,"description"?: string,"entry_date"?: string,"id"?: string,"kind"?: string,"ledger"?: string,"legal_entity_id"?: string,"number"?: string,"org_id"?: string,"reversal_of_id"?: string | null,"source_id"?: string | null,"source_type"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "journal_entries_reversal_of_id_fkey"
+      columns: ["reversal_of_id"]
+isOneToOne: false
+      referencedRelation: "journal_entries"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"journal_lines": {
+                  Row: {
+                    "account_id": string,"cost_center_id": string | null,"credit": number,"debit": number,"entry_id": string,"id": number,"line_no": number,"memo": string | null,"org_id": string,"party_id": string | null
+                  }
+                  Insert: {
+                    "account_id": string,"cost_center_id"?: string | null,"credit"?: number,"debit"?: number,"entry_id": string,"id"?: never,"line_no": number,"memo"?: string | null,"org_id": string,"party_id"?: string | null
+                  }
+                  Update: {
+                    "account_id"?: string,"cost_center_id"?: string | null,"credit"?: number,"debit"?: number,"entry_id"?: string,"id"?: never,"line_no"?: number,"memo"?: string | null,"org_id"?: string,"party_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "journal_lines_account_id_fkey"
+      columns: ["account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "journal_lines_entry_id_fkey"
+      columns: ["entry_id"]
+isOneToOne: false
+      referencedRelation: "journal_entries"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"party_credits": {
+                  Row: {
+                    "amount": number,"created_at": string,"direction": Database["fin"]['Enums']["title_direction"],"id": string,"legal_entity_id": string,"memo": string | null,"org_id": string,"party_id": string | null,"source_settlement_id": string | null,"status": string,"used": number
+                  }
+                  Insert: {
+                    "amount": number,"created_at"?: string,"direction": Database["fin"]['Enums']["title_direction"],"id"?: string,"legal_entity_id": string,"memo"?: string | null,"org_id": string,"party_id"?: string | null,"source_settlement_id"?: string | null,"status"?: string,"used"?: number
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"direction"?: Database["fin"]['Enums']["title_direction"],"id"?: string,"legal_entity_id"?: string,"memo"?: string | null,"org_id"?: string,"party_id"?: string | null,"source_settlement_id"?: string | null,"status"?: string,"used"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "party_credits_settlement_fk"
+      columns: ["source_settlement_id"]
+isOneToOne: false
+      referencedRelation: "settlements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "party_credits_settlement_fk"
+      columns: ["source_settlement_id"]
+isOneToOne: false
+      referencedRelation: "v_fee_audit"
+      referencedColumns: ["settlement_id"]
+    }
+                  ]
+                },"periods": {
+                  Row: {
+                    "closed_at": string | null,"closed_by": string | null,"competence": string,"id": string,"legal_entity_id": string,"notes": string | null,"org_id": string,"status": string
+                  }
+                  Insert: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"competence": string,"id"?: string,"legal_entity_id": string,"notes"?: string | null,"org_id": string,"status"?: string
+                  }
+                  Update: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"competence"?: string,"id"?: string,"legal_entity_id"?: string,"notes"?: string | null,"org_id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"recon_rules": {
+                  Row: {
+                    "action_kind": string,"active": boolean,"chart_account_id": string | null,"cost_center_id": string | null,"direction": string,"field": string,"id": string,"name": string,"org_id": string,"party_id": string | null,"pattern": string,"priority": number
+                  }
+                  Insert: {
+                    "action_kind": string,"active"?: boolean,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"direction"?: string,"field"?: string,"id"?: string,"name": string,"org_id": string,"party_id"?: string | null,"pattern": string,"priority"?: number
+                  }
+                  Update: {
+                    "action_kind"?: string,"active"?: boolean,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"direction"?: string,"field"?: string,"id"?: string,"name"?: string,"org_id"?: string,"party_id"?: string | null,"pattern"?: string,"priority"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recon_rules_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"reconciliation_links": {
+                  Row: {
+                    "amount": number,"cash_transaction_id": string,"created_at": string,"created_by": string | null,"id": string,"method": string,"org_id": string,"statement_line_id": string
+                  }
+                  Insert: {
+                    "amount": number,"cash_transaction_id": string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"method"?: string,"org_id": string,"statement_line_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"cash_transaction_id"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"method"?: string,"org_id"?: string,"statement_line_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reconciliation_links_cash_transaction_id_fkey"
+      columns: ["cash_transaction_id"]
+isOneToOne: false
+      referencedRelation: "cash_transactions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reconciliation_links_statement_line_id_fkey"
+      columns: ["statement_line_id"]
+isOneToOne: false
+      referencedRelation: "statement_lines"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"settlement_lines": {
+                  Row: {
+                    "amount": number,"cash_effect": number,"chart_account_id": string | null,"cost_center_id": string | null,"credit_id": string | null,"id": string,"installment_id": string | null,"kind": string,"line_no": number,"memo": string | null,"org_id": string,"settlement_id": string
+                  }
+                  Insert: {
+                    "amount": number,"cash_effect": number,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"credit_id"?: string | null,"id"?: string,"installment_id"?: string | null,"kind": string,"line_no": number,"memo"?: string | null,"org_id": string,"settlement_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"cash_effect"?: number,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"credit_id"?: string | null,"id"?: string,"installment_id"?: string | null,"kind"?: string,"line_no"?: number,"memo"?: string | null,"org_id"?: string,"settlement_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "settlement_lines_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "settlement_lines_credit_id_fkey"
+      columns: ["credit_id"]
+isOneToOne: false
+      referencedRelation: "party_credits"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "settlement_lines_installment_id_fkey"
+      columns: ["installment_id"]
+isOneToOne: false
+      referencedRelation: "title_installments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "settlement_lines_installment_id_fkey"
+      columns: ["installment_id"]
+isOneToOne: false
+      referencedRelation: "v_open_installments"
+      referencedColumns: ["installment_id"]
+    },{
+      foreignKeyName: "settlement_lines_settlement_id_fkey"
+      columns: ["settlement_id"]
+isOneToOne: false
+      referencedRelation: "settlements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "settlement_lines_settlement_id_fkey"
+      columns: ["settlement_id"]
+isOneToOne: false
+      referencedRelation: "v_fee_audit"
+      referencedColumns: ["settlement_id"]
+    }
+                  ]
+                },"settlements": {
+                  Row: {
+                    "amount": number,"bank_account_id": string,"created_at": string,"created_by": string | null,"description": string | null,"direction": Database["fin"]['Enums']["title_direction"],"id": string,"idempotency_key": string | null,"legal_entity_id": string,"method": string,"number": string,"org_id": string,"party_id": string | null,"reference": string | null,"reversal_reason": string | null,"reversed_at": string | null,"reversed_by": string | null,"settled_on": string,"status": string
+                  }
+                  Insert: {
+                    "amount": number,"bank_account_id": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"direction": Database["fin"]['Enums']["title_direction"],"id"?: string,"idempotency_key"?: string | null,"legal_entity_id": string,"method": string,"number": string,"org_id": string,"party_id"?: string | null,"reference"?: string | null,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"settled_on": string,"status"?: string
+                  }
+                  Update: {
+                    "amount"?: number,"bank_account_id"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"direction"?: Database["fin"]['Enums']["title_direction"],"id"?: string,"idempotency_key"?: string | null,"legal_entity_id"?: string,"method"?: string,"number"?: string,"org_id"?: string,"party_id"?: string | null,"reference"?: string | null,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"settled_on"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "settlements_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "bank_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "settlements_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "v_bank_balances"
+      referencedColumns: ["bank_account_id"]
+    }
+                  ]
+                },"statement_imports": {
+                  Row: {
+                    "bank_account_id": string,"closing_balance": number | null,"created_at": string,"created_by": string | null,"file_hash": string | null,"filename": string | null,"id": string,"lines_new": number,"lines_total": number,"opening_balance": number | null,"org_id": string,"period_end": string | null,"period_start": string | null,"source": string
+                  }
+                  Insert: {
+                    "bank_account_id": string,"closing_balance"?: number | null,"created_at"?: string,"created_by"?: string | null,"file_hash"?: string | null,"filename"?: string | null,"id"?: string,"lines_new"?: number,"lines_total"?: number,"opening_balance"?: number | null,"org_id": string,"period_end"?: string | null,"period_start"?: string | null,"source": string
+                  }
+                  Update: {
+                    "bank_account_id"?: string,"closing_balance"?: number | null,"created_at"?: string,"created_by"?: string | null,"file_hash"?: string | null,"filename"?: string | null,"id"?: string,"lines_new"?: number,"lines_total"?: number,"opening_balance"?: number | null,"org_id"?: string,"period_end"?: string | null,"period_start"?: string | null,"source"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "statement_imports_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "bank_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "statement_imports_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "v_bank_balances"
+      referencedColumns: ["bank_account_id"]
+    }
+                  ]
+                },"statement_lines": {
+                  Row: {
+                    "amount": number,"balance_after": number | null,"bank_account_id": string,"counterpart_doc": string | null,"counterpart_name": string | null,"created_at": string,"dedupe_key": string,"description": string | null,"e2e_id": string | null,"external_id": string | null,"id": string,"ignore_reason": string | null,"import_id": string | null,"legal_entity_id": string,"matched_amount": number,"org_id": string,"posted_on": string,"raw": NonNullable<Json>,"status": string
+                  }
+                  Insert: {
+                    "amount": number,"balance_after"?: number | null,"bank_account_id": string,"counterpart_doc"?: string | null,"counterpart_name"?: string | null,"created_at"?: string,"dedupe_key": string,"description"?: string | null,"e2e_id"?: string | null,"external_id"?: string | null,"id"?: string,"ignore_reason"?: string | null,"import_id"?: string | null,"legal_entity_id": string,"matched_amount"?: number,"org_id": string,"posted_on": string,"raw"?: NonNullable<Json>,"status"?: string
+                  }
+                  Update: {
+                    "amount"?: number,"balance_after"?: number | null,"bank_account_id"?: string,"counterpart_doc"?: string | null,"counterpart_name"?: string | null,"created_at"?: string,"dedupe_key"?: string,"description"?: string | null,"e2e_id"?: string | null,"external_id"?: string | null,"id"?: string,"ignore_reason"?: string | null,"import_id"?: string | null,"legal_entity_id"?: string,"matched_amount"?: number,"org_id"?: string,"posted_on"?: string,"raw"?: NonNullable<Json>,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "statement_lines_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "bank_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "statement_lines_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "v_bank_balances"
+      referencedColumns: ["bank_account_id"]
+    },{
+      foreignKeyName: "statement_lines_import_id_fkey"
+      columns: ["import_id"]
+isOneToOne: false
+      referencedRelation: "statement_imports"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"title_installments": {
+                  Row: {
+                    "amount": number,"amount_settled": number,"barcode": string | null,"boleto_ref": string | null,"discount": number,"due_date": string,"expected_date": string | null,"fee_anticipation_expected": number,"fee_expected": number,"fine": number,"id": string,"interest": number,"n": number,"org_id": string,"pix_emv": string | null,"status": Database["fin"]['Enums']["title_status"],"title_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "amount": number,"amount_settled"?: number,"barcode"?: string | null,"boleto_ref"?: string | null,"discount"?: number,"due_date": string,"expected_date"?: string | null,"fee_anticipation_expected"?: number,"fee_expected"?: number,"fine"?: number,"id"?: string,"interest"?: number,"n": number,"org_id": string,"pix_emv"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"title_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount"?: number,"amount_settled"?: number,"barcode"?: string | null,"boleto_ref"?: string | null,"discount"?: number,"due_date"?: string,"expected_date"?: string | null,"fee_anticipation_expected"?: number,"fee_expected"?: number,"fine"?: number,"id"?: string,"interest"?: number,"n"?: number,"org_id"?: string,"pix_emv"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"title_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1298,22 +1663,71 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "titles"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "title_installments_title_id_fkey"
+      columns: ["title_id"]
+isOneToOne: false
+      referencedRelation: "v_open_installments"
+      referencedColumns: ["title_id"]
+    }
+                  ]
+                },"title_lines": {
+                  Row: {
+                    "amount": number,"chart_account_id": string,"cost_center_id": string | null,"id": string,"memo": string | null,"org_id": string,"title_id": string
+                  }
+                  Insert: {
+                    "amount": number,"chart_account_id": string,"cost_center_id"?: string | null,"id"?: string,"memo"?: string | null,"org_id": string,"title_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"chart_account_id"?: string,"cost_center_id"?: string | null,"id"?: string,"memo"?: string | null,"org_id"?: string,"title_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "title_lines_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "title_lines_title_id_fkey"
+      columns: ["title_id"]
+isOneToOne: false
+      referencedRelation: "titles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "title_lines_title_id_fkey"
+      columns: ["title_id"]
+isOneToOne: false
+      referencedRelation: "v_open_installments"
+      referencedColumns: ["title_id"]
     }
                   ]
                 },"titles": {
                   Row: {
-                    "approval_status": string,"approved_at": string | null,"approved_by": string | null,"chart_account_id": string | null,"competence_date": string,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"custom_fields": NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind": string | null,"document_number": string | null,"id": string,"issue_date": string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id": string | null,"origin_type": string,"party_id": string | null,"status": Database["fin"]['Enums']["title_status"],"store_id": string | null,"tags": (string)[],"total_amount": number,"updated_at": string
+                    "accrual_entry_id": string | null,"accrual_mode": string,"approval_status": string,"approved_at": string | null,"approved_by": string | null,"chart_account_id": string | null,"competence_date": string,"control_account_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"custom_fields": NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind": string | null,"document_number": string | null,"id": string,"issue_date": string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id": string | null,"origin_type": string,"party_id": string | null,"status": Database["fin"]['Enums']["title_status"],"store_id": string | null,"tags": (string)[],"total_amount": number,"updated_at": string
                   }
                   Insert: {
-                    "approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount": number,"updated_at"?: string
+                    "accrual_entry_id"?: string | null,"accrual_mode"?: string,"approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"control_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount": number,"updated_at"?: string
                   }
                   Update: {
-                    "approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description"?: string,"direction"?: Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id"?: string,"number"?: string,"org_id"?: string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount"?: number,"updated_at"?: string
+                    "accrual_entry_id"?: string | null,"accrual_mode"?: string,"approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"control_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description"?: string,"direction"?: Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id"?: string,"number"?: string,"org_id"?: string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "titles_accrual_entry_id_fkey"
+      columns: ["accrual_entry_id"]
+isOneToOne: false
+      referencedRelation: "journal_entries"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "titles_chart_account_id_fkey"
       columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "titles_control_account_id_fkey"
+      columns: ["control_account_id"]
 isOneToOne: false
       referencedRelation: "chart_accounts"
       referencedColumns: ["id"]
@@ -1322,19 +1736,72 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "v_bank_balances": {
+                  Row: {
+                    "balance": number | null,"bank_account_id": string | null,"bank_code": string | null,"kind": string | null,"legal_entity_id": string | null,"name": string | null,"org_id": string | null,"unreconciled_amount": number | null,"unreconciled_count": number | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"v_fee_audit": {
+                  Row: {
+                    "description": string | null,"fee_charged": number | null,"fee_expected": number | null,"gross": number | null,"installment_id": string | null,"org_id": string | null,"settled_on": string | null,"settlement_id": string | null,"settlement_number": string | null,"title_number": string | null,"variance": number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "settlement_lines_installment_id_fkey"
+      columns: ["installment_id"]
+isOneToOne: false
+      referencedRelation: "title_installments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "settlement_lines_installment_id_fkey"
+      columns: ["installment_id"]
+isOneToOne: false
+      referencedRelation: "v_open_installments"
+      referencedColumns: ["installment_id"]
+    }
+                  ]
+                },"v_open_installments": {
+                  Row: {
+                    "amount": number | null,"amount_settled": number | null,"approval_status": string | null,"balance": number | null,"cost_center_id": string | null,"days_overdue": number | null,"description": string | null,"direction": Database["fin"]['Enums']["title_direction"] | null,"document_kind": string | null,"document_number": string | null,"due_date": string | null,"expected_date": string | null,"fee_anticipation_expected": number | null,"fee_expected": number | null,"installment_id": string | null,"legal_entity_id": string | null,"n": number | null,"org_id": string | null,"origin_type": string | null,"party_id": string | null,"party_name": string | null,"status": Database["fin"]['Enums']["title_status"] | null,"store_id": string | null,"title_id": string | null,"title_number": string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
-            "approve_title":
+            "account_ledger":
+{ Args: { "p_account": string,"p_entity"?: string,"p_from": string,"p_to": string }; Returns: {
+              "cost_center_code": string,"credit": number,"debit": number,"description": string,"entry_date": string,"entry_id": string,"entry_number": string,"kind": string,"memo": string,"running": number
+            }[]
+                           },
+"apply_recon_rules":
+{ Args: { "p_bank_account": string }; Returns: number
+                           },
+"approve_title":
 { Args: { "p_title": string }; Returns: undefined
+                           },
+"auto_match":
+{ Args: { "p_bank_account": string,"p_days"?: number }; Returns: number
+                           },
+"cancel_title":
+{ Args: { "p_reason": string,"p_title": string }; Returns: undefined
+                           },
+"classify_statement_line":
+{ Args: { "p": Json,"p_line": string }; Returns: string
                            },
 "create_title":
 { Args: { "p": Json }; Returns: {
-              "approval_status": string,
+              "accrual_entry_id": string | null,
+"accrual_mode": string,
+"approval_status": string,
 "approved_at": string | null,
 "approved_by": string | null,
 "chart_account_id": string | null,
 "competence_date": string,
+"control_account_id": string | null,
 "cost_center_id": string | null,
 "created_at": string,
 "created_by": string | null,
@@ -1363,14 +1830,90 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"dre":
+{ Args: { "p_cost_centers"?: (string)[],"p_entity"?: string,"p_from": string,"p_ledger"?: string,"p_to": string }; Returns: {
+              "amount": number,"code": string,"is_subtotal": boolean,"name": string,"pos": number,"sign": number
+            }[]
+                           },
 "expected_fee_rate":
 { Args: { "p_acquirer": string,"p_installments": number,"p_method": string,"p_mode": string,"p_on"?: string,"p_org": string }; Returns: number
                            },
 "generate_contract_schedule":
 { Args: { "p_contract": string }; Returns: number
                            },
+"ignore_statement_line":
+{ Args: { "p_line": string,"p_reason": string }; Returns: undefined
+                           },
+"import_statement":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"link_statement_line":
+{ Args: { "p_line": string,"p_tx": string }; Returns: undefined
+                           },
+"post_cash_movement":
+{ Args: { "p": Json }; Returns: string
+                           },
+"post_manual_entry":
+{ Args: { "p": Json }; Returns: string
+                           },
+"reschedule_installment":
+{ Args: { "p_barcode"?: string,"p_due_date": string,"p_installment": string }; Returns: undefined
+                           },
+"restore_statement_line":
+{ Args: { "p_line": string }; Returns: undefined
+                           },
+"reverse_settlement":
+{ Args: { "p_reason": string,"p_settlement": string }; Returns: undefined
+                           },
+"set_period_status":
+{ Args: { "p_competence": string,"p_entity": string,"p_notes"?: string,"p_status": string }; Returns: undefined
+                           },
+"settle":
+{ Args: { "p": Json }; Returns: {
+              "amount": number,
+"bank_account_id": string,
+"created_at": string,
+"created_by": string | null,
+"description": string | null,
+"direction": Database["fin"]['Enums']["title_direction"],
+"id": string,
+"idempotency_key": string | null,
+"legal_entity_id": string,
+"method": string,
+"number": string,
+"org_id": string,
+"party_id": string | null,
+"reference": string | null,
+"reversal_reason": string | null,
+"reversed_at": string | null,
+"reversed_by": string | null,
+"settled_on": string,
+"status": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "settlements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "settle_installment":
 { Args: { "p_amount"?: number,"p_installment": string }; Returns: undefined
+                           },
+"split_by_template":
+{ Args: { "p_amount": number,"p_template": string }; Returns: {
+              "amount": number,"cost_center_id": string
+            }[]
+                           },
+"transfer":
+{ Args: { "p": Json }; Returns: string
+                           },
+"trial_balance":
+{ Args: { "p_entity"?: string,"p_from": string,"p_ledger"?: string,"p_to": string }; Returns: {
+              "account_id": string,"closing": number,"code": string,"credit": number,"debit": number,"grp": Database["fin"]['Enums']["account_group"],"name": string,"nature": string,"opening": number
+            }[]
+                           },
+"unlink_statement_line":
+{ Args: { "p_line": string }; Returns: undefined
                            }
           }
           Enums: {

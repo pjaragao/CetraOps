@@ -282,7 +282,7 @@ end $$;
 -- ---------------------------------------------------------------------
 -- Relatórios
 -- ---------------------------------------------------------------------
-create or replace function fin.trial_balance(p_entity uuid, p_from date, p_to date, p_ledger text default 'LEGAL')
+create or replace function fin.trial_balance(p_from date, p_to date, p_entity uuid default null, p_ledger text default 'LEGAL')
 returns table (account_id uuid, code text, name text, grp fin.account_group, nature text,
                opening numeric, debit numeric, credit numeric, closing numeric)
 language sql stable security invoker as $$

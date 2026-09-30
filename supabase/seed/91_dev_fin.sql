@@ -5,7 +5,7 @@
 
 insert into fin.bank_accounts (id, org_id, legal_entity_id, store_id, name, kind, bank_code, agency, number, chart_account_id, opening_balance, opening_date)
 select x.id::uuid, '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000e1', x.store::uuid, x.name, x.kind, x.bank, x.agency, x.num,
-       (select id from fin.chart_accounts where org_id = '00000000-0000-4000-8000-000000000001' and code = x.acc), x.opening::numeric, '2026-10-01'
+       (select id from fin.chart_accounts where org_id = '00000000-0000-4000-8000-000000000001' and code = x.acc), x.opening::numeric, '2026-09-01'
 from (values
   ('00000000-0000-4000-8000-000000000701', null,                                   'Inter — conta PJ (dev)',        'CHECKING',         '077', '0001', '1234567-8', '1.1.1.02', '0'),
   ('00000000-0000-4000-8000-000000000702', null,                                   'BTG Pactual Empresas (dev)',    'CHECKING',         '208', '0050', '7654321-0', '1.1.1.03', '0'),
@@ -18,7 +18,7 @@ on conflict (id) do nothing;
 -- Aporte inicial de capital (dev) para o saldo do Inter
 insert into fin.journal_entries (id, org_id, legal_entity_id, number, entry_date, kind, description)
 values ('00000000-0000-4000-8000-000000000f01', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000e1',
-        'LAN-SEED-000001', '2026-10-01', 'MANUAL', 'Integralização de capital (dev)')
+        'LAN-SEED-000001', '2026-09-01', 'MANUAL', 'Integralização de capital (dev)')
 on conflict (id) do nothing;
 insert into fin.journal_lines (entry_id, org_id, line_no, account_id, debit, credit)
 select '00000000-0000-4000-8000-000000000f01', '00000000-0000-4000-8000-000000000001', x.n,
@@ -27,7 +27,7 @@ from (values (1, '1.1.1.02', 50000, 0), (2, '3.1.01', 0, 50000)) as x(n, code, d
 where not exists (select 1 from fin.journal_lines where entry_id = '00000000-0000-4000-8000-000000000f01');
 insert into fin.cash_transactions (id, org_id, legal_entity_id, bank_account_id, occurred_on, amount, kind, chart_account_id, description, reconciled, reconciled_amount, journal_entry_id)
 values ('00000000-0000-4000-8000-000000000f11', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000e1',
-        '00000000-0000-4000-8000-000000000701', '2026-10-01', 50000, 'OWNER_CONTRIBUTION',
+        '00000000-0000-4000-8000-000000000701', '2026-09-01', 50000, 'OWNER_CONTRIBUTION',
         (select id from fin.chart_accounts where org_id = '00000000-0000-4000-8000-000000000001' and code = '3.1.01'),
         'Integralização de capital (dev)', true, 50000, '00000000-0000-4000-8000-000000000f01')
 on conflict (id) do nothing;

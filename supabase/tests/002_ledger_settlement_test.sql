@@ -191,7 +191,7 @@ select lives_ok($$ select fin.settle(jsonb_build_object(
       where o.idempotency_key = 't-sale-ar' and t.document_kind = 'CREDIT') q))) $$,
   'um repasse da adquirente baixa 3 parcelas com MDR e antecipação em contas distintas');
 select is((select sum(variance) from fin.v_fee_audit), 0.00, 'auditoria de taxa: cobrado = esperado');
-select is((select closing from fin.trial_balance(null, date '2000-01-01', private.today_sp(), 'LEGAL') where code = '1.1.2.01'), 0.00,
+select is((select closing from fin.trial_balance(date '2000-01-01', private.today_sp(), null, 'LEGAL') where code = '1.1.2.01'), 0.00,
           'recebíveis de cartão zerados após o repasse');
 select is((select amount from fin.dre(date_trunc('month', private.today_sp())::date, private.today_sp(), null, null, 'LEGAL') where code = 'RB'), 678.00,
           'DRE: receita bruta vem do razão');

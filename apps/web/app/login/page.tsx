@@ -1,4 +1,4 @@
-import { signIn } from "./actions";
+import { signIn, signOut } from "./actions";
 
 export const metadata = { title: "Entrar" };
 
@@ -15,6 +15,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
             {erro === "sem-acesso" ? "Sua conta ainda não foi vinculada à empresa." : "E-mail ou senha inválidos."}
           </p>
+        )}
+
+        {erro === "sem-acesso" && (
+          <button formAction={signOut} formNoValidate className="mt-3 text-sm text-brand underline">Sair e trocar de conta</button>
         )}
 
         <input type="hidden" name="next" value={next ?? "/inicio"} />

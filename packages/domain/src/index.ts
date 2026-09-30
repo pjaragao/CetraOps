@@ -3,3 +3,5 @@ export * from "./commission";
 export * from "./messaging";
 export * from "./nav";
 export * from "./period";
+export * from "./allocation";
+export * from "./statement";

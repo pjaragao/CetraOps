@@ -31,7 +31,8 @@ export async function proxy(request: NextRequest) {
     url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
-  if (data?.claims && (isLogin || request.nextUrl.pathname === "/")) {
+  // Sessão válida mas sem vínculo com a empresa (?erro=sem-acesso): deixa a tela de login aparecer para trocar de conta
+  if (data?.claims && ((isLogin && !request.nextUrl.searchParams.has("erro")) || request.nextUrl.pathname === "/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/inicio";
     url.search = "";

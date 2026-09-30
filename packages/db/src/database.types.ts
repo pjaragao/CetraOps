@@ -1268,6 +1268,32 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"allocation_batches": {
+                  Row: {
+                    "competence": string,"created_at": string,"created_by": string | null,"detail": NonNullable<Json>,"entry_ids": (string)[],"id": string,"legal_entity_id": string,"org_id": string,"reversal_reason": string | null,"reversed_at": string | null,"reversed_by": string | null,"status": string,"total": number
+                  }
+                  Insert: {
+                    "competence": string,"created_at"?: string,"created_by"?: string | null,"detail"?: NonNullable<Json>,"entry_ids"?: (string)[],"id"?: string,"legal_entity_id": string,"org_id": string,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"status"?: string,"total"?: number
+                  }
+                  Update: {
+                    "competence"?: string,"created_at"?: string,"created_by"?: string | null,"detail"?: NonNullable<Json>,"entry_ids"?: (string)[],"id"?: string,"legal_entity_id"?: string,"org_id"?: string,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"status"?: string,"total"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"allocation_rules": {
+                  Row: {
+                    "account_ids": (string)[] | null,"active": boolean,"created_at": string,"id": string,"legal_entity_id": string | null,"method": string,"name": string,"notes": string | null,"org_id": string,"rounding_cost_center_id": string | null,"source_cost_center_id": string,"targets": NonNullable<Json>,"valid_from": string,"valid_to": string | null
+                  }
+                  Insert: {
+                    "account_ids"?: (string)[] | null,"active"?: boolean,"created_at"?: string,"id"?: string,"legal_entity_id"?: string | null,"method": string,"name": string,"notes"?: string | null,"org_id": string,"rounding_cost_center_id"?: string | null,"source_cost_center_id": string,"targets": NonNullable<Json>,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Update: {
+                    "account_ids"?: (string)[] | null,"active"?: boolean,"created_at"?: string,"id"?: string,"legal_entity_id"?: string | null,"method"?: string,"name"?: string,"notes"?: string | null,"org_id"?: string,"rounding_cost_center_id"?: string | null,"source_cost_center_id"?: string,"targets"?: NonNullable<Json>,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"allocation_template_lines": {
                   Row: {
                     "cost_center_id": string,"id": string,"org_id": string,"pct": number,"template_id": string
@@ -1318,6 +1344,44 @@ isOneToOne: false
       referencedRelation: "chart_accounts"
       referencedColumns: ["id"]
     }
+                  ]
+                },"budget_lines": {
+                  Row: {
+                    "amount": number,"budget_id": string,"chart_account_id": string,"cost_center_id": string | null,"id": string,"month": string,"org_id": string
+                  }
+                  Insert: {
+                    "amount": number,"budget_id": string,"chart_account_id": string,"cost_center_id"?: string | null,"id"?: string,"month": string,"org_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"budget_id"?: string,"chart_account_id"?: string,"cost_center_id"?: string | null,"id"?: string,"month"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "budget_lines_budget_id_fkey"
+      columns: ["budget_id"]
+isOneToOne: false
+      referencedRelation: "budgets"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "budget_lines_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"budgets": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"legal_entity_id": string,"name": string,"notes": string | null,"org_id": string,"scenario": string,"status": string,"version": number,"year": number
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"legal_entity_id": string,"name"?: string,"notes"?: string | null,"org_id": string,"scenario"?: string,"status"?: string,"version"?: number,"year": number
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"legal_entity_id"?: string,"name"?: string,"notes"?: string | null,"org_id"?: string,"scenario"?: string,"status"?: string,"version"?: number,"year"?: number
+                  }
+                  Relationships: [
+                    
                   ]
                 },"cash_transactions": {
                   Row: {
@@ -1573,6 +1637,31 @@ isOneToOne: false
       columns: ["statement_line_id"]
 isOneToOne: false
       referencedRelation: "statement_lines"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"recurring_templates": {
+                  Row: {
+                    "active": boolean,"allocation_template_id": string | null,"amount": number,"auto_approve": boolean,"chart_account_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"day_of_month": number,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind": string,"end_date": string | null,"id": string,"legal_entity_id": string,"next_run": string,"notes": string | null,"org_id": string,"party_id": string | null,"start_date": string,"store_id": string | null
+                  }
+                  Insert: {
+                    "active"?: boolean,"allocation_template_id"?: string | null,"amount": number,"auto_approve"?: boolean,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"day_of_month": number,"description": string,"direction"?: Database["fin"]['Enums']["title_direction"],"document_kind"?: string,"end_date"?: string | null,"id"?: string,"legal_entity_id": string,"next_run": string,"notes"?: string | null,"org_id": string,"party_id"?: string | null,"start_date": string,"store_id"?: string | null
+                  }
+                  Update: {
+                    "active"?: boolean,"allocation_template_id"?: string | null,"amount"?: number,"auto_approve"?: boolean,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"day_of_month"?: number,"description"?: string,"direction"?: Database["fin"]['Enums']["title_direction"],"document_kind"?: string,"end_date"?: string | null,"id"?: string,"legal_entity_id"?: string,"next_run"?: string,"notes"?: string | null,"org_id"?: string,"party_id"?: string | null,"start_date"?: string,"store_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recurring_templates_allocation_template_id_fkey"
+      columns: ["allocation_template_id"]
+isOneToOne: false
+      referencedRelation: "allocation_templates"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recurring_templates_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
       referencedColumns: ["id"]
     }
                   ]
@@ -1846,11 +1935,29 @@ isOneToOne: false
 "auto_match":
 { Args: { "p_bank_account": string,"p_days"?: number }; Returns: number
                            },
+"budget_vs_actual":
+{ Args: { "p_budget": string,"p_from": string,"p_to": string }; Returns: {
+              "account_id": string,"actual": number,"budget": number,"code": string,"grp": Database["fin"]['Enums']["account_group"],"name": string
+            }[]
+                           },
 "cancel_title":
 { Args: { "p_reason": string,"p_title": string }; Returns: undefined
                            },
+"cash_flow":
+{ Args: { "p_bank"?: string,"p_entity"?: string,"p_from": string,"p_to": string }; Returns: {
+              "balance": number,"day": string,"projected_in": number,"projected_out": number,"realized_in": number,"realized_out": number
+            }[]
+                           },
 "classify_statement_line":
 { Args: { "p": Json,"p_line": string }; Returns: string
+                           },
+"close_month":
+{ Args: { "p_competence": string,"p_entity": string,"p_force"?: boolean }; Returns: undefined
+                           },
+"closing_checklist":
+{ Args: { "p_competence": string,"p_entity": string }; Returns: {
+              "detail": string,"href": string,"key": string,"label": string,"n": number,"status": string
+            }[]
                            },
 "create_title":
 { Args: { "p": Json }; Returns: {
@@ -1916,14 +2023,98 @@ isOneToOne: false
 "post_manual_entry":
 { Args: { "p": Json }; Returns: string
                            },
+"reopen_month":
+{ Args: { "p_competence": string,"p_entity": string,"p_reason": string }; Returns: undefined
+                           },
 "reschedule_installment":
 { Args: { "p_barcode"?: string,"p_due_date": string,"p_installment": string }; Returns: undefined
                            },
 "restore_statement_line":
 { Args: { "p_line": string }; Returns: undefined
                            },
+"reverse_allocation_batch":
+{ Args: { "p_batch": string,"p_reason": string }; Returns: undefined
+                           },
 "reverse_settlement":
 { Args: { "p_reason": string,"p_settlement": string }; Returns: undefined
+                           },
+"run_allocation_batch":
+{ Args: { "p_competence": string,"p_entity": string }; Returns: {
+              "competence": string,
+"created_at": string,
+"created_by": string | null,
+"detail": NonNullable<Json>,
+"entry_ids": (string)[],
+"id": string,
+"legal_entity_id": string,
+"org_id": string,
+"reversal_reason": string | null,
+"reversed_at": string | null,
+"reversed_by": string | null,
+"status": string,
+"total": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "allocation_batches"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"run_recurring":
+{ Args: { "p_until"?: string }; Returns: number
+                           },
+"save_budget":
+{ Args: { "p": Json }; Returns: {
+              "created_at": string,
+"created_by": string | null,
+"id": string,
+"legal_entity_id": string,
+"name": string,
+"notes": string | null,
+"org_id": string,
+"scenario": string,
+"status": string,
+"version": number,
+"year": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "budgets"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_recurring":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"allocation_template_id": string | null,
+"amount": number,
+"auto_approve": boolean,
+"chart_account_id": string | null,
+"cost_center_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"day_of_month": number,
+"description": string,
+"direction": Database["fin"]['Enums']["title_direction"],
+"document_kind": string,
+"end_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"next_run": string,
+"notes": string | null,
+"org_id": string,
+"party_id": string | null,
+"start_date": string,
+"store_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "recurring_templates"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_budget_status":
+{ Args: { "p_budget": string,"p_status": string }; Returns: undefined
                            },
 "set_period_status":
 { Args: { "p_competence": string,"p_entity": string,"p_notes"?: string,"p_status": string }; Returns: undefined

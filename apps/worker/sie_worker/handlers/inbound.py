@@ -40,6 +40,10 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
                 continue
             raise
         if res.get("kind") in ("MESSAGE",) and not res.get("duplicate"):
+            try:                                                   # automações (palavra-chave, anúncio, story, comentário): nunca derrubam a entrada da mensagem
+                await call_fn(deps.pool, "omni.run_automations", res["message_id"], ev.get("referral"))
+            except psycopg.Error as e:
+                log.warning("automações falharam na mensagem %s: %s", res["message_id"], e)
             media = (ev.get("payload") or {}).get("media")
             if media:
                 await queues.send(deps.pool, "media_processing", {"message_id": res["message_id"], "provider": row["provider"], "channel": ev["channel"],

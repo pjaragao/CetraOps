@@ -109,6 +109,9 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     claim = await call_fn(deps.pool, "omni.claim_router", conv_id, message_id)
     if claim.get("skip"):
         return
+    handled = await fetch_one(deps.pool, "select payload ->> 'automation_handled' as h from omni.messages where id = %s", (message_id,))
+    if handled and handled["h"] == "true":
+        return                                                      # uma automação já respondeu a esta mensagem: a IA não responde de novo
     m = claim["message"]
     text = m.get("body") or m.get("transcript")
     if m["type"] == "AUDIO" and not m.get("transcript") and msg.read_ct < 4:

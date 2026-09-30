@@ -49,7 +49,11 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
                 pid = await meta.send_whatsapp_text(account, to, m["body"])
         elif channel == "INSTAGRAM":
             meta = MetaClient(deps.http, deps.settings.instagram_api_base, token)
-            pid = await meta.send_instagram_text(account, to, m["body"], human_agent=ctx.get("window_mode") == "HUMAN_AGENT_TAG")
+            comment_id = (m.get("payload") or {}).get("reply_to_comment_id")
+            if comment_id:                                          # resposta privada a comentário (automação)
+                pid = await meta.send_instagram_private_reply(account, str(comment_id), m["body"])
+            else:
+                pid = await meta.send_instagram_text(account, to, m["body"], human_agent=ctx.get("window_mode") == "HUMAN_AGENT_TAG")
         elif channel == "TELEGRAM":
             pid = await TelegramClient(deps.http, deps.settings.telegram_api_base, token).send_message(to, m["body"])
         else:

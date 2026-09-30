@@ -4,7 +4,6 @@ import { Empty, LinkButton, PageHeader } from "@/components/ui";
 
 /** Telas previstas no plano mas ainda não construídas: aviso honesto em vez de tela falsa. */
 const ROADMAP: Record<string, string> = {
-  "/atendimento/automacoes": "Sprint B4 (comentário→DM, menções em story, CTWA)",
   "/atendimento/templates": "Sprint B1/B2 (templates do WhatsApp aprovados pela Meta)",
   "/vender/reservas": "Sprint A2 (reservas e Armário VIP)",
   "/vender/trocas": "Sprint A2 (trocas e vale-troca)",

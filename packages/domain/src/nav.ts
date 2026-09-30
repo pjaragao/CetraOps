@@ -24,7 +24,7 @@ export const NAV: NavArea[] = [
     key: "atendimento", label: "Atendimento", href: "/atendimento", icon: "MessagesSquare", permission: "omni.read",
     items: [
       { label: "Caixa de entrada", href: "/atendimento", ready: true },
-      { label: "Automações", href: "/atendimento/automacoes", ready: false },
+      { label: "Automações", href: "/atendimento/automacoes", ready: true },
       { label: "Templates", href: "/atendimento/templates", ready: true },
       { label: "Desempenho", href: "/atendimento/desempenho", ready: true },
     ],

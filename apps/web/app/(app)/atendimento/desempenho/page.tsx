@@ -59,7 +59,7 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: S
           <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Stat label="Respostas da IA" value={pct(d.volume.ai_replies, replies)} hint={`${d.volume.ai_replies} de ${replies} mensagens enviadas`} />
             <Stat label="Resolvidas só pela IA" value={d.volume.resolved_without_people} hint="Encerradas sem ninguém da equipe" />
-            <Stat label="Transferências pela IA" value={d.volume.handoffs} hint="Pediu ajuda de uma pessoa" />
+            <Stat label="Transferências automáticas" value={d.volume.handoffs} hint="IA, regras ou automações chamaram uma pessoa" />
             <Stat label="Custo da IA" value={`US$ ${d.volume.cost_usd.toFixed(2)}`} hint={d.conversations.started > 0 ? `US$ ${(d.volume.cost_usd / d.conversations.started).toFixed(3)} por conversa nova` : undefined} />
           </div>
 

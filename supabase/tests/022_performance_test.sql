@@ -49,7 +49,7 @@ insert into omni.message_drafts (org_id, conversation_id, variants, status, disc
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000009c2', '[]', 'DISCARDED', 'tom errado', '2031-03-10 14:01:00+00'),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000009c3', '[]', 'PENDING', null, '2031-03-10 15:01:00+00');
 insert into omni.mode_events (org_id, conversation_id, from_mode, to_mode, trigger, actor_type, created_at) values
-  ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000009c1', 'AI_AUTOPILOT', 'WAITING_HUMAN', 'LOW_CONFIDENCE', 'AI', '2031-03-10 13:08:00+00'),
+  ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000009c1', 'AI_AUTOPILOT', 'WAITING_HUMAN', 'LOW_CONFIDENCE', 'SYSTEM', '2031-03-10 13:08:00+00'),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000009c2', 'AI_COPILOT', 'HUMAN', 'MANUAL', 'USER', '2031-03-10 14:04:00+00');
 insert into sales.orders (org_id, legal_entity_id, store_id, location_id, number, channel, status, party_id, origin_conversation_id, assisted_by_ai, subtotal, total, idempotency_key, created_at) values
   ('00000000-0000-4000-8000-000000000001', (select id from core.legal_entities limit 1), '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000b1', 'PERF-1', 'WHATSAPP', 'PAID', '00000000-0000-4000-8000-0000000009a1', '00000000-0000-4000-8000-0000000009c1', true, 400, 400, 'perf-1', '2031-03-10 13:30:00+00'),
@@ -76,7 +76,7 @@ select is((select r -> 'response' -> 'by_author' -> 'AI' ->> 'n' from perf), '2'
 select is((select (r -> 'response' -> 'by_author' -> 'HUMAN' ->> 'median_s')::int from perf), 120, 'tempo da equipe');
 select is((select (r -> 'response' -> 'by_author' -> 'ECHO_FROM_APP' ->> 'median_s')::int from perf), 300, 'tempo pelo app do celular');
 select is((select r -> 'volume' ->> 'ai_replies' || '/' || (r -> 'volume' ->> 'human_replies') || '/' || (r -> 'volume' ->> 'echo_replies') from perf), '2/1/1', 'quem respondeu: IA / equipe / celular');
-select is((select r -> 'volume' ->> 'handoffs' from perf), '1', 'transferências feitas pela IA (a troca manual não conta)');
+select is((select r -> 'volume' ->> 'handoffs' from perf), '1', 'transferências automáticas (a troca feita por pessoa não conta)');
 select is((select r -> 'volume' ->> 'resolved_without_people' from perf), '1', 'resolvida só pela IA');
 select is((select (r -> 'volume' ->> 'cost_usd')::numeric from perf), 0.25, 'custo da IA');
 select is((select r -> 'drafts' ->> 'total' || '/' || (r -> 'drafts' ->> 'sent') || '/' || (r -> 'drafts' ->> 'edited') || '/' || (r -> 'drafts' ->> 'discarded') || '/' || (r -> 'drafts' ->> 'pending') from perf), '4/1/1/1/1', 'aproveitamento dos rascunhos');

@@ -108,6 +108,11 @@ class MetaClient:
         data = await self._post(f"{ig_account_id}/messages", payload)
         return data.get("message_id") or data["recipient_id"]
 
+    async def send_instagram_private_reply(self, ig_account_id: str, comment_id: str, text: str) -> str:
+        """Resposta privada a um comentário (1 por comentário, em até 7 dias): a DM é endereçada ao comentário, não à pessoa."""
+        data = await self._post(f"{ig_account_id}/messages", {"recipient": {"comment_id": comment_id}, "message": {"text": text}})
+        return data.get("message_id") or data["recipient_id"]
+
     # ---------------- Mídia ----------------
     async def download_media(self, media_id: str) -> tuple[bytes, str]:
         try:

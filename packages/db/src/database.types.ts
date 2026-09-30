@@ -4491,7 +4491,57 @@ isOneToOne: false
           }
         },"omni": {
           Tables: {
-            "channel_accounts": {
+            "automation_runs": {
+                  Row: {
+                    "automation_id": string,"conversation_id": string | null,"created_at": string,"detail": NonNullable<Json>,"id": string,"message_id": string | null,"org_id": string,"party_id": string | null,"reason": string | null,"status": string
+                  }
+                  Insert: {
+                    "automation_id": string,"conversation_id"?: string | null,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"message_id"?: string | null,"org_id": string,"party_id"?: string | null,"reason"?: string | null,"status": string
+                  }
+                  Update: {
+                    "automation_id"?: string,"conversation_id"?: string | null,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"message_id"?: string | null,"org_id"?: string,"party_id"?: string | null,"reason"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "automation_runs_automation_id_fkey"
+      columns: ["automation_id"]
+isOneToOne: false
+      referencedRelation: "automations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "automation_runs_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "automation_runs_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "messages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"automations": {
+                  Row: {
+                    "actions": NonNullable<Json>,"active": boolean,"channel_account_id": string | null,"conditions": NonNullable<Json>,"cooldown_days": number,"created_at": string,"created_by": string | null,"id": string,"last_run_at": string | null,"name": string,"org_id": string,"priority": number,"trigger": string,"updated_at": string
+                  }
+                  Insert: {
+                    "actions"?: NonNullable<Json>,"active"?: boolean,"channel_account_id"?: string | null,"conditions"?: NonNullable<Json>,"cooldown_days"?: number,"created_at"?: string,"created_by"?: string | null,"id"?: string,"last_run_at"?: string | null,"name": string,"org_id": string,"priority"?: number,"trigger": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "actions"?: NonNullable<Json>,"active"?: boolean,"channel_account_id"?: string | null,"conditions"?: NonNullable<Json>,"cooldown_days"?: number,"created_at"?: string,"created_by"?: string | null,"id"?: string,"last_run_at"?: string | null,"name"?: string,"org_id"?: string,"priority"?: number,"trigger"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "automations_channel_account_id_fkey"
+      columns: ["channel_account_id"]
+isOneToOne: false
+      referencedRelation: "channel_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"channel_accounts": {
                   Row: {
                     "business_hours": NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id": string | null,"created_at": string,"default_ai_mode": Database["omni"]['Enums']["conv_mode"],"default_persona_id": string | null,"display_name": string,"id": string,"org_id": string,"provider_account_id": string,"status": string,"store_id": string | null,"updated_at": string
                   }
@@ -4707,6 +4757,9 @@ isOneToOne: false
 "claim_router":
 { Args: { "p_conversation": string,"p_message": string }; Returns: Json
                            },
+"delete_automation":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "delete_quick_reply":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -4749,6 +4802,32 @@ isOneToOne: false
 "request_template_sync":
 { Args: { "p_account": string }; Returns: undefined
                            },
+"run_automations":
+{ Args: { "p_message": string,"p_referral"?: Json }; Returns: Json
+                           },
+"save_automation":
+{ Args: { "p": Json }; Returns: {
+              "actions": NonNullable<Json>,
+"active": boolean,
+"channel_account_id": string | null,
+"conditions": NonNullable<Json>,
+"cooldown_days": number,
+"created_at": string,
+"created_by": string | null,
+"id": string,
+"last_run_at": string | null,
+"name": string,
+"org_id": string,
+"priority": number,
+"trigger": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "automations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_channel_account":
 { Args: { "p": Json }; Returns: {
               "business_hours": NonNullable<Json>,
@@ -4870,6 +4949,29 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_automation_active":
+{ Args: { "p_active": boolean,"p_id": string }; Returns: {
+              "actions": NonNullable<Json>,
+"active": boolean,
+"channel_account_id": string | null,
+"conditions": NonNullable<Json>,
+"cooldown_days": number,
+"created_at": string,
+"created_by": string | null,
+"id": string,
+"last_run_at": string | null,
+"name": string,
+"org_id": string,
+"priority": number,
+"trigger": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "automations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_mode":
 { Args: { "p_conversation": string,"p_mode": Database["omni"]['Enums']["conv_mode"],"p_reason"?: string }; Returns: {
               "ai_paused_until": string | null,
@@ -4916,6 +5018,9 @@ isOneToOne: false
                            },
 "sweep_windows":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"test_automation":
+{ Args: { "p_id": string,"p_text": string }; Returns: boolean
                            },
 "upsert_remote_template":
 { Args: { "p": Json }; Returns: string

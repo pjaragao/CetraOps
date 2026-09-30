@@ -61,7 +61,7 @@ begin
     'inbound', count(*) filter (where direction = 'IN')) into v_ai
   from omni.messages where org_id = v_org and created_at >= p_from and created_at < p_to and (direction = 'IN' or author_type in ('AI', 'HUMAN', 'ECHO_FROM_APP'));
   v_ai := v_ai || jsonb_build_object(
-    'handoffs', (select count(*) from omni.mode_events where org_id = v_org and to_mode = 'WAITING_HUMAN' and actor_type = 'AI' and created_at >= p_from and created_at < p_to),
+    'handoffs', (select count(*) from omni.mode_events where org_id = v_org and to_mode = 'WAITING_HUMAN' and actor_type = 'SYSTEM' and created_at >= p_from and created_at < p_to),     -- transferências automáticas (IA, regras e automações); as manuais são de pessoa (USER)
     'resolved_without_people', (select count(*) from omni.conversations c where c.org_id = v_org and c.status = 'CLOSED' and c.closed_at >= p_from and c.closed_at < p_to
         and exists (select 1 from omni.messages m where m.conversation_id = c.id and m.author_type = 'AI') and not exists (select 1 from omni.messages m where m.conversation_id = c.id and m.author_type in ('HUMAN', 'ECHO_FROM_APP'))),
     'cost_usd', (select coalesce(round(sum(cost_usd), 4), 0) from ai.runs where org_id = v_org and created_at >= p_from and created_at < p_to),

@@ -39,12 +39,11 @@ end $$;
 create trigger trg_coupon_limits before insert on sales.coupon_redemptions for each row execute function private.check_coupon_limits();
 
 -- Prévia do desconto de um cupom (o banco recalcula de novo ao fechar o pedido)
-create or replace function sales.validate_coupon(p_code text, p_subtotal numeric, p_party uuid default null) returns jsonb
+create or replace function private.coupon_preview(p_org uuid, p_code text, p_subtotal numeric, p_party uuid default null) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare c sales.coupons; v_disc numeric; v_total int; v_party int;
 begin
-  perform private.require_perm('sales.read');
-  select * into c from sales.coupons where org_id = private.org_id() and upper(code) = upper(p_code) and active and valid_from <= now() and (valid_to is null or valid_to > now());
+  select * into c from sales.coupons where org_id = p_org and upper(code) = upper(p_code) and active and valid_from <= now() and (valid_to is null or valid_to > now());
   if c.id is null then return jsonb_build_object('valid', false, 'reason', 'Cupom inválido ou expirado'); end if;
   if c.min_order is not null and p_subtotal < c.min_order then
     return jsonb_build_object('valid', false, 'reason', format('Pedido mínimo de R$ %s', c.min_order));
@@ -58,6 +57,13 @@ begin
   end if;
   v_disc := round(case when c.kind = 'PERCENT' then p_subtotal * c.value / 100 else least(c.value, p_subtotal) end, 2);
   return jsonb_build_object('valid', true, 'discount', v_disc, 'kind', c.kind, 'value', c.value, 'affiliate', c.affiliate_party_id is not null);
+end $$;
+
+create or replace function sales.validate_coupon(p_code text, p_subtotal numeric, p_party uuid default null) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform private.require_perm('sales.read');
+  return private.coupon_preview(private.org_id(), p_code, p_subtotal, p_party);
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -285,12 +291,12 @@ end $$;
 -- Reservas (retenção da IA, provador, lista de espera, pedido) — o gatilho já impede reservar além do disponível
 -- p = {variant_id, location_id?, store_id?, qty, reason, party_id?, conversation_id?, hold_hours?, created_by_kind?}
 -- ---------------------------------------------------------------------
-create or replace function inv.reserve(p jsonb) returns inv.reservations
+create or replace function private.reserve_for(v_org uuid, p jsonb) returns inv.reservations
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_org uuid := private.org_id(); v_actor text := coalesce(p ->> 'created_by_kind', 'HUMAN'); r inv.reservations; v_loc uuid; v_hours int; v_reason text := p ->> 'reason';
+  v_actor text := coalesce(p ->> 'created_by_kind', 'HUMAN'); r inv.reservations; v_loc uuid; v_hours int; v_reason text := p ->> 'reason';
 begin
-  perform private.require_perm('sales.write');
+  if v_org is null then raise exception 'Sem organização'; end if;
   if v_reason not in ('ORDER', 'VIP_LOCKER', 'AI_HOLD', 'TRY_ON', 'B2B', 'DROP_WAITLIST') then raise exception 'Motivo de reserva inválido'; end if;
   v_loc := coalesce((p ->> 'location_id')::uuid, (select l.id from inv.locations l where l.org_id = v_org and l.store_id = (p ->> 'store_id')::uuid and l.kind = 'SALES_FLOOR' order by l.created_at limit 1));
   if v_loc is null or not exists (select 1 from inv.locations where id = v_loc and org_id = v_org) then raise exception 'Local inválido'; end if;
@@ -305,6 +311,13 @@ begin
   values (v_org, (p ->> 'variant_id')::uuid, v_loc, (p ->> 'qty')::numeric, v_reason, (p ->> 'party_id')::uuid, (p ->> 'conversation_id')::uuid,
           now() + make_interval(hours => v_hours), v_actor) returning * into r;
   return r;
+end $$;
+
+create or replace function inv.reserve(p jsonb) returns inv.reservations
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform private.require_perm('sales.write');
+  return private.reserve_for(private.org_id(), p);
 end $$;
 
 create or replace function inv.release_reservation(p_reservation uuid) returns void
@@ -399,7 +412,7 @@ language plpgsql security definer set search_path = '' as $$
 declare
   v_store core.stores; v_org uuid; v_location uuid; v_price_list uuid; o sales.orders; it jsonb; v_list numeric; v_unit numeric; v_qty numeric; v_disc numeric;
   v_subtotal numeric := 0; v_discount numeric := 0; v_shipping numeric := coalesce((p ->> 'shipping_total')::numeric, 0); v_coupon sales.coupons; v_cdisc numeric;
-  v_can_discount boolean; v_res inv.reservations; v_hours int := coalesce((p ->> 'hold_hours')::int, 24); v_item uuid; v_ai boolean := coalesce((p ->> 'assisted_by_ai')::boolean, false);
+  v_can_discount boolean; v_res inv.reservations; v_hours int := coalesce((p ->> 'hold_hours')::int, case when coalesce((p ->> 'draft')::boolean, false) then 2 else 24 end); v_item uuid; v_ai boolean := coalesce((p ->> 'assisted_by_ai')::boolean, false);
 begin
   perform private.require_perm('sales.write');
   select * into v_store from core.stores where id = (p ->> 'store_id')::uuid;
@@ -419,7 +432,8 @@ begin
 
   insert into sales.orders (org_id, legal_entity_id, store_id, location_id, number, channel, status, party_id, seller_member_id, profit_cost_center_id,
                             price_list_id, origin_conversation_id, assisted_by_ai, fulfillment_type, idempotency_key, created_by, attribution, notes)
-  values (v_org, v_store.legal_entity_id, v_store.id, v_location, core.next_number(v_org, 'VEN'), coalesce((p ->> 'channel')::sales.channel, 'WHATSAPP'), 'PENDING_PAYMENT',
+  values (v_org, v_store.legal_entity_id, v_store.id, v_location, core.next_number(v_org, 'VEN'), coalesce((p ->> 'channel')::sales.channel, 'WHATSAPP'),
+          case when coalesce((p ->> 'draft')::boolean, false) then 'DRAFT'::sales.order_status else 'PENDING_PAYMENT'::sales.order_status end,
           (p ->> 'party_id')::uuid, coalesce((p ->> 'seller_member_id')::uuid, private.member_id()),
           coalesce((select s.cost_center_id from core.stores s where s.id = v_store.id), null), v_price_list, (p ->> 'conversation_id')::uuid, v_ai,
           coalesce((p ->> 'fulfillment_type')::sales.fulfillment_type, 'MOTOBOY'), p ->> 'idempotency_key', private.member_id(), coalesce(p -> 'attribution', '{}'), p ->> 'notes')

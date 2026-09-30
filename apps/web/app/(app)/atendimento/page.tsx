@@ -53,7 +53,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         .select("id, mode, last_inbound_at, party_id, channel_accounts:channel_account_id(channel, display_name)")
         .eq("id", selected).maybeSingle(),
       supabase.schema("omni").from("messages").select("id, direction, author_type, body, transcript, type, status, created_at")
-        .eq("conversation_id", selected).order("created_at").limit(300),
+        .eq("conversation_id", selected).order("created_at").order("seq").limit(300),
       supabase.schema("omni").from("message_drafts").select("id, variants, intent, confidence, needs_human, flags")
         .eq("conversation_id", selected).eq("status", "PENDING").order("created_at", { ascending: false }).limit(1),
     ]);

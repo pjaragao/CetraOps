@@ -1,0 +1,126 @@
+"""Emissão fiscal (NFC-e via Focus NFe): idempotência por ref, situação "processando", rejeição, credencial ausente e o que NÃO emitimos sozinhos."""
+from __future__ import annotations
+
+import json
+import uuid
+from typing import Any
+
+import httpx
+import pytest
+import pytest_asyncio
+import respx
+
+from sie_worker import queues
+from sie_worker.db import call_fn, fetch_all, fetch_one
+from sie_worker.handlers import fiscal
+from sie_worker.runner import RetryLater
+
+from .conftest import ORG, STORE
+
+pytestmark = pytest.mark.db
+
+LEGAL_ENTITY = "00000000-0000-4000-8000-0000000000e1"
+LOCATION = "00000000-0000-4000-8000-0000000000b1"
+KEY = "42260911222333000181650010000000121000000121"
+
+
+@pytest_asyncio.fixture
+async def order(pool: Any) -> dict[str, Any]:
+    suffix = uuid.uuid4().hex[:8]
+    o = await fetch_one(pool, """insert into sales.orders (org_id, legal_entity_id, store_id, location_id, number, channel, status, subtotal, total, paid_total, idempotency_key)
+                                 values (%s, %s, %s, %s, %s, 'POS', 'PAID', 678, 678, 678, %s) returning id, number""",
+                        (ORG, LEGAL_ENTITY, STORE, LOCATION, f"TST-{suffix}", f"test-{suffix}"))
+    assert o
+    for sku, qty, price in (("DEMO-LEG01-PRT-M", 1, 429), ("DEMO-TEE01-PRT-G", 1, 249)):
+        await fetch_one(pool, """insert into sales.order_items (org_id, order_id, variant_id, qty, list_price, unit_price, total)
+                                 select %s, %s, id, %s, %s, %s, %s from catalog.variants where sku = %s returning id""", (ORG, o["id"], qty, price, price, price * qty, sku))
+    await fetch_one(pool, "insert into sales.payments (org_id, order_id, method, amount, status) values (%s, %s, 'PIX', 678, 'CAPTURED') returning id", (ORG, o["id"]))
+    return {"id": str(o["id"]), "number": o["number"], "ref": f"{o['id']}:SALE"}
+
+
+def job(order: dict[str, Any], **extra: Any) -> queues.QueueMessage:
+    return queues.QueueMessage("fiscal_emission", 1, 1, {"order_id": order["id"], "org_id": ORG, "purpose": "SALE", **extra})
+
+
+async def document(pool: Any, order: dict[str, Any]) -> dict[str, Any] | None:
+    return await fetch_one(pool, "select status, number, series, access_key, protocol, sefaz_code, sefaz_msg, danfe_path, provider_ref from fiscal.documents where order_id = %s", (order["id"],))
+
+
+AUTHORIZED = {"status": "autorizado", "numero": "12", "serie": "1", "chave_nfe": f"NFe{KEY}", "protocolo": "P-123", "caminho_danfe": "/danfe/12.pdf"}
+
+
+@respx.mock
+async def test_authorized_nfce_is_recorded_once(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    route = respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(201, json=AUTHORIZED))
+    await fiscal.handle(deps, job(order))
+    doc = await document(pool, order)
+    assert doc and doc["status"] == "AUTHORIZED" and doc["number"] == 12 and doc["access_key"] == KEY and doc["protocol"] == "P-123" and doc["danfe_path"] == "/danfe/12.pdf"
+    req = route.calls[0].request
+    assert req.url.params["ref"] == order["ref"] and req.headers["authorization"].startswith("Basic ")
+    body = json.loads(req.content)
+    assert body["cnpj_emitente"] == "11222333000181" and body["presenca_comprador"] == 1 and body["finalidade_emissao"] == 1
+    assert [(i["codigo_produto"], i["valor_bruto"], i["valor_desconto"]) for i in body["itens"]] == [("DEMO-LEG01-PRT-M", 429.0, 0.0), ("DEMO-TEE01-PRT-G", 249.0, 0.0)]
+    assert body["itens"][0]["cfop"] == "5102" and body["itens"][0]["icms_situacao_tributaria"] == "102"
+    assert body["formas_pagamento"] == [{"forma_pagamento": "17", "valor_pagamento": 678.0}]
+    await fiscal.handle(deps, job(order))                                                                     # reentrega: mesma ref, um único documento
+    assert len(await fetch_all(pool, "select 1 from fiscal.documents where order_id = %s", (order["id"],))) == 1
+
+
+@respx.mock
+async def test_processing_retries_and_then_polls_by_ref(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(202, json={"status": "processando_autorizacao"}))
+    with pytest.raises(RetryLater):
+        await fiscal.handle(deps, job(order))
+    assert (await document(pool, order))["status"] == "PROCESSING"  # type: ignore[index]
+    poll = respx.get(f"https://focus.test/v2/nfce/{order['ref']}").mock(return_value=httpx.Response(200, json=AUTHORIZED))
+    await fiscal.handle(deps, job(order))                                                                     # consulta em vez de emitir de novo
+    assert poll.called and (await document(pool, order))["status"] == "AUTHORIZED"  # type: ignore[index]
+
+
+@respx.mock
+async def test_rejection_is_recorded_and_alerts_the_fiscal_team(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(422, json={"codigo": "requisicao_invalida", "mensagem": "NCM inválido"}))
+    before = (await fetch_one(pool, "select count(*) as n from core.notifications where kind = 'FISCAL_REJECTED'"))["n"]  # type: ignore[index]
+    await fiscal.handle(deps, job(order))
+    doc = await document(pool, order)
+    assert doc and doc["status"] == "REJECTED" and doc["sefaz_msg"] == "NCM inválido"
+    assert (await fetch_one(pool, "select count(*) as n from core.notifications where kind = 'FISCAL_REJECTED'"))["n"] > before  # type: ignore[index]
+
+
+@respx.mock
+async def test_provider_outage_retries_without_recording(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(503))
+    with pytest.raises(RetryLater):
+        await fiscal.handle(deps, job(order))
+    assert await document(pool, order) is None
+
+
+@respx.mock
+async def test_missing_credentials_alerts_and_retries(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    import dataclasses
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": ""}))
+    route = respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(201, json=AUTHORIZED))
+    with pytest.raises(RetryLater):
+        await fiscal.handle(d, job(order))
+    assert not route.called
+    row = await fetch_one(pool, "select title from core.notifications where kind = 'INTEGRATION_ERROR' order by created_at desc, id desc limit 1")
+    assert row and "Focus NFe" in row["title"]
+
+
+@respx.mock
+async def test_returns_and_b2b_are_flagged_for_review_not_emitted(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    route = respx.post(url__regex=r"https://focus\.test/.*").mock(return_value=httpx.Response(201, json=AUTHORIZED))
+    await fiscal.handle(deps, job(order, purpose="RETURN"))
+    await fiscal.handle(deps, job(order, model="55"))
+    assert not route.called and await document(pool, order) is None
+    rows = await fetch_all(pool, "select title from core.notifications where kind = 'FISCAL_REVIEW' order by created_at desc, id desc limit 2")
+    assert len(rows) == 2 and all("contador" in r["title"] for r in rows)
+
+
+async def test_emission_payload_applies_coupon_discount_proportionally(pool: Any, order: dict[str, Any]) -> None:
+    coupon = await fetch_one(pool, "insert into sales.coupons (org_id, code, kind, value) values (%s, %s, 'PERCENT', 10) returning id", (ORG, f"T{uuid.uuid4().hex[:6].upper()}"))
+    assert coupon
+    await fetch_one(pool, "insert into sales.coupon_redemptions (org_id, coupon_id, order_id, amount) values (%s, %s, %s, 67.80) returning id", (ORG, coupon["id"], order["id"]))
+    doc = await call_fn(pool, "fiscal.emission_payload", order["id"], "SALE")
+    assert [i["valor_desconto"] for i in doc["document"]["itens"]] == [42.9, 24.9]                             # 10% de cada item, somando o cupom de R$ 67,80
+    assert doc["ref"] == order["ref"] and doc["model"] == "65"

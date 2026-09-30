@@ -34,7 +34,7 @@ export default async function NovaTrocaPage({ searchParams }: { searchParams: SP
           )
         ) : await (async () => {
           const [{ data: items }, { data: locs }, { data: cash }, { data: party }] = await Promise.all([
-            supabase.schema("sales").from("order_items").select("id, variant_id, qty, total, returned_qty").eq("order_id", order.id),
+            supabase.schema("sales").from("order_items").select("id, variant_id, qty, total, returned_qty").eq("order_id", order.id).order("line_no"),
             supabase.schema("inv").from("locations").select("id, name, kind").eq("store_id", order.store_id),
             supabase.schema("sales").from("cash_sessions").select("id").eq("status", "OPEN").limit(1).maybeSingle(),
             order.party_id ? supabase.schema("crm").from("parties").select("display_name").eq("id", order.party_id).maybeSingle() : Promise.resolve({ data: null }),

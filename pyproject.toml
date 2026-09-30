@@ -1,2 +1,17 @@
 [tool.uv.workspace]
-members = ["apps/worker", "apps/agent/mcp_server"]
+members = ["apps/worker", "apps/agent/mcp_server", "apps/agent/contract"]
+
+[tool.ruff]
+line-length = 200
+target-version = "py312"
+extend-exclude = [".venv", "legacy", "primeira_unidade_joy", "plano_de_expansao", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003", "B008", "E501"]   # acentos em português; Field()/Depends() em argumentos; linhas longas ficam a critério (200)
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["B011", "RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sie_worker", "sie_mcp", "sie_agent_contract"]

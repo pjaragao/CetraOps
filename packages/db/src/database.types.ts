@@ -876,6 +876,21 @@ isOneToOne: false
                            },
 "notify":
 { Args: { "p_kind": string,"p_member"?: string,"p_org": string,"p_payload"?: Json,"p_perm"?: string,"p_title": string }; Returns: number
+                           },
+"record_integration_health":
+{ Args: { "p_detail"?: Json,"p_error"?: string,"p_id": string,"p_ok": boolean }; Returns: undefined
+                           },
+"remove_integration_secret":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"request_integration_check":
+{ Args: { "p_action"?: string,"p_id": string }; Returns: undefined
+                           },
+"save_integration":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"set_integration_enabled":
+{ Args: { "p_enabled": boolean,"p_id": string }; Returns: undefined
                            }
           }
           Enums: {
@@ -3851,6 +3866,28 @@ isOneToOne: false
 "record_opt_out":
 { Args: { "p_message": string,"p_party": string }; Returns: undefined
                            },
+"save_channel_account":
+{ Args: { "p": Json }; Returns: {
+              "business_hours": NonNullable<Json>,
+"channel": Database["omni"]['Enums']["channel"],
+"connection_id": string | null,
+"created_at": string,
+"default_ai_mode": Database["omni"]['Enums']["conv_mode"],
+"default_persona_id": string | null,
+"display_name": string,
+"id": string,
+"org_id": string,
+"provider_account_id": string,
+"status": string,
+"store_id": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "channel_accounts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "send_message":
 { Args: { "p_body": string,"p_conversation": string,"p_draft"?: string,"p_edited"?: boolean }; Returns: {
               "ai_run_id": string | null,

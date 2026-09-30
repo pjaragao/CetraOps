@@ -17,7 +17,7 @@ from .ai.agent import AgentClient, FallbackAgent, HermesAgent, OpenRouterAgent
 from .config import Settings, get_settings
 from .db import make_pool
 from .deps import Deps
-from .handlers import fiscal, inbound, media, notifications, outbound, router
+from .handlers import fiscal, inbound, integrations, media, notifications, outbound, router
 from .runner import consume_forever, drain
 
 Handler = Callable[[Deps, queues.QueueMessage], Awaitable[None]]
@@ -29,6 +29,7 @@ HANDLERS: dict[str, Handler] = {
     "media_processing": media.handle,
     "fiscal_emission": fiscal.handle,
     "notifications": notifications.handle,
+    "integration_checks": integrations.handle,
 }
 
 

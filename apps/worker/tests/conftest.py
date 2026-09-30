@@ -90,7 +90,7 @@ class TxPool:
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     return Settings(database_url=DB_URL, visibility_timeout_s=30, max_attempts=5, concurrency=1, agent_ctx_secret=CTX_SECRET, focus_token="focus-test-token",
-                    focus_api_base="https://focus.test", graph_api_base="https://graph.test/v21.0", telegram_api_base="https://tg.test",
+                    focus_api_base="https://focus.test", graph_api_base="https://graph.test/v21.0", instagram_api_base="https://ig.test/v21.0", telegram_api_base="https://tg.test", telegram_webhook_secret="tg-secret-test",
                     supabase_url="https://storage.test", supabase_service_key="svc-test", groq_key="groq-test", groq_base="https://groq.test/v1")
 
 

@@ -190,6 +190,23 @@ async def test_outbound_sends_whatsapp_text_and_marks_sent(pool: Any, deps: Any,
 
 
 @respx.mock
+async def test_outbound_instagram_uses_its_own_host_and_the_human_agent_tag(pool: Any, deps: Any, channel: dict[str, str]) -> None:
+    suffix = uuid.uuid4().hex[:8]
+    await fetch_one(pool, """insert into omni.channel_accounts (org_id, channel, provider_account_id, display_name, store_id, default_ai_mode, connection_id)
+                             select org_id, 'INSTAGRAM', %s, 'Instagram teste', store_id, 'AI_COPILOT', connection_id from omni.channel_accounts where id = %s returning id""", (f"IG-{suffix}", channel["account_id"]))
+    ev = await call_fn(pool, "omni.ingest_event", {"kind": "MESSAGE", "channel": "INSTAGRAM", "provider_account_id": f"IG-{suffix}", "external_id": "IGSID9", "handle": "ana_teste",
+                                                   "display_name": "Ana IG", "provider_message_id": f"mid.{suffix}", "body": "oi"})
+    await fetch_one(pool, "update omni.conversations set last_inbound_at = now() - interval '3 days' where id = %s returning id", (ev["conversation_id"],))   # entre 24 h e 7 dias
+    mid = await _human_reply(pool, ev)
+    route = respx.post(f"https://ig.test/v21.0/IG-{suffix}/messages").mock(return_value=httpx.Response(200, json={"recipient_id": "IGSID9", "message_id": "mid.OUT1"}))
+    await outbound.handle(deps, queues.QueueMessage("outbound_messages", 1, 1, {"message_id": mid}))
+    body = json.loads(route.calls[0].request.content)
+    assert body["recipient"] == {"id": "IGSID9"} and body["messaging_type"] == "MESSAGE_TAG" and body["tag"] == "HUMAN_AGENT"
+    row = await fetch_one(pool, "select status, provider_message_id from omni.messages where id = %s", (mid,))
+    assert row and row["status"] == "SENT" and row["provider_message_id"] == "mid.OUT1"
+
+
+@respx.mock
 async def test_outbound_outside_window_fails_without_http(pool: Any, deps: Any, channel: dict[str, str]) -> None:
     conv = await ingest(pool, channel, unique_phone(), "Oi")
     await fetch_one(pool, "update omni.conversations set last_inbound_at = now() - interval '2 days' where id = %s returning id", (conv["conversation_id"],))

@@ -17,7 +17,8 @@ create or replace function pg_temp.notified(p_kind text, p_key text) returns int
 $$;
 
 -- ---------- Agenda ----------
-select is((select count(*)::int from cron.job where jobname like 'sie-%' and active), 9, 'nove rotinas agendadas no pg_cron');
+select is((select count(*)::int from cron.job where active and jobname = any(array['sie-sweep-sla', 'sie-sweep-windows', 'sie-expire-reservations', 'sie-expire-locker-drops', 'sie-expire-pending-orders',
+  'sie-sweep-ai-runs', 'sie-check-queues', 'sie-hr-roll-vacations', 'sie-purge-old-data'])), 9, 'as nove rotinas de manutenção estão agendadas no pg_cron');
 select ok((select bool_and(btrim(command) like 'select %') from cron.job where jobname like 'sie-%'), 'cada rotina só chama uma função');
 
 -- ---------- SLA ----------
@@ -67,11 +68,13 @@ select is((select status from ai.runs where id = '00000000-0000-4000-8000-000000
 select is((select status from ai.runs where id = '00000000-0000-4000-8000-0000000009e2'), 'RUNNING', 'execução recente continua em andamento');
 
 -- ---------- Fila morta ----------
+delete from core.notifications where kind = 'DLQ_ALERT' and payload ->> 'queue' = 'notifications_dlq';   -- (o pg_cron de verdade pode já ter avisado antes deste teste)
 select pgmq.send('notifications_dlq', '{"teste": true}'::jsonb);
 select ok(private.check_queues() >= 1, 'DLQ com mensagem gera alerta');
-select is((select count(*)::int from core.notifications where kind = 'DLQ_ALERT' and payload ->> 'queue' = 'notifications_dlq' and created_at > now() - interval '1 day'), 1, 'um alerta por dia e por fila');
+select ok((select count(*)::int from core.notifications where kind = 'DLQ_ALERT' and payload ->> 'queue' = 'notifications_dlq' and created_at > now() - interval '1 day') >= 1, 'os administradores são avisados da fila morta');
+create temp table dlq_before as select count(*)::int as n from core.notifications where kind = 'DLQ_ALERT' and payload ->> 'queue' = 'notifications_dlq';
 select private.check_queues();
-select is((select count(*)::int from core.notifications where kind = 'DLQ_ALERT' and payload ->> 'queue' = 'notifications_dlq' and created_at > now() - interval '1 day'), 1, 'reexecutar não repete o alerta');
+select is((select count(*)::int from core.notifications where kind = 'DLQ_ALERT' and payload ->> 'queue' = 'notifications_dlq'), (select n from dlq_before), 'reexecutar no mesmo dia não repete o alerta');
 
 -- ---------- Retenção ----------
 insert into omni.webhook_events (provider, event_key, payload, signature_valid, received_at) values

@@ -80,3 +80,12 @@ class FocusClient:
 
     async def cancel(self, model: str, ref: str, reason: str) -> FocusResult:
         return self._result(await self._request("DELETE", f'/v2/{"nfce" if model == "65" else "nfe"}/{ref}', json={"justificativa": reason}))
+
+    async def ping(self) -> dict[str, Any]:
+        """Confere só a credencial: consulta de CNPJ (endpoint auxiliar simples, sem payload). 401/403 = credencial recusada; 200/404 = aceita."""
+        resp = await self._request("GET", "/v2/cnpjs/00000000000191")
+        if resp.status_code in (401, 403):
+            raise PermanentError("Focus NFe: credencial recusada", status=resp.status_code)
+        if resp.status_code == 429 or resp.status_code >= 500:
+            raise TransientError(f"Focus NFe {resp.status_code}", status=resp.status_code)
+        return {"http_status": resp.status_code}

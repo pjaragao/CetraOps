@@ -48,7 +48,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
             else:
                 pid = await meta.send_whatsapp_text(account, to, m["body"])
         elif channel == "INSTAGRAM":
-            meta = MetaClient(deps.http, deps.settings.graph_api_base, token)
+            meta = MetaClient(deps.http, deps.settings.instagram_api_base, token)
             pid = await meta.send_instagram_text(account, to, m["body"], human_agent=ctx.get("window_mode") == "HUMAN_AGENT_TAG")
         elif channel == "TELEGRAM":
             pid = await TelegramClient(deps.http, deps.settings.telegram_api_base, token).send_message(to, m["body"])

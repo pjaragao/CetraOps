@@ -23,8 +23,10 @@ class Settings(BaseSettings):
 
     # Meta (WhatsApp Cloud API / Instagram)
     graph_api_base: str = "https://graph.facebook.com/v21.0"
+    instagram_api_base: str = "https://graph.instagram.com/v21.0"         # Instagram API com Login do Instagram (plano §7)
     # Telegram
     telegram_api_base: str = "https://api.telegram.org"
+    telegram_webhook_secret: str = ""                                      # o MESMO TELEGRAM_WEBHOOK_SECRET das Edge Functions (secret_token do setWebhook)
     # Focus NFe
     focus_api_base: str = "https://homologacao.focusnfe.com.br"
     focus_token: str = ""

@@ -42,6 +42,21 @@ class MetaClient:
         _raise_for(resp)
         return resp.json()
 
+    async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        try:
+            resp = await self._http.get(f"{self._base}/{path}", params=params, headers=self._headers(), timeout=20)
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            raise TransientError(f"rede: {e}") from e
+        _raise_for(resp)
+        return resp.json()
+
+    # ---------------- Verificação de credencial ----------------
+    async def whatsapp_phone_info(self, phone_number_id: str) -> dict[str, Any]:
+        return await self._get(phone_number_id, {"fields": "display_phone_number,verified_name,quality_rating,code_verification_status,name_status"})
+
+    async def instagram_me(self) -> dict[str, Any]:
+        return await self._get("me", {"fields": "user_id,username,name,account_type"})
+
     # ---------------- WhatsApp ----------------
     async def send_whatsapp_text(self, phone_number_id: str, to: str, body: str, reply_to: str | None = None) -> str:
         payload: dict[str, Any] = {"messaging_product": "whatsapp", "recipient_type": "individual", "to": to, "type": "text", "text": {"preview_url": False, "body": body}}

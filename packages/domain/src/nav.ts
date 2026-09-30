@@ -125,7 +125,7 @@ export const NAV: NavArea[] = [
       { label: "Plano de contas", href: "/configuracoes/plano-de-contas", ready: true },
       { label: "Rateios (modelos e regras)", href: "/configuracoes/rateios", ready: true },
       { label: "Formas de pagamento & taxas", href: "/configuracoes/taxas", ready: true },
-      { label: "Integrações", href: "/configuracoes/integracoes", ready: false },
+      { label: "Integrações", href: "/configuracoes/integracoes", ready: true },
     ],
   },
 ];

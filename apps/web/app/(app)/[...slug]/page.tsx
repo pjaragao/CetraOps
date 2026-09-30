@@ -9,7 +9,7 @@ const ROADMAP: Record<string, string> = {
   "/atendimento/desempenho": "Sprint B3",
   "/vender/reservas": "Sprint A2 (reservas e Armário VIP)",
   "/vender/trocas": "Sprint A2 (trocas e vale-troca)",
-  "/clientes/funis": "Sprint B4", "/clientes/tarefas": "Sprint B4", "/clientes/prospeccao": "Sprint B4",
+  "/clientes/prospeccao": "Sprint B4",
   "/clientes/afiliados": "Sprint A2 (JOY Trainers)",
   "/marketing": "Sprint B5", "/marketing/eventos": "Sprint B5 (RSVP do Drop 02)", "/marketing/cupons": "Sprint A2",
   "/produtos/compras": "Sprint A1/A5 (recebimento por XML e reposição por tamanho)",

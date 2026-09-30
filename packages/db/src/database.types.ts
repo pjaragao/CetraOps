@@ -1440,12 +1440,136 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "quick_customer":
+            "delete_deal":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"move_deal":
+{ Args: { "p_deal": string,"p_reason"?: string,"p_stage": string }; Returns: {
+              "conversation_id": string | null,
+"created_at": string,
+"id": string,
+"lost_reason": string | null,
+"org_id": string,
+"owner_member_id": string | null,
+"party_id": string,
+"pipeline_id": string,
+"stage_id": string,
+"status": string,
+"title": string,
+"updated_at": string,
+"value_estimated": number | null,
+"won_order_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "deals"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"quick_customer":
 { Args: { "p_marketing_whatsapp"?: boolean,"p_name"?: string,"p_phone": string }; Returns: string
                            },
+"reschedule_task":
+{ Args: { "p_due": string,"p_id": string }; Returns: {
+              "assignee_member_id": string | null,
+"body": string | null,
+"completed_at": string | null,
+"created_at": string,
+"created_by_ai": boolean,
+"deal_id": string | null,
+"due_at": string | null,
+"id": string,
+"org_id": string,
+"party_id": string | null,
+"source_rule": string | null,
+"status": string,
+"suggested_message": string | null,
+"title": string,
+"type": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tasks"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "resolve_identity":
 { Args: { "p_display_name"?: string,"p_org": string,"p_source"?: string,"p_type": Database["crm"]['Enums']["contact_type"],"p_value": string }; Returns: string
-                           }
+                           },
+"save_deal":
+{ Args: { "p": Json }; Returns: {
+              "conversation_id": string | null,
+"created_at": string,
+"id": string,
+"lost_reason": string | null,
+"org_id": string,
+"owner_member_id": string | null,
+"party_id": string,
+"pipeline_id": string,
+"stage_id": string,
+"status": string,
+"title": string,
+"updated_at": string,
+"value_estimated": number | null,
+"won_order_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "deals"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_task":
+{ Args: { "p": Json }; Returns: {
+              "assignee_member_id": string | null,
+"body": string | null,
+"completed_at": string | null,
+"created_at": string,
+"created_by_ai": boolean,
+"deal_id": string | null,
+"due_at": string | null,
+"id": string,
+"org_id": string,
+"party_id": string | null,
+"source_rule": string | null,
+"status": string,
+"suggested_message": string | null,
+"title": string,
+"type": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tasks"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_task_status":
+{ Args: { "p_id": string,"p_status": string }; Returns: {
+              "assignee_member_id": string | null,
+"body": string | null,
+"completed_at": string | null,
+"created_at": string,
+"created_by_ai": boolean,
+"deal_id": string | null,
+"due_at": string | null,
+"id": string,
+"org_id": string,
+"party_id": string | null,
+"source_rule": string | null,
+"status": string,
+"suggested_message": string | null,
+"title": string,
+"type": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tasks"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
           }
           Enums: {
             "consent_purpose": "TRANSACTIONAL"|"MARKETING_WHATSAPP"|"MARKETING_EMAIL"|"MARKETING_IG"|"AI_PROFILING"|"ENRICHMENT"|"IMAGE_USE","contact_type": "PHONE"|"EMAIL"|"WHATSAPP"|"INSTAGRAM"|"TELEGRAM"|"TIKTOK","legal_basis": "CONSENT"|"LEGITIMATE_INTEREST"|"CONTRACT"|"LEGAL_OBLIGATION","lifecycle_stage": "LEAD"|"PROSPECT"|"CUSTOMER"|"VIP"|"INACTIVE"|"LOST","party_kind": "PERSON"|"COMPANY","party_role": "CUSTOMER"|"SUPPLIER"|"EMPLOYEE"|"AFFILIATE_TRAINER"|"PARTNER_GYM"|"INFLUENCER"|"CARRIER"|"SERVICE_PROVIDER"|"SHAREHOLDER"|"ACQUIRER"|"BANK","tier": "STANDARD"|"VIP"|"VIP_BLACK"

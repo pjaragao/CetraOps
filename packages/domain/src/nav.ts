@@ -44,8 +44,8 @@ export const NAV: NavArea[] = [
     key: "clientes", label: "Clientes", href: "/clientes", icon: "Users", permission: "crm.read",
     items: [
       { label: "Clientes & Leads", href: "/clientes", ready: true },
-      { label: "Funis", href: "/clientes/funis", ready: false },
-      { label: "Tarefas", href: "/clientes/tarefas", ready: false },
+      { label: "Funis", href: "/clientes/funis", ready: true },
+      { label: "Tarefas", href: "/clientes/tarefas", ready: true },
       { label: "Prospecção assistida", href: "/clientes/prospeccao", ready: false },
       { label: "Afiliados", href: "/clientes/afiliados", ready: false },
     ],

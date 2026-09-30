@@ -12,7 +12,7 @@ const ROADMAP: Record<string, string> = {
   "/financeiro/conciliacao": "Sprint A4 (conciliação 3 vias com extratos Inter, BTG e Mercado Pago)",
   "/financeiro/rateios": "Sprint A4", "/financeiro/dre": "Sprint A4", "/financeiro/fluxo": "Sprint A4",
   "/fiscal/emitidas": "Sprint A1 (NFC-e via Focus NFe)", "/fiscal/recebidas": "Sprint A5 (MDe)",
-  "/equipe/comissoes": "Sprint A6", "/ia": "Sprint B3/B4", "/ia/personas": "Sprint B2 (pipeline de persona)",
+  "/equipe/comissoes": "Sprint A6", "/ia/personas": "Sprint B2 (pipeline de persona)",
   "/configuracoes/integracoes": "Sprint B1/A3",
 };
 

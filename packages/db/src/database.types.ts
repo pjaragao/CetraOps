@@ -332,13 +332,13 @@ isOneToOne: false
                   ]
                 },"suggestions": {
                   Row: {
-                    "confidence": number | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"id": string,"kind": string,"org_id": string,"payload": NonNullable<Json>,"status": string,"target_id": string | null,"target_type": string | null
+                    "confidence": number | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"id": string,"kind": string,"org_id": string,"payload": NonNullable<Json>,"status": string,"target_id": string | null,"target_type": string | null
                   }
                   Insert: {
-                    "confidence"?: number | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"kind": string,"org_id": string,"payload": NonNullable<Json>,"status"?: string,"target_id"?: string | null,"target_type"?: string | null
+                    "confidence"?: number | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"id"?: string,"kind": string,"org_id": string,"payload": NonNullable<Json>,"status"?: string,"target_id"?: string | null,"target_type"?: string | null
                   }
                   Update: {
-                    "confidence"?: number | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"kind"?: string,"org_id"?: string,"payload"?: NonNullable<Json>,"status"?: string,"target_id"?: string | null,"target_type"?: string | null
+                    "confidence"?: number | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"id"?: string,"kind"?: string,"org_id"?: string,"payload"?: NonNullable<Json>,"status"?: string,"target_id"?: string | null,"target_type"?: string | null
                   }
                   Relationships: [
                     
@@ -424,6 +424,27 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"decide_suggestion":
+{ Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
+              "confidence": number | null,
+"created_at": string,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_note": string | null,
+"id": string,
+"kind": string,
+"org_id": string,
+"payload": NonNullable<Json>,
+"status": string,
+"target_id": string | null,
+"target_type": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "suggestions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "delete_corpus_source":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -435,6 +456,9 @@ isOneToOne: false
                            },
 "request_persona_profile":
 { Args: { "p_lexicon"?: (string)[],"p_persona": string }; Returns: undefined
+                           },
+"run_detectors":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "save_persona":
 { Args: { "p": Json }; Returns: {

@@ -27,6 +27,7 @@ const KINDS: Record<string, (p: Payload) => NotificationView> = {
   FISCAL_CANCEL_FAILED: () => ({ label: "Cancelamento recusado", tone: "danger", href: "/fiscal/emitidas" }),
   FISCAL_PENDING: () => ({ label: "Vendas sem nota", tone: "warning", href: "/fiscal/emitidas" }),
   FISCAL_REVIEW: () => ({ label: "Fiscal: revisar", tone: "warning", href: "/fiscal/emitidas" }),
+  SUGGESTION: () => ({ label: "Sugestão", tone: "warning", href: "/ia" }),
   CAMPAIGN: (p) => ({ label: "Campanha", tone: "success", href: str(p.campaign_id) ? `/marketing/campanhas/${str(p.campaign_id)}` : "/marketing" }),
   PERSONA: (p) => ({ label: "Persona", tone: "info", href: str(p.persona_id) ? `/ia/personas/${str(p.persona_id)}` : "/ia/personas" }),
   PAYMENT_LINK_REQUESTED: (p) => ({ label: "Link de pagamento", tone: "info", href: str(p.order_id) ? `/vender/pedidos/${str(p.order_id)}` : "/vender/pedidos" }),

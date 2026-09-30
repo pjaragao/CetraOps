@@ -112,7 +112,7 @@ export const NAV: NavArea[] = [
   {
     key: "ia", label: "Inteligência", href: "/ia", icon: "Sparkles", permission: "ai.read",
     items: [
-      { label: "Central de sugestões", href: "/ia", ready: false },
+      { label: "Central de sugestões", href: "/ia", ready: true },
       { label: "Modelos & custos", href: "/ia/modelos", ready: true },
       { label: "Personas", href: "/ia/personas", ready: true },
     ],

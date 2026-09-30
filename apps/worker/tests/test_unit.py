@@ -287,3 +287,11 @@ def test_team_instruction_reaches_the_volatile_prompt_only_when_present() -> Non
     base = dict(ctx_token="t", mode="AI_COPILOT", channel="WHATSAPP", window_mode="FREE_FORM", party_first_name="Ana")
     assert "Instrução da equipe" not in prompts.system_volatile(**base)
     assert "confirme o endereço" in prompts.system_volatile(**base, instruction="confirme o endereço")
+
+
+def test_amounts_written_in_knowledge_text_count_as_grounded() -> None:
+    from sie_worker.ai import guardrails
+
+    kb = guardrails.ToolResult("search_knowledge", True, {"results": [{"title": "Frete", "text": "Frete grátis para compras acima de R$ 500,00 na cidade."}]})
+    assert guardrails.validate(["O frete é grátis acima de R$ 500,00."], [kb]) == []
+    assert [v.code for v in guardrails.validate(["O frete é grátis acima de R$ 300,00."], [kb])] == ["UNGROUNDED_PRICE"]

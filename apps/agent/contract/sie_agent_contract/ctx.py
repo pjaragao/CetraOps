@@ -12,7 +12,7 @@ TTL_SECONDS = 600
 
 # Ferramentas liberadas por perfil (o perfil 'concierge' atende clientes; nenhuma ferramenta financeira)
 CONCIERGE_CAPS = [
-    "search_catalog", "check_stock_by_size", "get_customer_360", "get_order_status", "get_policies", "apply_coupon", "create_reservation", "schedule_locker",
+    "search_catalog", "check_stock_by_size", "get_customer_360", "get_order_status", "get_policies", "search_knowledge", "apply_coupon", "create_reservation", "schedule_locker",
     "create_order_draft", "confirm_order_draft", "create_payment_link", "register_consent", "update_customer_profile", "remember_customer_fact",
     "request_handoff", "propose_reply",
 ]

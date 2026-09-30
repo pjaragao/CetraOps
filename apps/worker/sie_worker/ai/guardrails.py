@@ -43,7 +43,8 @@ def _numbers(node: Any, out: set[float]) -> None:
         try:
             out.add(round(float(node), 2))
         except ValueError:
-            pass
+            for raw in MONEY.findall(node):                      # valores escritos em texto (políticas, base de conhecimento): "R$ 500"
+                out.add(round(_brl(raw), 2))
     elif isinstance(node, dict):
         for v in node.values():
             _numbers(v, out)

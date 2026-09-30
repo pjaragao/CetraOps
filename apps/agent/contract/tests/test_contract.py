@@ -10,7 +10,7 @@ import pytest
 from sie_agent_contract import BY_NAME, CONCIERGE_CAPS, COPILOT_CAPS, TOOLS, schemas_for, sign_ctx, verify_ctx
 
 SECRET = "contract-secret-with-at-least-32-bytes"
-MIGRATION = Path(__file__).resolve().parents[4] / "supabase" / "migrations" / "20260930002300_agent_rpcs.sql"
+MIGRATIONS = Path(__file__).resolve().parents[4] / "supabase" / "migrations"
 
 
 def test_every_capability_has_a_schema_and_vice_versa() -> None:
@@ -27,7 +27,9 @@ def test_copilot_cannot_write_orders_reservations_or_links() -> None:
 
 
 def test_database_dispatch_matches_the_contract() -> None:
-    sql = MIGRATION.read_text(encoding="utf-8")
+    # o despachante é redefinido quando nasce uma ferramenta: vale a última migration que o define
+    latest = [f for f in sorted(MIGRATIONS.glob("*.sql")) if "function agent.call_tool" in f.read_text(encoding="utf-8")][-1]
+    sql = latest.read_text(encoding="utf-8")
     dispatched = set(re.findall(r"when '(\w+)' then agent\.t_", sql))
     assert dispatched == set(CONCIERGE_CAPS)
 

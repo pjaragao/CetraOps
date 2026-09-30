@@ -41,6 +41,7 @@ mcp_servers:
         - get_customer_360
         - get_order_status
         - get_policies
+        - search_knowledge
         - apply_coupon
         - create_reservation
         - schedule_locker

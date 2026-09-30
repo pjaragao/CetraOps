@@ -247,6 +247,57 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"knowledge_chunks": {
+                  Row: {
+                    "content": string,"doc_id": string,"id": string,"org_id": string,"position": number,"tsv": unknown
+                  }
+                  Insert: {
+                    "content": string,"doc_id": string,"id"?: string,"org_id": string,"position": number,"tsv"?: unknown
+                  }
+                  Update: {
+                    "content"?: string,"doc_id"?: string,"id"?: string,"org_id"?: string,"position"?: number,"tsv"?: unknown
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "knowledge_chunks_doc_id_fkey"
+      columns: ["doc_id"]
+isOneToOne: false
+      referencedRelation: "knowledge_docs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"knowledge_docs": {
+                  Row: {
+                    "body_md": string | null,"created_at": string,"created_by": string | null,"draft_md": string,"id": string,"kind": string,"org_id": string,"published_at": string | null,"published_by": string | null,"status": string,"title": string,"updated_at": string,"valid_from": string | null,"valid_to": string | null,"version": number
+                  }
+                  Insert: {
+                    "body_md"?: string | null,"created_at"?: string,"created_by"?: string | null,"draft_md"?: string,"id"?: string,"kind"?: string,"org_id": string,"published_at"?: string | null,"published_by"?: string | null,"status"?: string,"title": string,"updated_at"?: string,"valid_from"?: string | null,"valid_to"?: string | null,"version"?: number
+                  }
+                  Update: {
+                    "body_md"?: string | null,"created_at"?: string,"created_by"?: string | null,"draft_md"?: string,"id"?: string,"kind"?: string,"org_id"?: string,"published_at"?: string | null,"published_by"?: string | null,"status"?: string,"title"?: string,"updated_at"?: string,"valid_from"?: string | null,"valid_to"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"knowledge_versions": {
+                  Row: {
+                    "body_md": string,"doc_id": string,"id": string,"org_id": string,"published_at": string,"published_by": string | null,"title": string,"version": number
+                  }
+                  Insert: {
+                    "body_md": string,"doc_id": string,"id"?: string,"org_id": string,"published_at"?: string,"published_by"?: string | null,"title": string,"version": number
+                  }
+                  Update: {
+                    "body_md"?: string,"doc_id"?: string,"id"?: string,"org_id"?: string,"published_at"?: string,"published_by"?: string | null,"title"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "knowledge_versions_doc_id_fkey"
+      columns: ["doc_id"]
+isOneToOne: false
+      referencedRelation: "knowledge_docs"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"model_route_changes": {
                   Row: {
                     "after": NonNullable<Json>,"before": Json | null,"changed_at": string,"changed_by": string | null,"id": number,"org_id": string,"task": string
@@ -383,6 +434,30 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"archive_knowledge_doc":
+{ Args: { "p_archive"?: boolean,"p_id": string }; Returns: {
+              "body_md": string | null,
+"created_at": string,
+"created_by": string | null,
+"draft_md": string,
+"id": string,
+"kind": string,
+"org_id": string,
+"published_at": string | null,
+"published_by": string | null,
+"status": string,
+"title": string,
+"updated_at": string,
+"valid_from": string | null,
+"valid_to": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "knowledge_docs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "corpus_add_live_pair":
 { Args: { "p": Json }; Returns: string
                            },
@@ -448,9 +523,39 @@ isOneToOne: false
 "delete_corpus_source":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"delete_knowledge_doc":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"knowledge_search":
+{ Args: { "p_limit"?: number,"p_query": string }; Returns: Json
+                           },
 "persona_new_version":
 { Args: { "p": Json }; Returns: string
                            },
+"publish_knowledge_doc":
+{ Args: { "p_id": string }; Returns: {
+              "body_md": string | null,
+"created_at": string,
+"created_by": string | null,
+"draft_md": string,
+"id": string,
+"kind": string,
+"org_id": string,
+"published_at": string | null,
+"published_by": string | null,
+"status": string,
+"title": string,
+"updated_at": string,
+"valid_from": string | null,
+"valid_to": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "knowledge_docs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "request_corpus_task":
 { Args: { "p_action": string,"p_persona": string }; Returns: undefined
                            },
@@ -460,6 +565,30 @@ isOneToOne: false
 "run_detectors":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"save_knowledge_doc":
+{ Args: { "p_body": string,"p_id": string,"p_kind": string,"p_title": string,"p_valid_from"?: string,"p_valid_to"?: string }; Returns: {
+              "body_md": string | null,
+"created_at": string,
+"created_by": string | null,
+"draft_md": string,
+"id": string,
+"kind": string,
+"org_id": string,
+"published_at": string | null,
+"published_by": string | null,
+"status": string,
+"title": string,
+"updated_at": string,
+"valid_from": string | null,
+"valid_to": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "knowledge_docs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_persona":
 { Args: { "p": Json }; Returns: {
               "active_version_id": string | null,

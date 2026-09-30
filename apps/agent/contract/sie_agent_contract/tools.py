@@ -20,6 +20,7 @@ TOOLS: list[dict[str, Any]] = [
     _fn("get_customer_360", "Resumo seguro da cliente: nome, tamanhos, últimas compras, vale-troca.", {}),
     _fn("get_order_status", "Situação dos pedidos da cliente (últimos 3 ou por número).", {"number": {"type": "string"}}),
     _fn("get_policies", "Políticas da loja (troca, pagamento, entrega). Sem tema, lista os temas.", {"topic": {"type": "string"}}),
+    _fn("search_knowledge", "Busca na base de conhecimento da loja (cuidado com as peças, marca, eventos, dúvidas frequentes). Devolve trechos publicados pela equipe; se nada voltar, não invente.", {"query": {"type": "string"}}, ["query"]),
     _fn("apply_coupon", "Valida um cupom informado pela cliente e calcula o desconto. A IA não cria desconto.", {"code": {"type": "string"}, "subtotal": {"type": "number"}}, ["code", "subtotal"]),
     _fn("create_reservation", "Retém uma peça por até 48 h (máx. 3 itens por cliente).", {"variant_id": UUID, "qty": {"type": "number"}, "hold_hours": {"type": "integer"}}, ["variant_id"]),
     _fn("schedule_locker", "Pede à vendedora para preparar o Armário VIP (1 a 3 peças).", {"items": ITEMS, "when": {"type": "string"}, "notes": {"type": "string"}}, ["items"]),

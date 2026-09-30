@@ -106,6 +106,10 @@ def build_server(settings: Settings, db: AgentDb) -> MCPServer:
     async def get_policies(ctx: CTX, topic: str | None = None) -> dict[str, Any]:
         return await call(ctx, "get_policies", {"topic": topic})
 
+    @mcp.tool(description=_desc("search_knowledge"))
+    async def search_knowledge(ctx: CTX, query: str) -> dict[str, Any]:
+        return await call(ctx, "search_knowledge", {"query": query})
+
     @mcp.tool(description=_desc("apply_coupon"))
     async def apply_coupon(ctx: CTX, code: str, subtotal: float) -> dict[str, Any]:
         return await call(ctx, "apply_coupon", {"code": code, "subtotal": subtotal})

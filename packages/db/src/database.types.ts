@@ -2245,7 +2245,13 @@ isOneToOne: false
                     "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction"?: string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id"?: string,"model"?: string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id"?: string,"protocol"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "documents_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "v_uninvoiced_orders"
+      referencedColumns: ["order_id"]
+    }
                   ]
                 },"esocial_events": {
                   Row: {
@@ -2321,7 +2327,20 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "v_uninvoiced_orders": {
+                  Row: {
+                    "channel": Database["sales"]['Enums']["channel"] | null,"created_at": string | null,"number": string | null,"order_id": string | null,"org_id": string | null,"party_id": string | null,"status": Database["sales"]['Enums']["order_status"] | null,"store_id": string | null,"total": number | null
+                  }
+                  Insert: {
+                           "channel"?: Database["sales"]['Enums']["channel"] | null,"created_at"?: string | null,"number"?: string | null,"order_id"?: string | null,"org_id"?: string | null,"party_id"?: string | null,"status"?: Database["sales"]['Enums']["order_status"] | null,"store_id"?: string | null,"total"?: number | null
+                         }
+                        Update: {
+                           "channel"?: Database["sales"]['Enums']["channel"] | null,"created_at"?: string | null,"number"?: string | null,"order_id"?: string | null,"org_id"?: string | null,"party_id"?: string | null,"status"?: Database["sales"]['Enums']["order_status"] | null,"store_id"?: string | null,"total"?: number | null
+                         }
+                        Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "emission_payload":
@@ -2361,8 +2380,20 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"record_cancellation":
+{ Args: { "p": Json,"p_document": string }; Returns: undefined
+                           },
+"record_document_event":
+{ Args: { "p_document": string,"p_event": Json }; Returns: undefined
+                           },
 "record_emission":
 { Args: { "p": Json }; Returns: string
+                           },
+"request_cancellation":
+{ Args: { "p_document": string,"p_reason": string }; Returns: undefined
+                           },
+"request_emission":
+{ Args: { "p_order": string }; Returns: undefined
                            },
 "simples_calc":
 { Args: { "p_competence": string,"p_entity": string }; Returns: {

@@ -7,7 +7,7 @@ from typing import Any
 
 from .. import queues
 from ..adapters.errors import PermanentError, TransientError
-from ..adapters.focus import FocusClient
+from ..adapters.focus import PRODUCTION_BASE, FocusClient
 from ..adapters.meta import MetaClient
 from ..adapters.telegram import TelegramClient
 from ..db import call_fn, fetch_one
@@ -15,8 +15,6 @@ from ..deps import Deps
 from ..runner import RetryLater
 
 log = logging.getLogger("sie_worker.integrations")
-
-FOCUS_PRODUCTION = "https://api.focusnfe.com.br"
 
 
 async def _record(deps: Deps, conn_id: Any, ok: bool, detail: dict[str, Any], error: str | None) -> None:
@@ -49,8 +47,8 @@ async def _check(deps: Deps, conn: dict[str, Any], token: str, action: str) -> d
             raise PermanentError("Bot válido, mas o webhook ainda não foi registrado: use “Registrar webhook”")
         return detail
     if provider == "FOCUS_NFE":
-        base = FOCUS_PRODUCTION if str(cfg.get("environment", "")).lower() in ("producao", "production") else s.focus_api_base
-        return {**await FocusClient(deps.http, base, token).ping(), "environment": "producao" if base == FOCUS_PRODUCTION else "homologacao"}
+        base = PRODUCTION_BASE if str(cfg.get("environment", "")).lower() in ("producao", "production") else s.focus_api_base
+        return {**await FocusClient(deps.http, base, token).ping(), "environment": "producao" if base == PRODUCTION_BASE else "homologacao"}
     raise PermanentError(f"Provedor {provider} ainda não tem verificação automática")
 
 

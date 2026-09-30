@@ -16,6 +16,7 @@ grant execute on function pg_temp.login(uuid) to authenticated, anon;
 create temp table ids (k text primary key, v uuid);
 grant all on ids to authenticated;
 
+update sales.cash_sessions set status = 'CLOSED', closed_at = now() where status = 'OPEN';   -- (caixa aberto na base de desenvolvimento não pode atrapalhar o teste)
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');   -- sócio
 
 -- cliente e caixa

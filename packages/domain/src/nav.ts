@@ -92,7 +92,7 @@ export const NAV: NavArea[] = [
       { label: "Apuração do Simples", href: "/fiscal", ready: true },
       { label: "Obrigações", href: "/fiscal/obrigacoes", ready: true },
       { label: "eSocial", href: "/fiscal/esocial", ready: true },
-      { label: "Notas emitidas", href: "/fiscal/emitidas", ready: false },
+      { label: "Notas emitidas", href: "/fiscal/emitidas", ready: true },
       { label: "Notas recebidas", href: "/fiscal/recebidas", ready: true },
     ],
   },

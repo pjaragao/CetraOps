@@ -64,7 +64,8 @@ Menu por tarefa, protegido por permissões (RBAC + RLS em todas as tabelas):
 | **Vender** — PDV multi-pagamento, pedidos remotos, reservas e Armário VIP, trocas/devoluções, entregas, caixa, cupons | pronto |
 | **Produtos & Estoque** — catálogo com grade, estoque em livro-razão, importação, compras, recebimento de NF-e com conferência de grade, reposição | pronto |
 | **Financeiro** — títulos, baixa com **rateio na liquidação**, razão contábil, DRE, fluxo de caixa, recorrentes, orçamento, fechamento mensal, contratos | pronto |
-| **Fiscal** — apuração do Simples/DAS, obrigações, eSocial, notas recebidas; emissão de NFC-e pelo worker (Focus NFe) | pronto (tela de notas emitidas: em construção) |
+| **Fiscal** — apuração do Simples/DAS, obrigações, eSocial, notas recebidas, **notas emitidas** (NFC-e pelo worker/Focus NFe: reenviar, cancelar com justificativa, vendas pagas sem nota) | pronto |
+| **Configurações** — **integrações** (credenciais no Vault, teste pelo worker, canais de atendimento), contas bancárias, plano de contas, rateios, taxas de cartão | pronto |
 | **Equipe (RH)** — admissão, escalas, ponto, férias, folha, rescisão, comissões, acessos — integrados ao financeiro, contábil e fiscal | pronto |
 | **Atendimento** — inbox, rascunhos da IA, modos Piloto/Copiloto/Humano, janela de envio | núcleo pronto (automações, templates e desempenho: em construção) |
 | **Inteligência** — rotas de modelos por tarefa, custos | parcial (personas, base de conhecimento, sugestões: em construção) |

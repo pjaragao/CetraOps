@@ -9,6 +9,8 @@ import httpx
 
 from .errors import PermanentError, TransientError
 
+PRODUCTION_BASE = "https://api.focusnfe.com.br"
+
 # situação do provedor → situação do nosso documento fiscal
 STATUS_MAP = {
     "autorizado": "AUTHORIZED", "processando_autorizacao": "PROCESSING", "erro_autorizacao": "REJECTED",
@@ -35,7 +37,7 @@ def _parse(data: dict[str, Any]) -> FocusResult:
     to_int = lambda v: int(v) if v not in (None, "") else None  # noqa: E731
     return FocusResult(
         status=status, number=to_int(data.get("numero")), series=to_int(data.get("serie")), access_key=(data.get("chave_nfe") or "").replace("NFe", "") or None,
-        protocol=data.get("protocolo"), xml_path=data.get("caminho_xml_nota_fiscal"), danfe_path=data.get("caminho_danfe") or data.get("url_danfe"),
+        protocol=data.get("protocolo"), xml_path=data.get("caminho_xml_nota_fiscal"), danfe_path=data.get("url_danfe") or data.get("caminho_danfe"),          # a URL pública do DANFE (abre no navegador) vale mais que o caminho relativo da API
         code=str(data.get("status_sefaz")) if data.get("status_sefaz") else data.get("codigo"), message=data.get("mensagem_sefaz") or data.get("mensagem"), raw=data,
     )
 

@@ -124,3 +124,71 @@ async def test_emission_payload_applies_coupon_discount_proportionally(pool: Any
     doc = await call_fn(pool, "fiscal.emission_payload", order["id"], "SALE")
     assert [i["valor_desconto"] for i in doc["document"]["itens"]] == [42.9, 24.9]                             # 10% de cada item, somando o cupom de R$ 67,80
     assert doc["ref"] == order["ref"] and doc["model"] == "65"
+
+
+async def _authorized_document(pool: Any, deps: Any, order: dict[str, Any]) -> str:
+    respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(201, json=AUTHORIZED))
+    await fiscal.handle(deps, job(order))
+    row = await fetch_one(pool, "select id from fiscal.documents where order_id = %s", (order["id"],))
+    assert row
+    return str(row["id"])
+
+
+def cancel_job(order: dict[str, Any], doc_id: str, reason: str = "Venda cancelada a pedido da cliente") -> queues.QueueMessage:
+    return queues.QueueMessage("fiscal_emission", 1, 1, {"org_id": ORG, "document_id": doc_id, "order_id": order["id"], "action": "CANCEL", "reason": reason, "model": "65"})
+
+
+@respx.mock
+async def test_cancellation_marks_the_document_cancelled_once(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    doc_id = await _authorized_document(pool, deps, order)
+    route = respx.delete(f"https://focus.test/v2/nfce/{order['ref']}").mock(return_value=httpx.Response(
+        200, json={"status": "cancelado", "status_sefaz": "135", "mensagem_sefaz": "Evento registrado e vinculado a NFC-e", "protocolo": "P-C1"}))
+    await fiscal.handle(deps, cancel_job(order, doc_id))
+    assert json.loads(route.calls[0].request.content) == {"justificativa": "Venda cancelada a pedido da cliente"}
+    doc = await document(pool, order)
+    assert doc and doc["status"] == "CANCELLED" and doc["sefaz_code"] == "135"
+    events = (await fetch_one(pool, "select events from fiscal.documents where id = %s", (doc_id,)))["events"]  # type: ignore[index]
+    assert events[-1]["type"] == "CANCELLED" and events[-1]["protocol"] == "P-C1"
+    await fiscal.handle(deps, cancel_job(order, doc_id))                                                      # reentrega: a nota já está cancelada, nada a fazer
+    assert route.call_count == 1
+
+
+@respx.mock
+async def test_refused_cancellation_keeps_the_document_and_alerts(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    doc_id = await _authorized_document(pool, deps, order)
+    respx.delete(f"https://focus.test/v2/nfce/{order['ref']}").mock(return_value=httpx.Response(422, json={"codigo": "requisicao_invalida", "mensagem": "Prazo de cancelamento expirado"}))
+    await fiscal.handle(deps, cancel_job(order, doc_id))
+    doc = await document(pool, order)
+    assert doc and doc["status"] == "AUTHORIZED"                                                              # continua válida: ninguém perdeu a nota
+    events = (await fetch_one(pool, "select events from fiscal.documents where id = %s", (doc_id,)))["events"]  # type: ignore[index]
+    assert events[-1] == {**events[-1], "type": "CANCEL_FAILED", "message": "Prazo de cancelamento expirado"}
+    n = await fetch_one(pool, "select count(*) as n from core.notifications where kind = 'FISCAL_CANCEL_FAILED'")
+    assert n and n["n"] >= 1
+
+
+@respx.mock
+async def test_cancellation_outage_retries_and_non_authorized_is_ignored(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    doc_id = await _authorized_document(pool, deps, order)
+    respx.delete(f"https://focus.test/v2/nfce/{order['ref']}").mock(return_value=httpx.Response(503))
+    with pytest.raises(RetryLater):
+        await fiscal.handle(deps, cancel_job(order, doc_id))
+    assert (await document(pool, order))["status"] == "AUTHORIZED"  # type: ignore[index]
+    await fetch_one(pool, "update fiscal.documents set status = 'REJECTED' where id = %s returning id", (doc_id,))
+    ignored = respx.delete(url__regex=r"https://focus\.test/.*").mock(return_value=httpx.Response(200, json={"status": "cancelado"}))
+    await fiscal.handle(deps, cancel_job(order, doc_id))                                                      # só nota AUTORIZADA se cancela
+    assert not ignored.called
+
+
+@respx.mock
+async def test_connection_from_the_integrations_screen_wins_over_environment(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    import base64
+    import dataclasses
+    suffix = uuid.uuid4().hex[:8]
+    await fetch_one(pool, "select vault.create_secret(%s, %s)", ('{"token":"TOKEN-DA-TELA"}', f"integ/test/FOCUS_NFE/{suffix}"))
+    await fetch_one(pool, "insert into core.integration_connections (org_id, provider, capability, config, secret_ref, status) values (%s, 'FOCUS_NFE', %s, %s, %s, 'ACTIVE') returning id",
+                    (ORG, f"T_{suffix}", json.dumps({"environment": "producao"}), f"integ/test/FOCUS_NFE/{suffix}"))
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": ""}))             # sem variável de ambiente: só a conexão
+    route = respx.post("https://api.focusnfe.com.br/v2/nfce").mock(return_value=httpx.Response(201, json=AUTHORIZED))
+    await fiscal.handle(d, job(order))
+    assert route.called and route.calls[0].request.headers["authorization"] == "Basic " + base64.b64encode(b"TOKEN-DA-TELA:").decode()
+    assert (await document(pool, order))["status"] == "AUTHORIZED"  # type: ignore[index]

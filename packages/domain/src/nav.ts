@@ -26,7 +26,7 @@ export const NAV: NavArea[] = [
       { label: "Caixa de entrada", href: "/atendimento", ready: true },
       { label: "Automações", href: "/atendimento/automacoes", ready: false },
       { label: "Templates", href: "/atendimento/templates", ready: true },
-      { label: "Desempenho", href: "/atendimento/desempenho", ready: false },
+      { label: "Desempenho", href: "/atendimento/desempenho", ready: true },
     ],
   },
   {

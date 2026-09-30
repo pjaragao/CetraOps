@@ -4525,13 +4525,13 @@ isOneToOne: false
                   ]
                 },"conversations": {
                   Row: {
-                    "ai_paused_until": string | null,"assignee_member_id": string | null,"channel_account_id": string,"channel_identity_id": string,"created_at": string,"deal_id": string | null,"human_agent_window_expires_at": string | null,"id": string,"intent": string | null,"last_inbound_at": string | null,"last_message_at": string | null,"mode": Database["omni"]['Enums']["conv_mode"],"org_id": string,"party_id": string,"pending_ai_at": string | null,"persona_id": string | null,"priority": number,"sentiment": string | null,"service_window_expires_at": string | null,"sla_alerted_at": string | null,"sla_due_at": string | null,"status": string,"summary": string | null,"tags": (string)[],"unread_count": number,"updated_at": string,"version": number,"window_alerted_at": string | null
+                    "ai_paused_until": string | null,"assignee_member_id": string | null,"channel_account_id": string,"channel_identity_id": string,"closed_at": string | null,"created_at": string,"deal_id": string | null,"human_agent_window_expires_at": string | null,"id": string,"intent": string | null,"last_inbound_at": string | null,"last_message_at": string | null,"mode": Database["omni"]['Enums']["conv_mode"],"org_id": string,"party_id": string,"pending_ai_at": string | null,"persona_id": string | null,"priority": number,"sentiment": string | null,"service_window_expires_at": string | null,"sla_alerted_at": string | null,"sla_due_at": string | null,"status": string,"summary": string | null,"tags": (string)[],"unread_count": number,"updated_at": string,"version": number,"window_alerted_at": string | null
                   }
                   Insert: {
-                    "ai_paused_until"?: string | null,"assignee_member_id"?: string | null,"channel_account_id": string,"channel_identity_id": string,"created_at"?: string,"deal_id"?: string | null,"human_agent_window_expires_at"?: string | null,"id"?: string,"intent"?: string | null,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"mode"?: Database["omni"]['Enums']["conv_mode"],"org_id": string,"party_id": string,"pending_ai_at"?: string | null,"persona_id"?: string | null,"priority"?: number,"sentiment"?: string | null,"service_window_expires_at"?: string | null,"sla_alerted_at"?: string | null,"sla_due_at"?: string | null,"status"?: string,"summary"?: string | null,"tags"?: (string)[],"unread_count"?: number,"updated_at"?: string,"version"?: number,"window_alerted_at"?: string | null
+                    "ai_paused_until"?: string | null,"assignee_member_id"?: string | null,"channel_account_id": string,"channel_identity_id": string,"closed_at"?: string | null,"created_at"?: string,"deal_id"?: string | null,"human_agent_window_expires_at"?: string | null,"id"?: string,"intent"?: string | null,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"mode"?: Database["omni"]['Enums']["conv_mode"],"org_id": string,"party_id": string,"pending_ai_at"?: string | null,"persona_id"?: string | null,"priority"?: number,"sentiment"?: string | null,"service_window_expires_at"?: string | null,"sla_alerted_at"?: string | null,"sla_due_at"?: string | null,"status"?: string,"summary"?: string | null,"tags"?: (string)[],"unread_count"?: number,"updated_at"?: string,"version"?: number,"window_alerted_at"?: string | null
                   }
                   Update: {
-                    "ai_paused_until"?: string | null,"assignee_member_id"?: string | null,"channel_account_id"?: string,"channel_identity_id"?: string,"created_at"?: string,"deal_id"?: string | null,"human_agent_window_expires_at"?: string | null,"id"?: string,"intent"?: string | null,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"mode"?: Database["omni"]['Enums']["conv_mode"],"org_id"?: string,"party_id"?: string,"pending_ai_at"?: string | null,"persona_id"?: string | null,"priority"?: number,"sentiment"?: string | null,"service_window_expires_at"?: string | null,"sla_alerted_at"?: string | null,"sla_due_at"?: string | null,"status"?: string,"summary"?: string | null,"tags"?: (string)[],"unread_count"?: number,"updated_at"?: string,"version"?: number,"window_alerted_at"?: string | null
+                    "ai_paused_until"?: string | null,"assignee_member_id"?: string | null,"channel_account_id"?: string,"channel_identity_id"?: string,"closed_at"?: string | null,"created_at"?: string,"deal_id"?: string | null,"human_agent_window_expires_at"?: string | null,"id"?: string,"intent"?: string | null,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"mode"?: Database["omni"]['Enums']["conv_mode"],"org_id"?: string,"party_id"?: string,"pending_ai_at"?: string | null,"persona_id"?: string | null,"priority"?: number,"sentiment"?: string | null,"service_window_expires_at"?: string | null,"sla_alerted_at"?: string | null,"sla_due_at"?: string | null,"status"?: string,"summary"?: string | null,"tags"?: (string)[],"unread_count"?: number,"updated_at"?: string,"version"?: number,"window_alerted_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -4734,6 +4734,9 @@ isOneToOne: false
 "outbound_context":
 { Args: { "p_message": string }; Returns: Json
                            },
+"performance":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "queue_system_message":
 { Args: { "p_body": string,"p_conversation": string }; Returns: string
                            },
@@ -4873,6 +4876,7 @@ isOneToOne: false
 "assignee_member_id": string | null,
 "channel_account_id": string,
 "channel_identity_id": string,
+"closed_at": string | null,
 "created_at": string,
 "deal_id": string | null,
 "human_agent_window_expires_at": string | null,

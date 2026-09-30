@@ -6,7 +6,6 @@ import { Empty, LinkButton, PageHeader } from "@/components/ui";
 const ROADMAP: Record<string, string> = {
   "/atendimento/automacoes": "Sprint B4 (comentário→DM, menções em story, CTWA)",
   "/atendimento/templates": "Sprint B1/B2 (templates do WhatsApp aprovados pela Meta)",
-  "/atendimento/desempenho": "Sprint B3",
   "/vender/reservas": "Sprint A2 (reservas e Armário VIP)",
   "/vender/trocas": "Sprint A2 (trocas e vale-troca)",
   "/marketing/cupons": "Sprint A2",

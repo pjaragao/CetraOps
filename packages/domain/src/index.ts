@@ -6,3 +6,4 @@ export * from "./period";
 export * from "./allocation";
 export * from "./statement";
 export * from "./notifications";
+export * from "./templates";

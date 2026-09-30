@@ -239,3 +239,18 @@ def test_build_agent_picks_the_right_implementation() -> None:
     assert isinstance(build_agent(Settings(hermes_key="h", openrouter_key=""), pool, http), HermesAgent)  # type: ignore[arg-type]
     assert isinstance(build_agent(Settings(hermes_key="", openrouter_key="o"), pool, http), OpenRouterAgent)  # type: ignore[arg-type]
     assert isinstance(build_agent(Settings(hermes_key="h", openrouter_key="o"), pool, http), FallbackAgent)  # type: ignore[arg-type]
+
+
+def test_whatsapp_template_webhooks_become_template_events() -> None:
+    def change(field: str, value: dict[str, object]) -> dict[str, object]:
+        return {"object": "whatsapp_business_account", "entry": [{"id": "WABA9", "changes": [{"field": field, "value": value}]}]}
+
+    (st,) = normalize("META_WA", change("message_template_status_update", {"event": "rejected", "message_template_id": 123, "message_template_name": "pedido_pronto",
+                                                                         "message_template_language": "pt_BR", "reason": "INVALID_FORMAT"}))
+    assert st == {"kind": "TEMPLATE", "waba_id": "WABA9", "external_id": "123", "name": "pedido_pronto", "language": "pt_BR", "status": "REJECTED", "reason": "INVALID_FORMAT", "quality": None}
+    (ok,) = normalize("META_WA", change("message_template_status_update", {"event": "APPROVED", "message_template_id": 123, "message_template_name": "x", "message_template_language": "pt_BR", "reason": "NONE"}))
+    assert ok["status"] == "APPROVED" and ok["reason"] is None
+    (q,) = normalize("META_WA", change("message_template_quality_update", {"new_quality_score": "yellow", "message_template_id": 123, "message_template_name": "x", "message_template_language": "pt_BR"}))
+    assert q["status"] is None and q["quality"] == "YELLOW"
+    assert normalize("META_WA", change("message_template_quality_update", {"message_template_id": 1})) == []          # sem situação nem qualidade: nada
+    assert normalize("META_WA", change("account_update", {"event": "x"})) == []

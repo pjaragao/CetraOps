@@ -70,11 +70,28 @@ def _wa_status(s: dict[str, Any], phone_number_id: str) -> dict[str, Any]:
     }
 
 
+def _wa_template(field: str, v: dict[str, Any], waba_id: str) -> dict[str, Any] | None:
+    """Situação/qualidade de template (não trazem phone_number_id: a conta é identificada pelo WABA, o `entry.id`)."""
+    base = {"kind": "TEMPLATE", "waba_id": waba_id, "external_id": str(v["message_template_id"]) if v.get("message_template_id") is not None else None,
+            "name": v.get("message_template_name"), "language": v.get("message_template_language"), "status": None, "reason": None, "quality": None}
+    if field == "message_template_status_update":
+        reason = v.get("reason")
+        return {**base, "status": str(v.get("event", "")).upper() or None, "reason": None if not reason or str(reason).upper() == "NONE" else str(reason)}
+    if field == "message_template_quality_update":
+        return {**base, "quality": str(v.get("new_quality_score", "")).upper() or None}
+    return None
+
+
 def normalize_whatsapp(payload: dict[str, Any]) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     for entry in payload.get("entry", []):
         for change in entry.get("changes", []):
             value = change.get("value", {})
+            if change.get("field") in ("message_template_status_update", "message_template_quality_update"):
+                ev = _wa_template(change["field"], value, str(entry.get("id") or ""))
+                if ev and (ev["status"] or ev["quality"]):
+                    events.append(ev)
+                continue
             pnid = (value.get("metadata") or {}).get("phone_number_id")
             if not pnid:
                 continue

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { formatBRL } from "@sie/domain";
+import { formatBRL, templateExamples, templateParts, type TemplateComponent } from "@sie/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { isoFromNow, str, type SP } from "@/lib/context";
-import { Badge, cn, Empty, PageHeader } from "@/components/ui";
+import { Badge, cn, Empty, LinkButton, PageHeader } from "@/components/ui";
 import { ConversationPane } from "./conversation-pane";
 import { RealtimeRefresh } from "./realtime-refresh";
 
@@ -12,6 +12,7 @@ export const metadata = { title: "Atendimento" };
 const FILTERS = [
   { key: "todas", label: "Todas" },
   { key: "minhas", label: "Minhas" },
+  { key: "sem-dono", label: "Não atribuídas" },
   { key: "aguardando", label: "Aguardando humano" },
   { key: "ia", label: "IA atendendo" },
   { key: "janela", label: "Janela expirando" },
@@ -35,6 +36,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
     .select("id, party_id, mode, status, unread_count, last_message_at, service_window_expires_at, assignee_member_id, channel_accounts:channel_account_id(channel, display_name)")
     .neq("status", "CLOSED").order("last_message_at", { ascending: false, nullsFirst: false }).limit(100);
   if (filtro === "minhas") q = q.eq("assignee_member_id", session.memberId);
+  if (filtro === "sem-dono") q = q.is("assignee_member_id", null);
   if (filtro === "aguardando") q = q.eq("mode", "WAITING_HUMAN");
   if (filtro === "ia") q = q.in("mode", ["AI_AUTOPILOT", "AI_COPILOT"]);
   if (filtro === "janela") q = q.lte("service_window_expires_at", isoFromNow(2)).gte("service_window_expires_at", isoFromNow(0));
@@ -50,7 +52,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
   if (selected) {
     const [{ data: conv }, { data: messages }, { data: drafts }] = await Promise.all([
       supabase.schema("omni").from("conversations")
-        .select("id, mode, last_inbound_at, party_id, channel_accounts:channel_account_id(channel, display_name)")
+        .select("id, mode, last_inbound_at, party_id, channel_account_id, channel_accounts:channel_account_id(channel, display_name)")
         .eq("id", selected).maybeSingle(),
       supabase.schema("omni").from("messages").select("id, direction, author_type, body, transcript, type, status, created_at")
         .eq("conversation_id", selected).order("created_at").order("seq").limit(300),
@@ -63,13 +65,22 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
       const { data: orders } = await supabase.schema("sales").from("orders").select("number, total, created_at")
         .eq("party_id", conv.party_id).order("created_at", { ascending: false }).limit(5);
       const ltv = (orders ?? []).reduce((a, o) => a + Number(o.total), 0);
-      detail = { conv: { ...conv, parties: party }, messages: messages ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv };
+      const isWhatsApp = conv.channel_accounts?.channel === "WHATSAPP";
+      const [{ data: tpls }, { data: replies }] = await Promise.all([
+        isWhatsApp
+          ? supabase.schema("omni").from("templates").select("id, name, category, components").eq("channel_account_id", conv.channel_account_id).eq("status", "APPROVED").order("name")
+          : Promise.resolve({ data: [] as { id: string; name: string; category: string; components: unknown }[] }),
+        supabase.schema("omni").from("quick_replies").select("id, shortcut, body").order("shortcut"),
+      ]);
+      const templates = (tpls ?? []).map((t) => ({ id: t.id, name: t.name, category: t.category, body: templateParts(t.components as TemplateComponent[]).body, examples: templateExamples(t.components as TemplateComponent[]) }));
+      detail = { conv: { ...conv, parties: party }, messages: messages ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
     }
   }
 
   return (
     <>
-      <PageHeader title="Atendimento" description="WhatsApp, Instagram e Telegram numa caixa só. Troque entre IA e humano a qualquer momento." />
+      <PageHeader title="Atendimento" description="WhatsApp, Instagram e Telegram numa caixa só. Troque entre IA e humano a qualquer momento."
+        actions={<LinkButton href="/atendimento/templates">Templates e respostas rápidas</LinkButton>} />
       <RealtimeRefresh conversationId={selected} />
       <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
@@ -107,11 +118,14 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         {detail ? (
           <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
             <ConversationPane
+              key={detail.conv.id}
               conversationId={detail.conv.id}
               mode={detail.conv.mode}
               channel={detail.conv.channel_accounts?.channel ?? "WHATSAPP"}
               lastInboundAt={detail.conv.last_inbound_at}
               customerName={detail.conv.parties?.display_name ?? ""}
+              templates={detail.templates}
+              quickReplies={detail.quickReplies}
               messages={detail.messages}
               draft={detail.draft ? { id: detail.draft.id, variants: detail.draft.variants as { messages: string[] }[], confidence: detail.draft.confidence, intent: detail.draft.intent, needsHuman: detail.draft.needs_human } : null}
               backHref={`/atendimento?filtro=${filtro}`}

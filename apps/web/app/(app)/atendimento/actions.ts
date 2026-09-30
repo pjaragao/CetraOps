@@ -36,3 +36,13 @@ export async function markRead(conversationId: string) {
   const supabase = await createClient();
   await supabase.schema("omni").rpc("mark_read", { p_conversation: conversationId });
 }
+
+/** Envia um template aprovado (vale dentro e fora da janela de 24 h). `params` = valores de {{1}}, {{2}}… */
+export async function sendTemplate(conversationId: string, templateId: string, params: string[]) {
+  const parsed = z.object({ c: z.string().uuid(), t: z.string().uuid(), p: z.array(z.string().max(200)).max(20) }).safeParse({ c: conversationId, t: templateId, p: params });
+  if (!parsed.success) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("send_template", { p_conversation: conversationId, p_template: templateId, p_params: params });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: error.message.replace(/^ERROR:\s*/, "") } : { ok: true };
+}

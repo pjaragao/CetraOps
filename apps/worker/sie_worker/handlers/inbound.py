@@ -29,6 +29,9 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
 
     errors: list[str] = []
     for ev in events:
+        if ev.get("kind") == "TEMPLATE":                          # situação/qualidade de template da Meta: não é conversa
+            await call_fn(deps.pool, "omni.record_template_status", {k: ev.get(k) for k in ("waba_id", "external_id", "name", "language", "status", "reason", "quality")})
+            continue
         try:
             res = await call_fn(deps.pool, "omni.ingest_event", ev)
         except psycopg.Error as e:                                  # canal não cadastrado/evento inválido (P0100/P0101): não adianta repetir

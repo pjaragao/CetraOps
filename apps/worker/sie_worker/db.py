@@ -1,6 +1,7 @@
 """Acesso ao Postgres: pool assíncrono do psycopg 3 com linhas em dict."""
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from psycopg.rows import dict_row
@@ -20,9 +21,13 @@ def make_pool(settings: Settings) -> AsyncConnectionPool:
     )
 
 
+def _dumps(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, default=str)              # UUID, datas e Decimal viram texto em vez de quebrar o envio
+
+
 def jb(value: Any) -> Jsonb:
     """Envolve um dict/list para parâmetro jsonb."""
-    return Jsonb(value)
+    return Jsonb(value, dumps=_dumps)
 
 
 async def fetch_one(pool: AsyncConnectionPool, sql: str, params: tuple | dict | None = None) -> dict[str, Any] | None:

@@ -57,6 +57,28 @@ class MetaClient:
     async def instagram_me(self) -> dict[str, Any]:
         return await self._get("me", {"fields": "user_id,username,name,account_type"})
 
+    # ---------------- Templates do WhatsApp ----------------
+    async def create_template(self, waba_id: str, name: str, language: str, category: str, components: list[dict[str, Any]]) -> dict[str, Any]:
+        """Envia o template para aprovação. Devolve {id, status, category}. Erro de validação (nome repetido, texto recusado) chega como PermanentError."""
+        return await self._post(f"{waba_id}/message_templates", {"name": name, "language": language, "category": category, "components": components})
+
+    async def list_templates(self, waba_id: str) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        url: str | None = f"{self._base}/{waba_id}/message_templates"
+        params: dict[str, Any] | None = {"fields": "id,name,status,category,language,components,quality_score,rejected_reason", "limit": 100}
+        for _ in range(20):                                   # paginação: no máximo 2.000 templates
+            try:
+                resp = await self._http.get(url, params=params, headers=self._headers(), timeout=30)
+            except (httpx.TimeoutException, httpx.TransportError) as e:
+                raise TransientError(f"rede: {e}") from e
+            _raise_for(resp)
+            data = resp.json()
+            out.extend(data.get("data", []))
+            url, params = (data.get("paging") or {}).get("next"), None
+            if not url:
+                break
+        return out
+
     # ---------------- WhatsApp ----------------
     async def send_whatsapp_text(self, phone_number_id: str, to: str, body: str, reply_to: str | None = None) -> str:
         payload: dict[str, Any] = {"messaging_product": "whatsapp", "recipient_type": "individual", "to": to, "type": "text", "text": {"preview_url": False, "body": body}}

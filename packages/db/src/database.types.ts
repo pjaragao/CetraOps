@@ -3823,13 +3823,13 @@ isOneToOne: false
                   ]
                 },"templates": {
                   Row: {
-                    "category": string,"channel_account_id": string,"components": NonNullable<Json>,"id": string,"language": string,"name": string,"org_id": string,"quality": string | null,"status": string,"updated_at": string
+                    "category": string,"channel_account_id": string,"components": NonNullable<Json>,"created_at": string,"created_by": string | null,"external_id": string | null,"id": string,"language": string,"name": string,"org_id": string,"quality": string | null,"rejection_reason": string | null,"status": string,"submitted_at": string | null,"updated_at": string
                   }
                   Insert: {
-                    "category": string,"channel_account_id": string,"components"?: NonNullable<Json>,"id"?: string,"language"?: string,"name": string,"org_id": string,"quality"?: string | null,"status"?: string,"updated_at"?: string
+                    "category": string,"channel_account_id": string,"components"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"external_id"?: string | null,"id"?: string,"language"?: string,"name": string,"org_id": string,"quality"?: string | null,"rejection_reason"?: string | null,"status"?: string,"submitted_at"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "category"?: string,"channel_account_id"?: string,"components"?: NonNullable<Json>,"id"?: string,"language"?: string,"name"?: string,"org_id"?: string,"quality"?: string | null,"status"?: string,"updated_at"?: string
+                    "category"?: string,"channel_account_id"?: string,"components"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"external_id"?: string | null,"id"?: string,"language"?: string,"name"?: string,"org_id"?: string,"quality"?: string | null,"rejection_reason"?: string | null,"status"?: string,"submitted_at"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -3873,8 +3873,17 @@ isOneToOne: false
 "claim_router":
 { Args: { "p_conversation": string,"p_message": string }; Returns: Json
                            },
+"delete_quick_reply":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"delete_template":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "discard_draft":
 { Args: { "p_draft": string,"p_reason": string }; Returns: undefined
+                           },
+"fail_template_submission":
+{ Args: { "p_id": string,"p_reason": string }; Returns: undefined
                            },
 "ingest_event":
 { Args: { "p": Json }; Returns: Json
@@ -3896,6 +3905,12 @@ isOneToOne: false
                            },
 "record_opt_out":
 { Args: { "p_message": string,"p_party": string }; Returns: undefined
+                           },
+"record_template_status":
+{ Args: { "p": Json }; Returns: string
+                           },
+"request_template_sync":
+{ Args: { "p_account": string }; Returns: undefined
                            },
 "save_channel_account":
 { Args: { "p": Json }; Returns: {
@@ -3919,8 +3934,76 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_quick_reply":
+{ Args: { "p_body": string,"p_id"?: string,"p_shortcut": string }; Returns: {
+              "body": string,
+"id": string,
+"org_id": string,
+"shortcut": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "quick_replies"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_template":
+{ Args: { "p": Json }; Returns: {
+              "category": string,
+"channel_account_id": string,
+"components": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"external_id": string | null,
+"id": string,
+"language": string,
+"name": string,
+"org_id": string,
+"quality": string | null,
+"rejection_reason": string | null,
+"status": string,
+"submitted_at": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "templates"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "send_message":
 { Args: { "p_body": string,"p_conversation": string,"p_draft"?: string,"p_edited"?: boolean }; Returns: {
+              "ai_run_id": string | null,
+"author_member_id": string | null,
+"author_type": string,
+"body": string | null,
+"channel_account_id": string,
+"client_dedupe_key": string | null,
+"conversation_id": string,
+"created_at": string,
+"direction": string,
+"error": string | null,
+"id": string,
+"media_path": string | null,
+"org_id": string,
+"payload": NonNullable<Json>,
+"provider_message_id": string | null,
+"reply_to_id": string | null,
+"sent_at": string | null,
+"seq": number,
+"status": string,
+"template_name": string | null,
+"transcript": string | null,
+"type": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "messages"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"send_template":
+{ Args: { "p_conversation": string,"p_params"?: Json,"p_template": string }; Returns: {
               "ai_run_id": string | null,
 "author_member_id": string | null,
 "author_type": string,
@@ -3987,11 +4070,17 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"submit_template":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "sweep_sla":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "sweep_windows":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"upsert_remote_template":
+{ Args: { "p": Json }; Returns: string
                            }
           }
           Enums: {

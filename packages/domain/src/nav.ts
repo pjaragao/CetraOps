@@ -53,8 +53,8 @@ export const NAV: NavArea[] = [
   {
     key: "marketing", label: "Marketing", href: "/marketing", icon: "Megaphone", permission: "crm.read",
     items: [
-      { label: "Campanhas", href: "/marketing", ready: false },
-      { label: "Eventos & Drops", href: "/marketing/eventos", ready: false },
+      { label: "Campanhas", href: "/marketing", ready: true },
+      { label: "Eventos & Drops", href: "/marketing/eventos", ready: true },
       { label: "Cupons", href: "/marketing/cupons", ready: true },
     ],
   },

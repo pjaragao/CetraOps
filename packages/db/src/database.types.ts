@@ -1581,7 +1581,12 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "delete_deal":
+            "audience":
+{ Args: { "p_def": Json }; Returns: {
+              "party_id": string
+            }[]
+                           },
+"delete_deal":
 { Args: { "p_id": string }; Returns: undefined
                            },
 "generate_outreach":
@@ -4170,6 +4175,301 @@ isOneToOne: false
           CompositeTypes: {
             [_ in never]: never
           }
+        },"mkt": {
+          Tables: {
+            "campaign_recipients": {
+                  Row: {
+                    "campaign_id": string,"created_at": string,"id": string,"message_id": string | null,"org_id": string,"party_id": string,"sent_at": string | null,"seq": number,"skip_reason": string | null,"status": string
+                  }
+                  Insert: {
+                    "campaign_id": string,"created_at"?: string,"id"?: string,"message_id"?: string | null,"org_id": string,"party_id": string,"sent_at"?: string | null,"seq"?: never,"skip_reason"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "campaign_id"?: string,"created_at"?: string,"id"?: string,"message_id"?: string | null,"org_id"?: string,"party_id"?: string,"sent_at"?: string | null,"seq"?: never,"skip_reason"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaign_recipients_campaign_id_fkey"
+      columns: ["campaign_id"]
+isOneToOne: false
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"campaigns": {
+                  Row: {
+                    "audience": NonNullable<Json>,"channel_account_id": string,"created_at": string,"created_by": string | null,"daily_limit": number,"finished_at": string | null,"frequency_cap_days": number,"id": string,"name": string,"org_id": string,"scheduled_at": string | null,"started_at": string | null,"status": string,"template_id": string,"updated_at": string,"variables": NonNullable<Json>
+                  }
+                  Insert: {
+                    "audience"?: NonNullable<Json>,"channel_account_id": string,"created_at"?: string,"created_by"?: string | null,"daily_limit"?: number,"finished_at"?: string | null,"frequency_cap_days"?: number,"id"?: string,"name": string,"org_id": string,"scheduled_at"?: string | null,"started_at"?: string | null,"status"?: string,"template_id": string,"updated_at"?: string,"variables"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "audience"?: NonNullable<Json>,"channel_account_id"?: string,"created_at"?: string,"created_by"?: string | null,"daily_limit"?: number,"finished_at"?: string | null,"frequency_cap_days"?: number,"id"?: string,"name"?: string,"org_id"?: string,"scheduled_at"?: string | null,"started_at"?: string | null,"status"?: string,"template_id"?: string,"updated_at"?: string,"variables"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"event_budget_lines": {
+                  Row: {
+                    "category": string,"created_at": string,"event_id": string,"id": string,"memo": string | null,"org_id": string,"planned": number
+                  }
+                  Insert: {
+                    "category": string,"created_at"?: string,"event_id": string,"id"?: string,"memo"?: string | null,"org_id": string,"planned": number
+                  }
+                  Update: {
+                    "category"?: string,"created_at"?: string,"event_id"?: string,"id"?: string,"memo"?: string | null,"org_id"?: string,"planned"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "event_budget_lines_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"event_guests": {
+                  Row: {
+                    "checked_in_at": string | null,"created_at": string,"deal_id": string | null,"event_id": string,"id": string,"invited_by": string | null,"notes": string | null,"org_id": string,"party_id": string,"plus_ones": number,"rsvp_status": string,"source": string,"updated_at": string
+                  }
+                  Insert: {
+                    "checked_in_at"?: string | null,"created_at"?: string,"deal_id"?: string | null,"event_id": string,"id"?: string,"invited_by"?: string | null,"notes"?: string | null,"org_id": string,"party_id": string,"plus_ones"?: number,"rsvp_status"?: string,"source"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "checked_in_at"?: string | null,"created_at"?: string,"deal_id"?: string | null,"event_id"?: string,"id"?: string,"invited_by"?: string | null,"notes"?: string | null,"org_id"?: string,"party_id"?: string,"plus_ones"?: number,"rsvp_status"?: string,"source"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "event_guests_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"events": {
+                  Row: {
+                    "capacity": number | null,"collection_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"ends_at": string | null,"id": string,"kind": string,"name": string,"notes": string | null,"org_id": string,"starts_at": string,"status": string,"store_id": string | null,"target_revenue": number | null,"updated_at": string,"venue": string | null
+                  }
+                  Insert: {
+                    "capacity"?: number | null,"collection_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"ends_at"?: string | null,"id"?: string,"kind": string,"name": string,"notes"?: string | null,"org_id": string,"starts_at": string,"status"?: string,"store_id"?: string | null,"target_revenue"?: number | null,"updated_at"?: string,"venue"?: string | null
+                  }
+                  Update: {
+                    "capacity"?: number | null,"collection_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"ends_at"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"notes"?: string | null,"org_id"?: string,"starts_at"?: string,"status"?: string,"store_id"?: string | null,"target_revenue"?: number | null,"updated_at"?: string,"venue"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "campaign_preview":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"campaign_results":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"campaign_send_batch":
+{ Args: { "p_campaign": string,"p_limit"?: number }; Returns: Json
+                           },
+"cancel_campaign":
+{ Args: { "p_id": string }; Returns: {
+              "audience": NonNullable<Json>,
+"channel_account_id": string,
+"created_at": string,
+"created_by": string | null,
+"daily_limit": number,
+"finished_at": string | null,
+"frequency_cap_days": number,
+"id": string,
+"name": string,
+"org_id": string,
+"scheduled_at": string | null,
+"started_at": string | null,
+"status": string,
+"template_id": string,
+"updated_at": string,
+"variables": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campaigns"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"delete_budget_line":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"delete_campaign":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"event_guest_sales":
+{ Args: { "p_event": string }; Returns: {
+              "orders": number,"party_id": string,"revenue": number
+            }[]
+                           },
+"event_results":
+{ Args: { "p_event": string }; Returns: Json
+                           },
+"invite_audience":
+{ Args: { "p_def": Json,"p_event": string }; Returns: number
+                           },
+"invite_guests":
+{ Args: { "p_event": string,"p_parties": (string)[],"p_source"?: string }; Returns: number
+                           },
+"launch_campaign":
+{ Args: { "p_id": string }; Returns: {
+              "audience": NonNullable<Json>,
+"channel_account_id": string,
+"created_at": string,
+"created_by": string | null,
+"daily_limit": number,
+"finished_at": string | null,
+"frequency_cap_days": number,
+"id": string,
+"name": string,
+"org_id": string,
+"scheduled_at": string | null,
+"started_at": string | null,
+"status": string,
+"template_id": string,
+"updated_at": string,
+"variables": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campaigns"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"remove_guest":
+{ Args: { "p_guest": string }; Returns: undefined
+                           },
+"save_budget_line":
+{ Args: { "p": Json }; Returns: {
+              "category": string,
+"created_at": string,
+"event_id": string,
+"id": string,
+"memo": string | null,
+"org_id": string,
+"planned": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "event_budget_lines"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_campaign":
+{ Args: { "p": Json }; Returns: {
+              "audience": NonNullable<Json>,
+"channel_account_id": string,
+"created_at": string,
+"created_by": string | null,
+"daily_limit": number,
+"finished_at": string | null,
+"frequency_cap_days": number,
+"id": string,
+"name": string,
+"org_id": string,
+"scheduled_at": string | null,
+"started_at": string | null,
+"status": string,
+"template_id": string,
+"updated_at": string,
+"variables": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campaigns"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_event":
+{ Args: { "p": Json }; Returns: {
+              "capacity": number | null,
+"collection_id": string | null,
+"cost_center_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"ends_at": string | null,
+"id": string,
+"kind": string,
+"name": string,
+"notes": string | null,
+"org_id": string,
+"starts_at": string,
+"status": string,
+"store_id": string | null,
+"target_revenue": number | null,
+"updated_at": string,
+"venue": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "events"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_event_status":
+{ Args: { "p_id": string,"p_status": string }; Returns: {
+              "capacity": number | null,
+"collection_id": string | null,
+"cost_center_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"ends_at": string | null,
+"id": string,
+"kind": string,
+"name": string,
+"notes": string | null,
+"org_id": string,
+"starts_at": string,
+"status": string,
+"store_id": string | null,
+"target_revenue": number | null,
+"updated_at": string,
+"venue": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "events"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_rsvp":
+{ Args: { "p_guest": string,"p_plus_ones"?: number,"p_status": string }; Returns: {
+              "checked_in_at": string | null,
+"created_at": string,
+"deal_id": string | null,
+"event_id": string,
+"id": string,
+"invited_by": string | null,
+"notes": string | null,
+"org_id": string,
+"party_id": string,
+"plus_ones": number,
+"rsvp_status": string,
+"source": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "event_guests"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
         },"omni": {
           Tables: {
             "channel_accounts": {
@@ -5880,6 +6180,10 @@ export const Constants = {
         },"inv": {
           Enums: {
             "location_kind": ["SALES_FLOOR", "BACKROOM", "VIP_LOCKERS", "IN_TRANSIT", "CONSIGNMENT_AT_PARTNER", "POPUP", "DAMAGED", "MARKETING"],"movement_type": ["INITIAL_BALANCE", "PURCHASE_RECEIPT", "SALE", "SALE_RETURN", "EXCHANGE_IN", "EXCHANGE_OUT", "TRANSFER_OUT", "TRANSFER_IN", "COUNT_ADJUST", "LOSS", "DAMAGE", "SPONSORSHIP_IN_KIND", "MARKETING_GIFT", "CONSIGNMENT_OUT", "CONSIGNMENT_RETURN", "SUPPLIER_RETURN"]
+          }
+        },"mkt": {
+          Enums: {
+            
           }
         },"omni": {
           Enums: {

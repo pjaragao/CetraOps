@@ -4209,6 +4209,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"capi_events": {
+                  Row: {
+                    "attempted_at": string,"event_name": string,"order_id": string,"org_id": string,"reason": string | null,"response": Json | null,"status": string
+                  }
+                  Insert: {
+                    "attempted_at"?: string,"event_name"?: string,"order_id": string,"org_id": string,"reason"?: string | null,"response"?: Json | null,"status": string
+                  }
+                  Update: {
+                    "attempted_at"?: string,"event_name"?: string,"order_id"?: string,"org_id"?: string,"reason"?: string | null,"response"?: Json | null,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"event_budget_lines": {
                   Row: {
                     "category": string,"created_at": string,"event_id": string,"id": string,"memo": string | null,"org_id": string,"planned": number
@@ -4300,6 +4313,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"capi_payload":
+{ Args: { "p_order": string }; Returns: Json
+                           },
+"capi_record":
+{ Args: { "p": Json }; Returns: undefined
+                           },
 "delete_budget_line":
 { Args: { "p_id": string }; Returns: undefined
                            },

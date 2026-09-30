@@ -160,3 +160,16 @@ async def test_unknown_provider_has_no_automatic_check_yet(pool: Any, deps: Any)
     cid = await make_connection(pool, "PLUGGY", {}, {"token": "x"})
     await integrations.handle(deps, job(cid))
     assert "ainda não tem verificação" in (await state(pool, cid))["last_error"]
+
+
+@respx.mock
+async def test_capi_check_reads_the_dataset_and_requires_its_id(pool: Any, deps: Any) -> None:
+    ok = await make_connection(pool, "META_CAPI", {"dataset_id": "DS-9"}, {"token": "CAPI-T"})
+    route = respx.get("https://graph.test/v21.0/DS-9").mock(return_value=httpx.Response(200, json={"id": "DS-9", "name": "Pixel da loja"}))
+    await integrations.handle(deps, job(ok))
+    assert route.calls[0].request.headers["authorization"] == "Bearer CAPI-T"
+    st = await state(pool, ok)
+    assert st["status"] == "ACTIVE" and st["health"]["detail"] == {"dataset_id": "DS-9", "name": "Pixel da loja"}
+    bad = await make_connection(pool, "META_CAPI", {}, {"token": "CAPI-T"})
+    await integrations.handle(deps, job(bad))
+    assert "conjunto de dados" in (await state(pool, bad))["last_error"]

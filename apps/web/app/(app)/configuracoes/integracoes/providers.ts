@@ -1,5 +1,5 @@
 /** Catálogo dos provedores configuráveis na tela. Campos "secret" vão para o Vault (nunca voltam); "config" é não sensível e fica visível. */
-export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE";
+export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "META_CAPI";
 
 export interface ProviderField {
   key: string;
@@ -42,6 +42,17 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
     secret: [{ key: "token", label: "Token do bot (BotFather)", required: true }],
     config: [],
     help: "Depois do teste, use “Registrar webhook”: o sistema aponta o bot para a Edge Function com o segredo configurado.",
+  },
+  META_CAPI: {
+    label: "Meta Conversões (CAPI)", capability: "ADS",
+    description: "Avisa a Meta de cada venda concluída para os anúncios aprenderem quem compra. Venda vinda de anúncio no WhatsApp vai sem dado pessoal; as demais só com consentimento de marketing e com telefone/e-mail criptografados (hash).",
+    secret: [{ key: "token", label: "Token de acesso da API de Conversões", hint: "Gerenciador de Eventos › Configurações › API de Conversões › Gerar token", required: true }],
+    config: [
+      { key: "dataset_id", label: "ID do conjunto de dados (pixel)", hint: "Gerenciador de Eventos da Meta", required: true },
+      { key: "waba_id", label: "ID da conta do WhatsApp Business (WABA)", hint: "Para vendas vindas de anúncio que abre conversa no WhatsApp" },
+      { key: "test_event_code", label: "Código de evento de teste (opcional)", hint: "Enquanto estiver preenchido, os eventos aparecem só na aba Testar eventos" },
+    ],
+    help: "Sem esta integração as vendas continuam normais: ficam só registradas como “não enviadas”.",
   },
   FOCUS_NFE: {
     label: "Focus NFe (NFC-e / NF-e)", capability: "FISCAL",

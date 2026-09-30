@@ -54,6 +54,9 @@ class MetaClient:
     async def whatsapp_phone_info(self, phone_number_id: str) -> dict[str, Any]:
         return await self._get(phone_number_id, {"fields": "display_phone_number,verified_name,quality_rating,code_verification_status,name_status"})
 
+    async def dataset_info(self, dataset_id: str) -> dict[str, Any]:
+        return await self._get(dataset_id, {"fields": "id,name"})
+
     async def instagram_me(self) -> dict[str, Any]:
         return await self._get("me", {"fields": "user_id,username,name,account_type"})
 
@@ -116,3 +119,8 @@ class MetaClient:
         except (httpx.TimeoutException, httpx.TransportError) as e:
             raise TransientError(f"rede: {e}") from e
         return blob.content, info.get("mime_type", blob.headers.get("content-type", "application/octet-stream"))
+
+    # ---------------- Conversions API ----------------
+    async def send_capi_events(self, dataset_id: str, events: list[dict[str, Any]], extra: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Envia eventos de conversão ao conjunto de dados (pixel). `extra` leva o test_event_code quando a integração está em teste."""
+        return await self._post(f"{dataset_id}/events", {"data": events, **(extra or {})})

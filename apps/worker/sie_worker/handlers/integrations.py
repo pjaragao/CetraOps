@@ -30,6 +30,12 @@ async def _check(deps: Deps, conn: dict[str, Any], token: str, action: str) -> d
             raise PermanentError("Informe o ID do número de telefone (phone_number_id) do WhatsApp")
         info = await MetaClient(deps.http, s.graph_api_base, token).whatsapp_phone_info(phone_id)
         return {k: info.get(k) for k in ("display_phone_number", "verified_name", "quality_rating", "name_status", "code_verification_status")}
+    if provider == "META_CAPI":
+        dataset = str(cfg.get("dataset_id") or "").strip()
+        if not dataset:
+            raise PermanentError("Informe o ID do conjunto de dados (dataset/pixel) da Meta")
+        info = await MetaClient(deps.http, s.graph_api_base, token).dataset_info(dataset)
+        return {"dataset_id": info.get("id"), "name": info.get("name")}
     if provider == "META_IG":
         info = await MetaClient(deps.http, s.instagram_api_base, token).instagram_me()
         return {k: info.get(k) for k in ("user_id", "username", "name", "account_type")}

@@ -127,6 +127,7 @@ begin
     end if;
     update omni.conversations set last_message_at = new.created_at,
       unread_count = case when new.author_type in ('HUMAN', 'ECHO_FROM_APP') then 0 else unread_count end,
+      assignee_member_id = coalesce(assignee_member_id, new.author_member_id),
       mode = case when new.author_type in ('ECHO_FROM_APP', 'HUMAN') and mode in ('AI_AUTOPILOT', 'AI_COPILOT', 'WAITING_HUMAN')
                   then 'HUMAN'::omni.conv_mode else mode end
     where id = new.conversation_id;

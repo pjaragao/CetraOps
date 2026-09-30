@@ -328,7 +328,7 @@ begin
     where id = o.party_id;
     insert into crm.timeline_events (org_id, party_id, kind, source_type, source_id, summary, payload)
     values (o.org_id, o.party_id, 'ORDER', 'sales.orders', o.id,
-            format('Compra %s — R$ %s (%s)', o.number, to_char(o.total, 'FM999G999G990D00'), o.channel),
+            format('Compra %s — R$ %s (%s)', o.number, replace(to_char(o.total, 'FM999999990.00'), '.', ','), o.channel),
             jsonb_build_object('total', o.total, 'channel', o.channel));
   end if;
 

@@ -59,8 +59,8 @@ export default async function FiscalPage() {
         </Card>
         <Card title="Limites">
           <ul className="space-y-2 text-sm">
-            <li className="flex justify-between"><span>Limite do Simples (grupo, R$ 4,8 mi)</span><span>{((rbt12 / 4_800_000) * 100).toFixed(1)}%</span></li>
-            <li className="flex justify-between"><span>Sublimite de ICMS em SC (R$ 3,6 mi)</span><span>{((rbt12 / 3_600_000) * 100).toFixed(1)}%</span></li>
+            <li className="flex justify-between"><span>Limite do Simples (grupo, R$ 4,8 mi)</span><span>{((rbt12 / 4_800_000) * 100).toFixed(1).replace(".", ",")}%</span></li>
+            <li className="flex justify-between"><span>Sublimite de ICMS em SC (R$ 3,6 mi)</span><span>{((rbt12 / 3_600_000) * 100).toFixed(1).replace(".", ",")}%</span></li>
           </ul>
           <p className="mt-3 text-xs text-muted">Receitas de serviços (Anexo III: promoção de vendas e eventos) entram na apuração quando houver notas de serviço.</p>
         </Card>

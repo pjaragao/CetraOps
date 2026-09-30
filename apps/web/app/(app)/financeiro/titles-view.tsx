@@ -1,6 +1,7 @@
 import { formatBRL } from "@sie/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, getSession } from "@/lib/session";
+import { todayIsoSP } from "@/lib/context";
 import { Badge, Button, Card, Empty, inputClass, PageHeader, Table } from "@/components/ui";
 import { approveTitle, createTitle, settleInstallment } from "./actions";
 
@@ -20,7 +21,7 @@ export async function TitlesView({ direction, erro }: { direction: "PAYABLE" | "
       .in("group", direction === "PAYABLE" ? ["EXPENSE", "COGS", "FINANCIAL", "LIABILITY"] : ["REVENUE", "ASSET"]).order("code"),
   ]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIsoSP();
   const total = (rows ?? []).reduce((a, r) => a + Number(r.amount), 0);
   const overdue = (rows ?? []).filter((r) => r.due_date < today).reduce((a, r) => a + Number(r.amount), 0);
 

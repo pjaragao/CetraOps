@@ -1,5 +1,5 @@
 import "server-only";
-import { periodRange } from "@sie/domain";
+import { periodRange, todaySP } from "@sie/domain";
 
 /** Converte o período da URL em limites timestamptz no fuso de São Paulo. */
 export function periodBounds(periodo?: string) {
@@ -25,4 +25,9 @@ export function isoFromNow(hours = 0): string {
 /** Dias inteiros desde uma data. */
 export function daysSince(date: string | null): number | null {
   return date ? Math.floor((Date.now() - new Date(date).getTime()) / 86400000) : null;
+}
+
+/** Data de hoje (yyyy-mm-dd) no fuso de São Paulo. */
+export function todayIsoSP(): string {
+  return todaySP().toISOString().slice(0, 10);
 }

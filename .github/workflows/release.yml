@@ -1,0 +1,108 @@
+name: Release
+
+# Produção por TAG (vX.Y.Z):
+#   1. constrói e publica as imagens com a tag da versão;
+#   2. (APROVAÇÃO MANUAL no ambiente "production") aplica as migrations no Supabase de produção e publica as Edge Functions;
+#   3. só então promove a tag `prod` das imagens e pede o deploy ao Coolify (que usa SIE_TAG=prod).
+# Rollback: workflow "Rollback" (reaponta `prod` para uma tag anterior). Migrations são só para frente: corrija com outra migration.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_CLI_VERSION: 2.118.0
+
+jobs:
+  images:
+    name: Imagem ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { image: web, dockerfile: apps/web/Dockerfile }
+          - { image: worker, dockerfile: apps/worker/Dockerfile }
+          - { image: mcp, dockerfile: apps/agent/mcp_server/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sie" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ github.ref_name }}
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+
+  migrate:
+    name: Migrations em produção (aprovação manual)
+    needs: images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Ambiente "production" com revisores obrigatórios (Settings › Environments): o job só roda depois da aprovação
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Aplicar as migrations pendentes
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --password "$SUPABASE_DB_PASSWORD"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      - name: Publicar as Edge Functions de ingresso
+        run: |
+          supabase functions deploy webhooks-meta --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
+          supabase functions deploy webhooks-telegram --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+
+  promote:
+    name: Promover para produção e implantar
+    needs: migrate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sie" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apontar a tag `prod` para esta versão (sem reconstruir)
+        run: |
+          for image in web worker mcp; do
+            docker buildx imagetools create -t "${IMAGE_PREFIX}-${image}:prod" "${IMAGE_PREFIX}-${image}:${GITHUB_REF_NAME}"
+          done
+      - name: Pedir o deploy ao Coolify (troca sem downtime)
+        run: |
+          curl -fsS --retry 3 -X GET "$COOLIFY_DEPLOY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN"
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}

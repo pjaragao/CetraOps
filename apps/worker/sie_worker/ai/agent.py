@@ -3,7 +3,9 @@ agent.call_tool direto): no fim, a resposta está em ai.tool_calls como a últim
 from __future__ import annotations
 
 import json
+import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -138,3 +140,42 @@ class HermesAgent:
             cache_read_tokens=int((usage.get("prompt_tokens_details") or {}).get("cached_tokens") or 0), cost_usd=float(usage.get("cost") or 0),
             latency_ms=int((time.monotonic() - t0) * 1000),
         )
+
+
+log = logging.getLogger("sie_worker.agent")
+
+
+class FallbackAgent:
+    """Hermes primeiro; se ele falhar (erro transitório ou definitivo), a MESMA execução segue pelo Plano B (OpenRouter direto, mesmas ferramentas).
+    Circuit breaker: depois de `threshold` falhas seguidas o primário é pulado por `cooldown_s` segundos — sem esperar timeout a cada mensagem."""
+
+    def __init__(self, primary: AgentClient, secondary: AgentClient, *, threshold: int = 3, cooldown_s: float = 60.0, clock: Callable[[], float] = time.monotonic) -> None:
+        self._primary, self._secondary = primary, secondary
+        self._threshold, self._cooldown, self._clock = threshold, cooldown_s, clock
+        self._failures = 0
+        self._opened_at: float | None = None
+
+    @property
+    def open(self) -> bool:
+        if self._opened_at is None:
+            return False
+        if self._clock() - self._opened_at >= self._cooldown:          # meia-abertura: a próxima execução testa o primário de novo
+            self._opened_at, self._failures = None, self._threshold - 1
+            return False
+        return True
+
+    async def run(self, inp: AgentInput) -> AgentOutput:
+        if self.open:
+            return await self._secondary.run(inp)
+        try:
+            out = await self._primary.run(inp)
+        except (TransientError, PermanentError) as e:
+            self._failures += 1
+            if self._failures >= self._threshold:
+                self._opened_at = self._clock()
+                log.error("Hermes falhou %s vezes seguidas: usando o Plano B por %ss (%s)", self._failures, self._cooldown, e)
+            else:
+                log.warning("Hermes falhou (%s); esta execução segue pelo Plano B", e)
+            return await self._secondary.run(inp)
+        self._failures = 0
+        return out

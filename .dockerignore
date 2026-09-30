@@ -1,0 +1,22 @@
+# Contexto de build das imagens (web, worker, mcp) = raiz do repositório; só entra o que as imagens usam.
+.git
+.claude
+.github
+.venv
+.ruff_cache
+**/node_modules
+**/.next
+**/__pycache__
+**/.pytest_cache
+**/*.tsbuildinfo
+legacy
+docs
+primeira_unidade_joy
+plano_de_expansao
+scripts
+supabase
+infra
+**/*.md
+.env
+.env.*
+!.env.example

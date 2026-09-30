@@ -12,6 +12,7 @@ from sie_worker.adapters.focus import FocusClient
 from sie_worker.adapters.meta import MetaClient
 from sie_worker.adapters.telegram import TelegramClient
 from sie_worker.ai import guardrails, rules
+from sie_worker.ai.agent import AgentInput, AgentOutput, FallbackAgent, HermesAgent, OpenRouterAgent
 from sie_worker.normalizer import normalize
 from sie_worker.runner import backoff_s
 
@@ -184,3 +185,57 @@ async def test_focus_results() -> None:
         respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(401, json={"codigo": "permissao_negada"}))
         with pytest.raises(PermanentError):
             await focus.emit_nfce("ref5", {})
+
+
+class _Scripted:
+    """Agente de mentira: devolve/levanta conforme o roteiro, e guarda quantas vezes foi chamado."""
+
+    def __init__(self, *steps: object) -> None:
+        self.steps, self.calls = list(steps), 0
+
+    async def run(self, inp: object) -> AgentOutput:
+        step = self.steps[min(self.calls, len(self.steps) - 1)]
+        self.calls += 1
+        if isinstance(step, Exception):
+            raise step
+        return step if isinstance(step, AgentOutput) else AgentOutput(model=str(step))
+
+
+async def test_fallback_agent_uses_plan_b_and_opens_the_circuit() -> None:
+    now = [1000.0]
+    hermes = _Scripted(TransientError("503"), TransientError("503"), PermanentError("401"), AgentOutput(model="hermes"))
+    plan_b = _Scripted("plano-b")
+    agent = FallbackAgent(hermes, plan_b, threshold=3, cooldown_s=60, clock=lambda: now[0])  # type: ignore[arg-type]
+    inp = AgentInput(run_id="r", ctx={}, ctx_token="t", system_stable="", system_volatile="", history=[], model="m")
+    for _ in range(3):                                                        # 3 falhas seguidas: cada execução cai para o Plano B e o circuito abre
+        assert (await agent.run(inp)).model == "plano-b"
+    assert hermes.calls == 3 and agent.open
+    assert (await agent.run(inp)).model == "plano-b" and hermes.calls == 3     # circuito aberto: nem tenta o Hermes
+    now[0] += 61                                                               # passou o resfriamento: testa o Hermes de novo
+    assert not agent.open
+    assert (await agent.run(inp)).model == "hermes" and hermes.calls == 4 and plan_b.calls == 4
+    assert not agent.open                                                      # sucesso zera a contagem
+
+
+async def test_fallback_agent_half_open_failure_reopens_immediately() -> None:
+    now = [0.0]
+    hermes = _Scripted(TransientError("x"))
+    agent = FallbackAgent(hermes, _Scripted("b"), threshold=2, cooldown_s=10, clock=lambda: now[0])  # type: ignore[arg-type]
+    inp = AgentInput(run_id="r", ctx={}, ctx_token="t", system_stable="", system_volatile="", history=[], model="m")
+    await agent.run(inp)
+    await agent.run(inp)
+    assert agent.open
+    now[0] += 11
+    await agent.run(inp)                                                       # meia-abertura falhou: abre de novo já na primeira falha
+    assert agent.open and hermes.calls == 3
+
+
+def test_build_agent_picks_the_right_implementation() -> None:
+    from sie_worker.config import Settings
+    from sie_worker.main import build_agent
+
+    http, pool = httpx.AsyncClient(), object()
+    assert build_agent(Settings(hermes_key="", openrouter_key=""), pool, http) is None  # type: ignore[arg-type]
+    assert isinstance(build_agent(Settings(hermes_key="h", openrouter_key=""), pool, http), HermesAgent)  # type: ignore[arg-type]
+    assert isinstance(build_agent(Settings(hermes_key="", openrouter_key="o"), pool, http), OpenRouterAgent)  # type: ignore[arg-type]
+    assert isinstance(build_agent(Settings(hermes_key="h", openrouter_key="o"), pool, http), FallbackAgent)  # type: ignore[arg-type]

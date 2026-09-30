@@ -1,182 +1,82 @@
-# CetraOps: Gestão Operacional, Modelagem Financeira & Expansão (SIÉ Wear)
+# SIÉ JOY OS 2.0 — ERP de varejo + plataforma omnichannel com IA (SIÉ Wear)
 
-O **CetraOps** é a plataforma integrada de gestão operacional, inteligência financeira, PDV e planejamento de expansão territorial da **[SIÉ Wear](https://siewear.com/)**. 
+Plataforma da **[SIÉ Wear](https://siewear.com/)** para a unidade piloto no **[JOY Wellness Club](https://www.founderjoy.com.br/)** (Florianópolis/SC) e para a expansão em rede.
+São duas frentes sobre uma fundação comum:
 
-O projeto contempla a modelagem econômico-financeira completa e diretrizes operacionais para a unidade piloto no clube de bem-estar **[JOY Wellness Club](https://www.founderjoy.com.br/)** (unidade Rua Esteves Júnior, 567 - Centro de Florianópolis/SC), além de um sistema web nativo de PDV (SIÉ Joy OS), esteira de automação documental, suporte a contêineres **Docker**, integração com banco de dados **Supabase** e roteiro de expansão regional.
+- **ERP de varejo** — PDV, estoque por grade, NFC-e, financeiro com partidas dobradas e rateio na baixa, conciliação, compras com NF-e, RH integrado à folha/contábil/fiscal, fiscal (Simples/DAS/eSocial).
+- **Omnichannel + IA** — inbox única (WhatsApp, Instagram, Telegram), agente de IA com ferramentas seguras (Hermes Agent / OpenRouter), troca IA ↔ humano a qualquer momento, CRM integrado às compras.
 
----
+> O sistema antigo (protótipo em Python/JSON) foi congelado em [`legacy/`](legacy) e **não é publicado**. As decisões da reconstrução estão em [`docs/adr`](docs/adr).
 
-## 📂 Estrutura do Repositório
+## Arquitetura
 
 ```text
-CetraOps/
-├── README.md                              # Visão geral executiva e guia da plataforma
-├── PROJECT_INSTRUCTIONS.md                # Diretrizes para IA, regras de governança e arquitetura
-├── Dockerfile                             # Configuração do contêiner Docker para o sistema web
-├── docker-compose.yml                     # Orquestração do serviço web com variáveis de ambiente
-├── .dockerignore                          # Otimizações de build do Docker
-├── .gitignore                             # Filtros de arquivos temporários, caches e ambientes
-├── .env.example                           # Modelo de variáveis de ambiente (Porta, Supabase, etc.)
-├── requirements.txt                       # Dependências Python (openpyxl, supabase, requests)
-│
-├── supabase/                              # Integração e Schemas do Banco de Dados
-│   └── schema.sql                         # DDL completo (tabelas, índices e RLS) para o Supabase
-│
-├── sistema_web/                           # Sistema Operacional de PDV & Integração Stone (SIÉ Joy OS)
-│   ├── server.py                          # Servidor HTTP com rotas REST e gateway de integração
-│   ├── supabase_client.py                 # Cliente e adaptador de sincronização com o Supabase
-│   ├── index.html                         # Interface web responsiva (Dark/Light mode, simulações)
-│   ├── Dockerfile                         # Dockerfile específico da aplicação web
-│   ├── requirements.txt                   # Dependências exclusivas do sistema web
-│   ├── .env.example                       # Variáveis de ambiente para o sistema web
-│   ├── README.md                          # Manual de execução e documentação das APIs
-│   ├── css/                               # Estilização modular em Vanilla CSS
-│   ├── js/                                # Regras de negócio, estado, simulações e Supabase bridge
-│   │   └── supabase_client.js             # Bridge frontend para Supabase
-│   └── data/                              # Repositório de dados e persistência JSON local (fallback)
-│
-├── primeira_unidade_joy/                  # Unidade Piloto: Florianópolis / JOY Wellness Club
-│   ├── Plano_de_Negocios_SIE_JOY.xlsx     # Arquivo mestre ÚNICO em Excel (12 abas, 5.773 fórmulas)
-│   ├── Descritivo_Empresa_SIE_Wear_CNAE.pdf # Parecer societário e matriz oficial de CNAEs em PDF
-│   ├── DESCRITIVO_EMPRESA_CNAE.md         # Descritivo executivo para contabilidade / abertura
-│   ├── README.md                          # Visão geral e métricas da primeira unidade
-│   └── docs/                              # 9 Notas técnicas aprofundadas em Markdown
-│
-├── plano_de_expansao/                     # Planejamento Estratégico de Expansão Territorial
-│   ├── Plano_de_Expansao_SIE_Wear.pdf     # Dossiê executivo diagramado em PDF (6 páginas A4)
-│   ├── README.md                          # Índice, cobertura e metodologia de expansão
-│   ├── 01_mapeamento_academias_high_ticket.md # Mapeamento completo de 14 cidades em SC e RS
-│   ├── 02_modelos_de_negocio_e_parcerias.md # Formatos: Shop-in-Shop, Consignado e Drops
-│   ├── 03_planejamento_tributario_e_societario_expansao.md # Rampa tributária e estrutura societária
-│   └── generate_pdf_plano_expansao.py     # Script gerador do PDF via Edge headless
-│
-└── scripts/                               # Automação, Compilação e Validações
-    ├── build_financial_model.py           # Gerador do arquivo Excel único com fórmulas nativas
-    ├── generate_expansion_pdf.py          # Compilador do PDF do Plano de Expansão
-    ├── generate_cnae_pdf.py               # Compilador do PDF de CNAE / Societário
-    ├── validate_formulas.py               # Validador de integridade de fórmulas (5.773 verificadas)
-    ├── dump_values.py                     # Extrator de métricas e relatório de remuneração
-    ├── audit_model.py                     # Auditor de integridade do arquivo Excel
-    └── README.md                          # Guia de execução dos scripts de automação
+apps/web            Next.js 16 (App Router) + TypeScript + Tailwind — Server Components com o JWT do usuário (RLS), Server Actions → RPCs SQL
+apps/worker         Python (psycopg 3 async): consome as filas pgmq — normalizador, roteador de conversas, envio, fiscal, mídia, notificações
+apps/agent/
+  contract/         contrato do agente: token de contexto (JWT), perfis de ferramentas, esquemas — compartilhado pelo worker e pelo MCP
+  mcp_server/       servidor MCP (StreamableHTTP) com as 16 ferramentas do agente; chama agent.call_tool como a role agent_rpc
+supabase/
+  migrations/       todo o modelo de dados e as regras de negócio (funções SQL transacionais); schemas por domínio
+  functions/        Edge Functions de ingresso de webhooks (Meta, Telegram): validam assinatura, gravam e enfileiram
+  seed/ · tests/    seeds de configuração/desenvolvimento e testes pgTAP
+packages/db         tipos TypeScript gerados do banco   ·   packages/domain  regras compartilhadas (dinheiro, comissão, rateio, menu)
+infra/              compose de produção (Coolify/Traefik), hardening da VPS, backups, runbook
+legacy/             sistema antigo (congelado)   ·   primeira_unidade_joy/ e plano_de_expansao/  plano de negócios e expansão
 ```
 
----
+Princípios: **o Postgres é o sistema de registro e o barramento** (invariantes em funções SQL transacionais; efeitos externos por outbox/pgmq); o **agente não é sistema de registro** (chamado sem estado; histórico, memória e pedidos vivem no banco); tudo é **idempotente** (webhooks, envios, pedidos, notas); a política de **janela das plataformas** é aplicada no servidor.
 
-## 🐳 Executando com Docker
+## Começando (Windows/macOS/Linux)
 
-O sistema web está pronto para execução isolada em contêiner Docker via `docker-compose` ou comando direto.
-
-### Opção 1: Usando Docker Compose (Recomendado)
-
-1. Crie o arquivo `.env` baseado no `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Suba o contêiner com build automático:
-   ```bash
-   docker compose up --build -d
-   ```
-
-3. Acesse no navegador: **`http://localhost:3001`**
-
-Para verificar os logs do contêiner:
-```bash
-docker compose logs -f web
-```
-
-Para parar o contêiner:
-```bash
-docker compose down
-```
-
-### Opção 2: Build e Execução Manual via Docker CLI
+Requisitos: Node 22, pnpm 10 (`corepack enable`), [uv](https://docs.astral.sh/uv/), Docker.
 
 ```bash
-# Build da imagem
-docker build -t cetraops-web .
-
-# Execução do contêiner
-docker run -d -p 3001:3001 --name cetraops_web --env-file .env cetraops-web
+pnpm install
+npx supabase start                # Postgres + Auth + Realtime + Storage + Edge runtime locais (portas 553xx)
+npx supabase db reset             # migrations + seeds (config + dados FICTÍCIOS de desenvolvimento)
+cp .env.example .env              # e preencha o necessário
+pnpm --filter @sie/web dev        # http://localhost:3000  (usuários de teste: supabase/seed/90_dev_demo.sql)
+pnpm worker                       # worker (consome as filas)
 ```
 
----
+Sem as chaves da IA o sistema funciona: conversas em modo IA caem para atendimento humano (o rascunho exige `SIE_OPENROUTER_KEY` ou `SIE_HERMES_KEY`).
 
-## ⚡ Integração com o Supabase
+## Testes e qualidade
 
-O **CetraOps** suporta persistência híbrida: opera tanto com fallback local em arquivos JSON (zero configuração) quanto integrado diretamente a uma instância do **[Supabase](https://supabase.com/)** (PostgreSQL na nuvem).
+| Comando | O que roda |
+|---|---|
+| `npx supabase test db` | pgTAP — ~500 testes: RLS, ledger, estoque, RH, fiscal, pipeline de mensagens, agente, privilégios, cron |
+| `pnpm test:py` | contrato do agente + worker + servidor MCP (contra o Postgres local; cada teste roda numa transação revertida) |
+| `pnpm test:edge` | funções de webhook (HMAC, chaves de idempotência) — Node 22 executa o mesmo TypeScript do Deno |
+| `pnpm exec turbo run typecheck lint test` | TypeScript: tipos, ESLint e Vitest |
+| `pnpm lint:py` | Ruff |
+| `npx supabase db lint --local --level error` | verificação das funções PL/pgSQL |
 
-### 1. Configuração das Credenciais
+O **CI** (`.github/workflows/ci.yml`) roda tudo isso em cada PR e constrói as imagens Docker; **Release** (tag `vX.Y.Z`) publica, aplica as migrations em produção **com aprovação manual** e implanta no Coolify. Veja [`infra/README.md`](infra/README.md).
 
-Defina as variáveis no seu arquivo `.env` ou nas variáveis do contêiner Docker:
+## Módulos
 
-```env
-SUPABASE_URL=https://seu-projeto.supabase.co
-SUPABASE_ANON_KEY=sua-chave-anon-publica
-SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role-secreta
-```
+Menu por tarefa, protegido por permissões (RBAC + RLS em todas as tabelas):
 
-### 2. Criação das Tabelas no Supabase
+| Área | Situação |
+|---|---|
+| **Vender** — PDV multi-pagamento, pedidos remotos, reservas e Armário VIP, trocas/devoluções, entregas, caixa, cupons | pronto |
+| **Produtos & Estoque** — catálogo com grade, estoque em livro-razão, importação, compras, recebimento de NF-e com conferência de grade, reposição | pronto |
+| **Financeiro** — títulos, baixa com **rateio na liquidação**, razão contábil, DRE, fluxo de caixa, recorrentes, orçamento, fechamento mensal, contratos | pronto |
+| **Fiscal** — apuração do Simples/DAS, obrigações, eSocial, notas recebidas; emissão de NFC-e pelo worker (Focus NFe) | pronto (tela de notas emitidas: em construção) |
+| **Equipe (RH)** — admissão, escalas, ponto, férias, folha, rescisão, comissões, acessos — integrados ao financeiro, contábil e fiscal | pronto |
+| **Atendimento** — inbox, rascunhos da IA, modos Piloto/Copiloto/Humano, janela de envio | núcleo pronto (automações, templates e desempenho: em construção) |
+| **Inteligência** — rotas de modelos por tarefa, custos | parcial (personas, base de conhecimento, sugestões: em construção) |
+| **Clientes / Marketing** — ficha 360°, cupons | parcial (funis, tarefas, campanhas, eventos: em construção) |
 
-Copie o conteúdo do script SQL em **[supabase/schema.sql](file:///c:/Users/paulojr/Documents/SIE-Joy/supabase/schema.sql)** e execute-o no **SQL Editor** do painel do Supabase. O script provisiona:
+## Plano de negócios e expansão
 
-- **`crm_leads`**: Base de leads e prospects qualificados.
-- **`crm_qualification_rules`**: Pesos e palavras-chave para o score de clientes.
-- **`scraping_targets`**: Alvos de prospecção e perfis monitorados.
-- **`stone_catalog`**: Catálogo de produtos com controle de estoque e SKU Stone.
-- **`stone_sales`**: Histórico de transações, comissões e emissão de NFC-e.
-- **`accounts_payable` & `accounts_receivable`**: Módulos financeiro e ERP de contas.
-- **`bank_reconciliation`**: Conciliação bancária de recebíveis Stone.
-- **`employees_and_payroll`**: Equipe de vendas e folha de pagamento.
-- **`cnpjs_and_stores`**: Estrutura multiloja e dados fiscais.
-- Políticas de **Row Level Security (RLS)** e índices de performance pré-configurados.
+O modelo financeiro (Excel com fórmulas nativas) e a documentação de negócio continuam no repositório:
 
-### 3. Endpoints de Sincronização e Status
+- [`primeira_unidade_joy/`](primeira_unidade_joy) — Plano de Negócios (12 abas), descritivo de CNAEs e 10 notas técnicas (premissas, DRE, cenários, tributário, operação do PDV, riscos, remuneração).
+- [`plano_de_expansao/`](plano_de_expansao) — dossiê de expansão high-ticket (mapeamento de academias, modelos Shop-in-Shop/Consignação/Drops, planejamento tributário e societário).
+- [`scripts/`](scripts) — gerador do Excel, validador de fórmulas e compiladores de PDF.
+- [`PROJECT_INSTRUCTIONS.md`](PROJECT_INSTRUCTIONS.md) — regra de ouro: **toda mudança de premissa deve refletir no Excel e nos `.md`**.
 
-O servidor disponibiliza rotas automáticas para gerenciamento do Supabase:
-
-- **`GET /api/supabase/status`**: Retorna se o Supabase está configurado e conectado.
-- **`POST /api/supabase/test`**: Testa a latência e conectividade com a API REST do Supabase.
-- **`POST /api/supabase/sync`**: Realiza o upload e sincronização de todos os dados locais para as tabelas do Supabase.
-
----
-
-## 💻 Execução Local (Sem Docker)
-
-### 1. Sistema Web
-```bash
-# Instalar dependências (opcional se não usar o cliente supabase-py)
-pip install -r requirements.txt
-
-# Executar o servidor HTTP
-python sistema_web/server.py
-```
-Acesse: **`http://localhost:3001`**
-
-### 2. Scripts de Automação & Modelagem Financeira
-```bash
-# Gerar o modelo financeiro em Excel (12 abas, fórmulas nativas)
-python scripts/build_financial_model.py
-
-# Validar integridade das 5.773 fórmulas
-python scripts/validate_formulas.py
-
-# Compilar PDFs executivos
-python scripts/generate_expansion_pdf.py
-python scripts/generate_cnae_pdf.py
-```
-
----
-
-## 🚀 Plano de Expansão High-Ticket & Governança Multi-Unidades
-
-O projeto conta com inteligência completa de expansão em **[plano_de_expansao/](file:///c:/Users/paulojr/Documents/SIE-Joy/plano_de_expansao/)**, documentada no dossiê oficial **[Plano_de_Expansao_SIE_Wear.pdf](file:///c:/Users/paulojr/Documents/SIE-Joy/plano_de_expansao/Plano_de_Expansao_SIE_Wear.pdf)**:
-
-1. **Alvos de Prioridade Máxima (Tier 1 & Rede JOY)**:
-   - **[JOY Wellness Club](https://www.founderjoy.com.br/) (Esteves Júnior)**: Unidade Piloto Oficial (1.700 m², Centro de Floripa).
-   - **[JOY Wellness Club](https://www.founderjoy.com.br/) (Mauro Ramos)**: Matriz original ao lado do Beiramar Shopping (Technogym, sauna, cold plunge). Prioridade imediata para replicação de rede.
-   - **[F.Scherer Fitness](https://fscherer.com.br/) (Beiramar Shopping, 6º Piso)**: Academia boutique tradicional da família Scherer, com bike studio, yoga e Clínica K Sports (público feminino de alto ticket).
-   - **Last Wellness Club** (Praia Brava / Itajaí) e **Wave Barra Sul** (Balneário Camboriú).
-   - **INEEX Club** (Praça Japão / Porto Alegre) e **Just Burn Club** (Moinhos de Vento / POA).
-2. **Modelos de Negócio Escaláveis**: Shop-in-Shop Integral (padrão JOY), Corner em Consignação com risco fixo zero (15-20% de comissão) e Pop-Up Drops.
-3. **Planejamento Tributário & Societário**: Rampa do Simples Nacional (4% a 10,8%), sublimite estadual de ICMS (R$ 3,6M), transição para Lucro Presumido (> R$ 4,8M), blindagem patrimonial via Holding e parcerias locais via SCP.
+> Decisões de negócio que viram configuração do sistema (não constantes no código): a JOY é **patrocínio + licença de espaço** (não aluguel); faixa 1 do Simples (Anexo I) é 4%; taxas de cartão por modalidade/parcelas/antecipação; pró-labore dos sócios entra no DRE.

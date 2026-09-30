@@ -5,15 +5,18 @@ import { LogOut, Plus, Search } from "lucide-react";
 import { PERIODS } from "@sie/domain";
 import { setStoreContext } from "@/app/(app)/actions";
 import { signOut } from "@/app/login/actions";
+import { NotificationBell } from "./notification-bell";
 
 interface Props {
   name: string;
+  memberId: string;
+  unreadNotifications: number;
   stores: { id: string; name: string }[];
   storeId: string | null;
   canAllStores: boolean;
 }
 
-export function Topbar({ name, stores, storeId, canAllStores }: Props) {
+export function Topbar({ name, memberId, unreadNotifications, stores, storeId, canAllStores }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -62,6 +65,7 @@ export function Topbar({ name, stores, storeId, canAllStores }: Props) {
       >
         <Plus size={15} /> <span className="hidden sm:inline">Nova venda</span>
       </button>
+      <NotificationBell memberId={memberId} initialUnread={unreadNotifications} />
       <span className="hidden text-sm text-muted md:inline">{name}</span>
       <form action={signOut}>
         <button className="rounded-lg p-2 text-muted hover:bg-surface-2" aria-label="Sair" title="Sair"><LogOut size={16} /></button>

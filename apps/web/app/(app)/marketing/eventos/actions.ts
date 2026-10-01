@@ -94,3 +94,12 @@ export async function deleteBudgetAction(formData: FormData) {
   refresh();
   go(`${LIST}/${id}`, error ? { erro: friendly(error.message) } : { ok: "Linha removida." });
 }
+
+/** Pré-venda VIP: datas da pré-venda e da abertura ao público (vazio = sem pré-venda). */
+export async function setPresaleAction(formData: FormData) {
+  const id = str(formData.get("event_id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("mkt").rpc("set_event_presale", { p_event: id, p_presale: at(str(formData.get("presale"))) as unknown as string, p_public: at(str(formData.get("public"))) as unknown as string });
+  refresh();
+  go(`${LIST}/${id}`, error ? { erro: friendly(error.message) } : { ok: "Datas da pré-venda salvas" });
+}

@@ -80,3 +80,11 @@ export async function cancelInterestAction(formData: FormData) {
   revalidatePath(`/clientes/${id}`);
   back(`/clientes/${id}`, error ? { erro: friendly(error.message) } : { ok: "Avise-me cancelado" });
 }
+
+export async function saveTierBenefitsAction(formData: FormData) {
+  const lines = (k: string) => str(formData.get(k)).split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("save_tier_benefits", { p: { STANDARD: lines("STANDARD"), VIP: lines("VIP"), VIP_BLACK: lines("VIP_BLACK") } as Json });
+  revalidatePath("/clientes", "layout");
+  back("/clientes/ciclo-de-vida", error ? { erro: friendly(error.message) } : { ok: "Benefícios salvos" });
+}

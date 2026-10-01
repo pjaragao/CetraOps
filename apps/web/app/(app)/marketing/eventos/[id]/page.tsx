@@ -6,8 +6,11 @@ import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { Badge, Button, Card, Empty, inputClass, PageHeader, Stat, Table } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
-import { deleteBudgetAction, inviteGroupAction, inviteOneAction, removeGuestAction, saveBudgetAction, setEventStatusAction, setRsvpAction } from "../actions";
+import { deleteBudgetAction, inviteGroupAction, inviteOneAction, removeGuestAction, saveBudgetAction, setEventStatusAction, setRsvpAction, setPresaleAction } from "../actions";
 import { EventForm, KIND, STATUS, when, type EventInitial } from "../event-form";
+
+/** Instante ISO → "AAAA-MM-DDTHH:MM" no fuso de São Paulo (valor do campo datetime-local). */
+const localInput = (iso: string) => new Date(iso).toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).slice(0, 16).replace(" ", "T");
 
 export const metadata = { title: "Evento" };
 
@@ -52,6 +55,15 @@ export default async function EventoPage({ params, searchParams }: { params: Pro
       <PageHeader title={ev.name} description={`${KIND[ev.kind]} · ${when(ev.starts_at)}${ev.venue ? ` · ${ev.venue}` : ""}`}
         actions={<div className="flex items-center gap-2"><Badge tone={st.tone}>{st.label}</Badge><Link href="/marketing/eventos" className="rounded-lg px-3 py-1.5 text-sm hover:bg-surface-2">← Eventos</Link></div>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+      {ev.kind === "DROP" && (
+        <form action={setPresaleAction} className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-border bg-surface p-3 text-sm">
+          <input type="hidden" name="event_id" value={ev.id} />
+          <span className="w-full text-xs text-muted">Pré-venda VIP: as VIPs (convide pelo grupo “VIP” abaixo) reservam antes; o público entra na abertura.</span>
+          <label className="text-xs text-muted">Pré-venda a partir de<input type="datetime-local" name="presale" defaultValue={ev.presale_starts_at ? localInput(ev.presale_starts_at) : ""} className="mt-1 block rounded-lg border border-border bg-bg px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-muted">Abertura ao público<input type="datetime-local" name="public" defaultValue={ev.public_starts_at ? localInput(ev.public_starts_at) : ""} className="mt-1 block rounded-lg border border-border bg-bg px-2 py-1 text-sm" /></label>
+          <button className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Salvar datas</button>
+        </form>
+      )}
 
       {canWrite && open && (
         <div className="mb-4 flex flex-wrap gap-2">

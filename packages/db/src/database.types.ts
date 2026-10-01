@@ -1962,6 +1962,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"for_her_now":
+{ Args: { "p_party": string }; Returns: Json
+                           },
 "generate_outreach":
 { Args: { "p_limit"?: number }; Returns: number
                            },
@@ -2109,6 +2112,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_tier_benefits":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "set_consent":
 { Args: { "p_channel": string,"p_granted": boolean,"p_party": string,"p_purpose": Database["crm"]['Enums']["consent_purpose"],"p_text_version"?: string }; Returns: undefined
                            },
@@ -2161,6 +2167,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"tier_benefits":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "update_profile":
 { Args: { "p": Json,"p_party": string }; Returns: {
               "anonymized_at": string | null,
@@ -5019,13 +5028,13 @@ isOneToOne: false
                   ]
                 },"events": {
                   Row: {
-                    "capacity": number | null,"collection_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"ends_at": string | null,"id": string,"kind": string,"name": string,"notes": string | null,"org_id": string,"starts_at": string,"status": string,"store_id": string | null,"target_revenue": number | null,"updated_at": string,"venue": string | null
+                    "capacity": number | null,"collection_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"ends_at": string | null,"id": string,"kind": string,"name": string,"notes": string | null,"org_id": string,"presale_starts_at": string | null,"public_starts_at": string | null,"starts_at": string,"status": string,"store_id": string | null,"target_revenue": number | null,"updated_at": string,"venue": string | null
                   }
                   Insert: {
-                    "capacity"?: number | null,"collection_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"ends_at"?: string | null,"id"?: string,"kind": string,"name": string,"notes"?: string | null,"org_id": string,"starts_at": string,"status"?: string,"store_id"?: string | null,"target_revenue"?: number | null,"updated_at"?: string,"venue"?: string | null
+                    "capacity"?: number | null,"collection_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"ends_at"?: string | null,"id"?: string,"kind": string,"name": string,"notes"?: string | null,"org_id": string,"presale_starts_at"?: string | null,"public_starts_at"?: string | null,"starts_at": string,"status"?: string,"store_id"?: string | null,"target_revenue"?: number | null,"updated_at"?: string,"venue"?: string | null
                   }
                   Update: {
-                    "capacity"?: number | null,"collection_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"ends_at"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"notes"?: string | null,"org_id"?: string,"starts_at"?: string,"status"?: string,"store_id"?: string | null,"target_revenue"?: number | null,"updated_at"?: string,"venue"?: string | null
+                    "capacity"?: number | null,"collection_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"ends_at"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"notes"?: string | null,"org_id"?: string,"presale_starts_at"?: string | null,"public_starts_at"?: string | null,"starts_at"?: string,"status"?: string,"store_id"?: string | null,"target_revenue"?: number | null,"updated_at"?: string,"venue"?: string | null
                   }
                   Relationships: [
                     
@@ -5197,6 +5206,9 @@ isOneToOne: false
 "invite_guests":
 { Args: { "p_event": string,"p_parties": (string)[],"p_source"?: string }; Returns: number
                            },
+"invite_vips":
+{ Args: { "p_event": string }; Returns: number
+                           },
 "journey_report":
 { Args: { "p_days"?: number,"p_journey": string }; Returns: Json
                            },
@@ -5288,6 +5300,8 @@ isOneToOne: false
 "name": string,
 "notes": string | null,
 "org_id": string,
+"presale_starts_at": string | null,
+"public_starts_at": string | null,
 "starts_at": string,
 "status": string,
 "store_id": string | null,
@@ -5364,6 +5378,34 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_event_presale":
+{ Args: { "p_event": string,"p_presale": string,"p_public": string }; Returns: {
+              "capacity": number | null,
+"collection_id": string | null,
+"cost_center_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"ends_at": string | null,
+"id": string,
+"kind": string,
+"name": string,
+"notes": string | null,
+"org_id": string,
+"presale_starts_at": string | null,
+"public_starts_at": string | null,
+"starts_at": string,
+"status": string,
+"store_id": string | null,
+"target_revenue": number | null,
+"updated_at": string,
+"venue": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "events"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_event_status":
 { Args: { "p_id": string,"p_status": string }; Returns: {
               "capacity": number | null,
@@ -5377,6 +5419,8 @@ isOneToOne: false
 "name": string,
 "notes": string | null,
 "org_id": string,
+"presale_starts_at": string | null,
+"public_starts_at": string | null,
 "starts_at": string,
 "status": string,
 "store_id": string | null,

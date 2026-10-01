@@ -44,7 +44,7 @@ select ok(exists (select 1 from core.notifications where kind = 'MENTION' and me
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');
 select is((select count(*)::int from core.notifications where kind = 'MENTION' and member_id = '00000000-0000-4000-8000-000000000102'), 0, 'quem escreve não se avisa');
 select is((select count(*)::int from omni.messages where conversation_id = '00000000-0000-4000-8000-000000000621' and body like '%pediu o link%'), 0, 'a nota nunca vira mensagem para a cliente');
-select is((select member_id from omni.internal_notes where body like '@Sócio%'), '00000000-0000-4000-8000-000000000102'::uuid, 'fica registrado quem escreveu');
+select is((select member_id from omni.internal_notes where body like '@Sócio ela pediu o link%'), '00000000-0000-4000-8000-000000000102'::uuid, 'fica registrado quem escreveu');
 
 -- ---------- Devolver para a IA ----------
 select throws_ok($$ select omni.return_to_ai('00000000-0000-4000-8000-000000000621', 'HUMAN') $$, 'P0220', null, 'só devolve para Copiloto ou Piloto');

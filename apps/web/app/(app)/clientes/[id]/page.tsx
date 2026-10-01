@@ -6,6 +6,7 @@ import { can, requirePerm } from "@/lib/session";
 import { daysSince, str, type SP } from "@/lib/context";
 import { Badge, Button, Card, Empty, inputClass, LinkButton, PageHeader, Stat } from "@/components/ui";
 import { Flash } from "@/components/form";
+import { ForHerNow, type ForHerNowData } from "@/components/for-her-now";
 import { addInterestAction, cancelInterestAction, refreshLifecycleAction, setConsentAction } from "../actions";
 
 export const metadata = { title: "Cliente 360°" };
@@ -42,6 +43,7 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
     supabase.schema("crm").from("interest_alerts").select("id, product_id, size, note, status, created_via, created_at, notified_at").eq("party_id", id).order("created_at", { ascending: false }).limit(10),
     supabase.schema("catalog").from("products").select("id, name").eq("status", "ACTIVE").order("name").limit(300),
   ]);
+  const { data: forHer } = await supabase.schema("crm").rpc("for_her_now", { p_party: id });
   const productName = new Map((products.data ?? []).map((x) => [x.id, x.name]));
 
   const list = orders.data ?? [];
@@ -152,6 +154,8 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
           )}
         </Card>
       </div>
+
+      {forHer && <Card className="mt-4" title="Para ela agora"><ForHerNow data={forHer as unknown as ForHerNowData} /></Card>}
 
       <Card className="mt-4" title="Avise-me (quando chegar o tamanho)">
         {(alerts.data ?? []).length === 0 ? <p className="text-sm text-muted">Nenhum pedido. Quando faltar o tamanho, registre aqui: ao chegar, ela é avisada e a peça fica separada.</p> : (

@@ -6,6 +6,7 @@ import { isoFromNow, str, type SP } from "@/lib/context";
 import { Badge, cn, Empty, LinkButton, PageHeader } from "@/components/ui";
 import { ConversationPane } from "./conversation-pane";
 import { RealtimeRefresh } from "./realtime-refresh";
+import { ForHerNow, type ForHerNowData } from "@/components/for-her-now";
 
 export const metadata = { title: "Atendimento" };
 
@@ -75,8 +76,11 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         supabase.schema("omni").from("quick_replies").select("id, shortcut, body").order("shortcut"),
       ]);
       const templates = (tpls ?? []).map((t) => ({ id: t.id, name: t.name, category: t.category, body: templateParts(t.components as TemplateComponent[]).body, examples: templateExamples(t.components as TemplateComponent[]) }));
-      const { data: suggested } = await supabase.schema("omni").rpc("suggest_outcome", { p_conversation: conv.id });
-      detail = { suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
+      const [{ data: suggested }, { data: forHer }] = await Promise.all([
+        supabase.schema("omni").rpc("suggest_outcome", { p_conversation: conv.id }),
+        supabase.schema("crm").rpc("for_her_now", { p_party: conv.party_id }),
+      ]);
+      detail = { forHer: (forHer as unknown as ForHerNowData | null) ?? null, suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
     }
   }
 
@@ -164,6 +168,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
                   ))}</ul>
                 )}
               </div>
+              {detail.forHer && <div className="border-t border-border pt-3"><p className="mb-1 text-xs font-semibold">Para ela agora</p><ForHerNow data={detail.forHer} compact /></div>}
             </aside>
           </div>
         ) : (

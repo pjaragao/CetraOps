@@ -5,7 +5,7 @@ import { can, requirePerm } from "@/lib/session";
 import { periodBounds, str, type SP } from "@/lib/context";
 import { Badge, Button, Card, Empty, inputClass, PageHeader, Stat, Table } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
-import { refreshLifecycleAction, saveLifecycleSettingsAction } from "../actions";
+import { refreshLifecycleAction, saveLifecycleSettingsAction, saveTierBenefitsAction } from "../actions";
 
 export const metadata = { title: "Ciclo de vida" };
 
@@ -35,10 +35,12 @@ export default async function CicloDeVidaPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const b = periodBounds(str(sp.periodo));
   const supabase = await createClient();
-  const [{ data, error }, { data: risk }] = await Promise.all([
+  const [{ data, error }, { data: risk }, { data: benefitsData }] = await Promise.all([
     supabase.schema("crm").rpc("lifecycle_overview", { p_from: b.from, p_to: b.to }),
     supabase.schema("crm").from("customer_metrics").select("party_id, days_since_last, avg_interval_days, revenue_12m, orders_total").eq("at_risk", true).order("revenue_12m", { ascending: false }).limit(15),
+    supabase.schema("crm").rpc("tier_benefits"),
   ]);
+  const benefits = (benefitsData ?? {}) as Record<string, string[]>;
   const d = data as unknown as Overview | null;
   if (error || !d) return <><PageHeader title="Ciclo de vida" /><Empty title="Não foi possível calcular agora">{error?.message}</Empty></>;
   const ids = (risk ?? []).map((r) => r.party_id);
@@ -102,6 +104,19 @@ export default async function CicloDeVidaPage({ searchParams }: { searchParams: 
           })}
         </Table>
       )}
+
+      <Card className="mt-6" title="Benefícios por nível">
+        <form action={saveTierBenefitsAction} className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-3">
+            {(["STANDARD", "VIP", "VIP_BLACK"] as const).map((k) => (
+              <Field key={k} label={k === "STANDARD" ? "SIÉ (cliente)" : k === "VIP" ? "VIP" : "VIP Black"} hint="Um por linha (até 8)">
+                <textarea name={k} rows={5} defaultValue={(benefits[k] ?? []).join("\n")} disabled={!can(session, "core.admin")} className={inputClass} />
+              </Field>
+            ))}
+          </div>
+          {can(session, "core.admin") ? <Button variant="secondary">Salvar benefícios</Button> : <p className="text-xs text-muted">Só sócios alteram. A equipe vê os benefícios na ficha e no painel da conversa.</p>}
+        </form>
+      </Card>
 
       {can(session, "core.admin") && (
         <Card className="mt-6" title="Regras do ciclo de vida">

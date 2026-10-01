@@ -909,6 +909,26 @@ Seguem as convenções do projeto:
 10. **Autorização da JOY** para QR nas áreas comuns, e regra para trainers como afiliados.
 11. **Metas iniciais** do §3.8 e data da primeira recalibração.
 
+## 5.6 Pedidos registrados em 01/10/2026 (para depois do plano)
+
+Pedidos do Paulo durante a implantação. Entram depois das fases 3 a 5, nesta ordem sugerida:
+
+1. **Cadastro de pessoas e empresas (pilar do sistema).** Tela própria para criar e editar pessoa física e jurídica (dados, contatos, endereços, papéis: cliente, fornecedor, colaborador, afiliada), com mesclagem de duplicados. Hoje a pessoa só nasce pelo PDV, pela conversa, pela admissão ou pela importação, e a ficha da cliente cobre só o lado comercial.
+2. **CEP preenche o endereço em todos os formulários** (BrasilAPI), com o número e o complemento digitados à mão.
+3. **Vínculos entre pessoas:** mãe/filha, casal, irmãs, amigas etc. Uso no marketing: avisar a filha no aniversário da mãe, no Dia das Mães, no Natal e em outras datas, para vender presente (régua nova com gatilho "data de alguém próximo"; respeita aceite e limites de contato).
+4. **Escala:**
+   - escala semanal padrão por colaborador, aplicada automaticamente a todos os meses (com exceções no dia);
+   - regras configuráveis, com liga/desliga: picos de cobertura (já editáveis), intervalo mínimo de almoço, jornada máxima, descanso de 11 h, sete dias seguidos;
+   - turnos prontos editáveis já existem; falta validar contra o intervalo mínimo configurado e usar esse mínimo como intervalo padrão;
+   - mostrar sempre o total de horas trabalhadas ao editar ou atribuir (no dia, na semana e no mês).
+5. **Admissão:**
+   - deixar claro na tela que Intermitente e Temporário são vínculos **CLT** (mesmos encargos: INSS patronal no Simples conforme o anexo, FGTS, férias e 13º proporcionais);
+   - criar a opção **freelancer sem vínculo (PJ ou MEI)** para datas especiais: cadastro como prestador, pagamento por nota/recibo como conta a pagar, sem folha nem encargos de CLT, com alerta de risco trabalhista se virar rotina.
+6. **Automação venda → financeiro e RH → financeiro (já existe; revisar com o Paulo):**
+   - venda: gera contas a **receber** automaticamente (cartão/Pix/boleto, com a agenda da maquininha); a comissão da vendedora entra na folha do mês (com DSR) quando o extrato é aprovado, e a de afiliada vira conta a pagar ou vale-troca; o DAS do mês vira conta a pagar; contratos (JOY) geram as parcelas;
+   - folha aprovada: gera conta a pagar do líquido de cada colaborador, guias de FGTS, INSS (DAE) e IRRF (DARF), benefícios e pensão, e o lançamento contábil por centro de custo; o rateio acontece na baixa (ADR 0002);
+   - a validar: se o Paulo quer o rateio já no título (e não só na baixa) e quais encargos ainda faltam no fluxo.
+
 ---
 
 # Anexos

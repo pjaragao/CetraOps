@@ -10,7 +10,7 @@ export const metadata = { title: "Central de sugestões" };
 
 const VIEWS = [{ key: "abertas", label: "Abertas" }, { key: "resolvidas", label: "Resolvidas" }, { key: "ignoradas", label: "Ignoradas" }, { key: "todas", label: "Todas" }];
 const SEVERITY: Record<string, { label: string; tone: "danger" | "warning" | "neutral"; order: number }> = { HIGH: { label: "urgente", tone: "danger", order: 0 }, MEDIUM: { label: "atenção", tone: "warning", order: 1 }, LOW: { label: "info", tone: "neutral", order: 2 } };
-const KIND: Record<string, string> = { ANOMALY: "Anomalia", REORDER: "Reposição", NBA: "Próxima ação", CATEGORIZATION: "Classificação", RECON_MATCH: "Conciliação", SKU_MATCH: "Produto da nota", REACTIVATION: "Reativação", ALLOCATION: "Rateio" };
+const KIND: Record<string, string> = { ANOMALY: "Anomalia", REORDER: "Reposição", NBA: "Próxima ação", CATEGORIZATION: "Classificação", RECON_MATCH: "Conciliação", SKU_MATCH: "Produto da nota", REACTIVATION: "Reativação", ALLOCATION: "Rateio", KB_GAP: "Lacuna na base", CUSTOMER: "Cliente" };
 const STATUS_LABEL: Record<string, string> = { ACCEPTED: "resolvida", DISMISSED: "ignorada", AUTO_APPLIED: "encerrada sozinha" };
 const when = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 

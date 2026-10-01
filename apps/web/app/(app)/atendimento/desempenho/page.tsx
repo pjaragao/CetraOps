@@ -36,10 +36,15 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: S
   const sp = await searchParams;
   const b = periodBounds(str(sp.periodo));
   const supabase = await createClient();
-  const [{ data, error }, { data: outcomes }] = await Promise.all([
+  const [{ data, error }, { data: outcomes }, { data: csatData }, { data: topics }, { data: members }] = await Promise.all([
     supabase.schema("omni").rpc("performance", { p_from: b.fromTs, p_to: b.toTs }),
     supabase.schema("omni").rpc("outcomes", { p_from: b.fromTs, p_to: b.toTs }),
+    supabase.schema("omni").rpc("csat_summary", { p_from: b.fromTs, p_to: b.toTs }),
+    supabase.schema("omni").rpc("topics_report", { p_from: b.fromTs, p_to: b.toTs }),
+    supabase.schema("core").from("members").select("id, display_name"),
   ]);
+  const csat = csatData as unknown as { asked: number; answered: number; avg: number | null; low: number; by_member: { member_id: string; n: number; avg: number }[] } | null;
+  const memberName = new Map((members ?? []).map((m) => [m.id, m.display_name]));
   const d = data as unknown as Perf | null;
   if (error || !d) return <><PageHeader title="Desempenho" /><Empty title="Não foi possível calcular agora">{error?.message}</Empty></>;
 
@@ -79,6 +84,24 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: S
                   {d.drafts.discard_reasons.length > 0 && <p className="text-xs text-muted">Motivos: {d.drafts.discard_reasons.map((r) => `${r.reason} (${r.n})`).join(" · ")}</p>}
                   <p className="text-xs text-muted">Para soltar o piloto automático: 70% ou mais enviados sem edição relevante.</p>
                 </div>
+              )}
+            </Card>
+          </div>
+
+          <div className="mb-4 grid gap-4 lg:grid-cols-2">
+            <Card title="Satisfação (nota de 1 a 5)">
+              {!csat || csat.asked === 0 ? <p className="text-sm text-muted">Nenhuma pesquisa no período. Ligue em Atendimento › Distribuição e satisfação.</p> : (
+                <div className="space-y-2 text-sm">
+                  <p><span className="text-2xl font-semibold tabular-nums">{csat.avg ?? "—"}</span> <span className="text-muted">média · {csat.answered} de {csat.asked} responderam ({pct(csat.answered, csat.asked)}) · {csat.low} nota(s) até 3</span></p>
+                  {csat.by_member.length > 0 && <ul className="text-xs text-muted">{csat.by_member.map((m) => <li key={m.member_id}>{memberName.get(m.member_id) ?? "—"}: {m.avg} ({m.n})</li>)}</ul>}
+                </div>
+              )}
+            </Card>
+            <Card title="O que as clientes mais perguntam">
+              {(topics ?? []).length === 0 ? <p className="text-sm text-muted">Os temas aparecem quando a IA resume as conversas encerradas.</p> : (
+                <ul className="flex flex-wrap gap-1.5 text-xs">{(topics ?? []).map((t) => (
+                  <li key={t.topic} className={`rounded-full border px-2 py-0.5 ${t.negative > 0 ? "border-danger/40" : "border-border"}`}>{t.topic} <b className="tabular-nums">{t.conversations}</b>{t.negative > 0 && <span className="text-danger"> · {t.negative} insatisfeita(s)</span>}</li>
+                ))}</ul>
               )}
             </Card>
           </div>

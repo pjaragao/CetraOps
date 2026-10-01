@@ -1,6 +1,7 @@
 """Fila `ai_tasks`: tarefas de IA sob demanda disparadas por telas e rotinas do sistema.
 OUTREACH_DRAFT  redige a primeira DM da prospecção assistida (a vendedora revisa e envia pelo app oficial).
-EVAL_RUN        roda as avaliações da IA de atendimento nos modelos pedidos (sandbox; grava um lote por modelo)."""
+EVAL_RUN        roda as avaliações da IA de atendimento nos modelos pedidos (sandbox; grava um lote por modelo).
+CONVERSATION_SUMMARY  resume a conversa encerrada (2 linhas), marca temas e sentimento e aponta pergunta sem resposta na base."""
 from __future__ import annotations
 
 import json
@@ -86,11 +87,50 @@ async def _eval_run(deps: Deps, msg: queues.QueueMessage) -> None:
         await call_fn(deps.pool, "ai.eval_mark", request_id, "FAILED", f"erro inesperado: {e}"[:500], None)
 
 
+SUMMARY_SCHEMA: dict[str, Any] = {
+    "type": "object", "additionalProperties": False, "required": ["summary", "topics", "sentiment", "knowledge_gap", "unanswered_question"],
+    "properties": {
+        "summary": {"type": "string"}, "topics": {"type": "array", "items": {"type": "string"}},
+        "sentiment": {"type": "string", "enum": ["POSITIVE", "NEUTRAL", "NEGATIVE"]},
+        "knowledge_gap": {"type": "boolean"}, "unanswered_question": {"type": "string"},
+    },
+}
+
+
+def summary_prompt(turns: list[dict[str, str]]) -> list[dict[str, str]]:
+    system = ("Você resume conversas de atendimento de uma loja de roupas fitness para o histórico da cliente. Responda só o JSON do schema. "
+              "summary: até 2 frases objetivas, em português, sobre o que a cliente queria e como terminou (sem dados pessoais como CPF, endereço ou cartão). "
+              "topics: até 4 temas curtos em minúsculas (ex.: tamanho, troca, legging, entrega, pagamento, evento). "
+              "sentiment: como a cliente terminou. knowledge_gap: true só se a cliente fez uma pergunta sobre a loja, produtos ou regras que a equipe/IA "
+              "NÃO soube responder; nesse caso unanswered_question traz a pergunta reescrita de forma genérica, sem nome; senão, string vazia.")
+    return [{"role": "system", "content": system}, {"role": "user", "content": json.dumps({"conversa": turns}, ensure_ascii=False)}]
+
+
+async def _conversation_summary(deps: Deps, p: dict[str, Any]) -> None:
+    if deps.llm is None:
+        return                                                      # sem IA configurada: a conversa fica sem resumo (nada quebra)
+    rows = await fetch_all(deps.pool, """select direction, author_type, coalesce(body, transcript) as text from omni.messages
+                                         where conversation_id = %s and coalesce(body, transcript) is not null order by created_at, seq limit 60""", (p["conversation_id"],))
+    turns = [{"quem": "cliente" if r["direction"] == "IN" else ("ia" if r["author_type"] == "AI" else "loja"), "texto": str(r["text"])[:600]} for r in rows]
+    if not any(t["quem"] == "cliente" for t in turns):
+        return
+    try:
+        data = await deps.llm.complete_json(str(p["org_id"]), "summarize", summary_prompt(turns), "resumo_conversa", SUMMARY_SCHEMA)
+    except TransientError as e:
+        raise RetryLater(int(e.retry_after or 60), str(e)) from e
+    except ProviderPermanent as e:
+        log.info("resumo indisponível (%s)", e)
+        return
+    await call_fn(deps.pool, "ai.save_conversation_summary", p["conversation_id"], data)
+
+
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     action = msg.payload.get("action")
     if action == "OUTREACH_DRAFT":
         await _outreach_draft(deps, msg.payload)
     elif action == "EVAL_RUN":
         await _eval_run(deps, msg)
+    elif action == "CONVERSATION_SUMMARY":
+        await _conversation_summary(deps, msg.payload)
     else:
         log.warning("ação de IA desconhecida: %s", action)

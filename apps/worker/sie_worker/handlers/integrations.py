@@ -36,6 +36,12 @@ async def _check(deps: Deps, conn: dict[str, Any], token: str, action: str) -> d
             raise PermanentError("Informe o ID do conjunto de dados (dataset/pixel) da Meta")
         info = await MetaClient(deps.http, s.graph_api_base, token).dataset_info(dataset)
         return {"dataset_id": info.get("id"), "name": info.get("name")}
+    if provider == "META_ADS":
+        account = str(cfg.get("ad_account_id") or "").strip()
+        if not account:
+            raise PermanentError("Informe o ID da conta de anúncios (ad account)")
+        info = await MetaClient(deps.http, s.graph_api_base, token).ad_account_info(account if account.startswith("act_") else f"act_{account}")
+        return {"ad_account": info.get("id"), "name": info.get("name"), "currency": info.get("currency")}
     if provider == "META_IG":
         info = await MetaClient(deps.http, s.instagram_api_base, token).instagram_me()
         return {k: info.get(k) for k in ("user_id", "username", "name", "account_type")}

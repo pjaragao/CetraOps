@@ -4652,7 +4652,33 @@ isOneToOne: false
           }
         },"mkt": {
           Tables: {
-            "campaign_recipients": {
+            "ad_insights_daily": {
+                  Row: {
+                    "ad_account": string,"ad_id": string,"ad_name": string | null,"adset_name": string | null,"campaign_id": string | null,"campaign_name": string | null,"clicks": number,"conversations": number,"day": string,"id": string,"impressions": number,"leads": number,"org_id": string,"purchase_value": number,"purchases": number,"reach": number,"spend": number,"updated_at": string
+                  }
+                  Insert: {
+                    "ad_account": string,"ad_id": string,"ad_name"?: string | null,"adset_name"?: string | null,"campaign_id"?: string | null,"campaign_name"?: string | null,"clicks"?: number,"conversations"?: number,"day": string,"id"?: string,"impressions"?: number,"leads"?: number,"org_id": string,"purchase_value"?: number,"purchases"?: number,"reach"?: number,"spend"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "ad_account"?: string,"ad_id"?: string,"ad_name"?: string | null,"adset_name"?: string | null,"campaign_id"?: string | null,"campaign_name"?: string | null,"clicks"?: number,"conversations"?: number,"day"?: string,"id"?: string,"impressions"?: number,"leads"?: number,"org_id"?: string,"purchase_value"?: number,"purchases"?: number,"reach"?: number,"spend"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"ad_sync_state": {
+                  Row: {
+                    "ad_account": string,"last_day": string | null,"last_error": string | null,"last_rows": number,"last_run_at": string | null,"org_id": string
+                  }
+                  Insert: {
+                    "ad_account": string,"last_day"?: string | null,"last_error"?: string | null,"last_rows"?: number,"last_run_at"?: string | null,"org_id": string
+                  }
+                  Update: {
+                    "ad_account"?: string,"last_day"?: string | null,"last_error"?: string | null,"last_rows"?: number,"last_run_at"?: string | null,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"campaign_recipients": {
                   Row: {
                     "campaign_id": string,"created_at": string,"id": string,"message_id": string | null,"org_id": string,"party_id": string,"sent_at": string | null,"seq": number,"skip_reason": string | null,"status": string
                   }
@@ -4754,7 +4780,16 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "campaign_preview":
+            "ad_insights_upsert":
+{ Args: { "p_account": string,"p_org": string,"p_rows": Json }; Returns: number
+                           },
+"ad_sync_set":
+{ Args: { "p_account": string,"p_error"?: string,"p_last_day": string,"p_org": string,"p_rows": number }; Returns: undefined
+                           },
+"ads_overview":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"campaign_preview":
 { Args: { "p_id": string }; Returns: Json
                            },
 "campaign_results":
@@ -4841,6 +4876,9 @@ isOneToOne: false
       } },
 "remove_guest":
 { Args: { "p_guest": string }; Returns: undefined
+                           },
+"request_ads_sync":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "save_budget_line":
 { Args: { "p": Json }; Returns: {

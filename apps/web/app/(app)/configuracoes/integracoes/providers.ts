@@ -1,5 +1,5 @@
 /** Catálogo dos provedores configuráveis na tela. Campos "secret" vão para o Vault (nunca voltam); "config" é não sensível e fica visível. */
-export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "META_CAPI";
+export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "META_CAPI" | "META_ADS";
 
 export interface ProviderField {
   key: string;
@@ -53,6 +53,13 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
       { key: "test_event_code", label: "Código de evento de teste (opcional)", hint: "Enquanto estiver preenchido, os eventos aparecem só na aba Testar eventos" },
     ],
     help: "Sem esta integração as vendas continuam normais: ficam só registradas como “não enviadas”.",
+  },
+  META_ADS: {
+    label: "Meta Anúncios (resultados)", capability: "ADS",
+    description: "Traz todo dia o gasto, o alcance, os cliques e as conversas de cada anúncio. O SIÉ cruza com quem realmente chegou pelo anúncio e comprou, para mostrar o retorno de verdade.",
+    secret: [{ key: "token", label: "Token de acesso (permissão ads_read)", hint: "Usuário do sistema no Gerenciador de Negócios, com acesso à conta de anúncios", required: true }],
+    config: [{ key: "ad_account_id", label: "ID da conta de anúncios", hint: "Gerenciador de Anúncios › Configurações da conta (só números; o act_ é opcional)", required: true }],
+    help: "Só leitura: o sistema nunca cria nem altera anúncios.",
   },
   FOCUS_NFE: {
     label: "Focus NFe (NFC-e / NF-e)", capability: "FISCAL",

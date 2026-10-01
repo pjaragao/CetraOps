@@ -9,6 +9,7 @@ import logging
 from .. import queues
 from ..db import call_fn, fetch_one
 from ..deps import Deps
+from . import ad_insights
 
 log = logging.getLogger("sie_worker.campaigns")
 
@@ -18,6 +19,9 @@ RECHECK_S = 3600
 
 
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
+    if msg.payload.get("action") == "AD_INSIGHTS_SYNC":
+        await ad_insights.sync(deps, str(msg.payload["org_id"]))
+        return
     cid, org = str(msg.payload["campaign_id"]), str(msg.payload["org_id"])
     stalled = 0
     while True:

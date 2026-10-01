@@ -1,6 +1,8 @@
 """Cliente da Graph API da Meta: WhatsApp Cloud API e Instagram Messaging. Só HTTP; regra de janela fica no banco."""
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
@@ -25,6 +27,29 @@ def _raise_for(resp: httpx.Response) -> None:
     if resp.status_code == 429 or code in RATE_LIMIT_CODES or resp.status_code >= 500:
         raise TransientError(msg, code=code, status=resp.status_code)
     raise PermanentError(msg, code=code, status=resp.status_code)
+
+
+LEAD_ACTIONS = ("lead", "onsite_conversion.lead_grouped")
+CONVERSATION_ACTIONS = ("onsite_conversion.messaging_conversation_started_7d",)
+PURCHASE_ACTIONS = ("purchase", "omni_purchase")
+
+
+def normalize_insight(item: dict[str, Any]) -> dict[str, Any] | None:
+    """Uma linha de insights da Meta → o que o banco guarda. As conversões vêm em `actions` (contagem) e `action_values` (valor)."""
+    ad_id, day = item.get("ad_id"), item.get("date_start")
+    if not ad_id or not day:
+        return None
+
+    def count(names: tuple[str, ...]) -> int:
+        return max((int(float(a.get("value") or 0)) for a in item.get("actions") or [] if a.get("action_type") in names), default=0)
+
+    def value(names: tuple[str, ...]) -> float:
+        return max((float(a.get("value") or 0) for a in item.get("action_values") or [] if a.get("action_type") in names), default=0.0)
+
+    return {"ad_id": str(ad_id), "ad_name": item.get("ad_name"), "adset_name": item.get("adset_name"), "campaign_id": item.get("campaign_id"), "campaign_name": item.get("campaign_name"),
+            "day": day, "spend": float(item.get("spend") or 0), "impressions": int(float(item.get("impressions") or 0)), "reach": int(float(item.get("reach") or 0)),
+            "clicks": int(float(item.get("clicks") or 0)), "leads": count(LEAD_ACTIONS), "conversations": count(CONVERSATION_ACTIONS), "purchases": count(PURCHASE_ACTIONS),
+            "purchase_value": value(PURCHASE_ACTIONS)}
 
 
 class MetaClient:
@@ -124,6 +149,27 @@ class MetaClient:
         except (httpx.TimeoutException, httpx.TransportError) as e:
             raise TransientError(f"rede: {e}") from e
         return blob.content, info.get("mime_type", blob.headers.get("content-type", "application/octet-stream"))
+
+    # ---------------- Marketing API (insights de anúncios) ----------------
+    async def ad_account_info(self, ad_account: str) -> dict[str, Any]:
+        return await self._get(ad_account, {"fields": "name,currency,account_status"})
+
+    async def ad_insights(self, ad_account: str, since: str, until: str) -> AsyncIterator[dict[str, Any]]:
+        """Resultados por anúncio e por dia no período (aaaa-mm-dd), já normalizados. Segue a paginação da Meta."""
+        params: dict[str, Any] = {
+            "level": "ad", "time_increment": 1, "limit": 200, "time_range": json.dumps({"since": since, "until": until}),
+            "fields": "ad_id,ad_name,adset_name,campaign_id,campaign_name,spend,impressions,reach,clicks,actions,action_values",
+        }
+        while True:
+            page = await self._get(f"{ad_account}/insights", params)
+            for item in page.get("data", []):
+                row = normalize_insight(item)
+                if row:
+                    yield row
+            after = ((page.get("paging") or {}).get("cursors") or {}).get("after")
+            if not (page.get("paging") or {}).get("next") or not after:
+                return
+            params = {**params, "after": after}
 
     # ---------------- Conversions API ----------------
     async def send_capi_events(self, dataset_id: str, events: list[dict[str, Any]], extra: dict[str, Any] | None = None) -> dict[str, Any]:

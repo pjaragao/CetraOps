@@ -18,7 +18,7 @@ function back(params: Record<string, string | undefined> = {}): never {
   redirect(q ? `${PATH}?${q}` : PATH);
 }
 
-const providerSchema = z.enum(["META_WA", "META_IG", "TELEGRAM", "FOCUS_NFE", "META_CAPI"]);
+const providerSchema = z.enum(["META_WA", "META_IG", "TELEGRAM", "FOCUS_NFE", "META_CAPI", "META_ADS"]);
 
 /** Salva a conexão: campos de configuração (visíveis) + credencial (vai para o Vault; em branco = mantém a atual). */
 export async function saveIntegrationAction(_prev: State, formData: FormData): Promise<State> {

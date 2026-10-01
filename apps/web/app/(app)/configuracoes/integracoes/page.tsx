@@ -22,6 +22,7 @@ function describe(provider: ProviderKey, d: Record<string, unknown>): [string, s
     case "META_WA": return [...row("Número", d.display_phone_number), ...row("Nome verificado", d.verified_name), ...row("Qualidade", d.quality_rating), ...row("Nome de exibição", d.name_status)];
     case "META_IG": return [...row("Conta", d.username ? `@${d.username}` : undefined), ...row("Tipo", d.account_type), ...row("ID da conta", d.user_id)];
     case "TELEGRAM": return [...row("Bot", d.username ? `@${d.username}` : undefined), ...row("ID do bot", d.bot_id), ...row("Webhook", d.webhook_url), ...row("Pendentes", d.pending_update_count), ...row("Último erro do Telegram", d.last_error_message)];
+    case "META_ADS": return [...row("Conta de anúncios", d.name), ...row("Moeda", d.currency)];
     case "META_CAPI": return [...row("Conjunto de dados", d.name), ...row("ID", d.dataset_id)];
     case "FOCUS_NFE": return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment)];
   }

@@ -116,6 +116,7 @@ export const NAV: NavArea[] = [
       { label: "Modelos & custos", href: "/ia/modelos", ready: true },
       { label: "Personas", href: "/ia/personas", ready: true },
       { label: "Base de conhecimento", href: "/ia/conhecimento", ready: true },
+      { label: "Avaliações da IA", href: "/ia/avaliacoes", ready: true },
     ],
   },
   {

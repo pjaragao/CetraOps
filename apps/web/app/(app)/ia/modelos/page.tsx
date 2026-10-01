@@ -1,7 +1,10 @@
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { Badge, Button, Card, inputClass, PageHeader } from "@/components/ui";
+import { Flash } from "@/components/form";
+import { str, type SP } from "@/lib/context";
 
 export const metadata = { title: "Modelos de IA" };
 
@@ -17,7 +20,7 @@ async function saveRoute(formData: FormData) {
   const session = await requirePerm("ai.write");
   const supabase = await createClient();
   const fallback = String(formData.get("fallback_models") || "").split(",").map((s) => s.trim()).filter(Boolean);
-  await supabase.schema("ai").from("model_routes").update({
+  const { error } = await supabase.schema("ai").from("model_routes").update({
     primary_model: String(formData.get("primary_model")).trim(),
     fallback_models: fallback,
     daily_budget_usd: Number(formData.get("daily_budget_usd") || 0) || null,
@@ -25,9 +28,12 @@ async function saveRoute(formData: FormData) {
     updated_by: session.memberId,
   }).eq("id", String(formData.get("id")));
   revalidatePath("/ia/modelos");
+  // o banco barra modelo de atendimento que não passou nas avaliações (ver Avaliações da IA)
+  redirect(error ? `/ia/modelos?erro=${encodeURIComponent(error.message.replace(/^ERROR:\s*/, ""))}` : "/ia/modelos?ok=Rota+salva.");
 }
 
-export default async function ModelosPage() {
+export default async function ModelosPage({ searchParams }: { searchParams: SP }) {
+  const sp = await searchParams;
   const session = await requirePerm("ai.read");
   const supabase = await createClient();
   const [{ data: routes }, { data: changes }] = await Promise.all([
@@ -39,6 +45,7 @@ export default async function ModelosPage() {
   return (
     <>
       <PageHeader title="Modelos & custos" description="Cada tarefa usa um modelo do OpenRouter escolhido aqui, sem deploy. Rotas com dado de cliente exigem ZDR (sem retenção)." />
+      <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
       <div className="grid gap-3 lg:grid-cols-2">
         {(routes ?? []).map((r) => (
           <Card key={r.id} title={TASK_LABEL[r.task] ?? r.task} action={<Badge tone={r.active ? "success" : "neutral"}>{r.active ? "ativa" : "inativa"}</Badge>}>

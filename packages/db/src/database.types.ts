@@ -1535,6 +1535,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"customer_metrics": {
+                  Row: {
+                    "at_risk": boolean,"at_risk_since": string | null,"avg_interval_days": number | null,"days_since_last": number | null,"first_purchase_at": string | null,"last_purchase_at": string | null,"orders_12m": number,"orders_total": number,"org_id": string,"party_id": string,"revenue_12m": number,"revenue_total": number,"rfm_segment": string,"updated_at": string
+                  }
+                  Insert: {
+                    "at_risk"?: boolean,"at_risk_since"?: string | null,"avg_interval_days"?: number | null,"days_since_last"?: number | null,"first_purchase_at"?: string | null,"last_purchase_at"?: string | null,"orders_12m"?: number,"orders_total"?: number,"org_id": string,"party_id": string,"revenue_12m"?: number,"revenue_total"?: number,"rfm_segment"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "at_risk"?: boolean,"at_risk_since"?: string | null,"avg_interval_days"?: number | null,"days_since_last"?: number | null,"first_purchase_at"?: string | null,"last_purchase_at"?: string | null,"orders_12m"?: number,"orders_total"?: number,"org_id"?: string,"party_id"?: string,"revenue_12m"?: number,"revenue_total"?: number,"rfm_segment"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_metrics_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: true
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"deal_stage_history": {
                   Row: {
                     "changed_at": string,"changed_by": string | null,"deal_id": string,"from_stage_id": string | null,"id": number,"org_id": string,"to_stage_id": string
@@ -1631,13 +1650,13 @@ isOneToOne: false
                   ]
                 },"parties": {
                   Row: {
-                    "anonymized_at": string | null,"archived_at": string | null,"birth_date": string | null,"city": string | null,"cnpj": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"display_name": string,"first_purchase_at": string | null,"first_touch_at": string,"gender": string | null,"home_store_id": string | null,"id": string,"instagram_handle": string | null,"joy_member_status": string,"kind": Database["crm"]['Enums']["party_kind"],"last_purchase_at": string | null,"lead_score": number,"legal_name": string | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id": string | null,"org_id": string,"preferences": NonNullable<Json>,"profession": string | null,"relationship_owner_member_id": string | null,"score_breakdown": NonNullable<Json>,"sizes": NonNullable<Json>,"source": string | null,"tags": (string)[],"tier": Database["crm"]['Enums']["tier"],"uf": string | null,"updated_at": string
+                    "anonymized_at": string | null,"archived_at": string | null,"birth_date": string | null,"city": string | null,"cnpj": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"display_name": string,"first_purchase_at": string | null,"first_touch_at": string,"gender": string | null,"home_store_id": string | null,"id": string,"instagram_handle": string | null,"joy_member_status": string,"kind": Database["crm"]['Enums']["party_kind"],"last_purchase_at": string | null,"lead_score": number,"legal_name": string | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id": string | null,"org_id": string,"preferences": NonNullable<Json>,"profession": string | null,"relationship_owner_member_id": string | null,"score_breakdown": NonNullable<Json>,"sizes": NonNullable<Json>,"source": string | null,"tags": (string)[],"tier": Database["crm"]['Enums']["tier"],"tier_manual": boolean,"uf": string | null,"updated_at": string
                   }
                   Insert: {
-                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name": string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id": string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"uf"?: string | null,"updated_at"?: string
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name": string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id": string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name"?: string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id"?: string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"uf"?: string | null,"updated_at"?: string
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name"?: string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id"?: string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1868,6 +1887,9 @@ isOneToOne: false
 "generate_outreach":
 { Args: { "p_limit"?: number }; Returns: number
                            },
+"lifecycle_overview":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "move_deal":
 { Args: { "p_deal": string,"p_reason"?: string,"p_stage": string }; Returns: {
               "conversation_id": string | null,
@@ -1896,6 +1918,9 @@ isOneToOne: false
                            },
 "quick_customer":
 { Args: { "p_marketing_whatsapp"?: boolean,"p_name"?: string,"p_phone": string }; Returns: string
+                           },
+"refresh_lifecycle":
+{ Args: { "p_party"?: string }; Returns: number
                            },
 "reschedule_task":
 { Args: { "p_due": string,"p_id": string }; Returns: {
@@ -1948,6 +1973,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_lifecycle_settings":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "save_outreach_message":
 { Args: { "p_id": string,"p_message": string }; Returns: {
               "assigned_member_id": string | null,
@@ -1996,6 +2024,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_consent":
+{ Args: { "p_channel": string,"p_granted": boolean,"p_party": string,"p_purpose": Database["crm"]['Enums']["consent_purpose"],"p_text_version"?: string }; Returns: undefined
+                           },
 "set_outreach_status":
 { Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
               "assigned_member_id": string | null,
@@ -2041,6 +2072,48 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "tasks"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"update_profile":
+{ Args: { "p": Json,"p_party": string }; Returns: {
+              "anonymized_at": string | null,
+"archived_at": string | null,
+"birth_date": string | null,
+"city": string | null,
+"cnpj": string | null,
+"created_at": string,
+"custom_fields": NonNullable<Json>,
+"display_name": string,
+"first_purchase_at": string | null,
+"first_touch_at": string,
+"gender": string | null,
+"home_store_id": string | null,
+"id": string,
+"instagram_handle": string | null,
+"joy_member_status": string,
+"kind": Database["crm"]['Enums']["party_kind"],
+"last_purchase_at": string | null,
+"lead_score": number,
+"legal_name": string | null,
+"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],
+"merged_into_id": string | null,
+"org_id": string,
+"preferences": NonNullable<Json>,
+"profession": string | null,
+"relationship_owner_member_id": string | null,
+"score_breakdown": NonNullable<Json>,
+"sizes": NonNullable<Json>,
+"source": string | null,
+"tags": (string)[],
+"tier": Database["crm"]['Enums']["tier"],
+"tier_manual": boolean,
+"uf": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "parties"
         isOneToOne: true
         isSetofReturn: false
       } }

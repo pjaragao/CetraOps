@@ -72,6 +72,26 @@ export async function createEmployeeAction(_prev: State, formData: FormData): Pr
   return back(`/equipe/${emp.id}`, { ok: "Colaborador admitido" });
 }
 
+const freelancerSchema = z.object({
+  legal_entity_id: uuid, store_id: z.string().uuid().optional(), kind: z.enum(["PJ", "MEI"]), name: z.string().min(3).max(120), cnpj: z.string().min(14).max(18),
+  service: z.string().min(3).max(200), work_dates: z.array(date).min(1).max(31), amount: z.number().positive(), due_date: date.optional(),
+  document_kind: z.enum(["NFSE", "RECIBO", "NF_MEI"]).optional(), phone: z.string().max(20).optional(), email: z.string().email().optional(),
+});
+
+/** Freelancer PJ/MEI: prestador sem vínculo; vira conta a pagar (rascunho). Devolve o alerta de risco quando chamado com frequência. */
+export async function engageFreelancerAction(_prev: State, formData: FormData): Promise<State> {
+  let raw: unknown;
+  try { raw = JSON.parse(String(formData.get("payload") ?? "")); } catch { return { ok: false, error: "Dados inválidos" }; }
+  const parsed = freelancerSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: `Confira o cadastro: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("hr").rpc("engage_freelancer", { p: parsed.data as unknown as Json });
+  if (error) return { ok: false, error: friendly(error.message) };
+  const r = data as unknown as { title_id: string; risk: string | null };
+  revalidatePath("/financeiro", "layout");
+  return back("/financeiro/pagar", { ok: `Freelancer cadastrado e conta a pagar criada (rascunho: o financeiro aprova).${r.risk ? ` ${r.risk}.` : ""}` });
+}
+
 // ---------------------------------------------------------------------
 // Ficha do colaborador
 // ---------------------------------------------------------------------

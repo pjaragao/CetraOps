@@ -3712,6 +3712,19 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"freelance_jobs": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string | null,"document_kind": string,"id": string,"kind": string,"legal_entity_id": string,"org_id": string,"party_id": string,"service": string,"store_id": string | null,"title_id": string | null,"work_dates": (string)[]
+                  }
+                  Insert: {
+                    "amount": number,"created_at"?: string,"created_by"?: string | null,"document_kind"?: string,"id"?: string,"kind": string,"legal_entity_id": string,"org_id": string,"party_id": string,"service": string,"store_id"?: string | null,"title_id"?: string | null,"work_dates": (string)[]
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"document_kind"?: string,"id"?: string,"kind"?: string,"legal_entity_id"?: string,"org_id"?: string,"party_id"?: string,"service"?: string,"store_id"?: string | null,"title_id"?: string | null,"work_dates"?: (string)[]
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"holidays": {
                   Row: {
                     "created_at": string,"holiday_date": string,"id": string,"name": string,"optional": boolean,"org_id": string,"scope": string,"store_id": string | null,"uf": string | null
@@ -4401,6 +4414,9 @@ isOneToOne: false
                            },
 "delete_shift_template":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"engage_freelancer":
+{ Args: { "p": Json }; Returns: Json
                            },
 "link_member":
 { Args: { "p_employee": string,"p_member": string }; Returns: undefined

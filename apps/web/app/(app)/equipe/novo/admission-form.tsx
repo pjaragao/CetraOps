@@ -4,9 +4,20 @@ import { useKeptForm } from "@/components/use-kept-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Button, Card, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";
+import { AddressFields, EMPTY_ADDRESS, type Address } from "@/components/address-fields";
 import { createEmployeeAction } from "../actions";
 
 interface Opt { id: string; label: string }
+
+/** O que cada vínculo significa para encargos e impostos (a folha trata os quatro primeiros como CLT). */
+const CONTRACT_INFO: Record<string, { tone: "clt" | "other"; text: string }> = {
+  CLT: { tone: "clt", text: "CLT: salário, FGTS (8%), INSS e IRRF, férias + 1/3, 13º e encargos patronais." },
+  INTERMITENTE: { tone: "clt", text: "Intermitente é CLT: tem os mesmos encargos (FGTS, INSS, IRRF), com férias e 13º proporcionais ao que trabalhou. Paga-se só o período convocado, com aviso prévio de 3 dias. Para alguém PJ ou MEI em data pontual, use “Freelancer” (sem vínculo)." },
+  TEMPORARIO: { tone: "clt", text: "Temporário é CLT, com prazo determinado (até 9 meses): FGTS, INSS, IRRF, férias e 13º proporcionais, como no CLT." },
+  APRENDIZ: { tone: "clt", text: "Aprendiz é CLT especial: FGTS de 2%, sem aviso prévio nem multa na rescisão do contrato a termo." },
+  ESTAGIO: { tone: "other", text: "Estágio não é CLT: bolsa-auxílio, sem FGTS, INSS ou férias (recesso de 30 dias remunerado), com seguro obrigatório." },
+  PRO_LABORE: { tone: "other", text: "Sócio: pró-labore com INSS de 11% (teto) e IRRF; sem FGTS, férias ou 13º." },
+};
 const toNum = (s: string) => Number(String(s).replace(/\./g, "").replace(",", ".")) || 0;
 
 /** Admissão: dados pessoais (sensíveis ficam separados), contrato, remuneração, pagamento, dependentes e benefícios iniciais. */
@@ -16,8 +27,9 @@ export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; st
     entity: entities[0]?.id ?? "", store: stores[0]?.id ?? "", name: "", cpf: "", birth: "", phone: "", email: "", pis: "", ctps: "", rg: "", mother: "", marital: "",
     contract: "CLT", job: "", cbo: "", dept: "", hire: today, exp: "45+45", salary: "", unit: "MONTH", regime: "6X1", weekly: "44",
     commissioned: false, trackTime: false, timeBank: false, fgts: true,
-    bank: "", agency: "", account: "", pix: "", cep: "", street: "", number: "", district: "", city: "", uf: "SC", vt: "", vr: "",
+    bank: "", agency: "", account: "", pix: "", vt: "", vr: "",
   });
+  const [addr, setAddr] = useState<Address>({ ...EMPTY_ADDRESS, uf: "SC" });
   const [deps, setDeps] = useState<{ name: string; birth: string; irrf: boolean; fam: boolean }[]>([]);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
   const entityStores = stores.filter((s) => s.legal_entity_id === f.entity);
@@ -30,10 +42,10 @@ export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; st
     commissioned: f.commissioned, track_time: f.trackTime, time_bank: f.timeBank, fgts: f.contract === "PRO_LABORE" || f.contract === "ESTAGIO" ? false : f.fgts,
     pis: f.pis || undefined, ctps: f.ctps || undefined, rg: f.rg || undefined, mother_name: f.mother || undefined, marital_status: f.marital || undefined,
     bank_code: f.bank || undefined, bank_agency: f.agency || undefined, bank_account: f.account || undefined, pix_key: f.pix || undefined,
-    address: Object.fromEntries(Object.entries({ cep: f.cep, street: f.street, number: f.number, district: f.district, city: f.city, uf: f.uf }).filter(([, v]) => v)),
+    address: Object.fromEntries(Object.entries(addr).filter(([, v]) => v)),
     dependents: deps.filter((d) => d.name.trim().length > 1).map((d) => ({ name: d.name, birth_date: d.birth || undefined, relationship: "FILHO", irrf: d.irrf, family_allowance: d.fam })),
     benefits: [{ code: "VT", value: toNum(f.vt) }, { code: "VR", value: toNum(f.vr) }].filter((b) => b.value > 0),
-  }), [f, deps]);
+  }), [f, deps, addr]);
 
   const ok = f.name.trim().length > 2 && f.cpf.replace(/\D/g, "").length === 11 && f.job.trim().length > 1 && toNum(f.salary) > 0 && !!f.hire && !!f.entity;
 
@@ -55,13 +67,8 @@ export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; st
           <Field label="PIS/NIS" className="sm:col-span-2"><input className={inputClass} value={f.pis} onChange={(e) => set("pis", e.target.value)} /></Field>
           <Field label="CTPS (nº/série)" className="sm:col-span-2"><input className={inputClass} value={f.ctps} onChange={(e) => set("ctps", e.target.value)} /></Field>
           <Field label="RG" className="sm:col-span-2"><input className={inputClass} value={f.rg} onChange={(e) => set("rg", e.target.value)} /></Field>
-          <Field label="CEP" className="sm:col-span-1"><input className={inputClass} value={f.cep} onChange={(e) => set("cep", e.target.value)} inputMode="numeric" /></Field>
-          <Field label="Logradouro" className="sm:col-span-3"><input className={inputClass} value={f.street} onChange={(e) => set("street", e.target.value)} /></Field>
-          <Field label="Nº" className="sm:col-span-1"><input className={inputClass} value={f.number} onChange={(e) => set("number", e.target.value)} /></Field>
-          <Field label="Bairro" className="sm:col-span-2"><input className={inputClass} value={f.district} onChange={(e) => set("district", e.target.value)} /></Field>
-          <Field label="Cidade" className="sm:col-span-2"><input className={inputClass} value={f.city} onChange={(e) => set("city", e.target.value)} /></Field>
-          <Field label="UF" className="sm:col-span-1"><input className={inputClass} value={f.uf} onChange={(e) => set("uf", e.target.value.toUpperCase().slice(0, 2))} /></Field>
         </div>
+        <div className="mt-3"><AddressFields value={addr} onChange={setAddr} /></div>
         <p className="mt-2 text-xs text-muted">CPF, PIS, CTPS, RG e dados bancários ficam em tabela separada, visível só para quem tem permissão de dados sensíveis (LGPD).</p>
       </Card>
 
@@ -71,7 +78,7 @@ export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; st
           <Field label="Loja / lotação" className="sm:col-span-2"><select className={inputClass} value={f.store} onChange={(e) => set("store", e.target.value)}><option value="">— sem loja —</option>{entityStores.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select></Field>
           <Field label="Vínculo" className="sm:col-span-2">
             <select className={inputClass} value={f.contract} onChange={(e) => set("contract", e.target.value)}>
-              <option value="CLT">CLT</option><option value="ESTAGIO">Estágio</option><option value="APRENDIZ">Aprendiz</option><option value="INTERMITENTE">Intermitente</option><option value="TEMPORARIO">Temporário</option><option value="PRO_LABORE">Sócio (pró-labore)</option>
+              <option value="CLT">CLT</option><option value="INTERMITENTE">Intermitente (CLT)</option><option value="TEMPORARIO">Temporário (CLT)</option><option value="APRENDIZ">Aprendiz (CLT)</option><option value="ESTAGIO">Estágio (não é CLT)</option><option value="PRO_LABORE">Sócio (pró-labore)</option>
             </select>
           </Field>
           <Field label="Cargo / função" className="sm:col-span-2"><input className={inputClass} value={f.job} onChange={(e) => set("job", e.target.value)} placeholder="Consultora de moda" /></Field>
@@ -86,6 +93,7 @@ export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; st
           </Field>
           <Field label="Horas/semana" className="sm:col-span-1"><input className={inputClass} value={f.weekly} onChange={(e) => set("weekly", e.target.value)} inputMode="decimal" /></Field>
         </div>
+        <p className={`mt-3 rounded-lg px-3 py-2 text-xs ${CONTRACT_INFO[f.contract]?.tone === "clt" ? "bg-info/10 text-info" : "bg-warning/10 text-warning"}`} role="note">{CONTRACT_INFO[f.contract]?.text}</p>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" checked={f.commissioned} onChange={(e) => set("commissioned", e.target.checked)} /> Recebe comissão de vendas</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={f.trackTime} onChange={(e) => set("trackTime", e.target.checked)} /> Ponto controlado (senão, a escala vale como ponto)</label>

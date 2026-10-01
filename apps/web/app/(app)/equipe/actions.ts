@@ -241,6 +241,39 @@ export async function deleteCoverageAction(formData: FormData) {
   return call("hr", "delete_coverage_rule", { p_id: str(formData.get("id")) }, str(formData.get("back")) || "/equipe/escalas/turnos", "Janela removida");
 }
 
+const RULE_FLAGS = ["rest_11h", "consecutive_days", "daily_max", "break_rule", "weekly_hours", "coverage"] as const;
+const RULE_NUMS = ["max_consecutive_days", "daily_warn_minutes", "daily_error_minutes", "min_break_minutes", "break_over_minutes", "short_break_minutes", "short_break_over_minutes"] as const;
+
+const RULE_HOURS = new Set<string>(["daily_warn_minutes", "daily_error_minutes", "break_over_minutes", "short_break_over_minutes"]);   // digitados em horas
+
+/** Regras da escala: liga/desliga e limites (horas digitadas em horas, gravadas em minutos). */
+export async function saveScheduleRulesAction(formData: FormData) {
+  const p: Record<string, boolean | number> = {};
+  for (const k of RULE_FLAGS) p[k] = formData.get(k) === "on";
+  for (const k of RULE_NUMS) {
+    const raw = str(formData.get(k)).replace(",", ".");
+    if (raw === "") continue;
+    p[k] = RULE_HOURS.has(k) ? Math.round(Number(raw) * 60) : Number(raw);
+  }
+  return call("hr", "save_schedule_rules", { p }, str(formData.get("back")) || "/equipe/escalas/turnos", "Regras da escala salvas");
+}
+
+export async function setCoverageActiveAction(formData: FormData) {
+  return call("hr", "set_coverage_active", { p_id: str(formData.get("id")), p_active: str(formData.get("active")) === "1" }, str(formData.get("back")) || "/equipe/escalas/turnos", "Janela atualizada");
+}
+
+/** Escala semanal padrão de um colaborador: d0..d6 = id do turno, "OFF" (folga) ou vazio. */
+export async function saveWeeklyPatternAction(formData: FormData) {
+  const days: Record<string, string> = {};
+  for (let d = 0; d <= 6; d++) days[String(d)] = str(formData.get(`d${d}`));
+  return call("hr", "save_weekly_pattern", { p_employee: str(formData.get("employee")), p_days: days, p_apply: true }, str(formData.get("back")) || "/equipe/escalas/padrao", "Padrão salvo e aplicado nos dias vazios dos próximos meses (em rascunho)");
+}
+
+export async function applyPatternsAction(formData: FormData) {
+  return call("hr", "apply_weekly_patterns", { p_store: str(formData.get("store")), p_from: str(formData.get("from")), p_to: str(formData.get("to")), p_overwrite: formData.get("overwrite") === "on" },
+    str(formData.get("back")) || "/equipe/escalas", "Padrão semanal aplicado ao período (rascunhos)");
+}
+
 export async function copyRosterAction(formData: FormData) {
   const path = str(formData.get("back"));
   return call("hr", "copy_roster", { p_store: str(formData.get("store")), p_source_from: str(formData.get("source_from")), p_days: Number(formData.get("days") || 7), p_target_from: str(formData.get("target_from")) },

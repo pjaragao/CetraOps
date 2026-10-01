@@ -3593,13 +3593,13 @@ isOneToOne: false
                   ]
                 },"coverage_rules": {
                   Row: {
-                    "end_time": string,"id": string,"label": string,"min_staff": number,"org_id": string,"start_time": string,"store_id": string,"weekday": number
+                    "active": boolean,"end_time": string,"id": string,"label": string,"min_staff": number,"org_id": string,"start_time": string,"store_id": string,"weekday": number
                   }
                   Insert: {
-                    "end_time": string,"id"?: string,"label": string,"min_staff"?: number,"org_id": string,"start_time": string,"store_id": string,"weekday": number
+                    "active"?: boolean,"end_time": string,"id"?: string,"label": string,"min_staff"?: number,"org_id": string,"start_time": string,"store_id": string,"weekday": number
                   }
                   Update: {
-                    "end_time"?: string,"id"?: string,"label"?: string,"min_staff"?: number,"org_id"?: string,"start_time"?: string,"store_id"?: string,"weekday"?: number
+                    "active"?: boolean,"end_time"?: string,"id"?: string,"label"?: string,"min_staff"?: number,"org_id"?: string,"start_time"?: string,"store_id"?: string,"weekday"?: number
                   }
                   Relationships: [
                     
@@ -4086,6 +4086,31 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"weekly_patterns": {
+                  Row: {
+                    "employee_id": string,"id": string,"kind": string,"org_id": string,"shift_id": string | null,"updated_at": string,"weekday": number
+                  }
+                  Insert: {
+                    "employee_id": string,"id"?: string,"kind": string,"org_id": string,"shift_id"?: string | null,"updated_at"?: string,"weekday": number
+                  }
+                  Update: {
+                    "employee_id"?: string,"id"?: string,"kind"?: string,"org_id"?: string,"shift_id"?: string | null,"updated_at"?: string,"weekday"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "weekly_patterns_employee_id_fkey"
+      columns: ["employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "weekly_patterns_shift_id_fkey"
+      columns: ["shift_id"]
+isOneToOne: false
+      referencedRelation: "shift_templates"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -4159,6 +4184,9 @@ isOneToOne: false
       } },
 "add_manual_line":
 { Args: { "p_amount": number,"p_code": string,"p_desc"?: string,"p_payslip": string,"p_source"?: string }; Returns: undefined
+                           },
+"apply_weekly_patterns":
+{ Args: { "p_from": string,"p_overwrite"?: boolean,"p_store": string,"p_to": string }; Returns: number
                            },
 "approve_run":
 { Args: { "p_run": string }; Returns: {
@@ -4491,6 +4519,9 @@ isOneToOne: false
 "save_coverage_rule":
 { Args: { "p": Json }; Returns: number
                            },
+"save_schedule_rules":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "save_shift_template":
 { Args: { "p": Json }; Returns: {
               "active": boolean,
@@ -4511,6 +4542,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_weekly_pattern":
+{ Args: { "p_apply"?: boolean,"p_days": Json,"p_employee": string }; Returns: number
+                           },
+"schedule_rules":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "schedule_vacation":
 { Args: { "p": Json }; Returns: {
               "created_at": string,
@@ -4537,6 +4574,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_coverage_active":
+{ Args: { "p_active": boolean,"p_id": string }; Returns: undefined
+                           },
 "set_roster_cell":
 { Args: { "p_date": string,"p_employee": string,"p_kind": string,"p_shift"?: string }; Returns: {
               "break_minutes": number,

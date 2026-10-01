@@ -46,8 +46,8 @@ select throws_ok($$ select hr.set_roster_cell((select v from ids where k = 'emp'
 
 -- ---------- Horário livre ----------
 select is((select to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI') || '/' || break_minutes || '/' || coalesce(notes, '')
-           from hr.set_roster_hours((select v from ids where k = 'emp'), date '2030-03-07', '10:15', '16:45', 30, 'cobre inventário')),
-          '10:15-16:45/30/cobre inventário', 'horário livre num dia, com observação');
+           from hr.set_roster_hours((select v from ids where k = 'emp'), date '2030-03-07', '10:15', '16:45', 60, 'cobre inventário')),
+          '10:15-16:45/60/cobre inventário', 'horário livre num dia, com observação');
 select is((select shift_id from hr.roster where employee_id = (select v from ids where k = 'emp') and work_date = date '2030-03-07'), null::uuid, 'horário livre não depende de turno');
 select throws_ok($$ select hr.set_roster_hours((select v from ids where k = 'emp'), date '2030-03-08', '10:00', '10:30', 60) $$, 'P0290', null, 'horário livre também é conferido');
 

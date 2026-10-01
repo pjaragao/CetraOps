@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { fmtHours, netMinutes } from "@sie/domain";
 import { setRosterCell, setRosterHours } from "../actions";
 
 export interface GridDay { date: string; day: number; dow: number; holiday: string | null }
@@ -16,14 +17,14 @@ const short = (t: string | null) => (!t ? "" : t.endsWith(":00") ? String(Number
 const inputCls = "w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm";
 
 /** Grade mensal da escala: clique numa célula para escolher um turno pronto, lançar qualquer horário, folga ou limpar. Férias e afastamentos vêm bloqueados. */
-export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit }: {
-  employees: { id: string; name: string; job: string }[]; days: GridDay[];
-  cells: Record<string, Record<string, Cell>>; blocks: Record<string, Record<string, string>>; shifts: GridShift[]; canEdit: boolean;
+export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit, minBreak }: {
+  employees: { id: string; name: string; job: string; weeklyHours: number }[]; days: GridDay[];
+  cells: Record<string, Record<string, Cell>>; blocks: Record<string, Record<string, string>>; shifts: GridShift[]; canEdit: boolean; minBreak: number;
 }) {
   const router = useRouter();
   const [local, setLocal] = useState(cells);
   const [pick, setPick] = useState<{ emp: string; date: string } | null>(null);
-  const [free, setFree] = useState({ start: "09:00", end: "15:00", breakMin: "15", notes: "" });
+  const [free, setFree] = useState({ start: "09:00", end: "15:00", breakMin: String(minBreak), notes: "" });
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const shift = new Map(shifts.map((s) => [s.id, s]));
@@ -32,7 +33,7 @@ export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit }: 
     const c = local[emp]?.[date];
     setFree(c?.kind === "WORK" && c.start && c.end
       ? { start: c.start, end: c.end, breakMin: String(c.breakMin), notes: c.notes ?? "" }
-      : { start: "09:00", end: "15:00", breakMin: "15", notes: "" });
+      : { start: "09:00", end: "15:00", breakMin: String(minBreak), notes: "" });
     setError(null);
     setPick({ emp, date });
   };
@@ -63,6 +64,16 @@ export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit }: 
   };
 
   const working = (date: string) => employees.filter((e) => local[e.id]?.[date]?.kind === "WORK").length;
+  /** Minutos líquidos trabalhados de uma célula (turno ou horário livre). */
+  const cellMin = (c: Cell | undefined) => (c?.kind === "WORK" ? netMinutes(c.start, c.end, c.breakMin) : 0);
+  const monthMin = (emp: string) => days.reduce((a, d) => a + cellMin(local[emp]?.[d.date]), 0);
+  /** Semana (segunda a domingo) da data escolhida, só com os dias deste mês. */
+  const weekDays = (date: string) => {
+    const d = new Date(`${date}T12:00:00Z`);
+    const mon = new Date(d); mon.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    const set = new Set(Array.from({ length: 7 }, (_, i) => { const x = new Date(mon); x.setUTCDate(mon.getUTCDate() + i); return x.toISOString().slice(0, 10); }));
+    return days.filter((x) => set.has(x.date)).map((x) => x.date);
+  };
   const pickedCell = pick ? local[pick.emp]?.[pick.date] : undefined;
 
   return (
@@ -79,6 +90,7 @@ export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit }: 
                   <span className="block text-[10px] opacity-70">{DOW[d.dow]}</span>{d.day}
                 </th>
               ))}
+              <th className="min-w-20 bg-surface-2 px-2 py-1 text-center font-medium" title="Horas trabalhadas no mês (presença menos intervalo)">Mês</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -106,11 +118,13 @@ export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit }: 
                     </td>
                   );
                 })}
+                <td className="border-l border-border px-2 text-center text-xs font-semibold tabular-nums">{fmtHours(monthMin(e.id))}</td>
               </tr>
             ))}
             <tr className="bg-surface-2 font-medium">
               <th className="sticky left-0 z-10 bg-surface-2 px-3 py-1.5 text-left">Pessoas na loja</th>
               {days.map((d) => <td key={d.date} className="border-l border-border py-1.5 text-center">{working(d.date) || ""}</td>)}
+              <td className="border-l border-border" />
             </tr>
           </tbody>
         </table>
@@ -125,12 +139,21 @@ export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit }: 
       {pick && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Editar dia da escala" onClick={() => setPick(null)}>
           <div className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
-            <p className="mb-2 text-sm font-medium">{employees.find((e) => e.id === pick.emp)?.name} · {pick.date.split("-").reverse().join("/")}</p>
+            <p className="mb-1 text-sm font-medium">{employees.find((e) => e.id === pick.emp)?.name} · {pick.date.split("-").reverse().join("/")}</p>
+            {(() => {
+              const emp = employees.find((e) => e.id === pick.emp);
+              const wd = weekDays(pick.date);
+              const week = wd.reduce((a, dt) => a + cellMin(local[pick.emp]?.[dt]), 0);
+              const contracted = (emp?.weeklyHours ?? 0) * 60;
+              return (
+                <p className="mb-2 text-xs text-muted">Hoje: <b>{fmtHours(cellMin(pickedCell))}</b> · Semana{wd.length < 7 ? " (no mês)" : ""}: <b className={contracted && week > contracted ? "text-warning" : ""}>{fmtHours(week)}</b>{contracted ? ` de ${emp?.weeklyHours} h contratadas` : ""} · Mês: <b>{fmtHours(monthMin(pick.emp))}</b></p>
+              );
+            })()}
             {shifts.length > 0 && <p className="mb-1 text-xs font-medium text-muted">Turnos prontos</p>}
             <div className="grid gap-1.5">
               {shifts.map((s) => (
-                <button key={s.id} type="button" className="rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => applyShift(pick.emp, pick.date, s)}>
-                  <b style={{ color: s.color }}>{s.code}</b> {s.name}
+                <button key={s.id} type="button" className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => applyShift(pick.emp, pick.date, s)}>
+                  <span><b style={{ color: s.color }}>{s.code}</b> {s.name}</span><span className="text-xs tabular-nums text-muted">{fmtHours(netMinutes(s.start, s.end, s.breakMin))}</span>
                 </button>
               ))}
             </div>
@@ -143,6 +166,7 @@ export function RosterGrid({ employees, days, cells, blocks, shifts, canEdit }: 
                 <label className="text-xs text-muted">Intervalo<input type="number" min={0} max={240} required value={free.breakMin} onChange={(ev) => setFree({ ...free, breakMin: ev.target.value })} className={`${inputCls} mt-1`} aria-label="Intervalo em minutos" /></label>
               </div>
               <label className="mt-2 block text-xs text-muted">Observação (opcional)<input maxLength={200} value={free.notes} onChange={(ev) => setFree({ ...free, notes: ev.target.value })} className={`${inputCls} mt-1`} placeholder="ex.: cobre a folga da Ana" /></label>
+              <p className="mt-2 text-sm" aria-live="polite">Total trabalhado neste dia: <b>{netMinutes(free.start, free.end, Number(free.breakMin) || 0) > 0 ? fmtHours(netMinutes(free.start, free.end, Number(free.breakMin) || 0)) : "—"}</b></p>
               <button type="submit" className="mt-2 w-full rounded-lg bg-brand px-3 py-2 text-sm font-medium text-brand-contrast">Usar este horário</button>
               {pickedCell?.kind === "WORK" && pickedCell.shiftId && <p className="mt-1 text-[11px] text-muted">Substitui o turno pronto só neste dia.</p>}
             </form>

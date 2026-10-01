@@ -28,20 +28,22 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
   const last = new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();
   const to = `${ym}-${String(last).padStart(2, "0")}`;
 
-  const [{ data: emps }, { data: roster }, { data: shifts }, { data: holidays }, { data: vacs }, { data: leaves }, { data: issues }, { data: rules }] = await Promise.all([
-    supabase.schema("hr").from("employees").select("id, party_id, job_title, hire_date").eq("store_id", store).eq("status", "ACTIVE").neq("contract_type", "PRO_LABORE").order("hire_date"),
+  const [{ data: emps }, { data: roster }, { data: shifts }, { data: holidays }, { data: vacs }, { data: leaves }, { data: issues }, { data: rules }, { data: rulesCfg }] = await Promise.all([
+    supabase.schema("hr").from("employees").select("id, party_id, job_title, hire_date, weekly_hours").eq("store_id", store).eq("status", "ACTIVE").neq("contract_type", "PRO_LABORE").order("hire_date"),
     supabase.schema("hr").from("roster").select("employee_id, work_date, kind, shift_id, status, start_time, end_time, break_minutes, notes").eq("store_id", store).gte("work_date", from).lte("work_date", to),
     supabase.schema("hr").from("shift_templates").select("id, code, name, color, start_time, end_time, break_minutes").eq("active", true).or(`store_id.is.null,store_id.eq.${store}`).order("start_time"),
     supabase.schema("hr").from("holidays").select("holiday_date, name, optional").gte("holiday_date", from).lte("holiday_date", to),
     supabase.schema("hr").from("vacations").select("employee_id, start_date, end_date").in("status", ["APPROVED", "PAID", "TAKEN"]).lte("start_date", to).gte("end_date", from),
     supabase.schema("hr").from("leaves").select("employee_id, start_date, end_date").lte("start_date", to).gte("end_date", from),
     supabase.schema("hr").rpc("validate_roster", { p_store: store, p_from: from, p_to: to }),
-    supabase.schema("hr").from("coverage_rules").select("weekday, label, start_time, end_time, min_staff").eq("store_id", store),
+    supabase.schema("hr").from("coverage_rules").select("weekday, label, start_time, end_time, min_staff").eq("store_id", store).eq("active", true),
+    supabase.schema("hr").rpc("schedule_rules"),
   ]);
+  const minBreak = Number((rulesCfg as unknown as { min_break_minutes?: number } | null)?.min_break_minutes ?? 60);
   const partyIds = (emps ?? []).map((e) => e.party_id);
   const { data: parties } = partyIds.length ? await supabase.schema("crm").from("parties").select("id, display_name").in("id", partyIds) : { data: [] as { id: string; display_name: string }[] };
   const pname = new Map((parties ?? []).map((p) => [p.id, p.display_name]));
-  const employees = (emps ?? []).map((e) => ({ id: e.id, name: pname.get(e.party_id) ?? "—", job: e.job_title }));
+  const employees = (emps ?? []).map((e) => ({ id: e.id, name: pname.get(e.party_id) ?? "—", job: e.job_title, weeklyHours: Number(e.weekly_hours) }));
 
   const days: GridDay[] = Array.from({ length: last }, (_, i) => {
     const date = `${ym}-${String(i + 1).padStart(2, "0")}`;
@@ -65,7 +67,7 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
   return (
     <>
       <PageHeader title="Escalas" description="Monte a escala mensal por loja com turnos prontos ou qualquer horário num dia. O sistema confere descanso de 11h, sete dias seguidos, intervalo, jornada e a cobertura dos horários de pico antes de publicar."
-        actions={<Link href={`/equipe/escalas/turnos?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Turnos e picos</Link>} />
+        actions={<div className="flex gap-2"><Link href={`/equipe/escalas/padrao?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Escala semanal padrão</Link><Link href={`/equipe/escalas/turnos?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Turnos, picos e regras</Link></div>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -80,7 +82,7 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
       </div>
 
       {employees.length === 0 ? <Empty title="Nenhum colaborador nesta loja">Admita colaboradores e vincule-os à loja.</Empty> : (
-        <RosterGrid employees={employees} days={days} cells={cells} blocks={blocks} canEdit={canEdit}
+        <RosterGrid employees={employees} days={days} cells={cells} blocks={blocks} canEdit={canEdit} minBreak={minBreak}
           shifts={(shifts ?? []).map((s) => ({ id: s.id, code: s.code, name: `${s.name} ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}`, color: s.color, start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5), breakMin: s.break_minutes }))} />
       )}
 

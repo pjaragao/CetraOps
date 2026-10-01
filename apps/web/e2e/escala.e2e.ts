@@ -28,10 +28,10 @@ test.describe("escala", () => {
     await expect(dialog.getByRole("button", { name: new RegExp(`^${code} Turno E2E`) })).toBeVisible();   // o turno novo já aparece
     await dialog.getByLabel("Início").fill("10:15");
     await dialog.getByLabel("Fim").fill("16:45");
-    await dialog.getByLabel("Intervalo em minutos").fill("30");
+    await dialog.getByLabel("Intervalo em minutos").fill("60");
     await dialog.getByLabel("Observação (opcional)").fill("cobre inventário");
     await dialog.getByRole("button", { name: "Usar este horário" }).click();
-    const filled = page.getByRole("button", { name: /, dia 12: 10:15–16:45 \(intervalo 30 min\) · cobre inventário/ }).first();
+    const filled = page.getByRole("button", { name: /, dia 12: 10:15–16:45 \(intervalo 60 min\) · cobre inventário/ }).first();
     await expect(filled).toBeVisible();
 
     // limpeza: limpa o dia e exclui o turno (nunca usado na escala)

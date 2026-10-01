@@ -40,7 +40,9 @@ select is((select count(*)::int from ai.eval_cases), 10, 'dez casos');
 select throws_ok($$ select ai.request_eval(array['modelo inválido!']) $$, 'P0241', null, 'slug de modelo inválido');
 select throws_ok($$ select ai.request_eval(array['a/1','a/2','a/3','a/4','a/5']) $$, 'P0241', null, 'no máximo 4 modelos por avaliação');
 select is((ai.request_eval(array['x/bom', 'x/ruim', 'x/bom'])).models, array['x/bom', 'x/ruim'], 'pedido aceito, sem repetir modelo');
+reset role;
 select is((select count(*)::int from pgmq.q_ai_tasks where message ->> 'action' = 'EVAL_RUN'), 1, 'o worker recebe o pedido na fila');
+select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 select throws_ok($$ select ai.request_eval(array['x/bom']) $$, 'P0242', null, 'uma avaliação por vez');
 
 -- ---------- Lote: totais calculados no banco ----------
@@ -61,8 +63,8 @@ select is((select cost_usd from ai.eval_batches where id = (select v from batch_
 
 -- ---------- Portão e ranking ----------
 select is(private.eval_gate('00000000-0000-4000-8000-000000000001', 'conversation', 'x/bom') ->> 'ok', 'true', 'modelo que passou: liberado');
-select like(private.eval_gate('00000000-0000-4000-8000-000000000001', 'conversation', 'x/ruim') ->> 'reason', '%sem fundamento%', 'modelo com número inventado: barrado, com o motivo');
-select like(private.eval_gate('00000000-0000-4000-8000-000000000001', 'conversation', 'x/novo') ->> 'reason', 'rode a avaliação%', 'modelo sem avaliação: barrado');
+select ok(private.eval_gate('00000000-0000-4000-8000-000000000001', 'conversation', 'x/ruim') ->> 'reason' like '%sem fundamento%', 'modelo com número inventado: barrado, com o motivo');
+select ok(private.eval_gate('00000000-0000-4000-8000-000000000001', 'conversation', 'x/novo') ->> 'reason' like 'rode a avaliação%', 'modelo sem avaliação: barrado');
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 select is((ai.eval_ranking('conversation') -> 0 ->> 'model'), 'x/bom', 'o ranking põe o melhor primeiro');
 select is((ai.eval_ranking('conversation') -> 0 ->> 'gate_ok'), 'true', 'e mostra quem está liberado');

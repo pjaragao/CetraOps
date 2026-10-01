@@ -1,0 +1,37 @@
+import { describe, expect, it } from "vitest";
+import { describeNotification, timeAgo } from "./index";
+
+describe("notificações", () => {
+  it("conversas abrem a caixa de entrada na conversa certa", () => {
+    for (const kind of ["NEW_MESSAGE", "DRAFT_READY", "HANDOFF", "SLA_BREACH", "WINDOW_EXPIRING"]) {
+      expect(describeNotification(kind, { conversation_id: "c-1" }).href).toBe("/atendimento?c=c-1");
+    }
+    expect(describeNotification("HANDOFF", {}).href).toBe("/atendimento");
+  });
+
+  it("alertas técnicos e fiscais levam à tela de quem resolve", () => {
+    expect(describeNotification("INTEGRATION_ERROR", { connection_id: "x" })).toEqual({ label: "Integração", tone: "danger", href: "/configuracoes/integracoes" });
+    expect(describeNotification("FISCAL_REJECTED", {}).href).toBe("/fiscal/emitidas?status=REJECTED");
+    expect(describeNotification("FISCAL_PENDING", {}).tone).toBe("warning");
+    expect(describeNotification("PAYMENT_LINK_REQUESTED", { order_id: "o-9" }).href).toBe("/vender/pedidos/o-9");
+    expect(describeNotification("PAYMENT_LINK_REQUESTED", {}).href).toBe("/vender/pedidos");
+  });
+
+  it("tipo desconhecido ou payload vazio não quebra", () => {
+    expect(describeNotification("NOVO_TIPO", null)).toEqual({ label: "Aviso", tone: "info", href: "/notificacoes" });
+    expect(describeNotification("NEW_MESSAGE", undefined).href).toBe("/atendimento");
+    expect(describeNotification("NEW_MESSAGE", { conversation_id: 42 }).href).toBe("/atendimento");          // id que não é texto é ignorado
+  });
+
+  it("tempo relativo", () => {
+    const now = new Date("2026-09-30T15:00:00Z").getTime();
+    const ago = (ms: number) => new Date(now - ms).toISOString();
+    expect(timeAgo(ago(20_000), now)).toBe("agora");
+    expect(timeAgo(ago(5 * 60_000), now)).toBe("há 5 min");
+    expect(timeAgo(ago(3 * 3_600_000), now)).toBe("há 3 h");
+    expect(timeAgo(ago(30 * 3_600_000), now)).toBe("ontem");
+    expect(timeAgo(ago(4 * 86_400_000), now)).toBe("há 4 dias");
+    expect(timeAgo(ago(20 * 86_400_000), now)).toBe("10/09");
+    expect(timeAgo(new Date(now + 60_000).toISOString(), now)).toBe("agora");                               // relógio adiantado não vira "há -1 min"
+  });
+});

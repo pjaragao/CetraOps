@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@10.34.6", "--filter", "@sie/web", "dev"],
+      "port": 3000
+    }
+  ]
+}

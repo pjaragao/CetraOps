@@ -1,0 +1,60 @@
+# Perfil "concierge" do Hermes Agent: atende clientes SÓ pelas ferramentas do servidor MCP da SIÉ (sem terminal, arquivos, web ou navegador).
+# Montado somente-leitura em /opt/data/profiles/concierge/config.yaml. Segredos ficam no .env do perfil / variáveis do container
+# (OPENROUTER_API_KEY, API_SERVER_KEY, SIE_MCP_KEY) — nunca aqui.
+#
+# ⚠ Validar no spike S0 (go/no-go, plano §1.4) contra a versão fixada por digest: nomes das chaves abaixo, e se o Hermes honra o campo
+#   `model` enviado em cada requisição ou se o modelo vale o deste arquivo. Se não honrar, a rota `conversation` de ai.model_routes
+#   vale só para o Plano B (worker → OpenRouter) e o modelo do Hermes passa a ser trocado por aqui (deploy).
+
+model: openrouter/anthropic/claude-sonnet-4.5          # exemplo; o slug real sai do ranking de avaliações (plano §6.1)
+
+agent:
+  max_turns: 8                                          # no máximo ~8 passos de ferramenta por resposta
+  disabled_toolsets: [terminal, file, web, browser, code_execution, delegation]
+
+memory:
+  memory_enabled: false                                 # a memória da cliente fica em ai.customer_memories, via MCP (LGPD: dá para apagar)
+  user_profile_enabled: false
+
+skills:
+  guard_agent_created: true                             # skills aprendidas não entram sozinhas: só por PR revisado
+  write_approval: true
+
+gateway:
+  api_server:
+    enabled: true
+    host: 0.0.0.0
+    port: 8642
+    max_concurrent_runs: 20                             # acima disso o Hermes responde 429 e o worker tenta de novo com recuo
+
+mcp_servers:
+  sie:
+    url: "http://mcp:8000/mcp"
+    headers:
+      Authorization: "Bearer ${SIE_MCP_KEY}"
+    timeout: 30
+    connect_timeout: 10
+    tools:
+      include:
+        - search_catalog
+        - check_stock_by_size
+        - get_customer_360
+        - get_order_status
+        - get_policies
+        - search_knowledge
+        - apply_coupon
+        - create_reservation
+        - schedule_locker
+        - create_order_draft
+        - confirm_order_draft
+        - create_payment_link
+        - register_consent
+        - update_customer_profile
+        - list_upcoming_events
+        - rsvp_event
+        - register_interest
+        - remember_customer_fact
+        - request_handoff
+        - propose_reply
+      resources: false
+      prompts: false

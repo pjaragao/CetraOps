@@ -1,0 +1,8 @@
+packages:
+  - "apps/web"
+  - "packages/*"
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+  - supabase
+  - esbuild

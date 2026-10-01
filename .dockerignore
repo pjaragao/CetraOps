@@ -1,31 +1,22 @@
-# Git & VCS
+# Contexto de build das imagens (web, worker, mcp) = raiz do repositório; só entra o que as imagens usam.
 .git
-.gitignore
-
-# Python caches & environments
-__pycache__
-*.pyc
-*.pyo
-*.pyd
+.claude
+.github
 .venv
-venv
-env
-
-# IDEs & System
-.vscode
-.idea
-.DS_Store
-Thumbs.db
-ehthumbs.db
-[Dd]esktop.ini
-
-# Documents & Big Binaries (not needed inside web container)
-*.pdf
-*.xlsx
-plano_de_expansao/*.pdf
-primeira_unidade_joy/*.pdf
-primeira_unidade_joy/*.xlsx
-
-# Environment local secrets
+.ruff_cache
+**/node_modules
+**/.next
+**/__pycache__
+**/.pytest_cache
+**/*.tsbuildinfo
+legacy
+docs
+primeira_unidade_joy
+plano_de_expansao
+scripts
+supabase
+infra
+**/*.md
 .env
-.env.local
+.env.*
+!.env.example

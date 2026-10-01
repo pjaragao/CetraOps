@@ -123,6 +123,15 @@ export const NAV: NavArea[] = [
     ],
   },
   {
+    key: "relatorios", label: "Relatórios", href: "/relatorios", icon: "BarChart3", permission: "sales.read",
+    items: [
+      { label: "Todos os relatórios", href: "/relatorios", ready: true },
+      { label: "Vendas", href: "/relatorios/vendas", ready: true },
+      { label: "Curva ABC", href: "/relatorios/curva-abc", ready: true },
+      { label: "Vendas × notas × maquininha", href: "/relatorios/cruzamento", permission: "fin.read", ready: true },
+    ],
+  },
+  {
     key: "configuracoes", label: "Configurações", href: "/configuracoes", icon: "Settings", permission: "core.admin",
     items: [
       { label: "Empresas & lojas", href: "/configuracoes", ready: true },

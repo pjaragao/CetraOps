@@ -2961,6 +2961,9 @@ isOneToOne: false
 "reopen_month":
 { Args: { "p_competence": string,"p_entity": string,"p_reason": string }; Returns: undefined
                            },
+"report_cross_gaps":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "reschedule_installment":
 { Args: { "p_barcode"?: string,"p_due_date": string,"p_installment": string }; Returns: undefined
                            },
@@ -6726,6 +6729,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"report_abc":
+{ Args: { "p_by": string,"p_from": string,"p_to": string }; Returns: Json
+                           },
+"report_sales":
+{ Args: { "p_from": string,"p_group": string,"p_to": string }; Returns: Json
+                           },
 "save_shipment":
 { Args: { "p": Json }; Returns: {
               "address": NonNullable<Json>,

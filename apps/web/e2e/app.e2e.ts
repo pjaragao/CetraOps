@@ -94,6 +94,21 @@ test.describe("fiscal e financeiro", () => {
     expect((await page.request.get("/fiscal/exportacao/plano-de-contas?mes=2026-13")).status()).toBe(400);
   });
 
+  test("relatórios: catálogo, relatório de vendas com filtro e CSV", async ({ page }) => {
+    await login(page, "socio");
+    await page.goto("/relatorios");
+    await expect(page.getByRole("heading", { name: "Relatórios" })).toBeVisible();
+    await page.getByRole("link", { name: /Abrir relatório/ }).first().click();
+    await expect(page).toHaveURL(/\/relatorios\/vendas/);
+    await page.getByLabel("Agrupar por").selectOption("seller");
+    await page.getByRole("button", { name: "Atualizar" }).click();
+    await expect(page).toHaveURL(/agrupar=seller/);
+    const csv = await page.request.get("/relatorios/curva-abc/csv?de=2026-01-01&ate=2026-12-31&agrupar=product");
+    expect(csv.status()).toBe(200);
+    expect((await csv.text()).replace(/^﻿/, "").split("\r\n")[0]).toBe("Item;Quantidade;Receita;% da receita;% acumulado;Classe");
+    expect((await page.request.get("/relatorios/vendas/csv?de=x&ate=y")).status()).toBe(400);
+  });
+
   test("adquirente: página carrega com o modelo de planilha para baixar", async ({ page }) => {
     await login(page, "socio");
     await page.goto("/financeiro/adquirente");

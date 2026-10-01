@@ -247,6 +247,76 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"eval_batches": {
+                  Row: {
+                    "avg_latency_ms": number | null,"cases": number,"cost_usd": number,"created_at": string,"factual_failures": number,"handoff_misses": number,"id": string,"model": string,"org_id": string,"p95_latency_ms": number | null,"passed": number,"request_id": string | null,"route_task": string,"suite": string,"tokens_in": number,"tokens_out": number
+                  }
+                  Insert: {
+                    "avg_latency_ms"?: number | null,"cases"?: number,"cost_usd"?: number,"created_at"?: string,"factual_failures"?: number,"handoff_misses"?: number,"id"?: string,"model": string,"org_id": string,"p95_latency_ms"?: number | null,"passed"?: number,"request_id"?: string | null,"route_task"?: string,"suite": string,"tokens_in"?: number,"tokens_out"?: number
+                  }
+                  Update: {
+                    "avg_latency_ms"?: number | null,"cases"?: number,"cost_usd"?: number,"created_at"?: string,"factual_failures"?: number,"handoff_misses"?: number,"id"?: string,"model"?: string,"org_id"?: string,"p95_latency_ms"?: number | null,"passed"?: number,"request_id"?: string | null,"route_task"?: string,"suite"?: string,"tokens_in"?: number,"tokens_out"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "eval_batches_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "eval_requests"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"eval_cases": {
+                  Row: {
+                    "active": boolean,"created_at": string,"expect": NonNullable<Json>,"id": string,"key": string,"org_id": string,"suite": string,"title": string,"turns": NonNullable<Json>,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"expect"?: NonNullable<Json>,"id"?: string,"key": string,"org_id": string,"suite"?: string,"title": string,"turns": NonNullable<Json>,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"expect"?: NonNullable<Json>,"id"?: string,"key"?: string,"org_id"?: string,"suite"?: string,"title"?: string,"turns"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"eval_requests": {
+                  Row: {
+                    "error": string | null,"finished_at": string | null,"id": string,"models": (string)[],"org_id": string,"progress": string | null,"requested_at": string,"requested_by": string | null,"status": string,"suite": string
+                  }
+                  Insert: {
+                    "error"?: string | null,"finished_at"?: string | null,"id"?: string,"models": (string)[],"org_id": string,"progress"?: string | null,"requested_at"?: string,"requested_by"?: string | null,"status"?: string,"suite"?: string
+                  }
+                  Update: {
+                    "error"?: string | null,"finished_at"?: string | null,"id"?: string,"models"?: (string)[],"org_id"?: string,"progress"?: string | null,"requested_at"?: string,"requested_by"?: string | null,"status"?: string,"suite"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"eval_results": {
+                  Row: {
+                    "batch_id": string,"case_id": string | null,"case_key": string,"cost_usd": number,"error": string | null,"failures": NonNullable<Json>,"flags": NonNullable<Json>,"id": string,"latency_ms": number | null,"org_id": string,"outcome": string | null,"passed": boolean,"replies": NonNullable<Json>,"tokens_in": number,"tokens_out": number,"tools": NonNullable<Json>
+                  }
+                  Insert: {
+                    "batch_id": string,"case_id"?: string | null,"case_key": string,"cost_usd"?: number,"error"?: string | null,"failures"?: NonNullable<Json>,"flags"?: NonNullable<Json>,"id"?: string,"latency_ms"?: number | null,"org_id": string,"outcome"?: string | null,"passed": boolean,"replies"?: NonNullable<Json>,"tokens_in"?: number,"tokens_out"?: number,"tools"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "batch_id"?: string,"case_id"?: string | null,"case_key"?: string,"cost_usd"?: number,"error"?: string | null,"failures"?: NonNullable<Json>,"flags"?: NonNullable<Json>,"id"?: string,"latency_ms"?: number | null,"org_id"?: string,"outcome"?: string | null,"passed"?: boolean,"replies"?: NonNullable<Json>,"tokens_in"?: number,"tokens_out"?: number,"tools"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "eval_results_batch_id_fkey"
+      columns: ["batch_id"]
+isOneToOne: false
+      referencedRelation: "eval_batches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "eval_results_case_id_fkey"
+      columns: ["case_id"]
+isOneToOne: false
+      referencedRelation: "eval_cases"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"knowledge_chunks": {
                   Row: {
                     "content": string,"doc_id": string,"id": string,"org_id": string,"position": number,"tsv": unknown
@@ -523,8 +593,23 @@ isOneToOne: false
 "delete_corpus_source":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"delete_eval_case":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "delete_knowledge_doc":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"eval_gate_check":
+{ Args: { "p_model": string,"p_task": string }; Returns: Json
+                           },
+"eval_mark":
+{ Args: { "p_error"?: string,"p_progress"?: string,"p_request": string,"p_status": string }; Returns: undefined
+                           },
+"eval_ranking":
+{ Args: { "p_task"?: string }; Returns: Json
+                           },
+"eval_save_batch":
+{ Args: { "p": Json,"p_org": string }; Returns: string
                            },
 "knowledge_search":
 { Args: { "p_limit"?: number,"p_query": string }; Returns: Json
@@ -559,12 +644,50 @@ isOneToOne: false
 "request_corpus_task":
 { Args: { "p_action": string,"p_persona": string }; Returns: undefined
                            },
+"request_eval":
+{ Args: { "p_models": (string)[] }; Returns: {
+              "error": string | null,
+"finished_at": string | null,
+"id": string,
+"models": (string)[],
+"org_id": string,
+"progress": string | null,
+"requested_at": string,
+"requested_by": string | null,
+"status": string,
+"suite": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "eval_requests"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "request_persona_profile":
 { Args: { "p_lexicon"?: (string)[],"p_persona": string }; Returns: undefined
                            },
 "run_detectors":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"save_eval_case":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"created_at": string,
+"expect": NonNullable<Json>,
+"id": string,
+"key": string,
+"org_id": string,
+"suite": string,
+"title": string,
+"turns": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "eval_cases"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_knowledge_doc":
 { Args: { "p_body": string,"p_id": string,"p_kind": string,"p_title": string,"p_valid_from"?: string,"p_valid_to"?: string }; Returns: {
               "body_md": string | null,

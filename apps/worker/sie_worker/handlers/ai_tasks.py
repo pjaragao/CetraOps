@@ -1,5 +1,6 @@
 """Fila `ai_tasks`: tarefas de IA sob demanda disparadas por telas e rotinas do sistema.
-OUTREACH_DRAFT  redige a primeira DM da prospecção assistida (a vendedora revisa e envia pelo app oficial)."""
+OUTREACH_DRAFT  redige a primeira DM da prospecção assistida (a vendedora revisa e envia pelo app oficial).
+EVAL_RUN        roda as avaliações da IA de atendimento nos modelos pedidos (sandbox; grava um lote por modelo)."""
 from __future__ import annotations
 
 import json
@@ -12,6 +13,7 @@ from ..adapters.errors import PermanentError as ProviderPermanent
 from ..adapters.errors import TransientError
 from ..db import call_fn, fetch_all, fetch_one
 from ..deps import Deps
+from ..evals.runner import run_suite
 from ..runner import RetryLater
 
 log = logging.getLogger("sie_worker.ai_tasks")
@@ -63,9 +65,32 @@ async def _outreach_draft(deps: Deps, p: dict[str, Any]) -> None:
         await call_fn(deps.pool, "crm.outreach_set_draft", r["id"], message)
 
 
+async def _eval_run(deps: Deps, msg: queues.QueueMessage) -> None:
+    """Avaliação pedida na tela. Demora (um caso por vez, com o modelo de verdade): renova a reserva da mensagem a cada passo e NÃO repete
+    em caso de falha, porque cada tentativa custa dinheiro; o erro vai para o pedido e avisa quem pediu."""
+    p = msg.payload
+    request_id = str(p["request_id"])
+
+    async def progress(text: str) -> None:
+        await queues.set_visibility(deps.pool, msg.queue, msg.msg_id, 240)
+        await call_fn(deps.pool, "ai.eval_mark", request_id, "RUNNING", None, text)
+
+    try:
+        await call_fn(deps.pool, "ai.eval_mark", request_id, "RUNNING", None, "iniciando")
+        await run_suite(deps.settings, deps.http, deps.pool, str(p["org_id"]), [str(m) for m in p["models"]], suite=str(p.get("suite") or "conversation"), request_id=request_id, progress=progress)
+        await call_fn(deps.pool, "ai.eval_mark", request_id, "DONE", None, None)
+    except (ProviderPermanent, TransientError) as e:
+        await call_fn(deps.pool, "ai.eval_mark", request_id, "FAILED", str(e)[:500], None)
+    except Exception as e:
+        log.exception("avaliação %s falhou", request_id)
+        await call_fn(deps.pool, "ai.eval_mark", request_id, "FAILED", f"erro inesperado: {e}"[:500], None)
+
+
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     action = msg.payload.get("action")
     if action == "OUTREACH_DRAFT":
         await _outreach_draft(deps, msg.payload)
+    elif action == "EVAL_RUN":
+        await _eval_run(deps, msg)
     else:
         log.warning("ação de IA desconhecida: %s", action)

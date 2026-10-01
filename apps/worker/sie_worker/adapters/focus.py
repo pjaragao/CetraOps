@@ -18,6 +18,28 @@ STATUS_MAP = {
 }
 
 
+# manifestação do destinatário: texto do provedor ↔ situação nossa
+MANIFEST_FROM_PROVIDER = {"ciencia": "CIENCIA", "confirmacao": "CONFIRMADA", "desconhecimento": "DESCONHECIDA", "nao_realizada": "NAO_REALIZADA"}
+MANIFEST_TO_PROVIDER = {v: k for k, v in MANIFEST_FROM_PROVIDER.items()}
+
+
+def normalize_received(item: dict[str, Any]) -> dict[str, Any] | None:
+    """Uma NF-e recebida (formato do provedor) → o que o banco guarda. Tolerante a variações de nome de campo; sem chave de 44 dígitos, descarta."""
+    key = str(item.get("chave_nfe") or item.get("chave") or "").replace("NFe", "").strip()
+    if len(key) != 44 or not key.isdigit():
+        return None
+
+    def first(*names: str) -> Any:
+        return next((item[n] for n in names if item.get(n) not in (None, "")), None)
+
+    amount = first("valor_total", "valor", "valor_nf")
+    return {
+        "access_key": key, "nsu": str(first("versao", "nsu") or "") or None, "issuer_cnpj": "".join(c for c in str(first("documento_emitente", "cnpj_emitente") or "") if c.isdigit()) or None,
+        "issuer_name": first("nome_emitente", "emitente"), "amount": float(amount) if amount is not None else None, "issue_at": first("data_emissao", "emissao"),
+        "manifest_status": MANIFEST_FROM_PROVIDER.get(str(first("manifestacao_destinatario", "tipo_ultima_manifestacao") or "").lower(), "PENDING"),
+    }
+
+
 @dataclass
 class FocusResult:
     status: str                                   # PROCESSING | AUTHORIZED | REJECTED | CANCELLED | DENIED
@@ -91,3 +113,40 @@ class FocusClient:
         if resp.status_code == 429 or resp.status_code >= 500:
             raise TransientError(f"Focus NFe {resp.status_code}", status=resp.status_code)
         return {"http_status": resp.status_code}
+
+    # --- NF-e recebidas (MDe) ---
+    async def list_received(self, cnpj: str, version: int = 0) -> list[dict[str, Any]]:
+        """Notas emitidas contra o CNPJ depois da `versão` informada (o provedor devolve só as novas). Cada item já vem normalizado."""
+        resp = await self._request("GET", "/v2/nfes_recebidas", params={"cnpj": cnpj, "versao": version})
+        self._check(resp)
+        data = resp.json()
+        items = data if isinstance(data, list) else data.get("nfes", [])
+        return [n for n in (normalize_received(i) for i in items) if n]
+
+    async def manifest(self, access_key: str, kind: str, reason: str | None = None) -> None:
+        """Registra a manifestação do destinatário (kind = CIENCIA | CONFIRMADA | DESCONHECIDA | NAO_REALIZADA)."""
+        body: dict[str, Any] = {"tipo": MANIFEST_TO_PROVIDER[kind]}
+        if reason:
+            body["justificativa"] = reason
+        resp = await self._request("POST", f"/v2/nfes_recebidas/{access_key}/manifesto", json=body)
+        self._check(resp)
+
+    async def received_xml(self, access_key: str) -> str | None:
+        """XML completo da nota recebida; None enquanto a SEFAZ não liberou (exige ciência da operação)."""
+        resp = await self._request("GET", f"/v2/nfes_recebidas/{access_key}.xml")
+        if resp.status_code in (404, 412, 422):
+            return None
+        self._check(resp)
+        return resp.text
+
+    def _check(self, resp: httpx.Response) -> None:
+        if resp.status_code >= 500 or resp.status_code == 429:
+            raise TransientError(f"Focus NFe {resp.status_code}", status=resp.status_code)
+        if resp.status_code in (401, 403):
+            raise PermanentError("Focus NFe: credencial recusada", status=resp.status_code)
+        if resp.status_code >= 400:
+            try:
+                msg = resp.json().get("mensagem")
+            except ValueError:
+                msg = None
+            raise PermanentError(f"Focus NFe {resp.status_code}: {msg or 'pedido recusado'}", status=resp.status_code)

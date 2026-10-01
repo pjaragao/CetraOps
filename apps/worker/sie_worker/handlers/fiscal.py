@@ -13,6 +13,7 @@ from ..adapters.focus import PRODUCTION_BASE, FocusClient
 from ..db import call_fn, fetch_one
 from ..deps import Deps
 from ..runner import PermanentError, RetryLater
+from . import dfe
 
 log = logging.getLogger("sie_worker.fiscal")
 
@@ -59,6 +60,12 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     p = msg.payload
     if p.get("action") == "CANCEL":
         await _cancel(deps, p)
+        return
+    if p.get("action") in ("DFE_SYNC", "DFE_MANIFEST"):
+        focus = await _focus(deps, p["org_id"])
+        if focus is None:
+            return                                                      # sem credencial não há o que buscar; a tela de Integrações já mostra o estado
+        await (dfe.sync(deps, focus, p["org_id"]) if p["action"] == "DFE_SYNC" else dfe.manifest(deps, focus, p))
         return
     order_id, org_id, purpose = p["order_id"], p["org_id"], p.get("purpose", "SALE")
     if purpose != "SALE" or p.get("model") == "55":

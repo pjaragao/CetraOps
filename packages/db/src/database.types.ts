@@ -2992,7 +2992,20 @@ isOneToOne: false
           }
         },"fiscal": {
           Tables: {
-            "document_installments": {
+            "dfe_sync_state": {
+                  Row: {
+                    "last_error": string | null,"last_found": number,"last_run_at": string | null,"last_version": number,"legal_entity_id": string,"org_id": string
+                  }
+                  Insert: {
+                    "last_error"?: string | null,"last_found"?: number,"last_run_at"?: string | null,"last_version"?: number,"legal_entity_id": string,"org_id": string
+                  }
+                  Update: {
+                    "last_error"?: string | null,"last_found"?: number,"last_run_at"?: string | null,"last_version"?: number,"legal_entity_id"?: string,"org_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"document_installments": {
                   Row: {
                     "amount": number,"document_id": string,"due_date": string,"id": string,"n_dup": string | null,"org_id": string
                   }
@@ -3064,13 +3077,13 @@ isOneToOne: false
                   ]
                 },"inbound_dfe": {
                   Row: {
-                    "access_key": string,"amount": number | null,"created_at": string,"document_id": string | null,"id": string,"issue_at": string | null,"issuer_cnpj": string | null,"issuer_name": string | null,"legal_entity_id": string,"manifest_status": string,"nsu": string | null,"org_id": string,"xml_downloaded": boolean
+                    "access_key": string,"amount": number | null,"created_at": string,"document_id": string | null,"id": string,"issue_at": string | null,"issuer_cnpj": string | null,"issuer_name": string | null,"last_error": string | null,"legal_entity_id": string,"manifest_reason": string | null,"manifest_requested": string | null,"manifest_requested_by": string | null,"manifest_status": string,"nsu": string | null,"org_id": string,"updated_at": string,"xml": string | null,"xml_downloaded": boolean
                   }
                   Insert: {
-                    "access_key": string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"legal_entity_id": string,"manifest_status"?: string,"nsu"?: string | null,"org_id": string,"xml_downloaded"?: boolean
+                    "access_key": string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"last_error"?: string | null,"legal_entity_id": string,"manifest_reason"?: string | null,"manifest_requested"?: string | null,"manifest_requested_by"?: string | null,"manifest_status"?: string,"nsu"?: string | null,"org_id": string,"updated_at"?: string,"xml"?: string | null,"xml_downloaded"?: boolean
                   }
                   Update: {
-                    "access_key"?: string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"legal_entity_id"?: string,"manifest_status"?: string,"nsu"?: string | null,"org_id"?: string,"xml_downloaded"?: boolean
+                    "access_key"?: string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"last_error"?: string | null,"legal_entity_id"?: string,"manifest_reason"?: string | null,"manifest_requested"?: string | null,"manifest_requested_by"?: string | null,"manifest_status"?: string,"nsu"?: string | null,"org_id"?: string,"updated_at"?: string,"xml"?: string | null,"xml_downloaded"?: boolean
                   }
                   Relationships: [
                     {
@@ -3139,7 +3152,16 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "emission_payload":
+            "dfe_mark":
+{ Args: { "p_error"?: string,"p_id": string,"p_status": string,"p_xml"?: string }; Returns: undefined
+                           },
+"dfe_set_state":
+{ Args: { "p_entity": string,"p_error"?: string,"p_found": number,"p_org": string,"p_version": number }; Returns: undefined
+                           },
+"dfe_upsert":
+{ Args: { "p_entity": string,"p_items": Json,"p_org": string }; Returns: number
+                           },
+"emission_payload":
 { Args: { "p_order": string,"p_purpose"?: string }; Returns: Json
                            },
 "nfe_key_dv":
@@ -3188,9 +3210,40 @@ isOneToOne: false
 "request_cancellation":
 { Args: { "p_document": string,"p_reason": string }; Returns: undefined
                            },
+"request_dfe_sync":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "request_emission":
 { Args: { "p_order": string }; Returns: undefined
                            },
+"request_manifest":
+{ Args: { "p_id": string,"p_reason"?: string,"p_type": string }; Returns: {
+              "access_key": string,
+"amount": number | null,
+"created_at": string,
+"document_id": string | null,
+"id": string,
+"issue_at": string | null,
+"issuer_cnpj": string | null,
+"issuer_name": string | null,
+"last_error": string | null,
+"legal_entity_id": string,
+"manifest_reason": string | null,
+"manifest_requested": string | null,
+"manifest_requested_by": string | null,
+"manifest_status": string,
+"nsu": string | null,
+"org_id": string,
+"updated_at": string,
+"xml": string | null,
+"xml_downloaded": boolean
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "inbound_dfe"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "simples_calc":
 { Args: { "p_competence": string,"p_entity": string }; Returns: {
               "das": number,"rate1": number,"rate3": number,"rbt12": number,"rbt12_method": string,"returns_amount": number,"revenue_annex1": number,"revenue_annex3": number

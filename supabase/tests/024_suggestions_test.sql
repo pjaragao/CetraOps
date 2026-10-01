@@ -31,8 +31,8 @@ begin
   returning id into v_id;
   return v_id;
 end $$;
-insert into ids select 'disc', pg_temp.ord('D1', 'PAID', 1000, 400, 600, 200, now() - interval '3 hours')::text;                    -- 40% de desconto
-insert into ids select 'neg', pg_temp.ord('N1', 'PAID', 100, 0, 100, 250, now() - interval '3 hours')::text;                       -- vendido abaixo do custo
+insert into ids select 'disc', pg_temp.ord('D1', 'PAID', 1000, 400, 600, 200, ((private.today_sp())::timestamp + interval '12 hours') at time zone 'America/Sao_Paulo')::text;                    -- 40% de desconto (hoje ao meio-dia de Brasília: não pode cair em "ontem" quando o teste roda logo depois da meia-noite)
+insert into ids select 'neg', pg_temp.ord('N1', 'PAID', 100, 0, 100, 250, ((private.today_sp())::timestamp + interval '12 hours') at time zone 'America/Sao_Paulo')::text;                       -- vendido abaixo do custo
 select pg_temp.ord('C' || g, 'CANCELLED', 100, 0, 100, 0, now() - interval '1 day', '00000000-0000-4000-8000-000000000102') from generate_series(1, 4) g;   -- 4 cancelamentos da vendedora
 select pg_temp.ord('W' || w, 'PAID', 1000, 0, 1000, 400, (((now() at time zone 'America/Sao_Paulo')::date - 1 - 7 * w)::timestamp + interval '12 hours') at time zone 'America/Sao_Paulo') from generate_series(1, 4) w;   -- mesmo dia da semana nas 4 semanas anteriores
 select pg_temp.ord('Y1', 'PAID', 100, 0, 100, 40, (((now() at time zone 'America/Sao_Paulo')::date - 1)::timestamp + interval '12 hours') at time zone 'America/Sao_Paulo');                 -- ontem vendeu pouco

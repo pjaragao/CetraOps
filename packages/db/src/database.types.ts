@@ -1887,6 +1887,11 @@ isOneToOne: false
 "generate_outreach":
 { Args: { "p_limit"?: number }; Returns: number
                            },
+"lead_sources":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "buyers": number,"leads": number,"source": string
+            }[]
+                           },
 "lifecycle_overview":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
@@ -4829,6 +4834,25 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"attribution_touches": {
+                  Row: {
+                    "ad_id": string | null,"conversation_id": string | null,"detail": NonNullable<Json>,"id": number,"is_first": boolean,"kind": string,"message_id": string | null,"org_id": string,"party_id": string,"touched_at": string,"tracking_link_id": string | null
+                  }
+                  Insert: {
+                    "ad_id"?: string | null,"conversation_id"?: string | null,"detail"?: NonNullable<Json>,"id"?: never,"is_first"?: boolean,"kind": string,"message_id"?: string | null,"org_id": string,"party_id": string,"touched_at"?: string,"tracking_link_id"?: string | null
+                  }
+                  Update: {
+                    "ad_id"?: string | null,"conversation_id"?: string | null,"detail"?: NonNullable<Json>,"id"?: never,"is_first"?: boolean,"kind"?: string,"message_id"?: string | null,"org_id"?: string,"party_id"?: string,"touched_at"?: string,"tracking_link_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "attribution_touches_tracking_link_id_fkey"
+      columns: ["tracking_link_id"]
+isOneToOne: false
+      referencedRelation: "tracking_links"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"campaign_recipients": {
                   Row: {
                     "campaign_id": string,"created_at": string,"id": string,"message_id": string | null,"org_id": string,"party_id": string,"sent_at": string | null,"seq": number,"skip_reason": string | null,"status": string
@@ -4924,6 +4948,25 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"tracking_links": {
+                  Row: {
+                    "active": boolean,"affiliate_party_id": string | null,"channel_account_id": string,"code": string,"created_at": string,"created_by": string | null,"event_id": string | null,"id": string,"kind": string,"name": string,"org_id": string,"prefill_text": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id": string,"code": string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name": string,"org_id": string,"prefill_text"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id"?: string,"code"?: string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string,"prefill_text"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tracking_links_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    }
                   ]
                 }
           }
@@ -5098,6 +5141,28 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_tracking_link":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"affiliate_party_id": string | null,
+"channel_account_id": string,
+"code": string,
+"created_at": string,
+"created_by": string | null,
+"event_id": string | null,
+"id": string,
+"kind": string,
+"name": string,
+"org_id": string,
+"prefill_text": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tracking_links"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_event_status":
 { Args: { "p_id": string,"p_status": string }; Returns: {
               "capacity": number | null,
@@ -5145,7 +5210,15 @@ isOneToOne: false
         to: "event_guests"
         isOneToOne: true
         isSetofReturn: false
-      } }
+      } },
+"set_tracking_link_active":
+{ Args: { "p_active": boolean,"p_id": string }; Returns: undefined
+                           },
+"tracking_link_stats":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "active": boolean,"buyers": number,"code": string,"kind": string,"link_id": string,"name": string,"new_leads": number,"orders": number,"revenue": number,"touches": number
+            }[]
+                           }
           }
           Enums: {
             [_ in never]: never
@@ -5207,13 +5280,13 @@ isOneToOne: false
                   ]
                 },"channel_accounts": {
                   Row: {
-                    "business_hours": NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id": string | null,"created_at": string,"default_ai_mode": Database["omni"]['Enums']["conv_mode"],"default_persona_id": string | null,"display_name": string,"id": string,"org_id": string,"provider_account_id": string,"status": string,"store_id": string | null,"updated_at": string
+                    "business_hours": NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id": string | null,"created_at": string,"default_ai_mode": Database["omni"]['Enums']["conv_mode"],"default_persona_id": string | null,"display_name": string,"id": string,"org_id": string,"provider_account_id": string,"public_address": string | null,"status": string,"store_id": string | null,"updated_at": string
                   }
                   Insert: {
-                    "business_hours"?: NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name": string,"id"?: string,"org_id": string,"provider_account_id": string,"status"?: string,"store_id"?: string | null,"updated_at"?: string
+                    "business_hours"?: NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name": string,"id"?: string,"org_id": string,"provider_account_id": string,"public_address"?: string | null,"status"?: string,"store_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "business_hours"?: NonNullable<Json>,"channel"?: Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name"?: string,"id"?: string,"org_id"?: string,"provider_account_id"?: string,"status"?: string,"store_id"?: string | null,"updated_at"?: string
+                    "business_hours"?: NonNullable<Json>,"channel"?: Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name"?: string,"id"?: string,"org_id"?: string,"provider_account_id"?: string,"public_address"?: string | null,"status"?: string,"store_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -5637,6 +5710,7 @@ isOneToOne: false
 "id": string,
 "org_id": string,
 "provider_account_id": string,
+"public_address": string | null,
 "status": string,
 "store_id": string | null,
 "updated_at": string
@@ -5766,6 +5840,29 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "automations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_channel_public_address":
+{ Args: { "p_address": string,"p_id": string }; Returns: {
+              "business_hours": NonNullable<Json>,
+"channel": Database["omni"]['Enums']["channel"],
+"connection_id": string | null,
+"created_at": string,
+"default_ai_mode": Database["omni"]['Enums']["conv_mode"],
+"default_persona_id": string | null,
+"display_name": string,
+"id": string,
+"org_id": string,
+"provider_account_id": string,
+"public_address": string | null,
+"status": string,
+"store_id": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "channel_accounts"
         isOneToOne: true
         isSetofReturn: false
       } },

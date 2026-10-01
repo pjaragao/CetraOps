@@ -89,5 +89,4 @@ begin
                  when v_recent >= 6 then 'ATENÇÃO: 6 ou mais diárias em 90 dias; evite horário fixo e subordinação para não caracterizar vínculo' end);
 end $$;
 
-insert into private.internal_functions (fqname) values ('private.valid_cnpj') on conflict do nothing;
 select private.lock_functions();

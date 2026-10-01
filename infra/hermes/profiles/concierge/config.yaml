@@ -50,6 +50,8 @@ mcp_servers:
         - create_payment_link
         - register_consent
         - update_customer_profile
+        - list_upcoming_events
+        - rsvp_event
         - remember_customer_fact
         - request_handoff
         - propose_reply

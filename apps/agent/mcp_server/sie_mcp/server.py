@@ -143,6 +143,14 @@ def build_server(settings: Settings, db: AgentDb) -> MCPServer:
     async def update_customer_profile(ctx: CTX, sizes: dict[str, Any] | None = None, preferences: dict[str, Any] | None = None, birth_date: str | None = None, city: str | None = None) -> dict[str, Any]:
         return await call(ctx, "update_customer_profile", {"sizes": sizes, "preferences": preferences, "birth_date": birth_date, "city": city})
 
+    @mcp.tool(description=_desc("list_upcoming_events"))
+    async def list_upcoming_events(ctx: CTX) -> dict[str, Any]:
+        return await call(ctx, "list_upcoming_events", {})
+
+    @mcp.tool(description=_desc("rsvp_event"))
+    async def rsvp_event(ctx: CTX, event_id: str, status: Literal["CONFIRMED", "DECLINED"], plus_ones: int | None = None) -> dict[str, Any]:
+        return await call(ctx, "rsvp_event", {"event_id": event_id, "status": status, "plus_ones": plus_ones})
+
     @mcp.tool(description=_desc("remember_customer_fact"))
     async def remember_customer_fact(ctx: CTX, fact: str, category: str | None = None, message_id: str | None = None) -> dict[str, Any]:
         return await call(ctx, "remember_customer_fact", {"fact": fact, "category": category, "message_id": message_id})

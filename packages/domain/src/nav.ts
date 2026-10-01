@@ -94,6 +94,7 @@ export const NAV: NavArea[] = [
       { label: "eSocial", href: "/fiscal/esocial", ready: true },
       { label: "Notas emitidas", href: "/fiscal/emitidas", ready: true },
       { label: "Notas recebidas", href: "/fiscal/recebidas", ready: true },
+      { label: "Exportação para o contador", href: "/fiscal/exportacao", ready: true },
     ],
   },
   {

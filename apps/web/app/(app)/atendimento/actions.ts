@@ -88,3 +88,15 @@ export async function assignConversation(conversationId: string, memberId: strin
   revalidatePath("/atendimento");
   return error ? { ok: false, error: clean(error.message) } : { ok: true };
 }
+
+export const OUTCOMES = ["PURCHASED", "RESERVED", "RESOLVED", "EXCHANGE", "COMPLAINT", "NO_REPLY", "NOT_CUSTOMER", "SPAM"] as const;
+
+/** Encerra a conversa com o desfecho (uma mensagem nova da cliente abre outra conversa). */
+export async function closeConversation(conversationId: string, outcome: string, note: string) {
+  const parsed = z.object({ c: z.string().uuid(), o: z.enum(OUTCOMES), n: z.string().max(300) }).safeParse({ c: conversationId, o: outcome, n: note });
+  if (!parsed.success) return { ok: false, error: "Escolha o desfecho" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("close_conversation", { p_conversation: conversationId, p_outcome: outcome, p_note: note || undefined });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}

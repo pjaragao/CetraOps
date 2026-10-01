@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
@@ -107,7 +108,10 @@ export default async function IntegracoesPage({ searchParams }: { searchParams: 
                 <td className="px-3 py-2 text-xs">{MODE_LABEL[ch.default_ai_mode] ?? ch.default_ai_mode}</td>
                 <td className="px-3 py-2">{conn ? <Badge tone={st?.tone}>{st?.label}</Badge> : <Badge tone="warning">sem conexão: não envia</Badge>}</td>
                 <td className="px-3 py-2"><Badge tone={ch.status === "ACTIVE" ? "success" : "neutral"}>{ch.status === "ACTIVE" ? "ativo" : "desativado"}</Badge></td>
-                <td className="px-3 py-2"><form action={toggleChannelAction}><input type="hidden" name="id" value={ch.id} /><Button variant="ghost" className="px-2 py-1 text-xs">{ch.status === "ACTIVE" ? "Desativar" : "Reativar"}</Button></form></td>
+                <td className="px-3 py-2"><div className="flex items-center gap-1">
+                  <Link href={`/configuracoes/integracoes/horario/${ch.id}`} className="rounded-lg px-2 py-1 text-xs hover:bg-surface-2">Horário</Link>
+                  <form action={toggleChannelAction}><input type="hidden" name="id" value={ch.id} /><Button variant="ghost" className="px-2 py-1 text-xs">{ch.status === "ACTIVE" ? "Desativar" : "Reativar"}</Button></form>
+                </div></td>
               </tr>
             );
           })}

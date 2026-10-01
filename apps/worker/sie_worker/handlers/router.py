@@ -25,9 +25,24 @@ log = logging.getLogger("sie_worker.router")
 # Lista fechada do que o autopiloto pode responder sozinho (plano §6.3); o resto é copiloto/humano
 AUTOPILOT_OK = {"GREETING", "STOCK", "PRODUCT_INFO", "SIZE_GUIDE", "STORE_INFO", "ORDER_STATUS", "RESERVATION", "PAYMENT_LINK", "LOCKER", "RSVP"}
 ALWAYS_HUMAN = {"COMPLAINT", "EXCHANGE_DEFECT", "PRICE_NEGOTIATION", "B2B", "PARTNERSHIP", "PAYMENT_PROBLEM"}
+# Fora do horário (canal com "SAFE_AUTOPILOT"): só respostas informativas saem sozinhas; reserva, pedido e link esperam a equipe
+AFTER_HOURS_OK = {"GREETING", "STOCK", "PRODUCT_INFO", "SIZE_GUIDE", "STORE_INFO", "ORDER_STATUS"}
 DEFAULT_MODEL = "openrouter/auto"
 WAIT_MESSAGE = "Já avisei a equipe e alguém responde por aqui em instantes. 💛"
 OPT_OUT_MESSAGE = "Combinado, não vamos mais enviar novidades. Se precisar de algo, é só chamar por aqui."
+
+
+def waiting_text(claim: dict[str, Any]) -> str:
+    """Mensagem de espera: dentro do horário, "em instantes"; fora, quando a equipe volta."""
+    if claim.get("is_open", True) or not claim.get("next_open_label"):
+        return WAIT_MESSAGE
+    return f"Já avisei a equipe! Estamos fora do horário agora e respondemos {claim['next_open_label']}. 💛"
+
+
+async def _after_hours(deps: Deps, claim: dict[str, Any]) -> None:
+    """Fora do horário, o que ficou para uma pessoa vira tarefa para a abertura."""
+    if not claim.get("is_open", True):
+        await call_fn(deps.pool, "omni.after_hours_followup", claim["conversation_id"])
 
 
 async def _open_run(deps: Deps, claim: dict[str, Any], task: str, model: str | None, persona_version: str | None) -> str:
@@ -48,8 +63,9 @@ async def _handoff(deps: Deps, claim: dict[str, Any], reason: str, trigger: str,
     res = await call_fn(deps.pool, "omni.apply_ai_result", claim["conversation_id"], claim["version"], run_id, {"action": "HANDOFF", "reason": reason, "trigger": trigger})
     if res.get("applied"):
         if wait_message:
-            await call_fn(deps.pool, "omni.queue_system_message", claim["conversation_id"], WAIT_MESSAGE)
+            await call_fn(deps.pool, "omni.queue_system_message", claim["conversation_id"], waiting_text(claim))
         await deps.notify(claim["org_id"], "HANDOFF", f"Cliente aguardando atendimento humano — {reason}", {"conversation_id": claim["conversation_id"]}, perm="omni.write")
+        await _after_hours(deps, claim)
 
 
 async def _examples(deps: Deps, claim: dict[str, Any], history: list[dict[str, str]]) -> str | None:
@@ -131,7 +147,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         already = await fetch_one(deps.pool, """select 1 as x from omni.messages where conversation_id = %s and direction = 'OUT' and author_type in ('SYSTEM', 'AI')
                                                 and created_at >= coalesce((select max(created_at) from omni.mode_events where conversation_id = %s and to_mode = 'WAITING_HUMAN'), 'epoch') limit 1""", (conv_id, conv_id))
         if not already:
-            await call_fn(deps.pool, "omni.queue_system_message", conv_id, WAIT_MESSAGE)
+            await call_fn(deps.pool, "omni.queue_system_message", conv_id, waiting_text(claim))
         await deps.notify(claim["org_id"], "HANDOFF", "Cliente aguardando atendimento humano", {"conversation_id": conv_id}, perm="omni.write")
         return
 
@@ -161,6 +177,8 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     persona = await fetch_one(deps.pool, """select pv.id, pv.system_prompt, pv.guardrails from ai.persona_versions pv
                                             join ai.personas p on p.active_version_id = pv.id where p.id = %s""", (claim["persona_id"],)) if claim.get("persona_id") else None
     party = await fetch_one(deps.pool, "select split_part(display_name, ' ', 1) as first_name from crm.parties where id = %s", (claim["party_id"],))
+    # fora do horário, com o canal em "SAFE_AUTOPILOT", o copiloto responde sozinho o que é só informação (sem ferramentas de pedido/link/reserva)
+    after_hours_auto = mode == "AI_COPILOT" and not claim.get("is_open", True) and claim.get("after_hours_ai") == "SAFE_AUTOPILOT"
     caps = CONCIERGE_CAPS if mode == "AI_AUTOPILOT" else COPILOT_CAPS
     run_id = await _open_run(deps, claim, "conversation", route["primary_model"], str(persona["id"]) if persona else None)
     history = await _history(deps, conv_id)
@@ -216,7 +234,8 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
 
     intent = (proposal.get("intent") or "").upper() or None
     confidence = float(proposal.get("confidence") or 0)
-    can_autosend = (mode == "AI_AUTOPILOT" and not flags and not proposal.get("needs_human") and intent in AUTOPILOT_OK and confidence >= deps.settings.autopilot_min_confidence
+    allowed = AUTOPILOT_OK if mode == "AI_AUTOPILOT" else AFTER_HOURS_OK if after_hours_auto else set()
+    can_autosend = (bool(allowed) and not flags and not proposal.get("needs_human") and intent in allowed and confidence >= deps.settings.autopilot_min_confidence
                     and claim.get("tier") != "VIP_BLACK" and claim.get("window_allowed"))
     if proposal.get("needs_human") or intent in ALWAYS_HUMAN:
         action = "HANDOFF"
@@ -235,6 +254,8 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         return
     if action == "DRAFT":
         await deps.notify(claim["org_id"], "DRAFT_READY", "Rascunho da IA pronto para revisar", {"conversation_id": conv_id})
+        await _after_hours(deps, claim)
     elif action == "HANDOFF":
-        await call_fn(deps.pool, "omni.queue_system_message", conv_id, WAIT_MESSAGE)
+        await call_fn(deps.pool, "omni.queue_system_message", conv_id, waiting_text(claim))
         await deps.notify(claim["org_id"], "HANDOFF", "Cliente aguardando atendimento humano", {"conversation_id": conv_id}, perm="omni.write")
+        await _after_hours(deps, claim)

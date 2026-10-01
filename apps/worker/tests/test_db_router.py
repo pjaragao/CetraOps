@@ -264,6 +264,55 @@ async def test_waiting_human_sends_the_wait_message_only_once(pool: Any, deps: D
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------
+# Horário de atendimento
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+async def close_store_now(pool: Any, channel: dict[str, str], after_hours_ai: str = "SAFE_AUTOPILOT") -> None:
+    """Horário só num dia que não é hoje: agora a loja está fechada."""
+    await fetch_one(pool, """update omni.channel_accounts set business_hours = jsonb_build_object('after_hours_ai', %s::text, 'days',
+                               jsonb_build_object(((extract(dow from now() at time zone 'America/Sao_Paulo')::int + 3) %% 7)::text, '[["09:00","18:00"]]'::jsonb))
+                             where id = %s returning id""", (after_hours_ai, channel["account_id"]))
+
+
+async def test_after_hours_copilot_answers_information_alone(pool: Any, deps: Deps, channel: dict[str, str]) -> None:
+    await close_store_now(pool, channel)
+    conv = await start(pool, channel, "Que horas vocês abrem?")
+    agent = FakeAgent(pool, says("Abrimos às 9h, dentro da JOY!", intent="STORE_INFO", confidence=0.9))
+    await router.handle(with_deps(deps, agent), job(conv))
+    assert [o["author_type"] for o in await outgoing(pool, conv)] == ["AI"]                             # fora do horário, informação sai sozinha
+    assert "create_payment_link" not in agent.inputs[0].ctx["caps"]                                        # sem ferramentas de pedido/link/reserva
+
+
+async def test_after_hours_transactional_waits_with_task_for_opening(pool: Any, deps: Deps, channel: dict[str, str]) -> None:
+    await close_store_now(pool, channel)
+    conv = await start(pool, channel, "Separa a legging M pra mim?")
+    agent = FakeAgent(pool, says("Separo sim! Qual cor?", intent="RESERVATION", confidence=0.95))
+    await router.handle(with_deps(deps, agent), job(conv))
+    assert await outgoing(pool, conv) == [] and len(await drafts(pool, conv)) == 1                        # reserva espera a equipe
+    task = await fetch_one(pool, "select title, due_at > now() as future from crm.tasks where source_rule = %s", (f"after_hours:{conv['conversation_id']}",))
+    assert task and "fora do horário" in task["title"] and task["future"]
+
+
+async def test_after_hours_draft_only_keeps_copilot_behaviour(pool: Any, deps: Deps, channel: dict[str, str]) -> None:
+    await close_store_now(pool, channel, "DRAFT_ONLY")
+    conv = await start(pool, channel, "Que horas vocês abrem?")
+    await router.handle(with_deps(deps, FakeAgent(pool, says("Às 9h!", intent="STORE_INFO"))), job(conv))
+    assert await outgoing(pool, conv) == [] and len(await drafts(pool, conv)) == 1
+
+
+async def test_after_hours_wait_message_says_when_the_team_returns(pool: Any, deps: Deps, channel: dict[str, str]) -> None:
+    await close_store_now(pool, channel)
+    conv = await start(pool, channel, "Oi", "WAITING_HUMAN")
+    await router.handle(with_deps(deps, FakeAgent(pool)), job(conv))
+    (msg,) = [o for o in await outgoing(pool, conv) if o["author_type"] == "SYSTEM"]
+    assert "fora do horário" in msg["body"] and " às " in msg["body"]
+
+
+def test_waiting_text_inside_hours_is_the_usual_message() -> None:
+    assert router.waiting_text({"is_open": True}) == router.WAIT_MESSAGE
+    assert "amanhã às 9h" in router.waiting_text({"is_open": False, "next_open_label": "amanhã às 9h"})
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------------------
 # Concorrência, limites e falhas
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 async def test_newer_customer_message_skips_the_run(pool: Any, deps: Deps, channel: dict[str, str]) -> None:

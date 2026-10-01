@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Bot, FileText, PauseCircle, PlayCircle, Send, Sparkles, StickyNote, Undo2, UserRound } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, FileText, PauseCircle, PlayCircle, Send, Sparkles, StickyNote, Undo2, UserRound } from "lucide-react";
 import { canSend, firstName, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@sie/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
-import { addNote, assignConversation, discardDraft, markRead, pauseAi, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
+import { addNote, assignConversation, closeConversation, discardDraft, markRead, pauseAi, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
 
 interface Msg { id: string; direction: string; author_type: string; body: string | null; transcript: string | null; type: string; status: string; created_at: string }
 interface Draft { id: string; variants: { messages: string[] }[]; confidence: number | null; intent: string | null; needsHuman: boolean }
@@ -13,6 +14,11 @@ interface QuickReply { id: string; shortcut: string; body: string }
 interface Member { id: string; name: string }
 interface Note { id: string; member_id: string | null; body: string; mentions: string[]; created_at: string }
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+export const OUTCOME_LABEL: Record<string, string> = {
+  PURCHASED: "Comprou", RESERVED: "Reservou / armário", RESOLVED: "Dúvida resolvida", EXCHANGE: "Troca ou devolução",
+  COMPLAINT: "Reclamação", NO_REPLY: "Sem retorno da cliente", NOT_CUSTOMER: "Não é cliente (fornecedor, parceiro…)", SPAM: "Spam",
+};
 
 const MODES: { value: ConvMode; label: string; icon: typeof Bot }[] = [
   { value: "AI_AUTOPILOT", label: "IA Piloto", icon: Bot },
@@ -24,7 +30,12 @@ export function ConversationPane(props: {
   conversationId: string; mode: ConvMode; channel: MessagingChannel; lastInboundAt: string | null;
   customerName: string; messages: Msg[]; draft: Draft | null; backHref: string; templates: Tpl[]; quickReplies: QuickReply[];
   aiPausedUntil: string | null; aiInstruction: string | null; assigneeId: string | null; meId: string; members: Member[]; notes: Note[];
+  suggestedOutcome: string | null;
 }) {
+  const router = useRouter();
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [outcome, setOutcome] = useState(props.suggestedOutcome ?? "RESOLVED");
+  const [outcomeNote, setOutcomeNote] = useState("");
   const [text, setText] = useState("");
   const [editingDraft, setEditingDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +137,27 @@ export function ConversationPane(props: {
         <Button type="button" variant="ghost" className="ml-auto px-2 py-1 text-xs" aria-expanded={noteOpen} onClick={() => setNoteOpen((o) => !o)}>
           <StickyNote size={13} /> Nota interna
         </Button>
+        <Button type="button" variant="ghost" className="px-2 py-1 text-xs" aria-expanded={closeOpen} onClick={() => setCloseOpen((o) => !o)}>
+          <CheckCircle2 size={13} /> Encerrar
+        </Button>
       </div>
+      {closeOpen && (
+        <form className="space-y-2 border-b border-border bg-surface-2/50 px-3 py-2 text-sm"
+          onSubmit={(e) => { e.preventDefault(); run(() => closeConversation(props.conversationId, outcome, outcomeNote), () => router.push(props.backHref)); }}>
+          <div className="grid gap-2 sm:grid-cols-[14rem_1fr]">
+            <label className="text-xs text-muted">Como terminou
+              <select value={outcome} onChange={(e) => setOutcome(e.target.value)} className={cn(inputClass, "mt-1")} aria-label="Desfecho">
+                {Object.entries(OUTCOME_LABEL).map(([k, v]) => <option key={k} value={k}>{v}{k === props.suggestedOutcome ? " (sugerido)" : ""}</option>)}
+              </select>
+            </label>
+            <label className="text-xs text-muted">Observação (opcional)
+              <input value={outcomeNote} onChange={(e) => setOutcomeNote(e.target.value)} maxLength={300} className={cn(inputClass, "mt-1")} placeholder="Ex.: levou a legging M" aria-label="Observação do desfecho" />
+            </label>
+          </div>
+          <Button disabled={pending}>Encerrar conversa</Button>
+          <span className="ml-2 text-xs text-muted">Se a cliente escrever de novo, abre uma conversa nova.</span>
+        </form>
+      )}
       {aiMode && props.aiInstruction && <p className="border-b border-border bg-accent/10 px-3 py-1 text-xs"><span className="font-medium">Instrução para a IA:</span> {props.aiInstruction}</p>}
       {returnOpen && (
         <div className="space-y-2 border-b border-border bg-surface-2/50 px-3 py-2 text-sm">

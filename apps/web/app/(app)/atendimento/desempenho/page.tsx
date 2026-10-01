@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { periodBounds, str, type SP } from "@/lib/context";
 import { Card, Empty, PageHeader, Stat, Table } from "@/components/ui";
+import { OUTCOME_LABEL } from "../conversation-pane";
 
 export const metadata = { title: "Desempenho do atendimento" };
 
@@ -35,7 +36,10 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: S
   const sp = await searchParams;
   const b = periodBounds(str(sp.periodo));
   const supabase = await createClient();
-  const { data, error } = await supabase.schema("omni").rpc("performance", { p_from: b.fromTs, p_to: b.toTs });
+  const [{ data, error }, { data: outcomes }] = await Promise.all([
+    supabase.schema("omni").rpc("performance", { p_from: b.fromTs, p_to: b.toTs }),
+    supabase.schema("omni").rpc("outcomes", { p_from: b.fromTs, p_to: b.toTs }),
+  ]);
   const d = data as unknown as Perf | null;
   if (error || !d) return <><PageHeader title="Desempenho" /><Empty title="Não foi possível calcular agora">{error?.message}</Empty></>;
 
@@ -78,6 +82,26 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: S
               )}
             </Card>
           </div>
+
+          <Card className="mb-4" title="Como as conversas terminaram">
+            {(outcomes ?? []).length === 0 ? <p className="text-sm text-muted">Nenhuma conversa encerrada no período.</p> : (() => {
+              const total = (outcomes ?? []).reduce((a, o) => a + o.conversations, 0);
+              const byOutcome = new Map<string, { human: number; auto: number }>();
+              for (const o of outcomes ?? []) {
+                const v = byOutcome.get(o.outcome) ?? { human: 0, auto: 0 };
+                if (o.source === "AUTO") v.auto += o.conversations; else v.human += o.conversations;
+                byOutcome.set(o.outcome, v);
+              }
+              return (
+                <Table head={["Desfecho", "Conversas", "%", "Encerradas sozinhas (7 dias paradas)"]}>
+                  {[...byOutcome.entries()].sort((a, b) => b[1].human + b[1].auto - a[1].human - a[1].auto).map(([k, v]) => (
+                    <tr key={k}><td className="px-3 py-2">{OUTCOME_LABEL[k] ?? "Sem desfecho"}</td><td className="px-3 py-2 tabular-nums">{v.human + v.auto}</td>
+                      <td className="px-3 py-2 tabular-nums">{pct(v.human + v.auto, total)}</td><td className="px-3 py-2 tabular-nums text-muted">{v.auto || "—"}</td></tr>
+                  ))}
+                </Table>
+              );
+            })()}
+          </Card>
 
           <div className="mb-4 grid gap-4 lg:grid-cols-2">
             <Card title="Quem respondeu primeiro">

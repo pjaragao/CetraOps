@@ -75,7 +75,8 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         supabase.schema("omni").from("quick_replies").select("id, shortcut, body").order("shortcut"),
       ]);
       const templates = (tpls ?? []).map((t) => ({ id: t.id, name: t.name, category: t.category, body: templateParts(t.components as TemplateComponent[]).body, examples: templateExamples(t.components as TemplateComponent[]) }));
-      detail = { conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
+      const { data: suggested } = await supabase.schema("omni").rpc("suggest_outcome", { p_conversation: conv.id });
+      detail = { suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
     }
   }
 
@@ -137,6 +138,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               messages={detail.messages}
               draft={detail.draft ? { id: detail.draft.id, variants: detail.draft.variants as { messages: string[] }[], confidence: detail.draft.confidence, intent: detail.draft.intent, needsHuman: detail.draft.needs_human } : null}
               backHref={`/atendimento?filtro=${filtro}`}
+              suggestedOutcome={detail.suggested}
             />
             <aside className="space-y-3 rounded-xl border border-border bg-surface p-4 text-sm">
               <div>

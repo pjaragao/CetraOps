@@ -84,3 +84,7 @@ supabase/.branches/
 .env.*
 !.env.example
 !**/.env.example
+
+# Playwright
+playwright-report/
+test-results/

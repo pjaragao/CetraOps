@@ -81,6 +81,51 @@ jobs:
         if: always()
         run: supabase stop --no-backup
 
+  # ---------------------------------------------------------------- E2E (Playwright, desktop e celular) contra o Supabase local completo
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      # O app precisa de Auth e da API (PostgREST); estúdio, e-mail, logs, storage e funções ficam de fora
+      - name: Subir o Supabase local
+        run: supabase start -x studio,imgproxy,logflare,vector,mailpit,edge-runtime,storage-api,postgres-meta,supavisor
+      - name: Migrations + seeds do zero
+        run: supabase db reset
+      - name: Chaves locais para o app
+        run: |
+          supabase status -o env > "$RUNNER_TEMP/supabase.env"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(grep '^API_URL=' "$RUNNER_TEMP/supabase.env" | cut -d= -f2- | tr -d '"')"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(grep '^ANON_KEY=' "$RUNNER_TEMP/supabase.env" | cut -d= -f2- | tr -d '"')"
+          } >> "$GITHUB_ENV"
+      - name: Build de produção do app
+        run: pnpm --filter @sie/web build
+      - name: Navegador do Playwright
+        run: pnpm --filter @sie/web exec playwright install --with-deps chromium
+      - name: Testes E2E
+        run: pnpm --filter @sie/web e2e
+      - name: Relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+      - name: Parar o Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   # ---------------------------------------------------------------- Imagens Docker (constroem em todo PR; publicam só em push na main)
   images:
     name: Imagem ${{ matrix.image }}

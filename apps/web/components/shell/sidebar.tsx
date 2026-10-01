@@ -43,6 +43,15 @@ export function Sidebar({ nav }: { nav: NavArea[] }) {
           </>
         )}
       </Link>
+      <button
+        type="button"
+        onClick={() => writeCollapsed(!rail)}
+        className={cn("mb-2 hidden items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-text lg:flex", rail && "justify-center")}
+        aria-label={rail ? "Expandir a barra lateral" : "Recolher a barra lateral"}
+        title={rail ? "Expandir a barra lateral" : "Recolher a barra lateral"}
+      >
+        {rail ? <PanelLeftOpen size={18} /> : <><PanelLeftClose size={18} /> Recolher</>}
+      </button>
       {nav.map((area) => {
         const Icon = ICONS[area.icon as keyof typeof ICONS] ?? LayoutDashboard;
         const areaActive = active(area.href) || area.items.some((i) => active(i.href));
@@ -91,15 +100,6 @@ export function Sidebar({ nav }: { nav: NavArea[] }) {
           </div>
         );
       })}
-      <button
-        type="button"
-        onClick={() => writeCollapsed(!rail)}
-        className={cn("mt-auto hidden items-center gap-2 rounded-lg px-2 py-2 text-xs text-muted hover:bg-surface-2 hover:text-text lg:flex", rail && "justify-center")}
-        aria-label={rail ? "Expandir a barra lateral" : "Recolher a barra lateral"}
-        title={rail ? "Expandir a barra lateral" : "Recolher a barra lateral"}
-      >
-        {rail ? <PanelLeftOpen size={18} /> : <><PanelLeftClose size={18} /> Recolher</>}
-      </button>
     </nav>
   );
 

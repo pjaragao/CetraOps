@@ -846,6 +846,8 @@ Detratoras de NPS e CSAT entram no mesmo fluxo. Há um painel de casos abertos.
 | 4. Recuperação | 2 semanas | Reativação em 3 faixas; retomada por motivo de perda; casos de reclamação + NPS + detratoras | Fase 3 (motor de réguas) | Reativação medida contra o controle; casos com prazo e retorno |
 | 5. Aquisição ampliada | 2 a 3 semanas | Indique uma amiga; portal do parceiro; check-in de evento com cadastro; públicos Meta; relatórios de CAC e coortes completos | Validação da API de públicos; contrato JOY (trainers) | Indicações rastreadas até a compra; CAC por origem |
 
+> **Situação da fase 5:** entregues indique uma amiga (link pessoal, vale-troca após o prazo de troca, teto mensal), check-in de evento por QR com cadastro de quem chega sem convite e os relatórios de aquisição por origem, coortes de recompra, desempenho das réguas, satisfação e motivos de perda. Seguem adiados: portal do parceiro (depende do contrato JOY) e públicos Meta (depende de validar a API).
+
 **Por que essa ordem:**
 - **Dados primeiro:** sem estágio, score e origem, as réguas não sabem quem incluir e o painel não mede.
 - **Atendimento antes da retenção:** os avisos transacionais e a retomada geram receita logo, com pouco risco.

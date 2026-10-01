@@ -118,6 +118,7 @@ export default async function EventoPage({ params, searchParams }: { params: Pro
                           <input name="plus_ones" type="number" min={0} max={5} defaultValue={g.plus_ones} className={`${inputClass} w-16 py-1 text-xs`} aria-label="Acompanhantes" />
                           <Button variant="secondary" className="px-2 py-1 text-xs">Salvar</Button>
                         </form>
+                        <a href={`/marketing/eventos/checkin/qr/${g.id}`} target="_blank" rel="noreferrer" className="px-2 text-xs text-brand">QR</a>
                         {g.rsvp_status !== "ATTENDED" && <form action={removeGuestAction}><input type="hidden" name="event_id" value={id} /><input type="hidden" name="guest_id" value={g.id} /><Button variant="ghost" className="px-2 py-1 text-xs text-danger">Remover</Button></form>}
                       </div>
                     )}

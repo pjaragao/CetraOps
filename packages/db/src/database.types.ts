@@ -1872,6 +1872,31 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"referrals": {
+                  Row: {
+                    "created_at": string,"friend_party": string,"id": string,"link_id": string | null,"order_id": string | null,"org_id": string,"referrer_party": string,"reject_reason": string | null,"reward_amount": number | null,"reward_ledger_id": number | null,"rewarded_at": string | null,"status": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"friend_party": string,"id"?: string,"link_id"?: string | null,"order_id"?: string | null,"org_id": string,"referrer_party": string,"reject_reason"?: string | null,"reward_amount"?: number | null,"reward_ledger_id"?: number | null,"rewarded_at"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"friend_party"?: string,"id"?: string,"link_id"?: string | null,"order_id"?: string | null,"org_id"?: string,"referrer_party"?: string,"reject_reason"?: string | null,"reward_amount"?: number | null,"reward_ledger_id"?: number | null,"rewarded_at"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "referrals_friend_party_fkey"
+      columns: ["friend_party"]
+isOneToOne: true
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "referrals_referrer_party_fkey"
+      columns: ["referrer_party"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"segment_members": {
                   Row: {
                     "added_at": string,"org_id": string,"party_id": string,"segment_id": string
@@ -2138,6 +2163,14 @@ isOneToOne: false
               "display_name": string,"party_id": string,"reason": string
             }[]
                            },
+"ensure_referral_link":
+{ Args: { "p_party": string }; Returns: Database["mkt"]['Tables']["tracking_links"]['Row']
+                          SetofOptions: {
+        from: "*"
+        to: "tracking_links"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "finish_task":
 { Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
               "assignee_member_id": string | null,
@@ -2296,6 +2329,16 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"report_acquisition":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "ad_spend": number,"avg_days_to_buy": number,"buyers": number,"conversion_pct": number,"cost_per_customer": number,"leads": number,"revenue": number,"source": string
+            }[]
+                           },
+"report_lost_reasons":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "bought_later": number,"lost": number,"reason": string,"recovered_pct": number
+            }[]
+                           },
 "reschedule_task":
 { Args: { "p_due": string,"p_id": string }; Returns: {
               "assignee_member_id": string | null,
@@ -2409,6 +2452,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_referral_settings":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "save_task":
 { Args: { "p": Json }; Returns: {
               "assignee_member_id": string | null,
@@ -5433,13 +5479,13 @@ isOneToOne: false
                   ]
                 },"event_guests": {
                   Row: {
-                    "checked_in_at": string | null,"created_at": string,"deal_id": string | null,"event_id": string,"id": string,"invited_by": string | null,"notes": string | null,"org_id": string,"party_id": string,"plus_ones": number,"rsvp_status": string,"source": string,"updated_at": string
+                    "checked_in_at": string | null,"checkin_token": string,"created_at": string,"deal_id": string | null,"event_id": string,"id": string,"invited_by": string | null,"notes": string | null,"org_id": string,"party_id": string,"plus_ones": number,"rsvp_status": string,"source": string,"updated_at": string
                   }
                   Insert: {
-                    "checked_in_at"?: string | null,"created_at"?: string,"deal_id"?: string | null,"event_id": string,"id"?: string,"invited_by"?: string | null,"notes"?: string | null,"org_id": string,"party_id": string,"plus_ones"?: number,"rsvp_status"?: string,"source"?: string,"updated_at"?: string
+                    "checked_in_at"?: string | null,"checkin_token"?: string,"created_at"?: string,"deal_id"?: string | null,"event_id": string,"id"?: string,"invited_by"?: string | null,"notes"?: string | null,"org_id": string,"party_id": string,"plus_ones"?: number,"rsvp_status"?: string,"source"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "checked_in_at"?: string | null,"created_at"?: string,"deal_id"?: string | null,"event_id"?: string,"id"?: string,"invited_by"?: string | null,"notes"?: string | null,"org_id"?: string,"party_id"?: string,"plus_ones"?: number,"rsvp_status"?: string,"source"?: string,"updated_at"?: string
+                    "checked_in_at"?: string | null,"checkin_token"?: string,"created_at"?: string,"deal_id"?: string | null,"event_id"?: string,"id"?: string,"invited_by"?: string | null,"notes"?: string | null,"org_id"?: string,"party_id"?: string,"plus_ones"?: number,"rsvp_status"?: string,"source"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -5535,13 +5581,13 @@ isOneToOne: false
                   ]
                 },"tracking_links": {
                   Row: {
-                    "active": boolean,"affiliate_party_id": string | null,"channel_account_id": string,"code": string,"created_at": string,"created_by": string | null,"event_id": string | null,"id": string,"kind": string,"name": string,"org_id": string,"prefill_text": string | null,"updated_at": string
+                    "active": boolean,"affiliate_party_id": string | null,"channel_account_id": string,"code": string,"created_at": string,"created_by": string | null,"event_id": string | null,"id": string,"kind": string,"name": string,"org_id": string,"prefill_text": string | null,"referrer_party_id": string | null,"updated_at": string
                   }
                   Insert: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id": string,"code": string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name": string,"org_id": string,"prefill_text"?: string | null,"updated_at"?: string
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id": string,"code": string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name": string,"org_id": string,"prefill_text"?: string | null,"referrer_party_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id"?: string,"code"?: string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string,"prefill_text"?: string | null,"updated_at"?: string
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id"?: string,"code"?: string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string,"prefill_text"?: string | null,"referrer_party_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -5607,6 +5653,12 @@ isOneToOne: false
 "capi_record":
 { Args: { "p": Json }; Returns: undefined
                            },
+"checkin_by_token":
+{ Args: { "p_plus_ones"?: number,"p_token": string }; Returns: Json
+                           },
+"checkin_walkin":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "delete_budget_line":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -5623,6 +5675,9 @@ isOneToOne: false
                            },
 "event_results":
 { Args: { "p_event": string }; Returns: Json
+                           },
+"guest_by_token":
+{ Args: { "p_token": string }; Returns: Json
                            },
 "invite_audience":
 { Args: { "p_def": Json,"p_event": string }; Returns: number
@@ -5663,6 +5718,11 @@ isOneToOne: false
       } },
 "remove_guest":
 { Args: { "p_guest": string }; Returns: undefined
+                           },
+"report_journeys":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "enrolled": number,"holdout": number,"holdout_rate": number,"journey": string,"lift_pp": number,"revenue": number,"treatment": number,"treatment_rate": number
+            }[]
                            },
 "request_ads_sync":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -5794,6 +5854,7 @@ isOneToOne: false
 "name": string,
 "org_id": string,
 "prefill_text": string | null,
+"referrer_party_id": string | null,
 "updated_at": string
             }
                           SetofOptions: {
@@ -5882,6 +5943,7 @@ isOneToOne: false
 "set_rsvp":
 { Args: { "p_guest": string,"p_plus_ones"?: number,"p_status": string }; Returns: {
               "checked_in_at": string | null,
+"checkin_token": string,
 "created_at": string,
 "deal_id": string | null,
 "event_id": string,
@@ -6490,6 +6552,11 @@ isOneToOne: false
                            },
 "record_template_status":
 { Args: { "p": Json }; Returns: string
+                           },
+"report_satisfaction":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "csat_answered": number,"csat_asked": number,"csat_avg": number,"month": string,"nps": number,"nps_answered": number,"nps_asked": number
+            }[]
                            },
 "request_template_sync":
 { Args: { "p_account": string }; Returns: undefined
@@ -7906,6 +7973,11 @@ isOneToOne: false
       } },
 "report_abc":
 { Args: { "p_by": string,"p_from": string,"p_to": string }; Returns: Json
+                           },
+"report_cohorts":
+{ Args: { "p_months"?: number }; Returns: {
+              "back_180": number,"back_30": number,"back_60": number,"back_90": number,"cohort": string,"customers": number
+            }[]
                            },
 "report_recovered":
 { Args: { "p_from": string,"p_to": string }; Returns: {

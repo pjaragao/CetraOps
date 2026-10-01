@@ -2085,6 +2085,118 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"acquirer_imports": {
+                  Row: {
+                    "acquirer": string,"created_at": string,"created_by": string | null,"file_hash": string | null,"filename": string | null,"id": string,"org_id": string,"transactions_new": number,"transactions_total": number
+                  }
+                  Insert: {
+                    "acquirer": string,"created_at"?: string,"created_by"?: string | null,"file_hash"?: string | null,"filename"?: string | null,"id"?: string,"org_id": string,"transactions_new"?: number,"transactions_total"?: number
+                  }
+                  Update: {
+                    "acquirer"?: string,"created_at"?: string,"created_by"?: string | null,"file_hash"?: string | null,"filename"?: string | null,"id"?: string,"org_id"?: string,"transactions_new"?: number,"transactions_total"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"acquirer_payouts": {
+                  Row: {
+                    "acquirer": string,"amount": number,"bank_account_id": string | null,"created_at": string,"external_id": string,"id": string,"import_id": string | null,"org_id": string,"paid_on": string,"settlement_id": string | null,"status": string
+                  }
+                  Insert: {
+                    "acquirer": string,"amount": number,"bank_account_id"?: string | null,"created_at"?: string,"external_id": string,"id"?: string,"import_id"?: string | null,"org_id": string,"paid_on": string,"settlement_id"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "acquirer"?: string,"amount"?: number,"bank_account_id"?: string | null,"created_at"?: string,"external_id"?: string,"id"?: string,"import_id"?: string | null,"org_id"?: string,"paid_on"?: string,"settlement_id"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "acquirer_payouts_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "bank_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "acquirer_payouts_bank_account_id_fkey"
+      columns: ["bank_account_id"]
+isOneToOne: false
+      referencedRelation: "v_bank_balances"
+      referencedColumns: ["bank_account_id"]
+    },{
+      foreignKeyName: "acquirer_payouts_import_id_fkey"
+      columns: ["import_id"]
+isOneToOne: false
+      referencedRelation: "acquirer_imports"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "acquirer_payouts_settlement_id_fkey"
+      columns: ["settlement_id"]
+isOneToOne: false
+      referencedRelation: "settlements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "acquirer_payouts_settlement_id_fkey"
+      columns: ["settlement_id"]
+isOneToOne: false
+      referencedRelation: "v_fee_audit"
+      referencedColumns: ["settlement_id"]
+    }
+                  ]
+                },"acquirer_receivables": {
+                  Row: {
+                    "anticipation_fee": number,"expected_date": string | null,"gross": number,"id": string,"installment_id": string | null,"mdr_fee": number,"n": number,"net": number,"org_id": string,"payout_id": string | null,"status": string,"transaction_id": string
+                  }
+                  Insert: {
+                    "anticipation_fee"?: number,"expected_date"?: string | null,"gross": number,"id"?: string,"installment_id"?: string | null,"mdr_fee"?: number,"n": number,"net": number,"org_id": string,"payout_id"?: string | null,"status"?: string,"transaction_id": string
+                  }
+                  Update: {
+                    "anticipation_fee"?: number,"expected_date"?: string | null,"gross"?: number,"id"?: string,"installment_id"?: string | null,"mdr_fee"?: number,"n"?: number,"net"?: number,"org_id"?: string,"payout_id"?: string | null,"status"?: string,"transaction_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "acquirer_receivables_installment_id_fkey"
+      columns: ["installment_id"]
+isOneToOne: false
+      referencedRelation: "title_installments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "acquirer_receivables_installment_id_fkey"
+      columns: ["installment_id"]
+isOneToOne: false
+      referencedRelation: "v_open_installments"
+      referencedColumns: ["installment_id"]
+    },{
+      foreignKeyName: "acquirer_receivables_payout_id_fkey"
+      columns: ["payout_id"]
+isOneToOne: false
+      referencedRelation: "acquirer_payouts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "acquirer_receivables_transaction_id_fkey"
+      columns: ["transaction_id"]
+isOneToOne: false
+      referencedRelation: "acquirer_transactions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"acquirer_transactions": {
+                  Row: {
+                    "acquirer": string,"anticipation_fee": number,"auth_code": string | null,"brand": string | null,"captured_at": string,"created_at": string,"external_id": string,"fee_expected": number | null,"fee_variance": number | null,"gross": number,"id": string,"import_id": string | null,"installments": number,"last4": string | null,"match_status": string,"mdr_fee": number,"method": Database["sales"]['Enums']["payment_method"],"nsu": string | null,"org_id": string,"payment_id": string | null,"raw": NonNullable<Json>,"terminal": string | null
+                  }
+                  Insert: {
+                    "acquirer": string,"anticipation_fee"?: number,"auth_code"?: string | null,"brand"?: string | null,"captured_at": string,"created_at"?: string,"external_id": string,"fee_expected"?: number | null,"fee_variance"?: number | null,"gross": number,"id"?: string,"import_id"?: string | null,"installments"?: number,"last4"?: string | null,"match_status"?: string,"mdr_fee"?: number,"method": Database["sales"]['Enums']["payment_method"],"nsu"?: string | null,"org_id": string,"payment_id"?: string | null,"raw"?: NonNullable<Json>,"terminal"?: string | null
+                  }
+                  Update: {
+                    "acquirer"?: string,"anticipation_fee"?: number,"auth_code"?: string | null,"brand"?: string | null,"captured_at"?: string,"created_at"?: string,"external_id"?: string,"fee_expected"?: number | null,"fee_variance"?: number | null,"gross"?: number,"id"?: string,"import_id"?: string | null,"installments"?: number,"last4"?: string | null,"match_status"?: string,"mdr_fee"?: number,"method"?: Database["sales"]['Enums']["payment_method"],"nsu"?: string | null,"org_id"?: string,"payment_id"?: string | null,"raw"?: NonNullable<Json>,"terminal"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "acquirer_transactions_import_id_fkey"
+      columns: ["import_id"]
+isOneToOne: false
+      referencedRelation: "acquirer_imports"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"allocation_batches": {
                   Row: {
                     "competence": string,"created_at": string,"created_by": string | null,"detail": NonNullable<Json>,"entry_ids": (string)[],"id": string,"legal_entity_id": string,"org_id": string,"reversal_reason": string | null,"reversed_at": string | null,"reversed_by": string | null,"status": string,"total": number
@@ -2743,6 +2855,9 @@ isOneToOne: false
               "cost_center_code": string,"credit": number,"debit": number,"description": string,"entry_date": string,"entry_id": string,"entry_number": string,"kind": string,"memo": string,"running": number
             }[]
                            },
+"acquirer_audit":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "apply_recon_rules":
 { Args: { "p_bank_account": string }; Returns: number
                            },
@@ -2827,6 +2942,9 @@ isOneToOne: false
                            },
 "ignore_statement_line":
 { Args: { "p_line": string,"p_reason": string }; Returns: undefined
+                           },
+"import_acquirer":
+{ Args: { "p": Json }; Returns: Json
                            },
 "import_statement":
 { Args: { "p": Json }; Returns: Json
@@ -2938,6 +3056,34 @@ isOneToOne: false
                            },
 "settle":
 { Args: { "p": Json }; Returns: {
+              "amount": number,
+"bank_account_id": string,
+"created_at": string,
+"created_by": string | null,
+"description": string | null,
+"direction": Database["fin"]['Enums']["title_direction"],
+"id": string,
+"idempotency_key": string | null,
+"legal_entity_id": string,
+"method": string,
+"number": string,
+"org_id": string,
+"party_id": string | null,
+"reference": string | null,
+"reversal_reason": string | null,
+"reversed_at": string | null,
+"reversed_by": string | null,
+"settled_on": string,
+"status": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "settlements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"settle_acquirer_payout":
+{ Args: { "p_bank_account"?: string,"p_payout": string }; Returns: {
               "amount": number,
 "bank_account_id": string,
 "created_at": string,

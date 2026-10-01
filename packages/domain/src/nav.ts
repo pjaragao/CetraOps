@@ -77,6 +77,7 @@ export const NAV: NavArea[] = [
       { label: "Contas a receber", href: "/financeiro/receber", ready: true },
       { label: "Movimentações", href: "/financeiro/movimentacoes", ready: true },
       { label: "Conciliação", href: "/financeiro/conciliacao", ready: true },
+      { label: "Adquirente", href: "/financeiro/adquirente", ready: true },
       { label: "Razão contábil", href: "/financeiro/razao", ready: true },
       { label: "DRE", href: "/financeiro/dre", ready: true },
       { label: "Fluxo de caixa", href: "/financeiro/fluxo", ready: true },

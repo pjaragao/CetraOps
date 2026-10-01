@@ -5429,6 +5429,56 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"notice_rules": {
+                  Row: {
+                    "active": boolean,"channel_account_id": string | null,"event": string,"free_text": string,"id": string,"org_id": string,"task_fallback": boolean,"template_id": string | null,"template_vars": NonNullable<Json>,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"channel_account_id"?: string | null,"event": string,"free_text": string,"id"?: string,"org_id": string,"task_fallback"?: boolean,"template_id"?: string | null,"template_vars"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"channel_account_id"?: string | null,"event"?: string,"free_text"?: string,"id"?: string,"org_id"?: string,"task_fallback"?: boolean,"template_id"?: string | null,"template_vars"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notice_rules_channel_account_id_fkey"
+      columns: ["channel_account_id"]
+isOneToOne: false
+      referencedRelation: "channel_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notice_rules_template_id_fkey"
+      columns: ["template_id"]
+isOneToOne: false
+      referencedRelation: "templates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"notices_log": {
+                  Row: {
+                    "conversation_id": string | null,"created_at": string,"event": string,"id": number,"message_id": string | null,"org_id": string,"party_id": string,"reason": string | null,"source_id": string,"status": string,"task_id": string | null
+                  }
+                  Insert: {
+                    "conversation_id"?: string | null,"created_at"?: string,"event": string,"id"?: never,"message_id"?: string | null,"org_id": string,"party_id": string,"reason"?: string | null,"source_id": string,"status": string,"task_id"?: string | null
+                  }
+                  Update: {
+                    "conversation_id"?: string | null,"created_at"?: string,"event"?: string,"id"?: never,"message_id"?: string | null,"org_id"?: string,"party_id"?: string,"reason"?: string | null,"source_id"?: string,"status"?: string,"task_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notices_log_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notices_log_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "messages"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"quick_replies": {
                   Row: {
                     "body": string,"id": string,"org_id": string,"shortcut": string
@@ -5781,6 +5831,25 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "channel_accounts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_notice_rule":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"channel_account_id": string | null,
+"event": string,
+"free_text": string,
+"id": string,
+"org_id": string,
+"task_fallback": boolean,
+"template_id": string | null,
+"template_vars": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "notice_rules"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -7069,6 +7138,11 @@ isOneToOne: false
       } },
 "report_abc":
 { Args: { "p_by": string,"p_from": string,"p_to": string }; Returns: Json
+                           },
+"report_recovered":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "attempts": number,"kind": string,"recovered": number,"revenue": number
+            }[]
                            },
 "report_sales":
 { Args: { "p_from": string,"p_group": string,"p_to": string }; Returns: Json

@@ -25,6 +25,7 @@ export const NAV: NavArea[] = [
     items: [
       { label: "Caixa de entrada", href: "/atendimento", ready: true },
       { label: "Automações", href: "/atendimento/automacoes", ready: true },
+      { label: "Avisos automáticos", href: "/atendimento/avisos", ready: true },
       { label: "Templates", href: "/atendimento/templates", ready: true },
       { label: "Desempenho", href: "/atendimento/desempenho", ready: true },
     ],
@@ -130,6 +131,7 @@ export const NAV: NavArea[] = [
       { label: "Todos os relatórios", href: "/relatorios", ready: true },
       { label: "Vendas", href: "/relatorios/vendas", ready: true },
       { label: "Curva ABC", href: "/relatorios/curva-abc", ready: true },
+      { label: "Vendas recuperadas", href: "/relatorios/vendas-recuperadas", ready: true },
       { label: "Vendas × notas × maquininha", href: "/relatorios/cruzamento", permission: "fin.read", ready: true },
     ],
   },

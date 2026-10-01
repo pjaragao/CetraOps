@@ -1619,6 +1619,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"interest_alerts": {
+                  Row: {
+                    "color_id": string | null,"created_at": string,"created_by": string | null,"created_via": string,"id": string,"note": string | null,"notified_at": string | null,"org_id": string,"party_id": string,"product_id": string,"reservation_id": string | null,"size": string,"status": string
+                  }
+                  Insert: {
+                    "color_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_via"?: string,"id"?: string,"note"?: string | null,"notified_at"?: string | null,"org_id": string,"party_id": string,"product_id": string,"reservation_id"?: string | null,"size": string,"status"?: string
+                  }
+                  Update: {
+                    "color_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_via"?: string,"id"?: string,"note"?: string | null,"notified_at"?: string | null,"org_id"?: string,"party_id"?: string,"product_id"?: string,"reservation_id"?: string | null,"size"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "interest_alerts_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"lead_scoring_rules": {
                   Row: {
                     "active": boolean,"created_at": string,"id": string,"org_id": string,"rules": NonNullable<Json>,"version": number
@@ -1818,13 +1837,13 @@ isOneToOne: false
                   ]
                 },"tasks": {
                   Row: {
-                    "assignee_member_id": string | null,"body": string | null,"completed_at": string | null,"created_at": string,"created_by_ai": boolean,"deal_id": string | null,"due_at": string | null,"id": string,"org_id": string,"party_id": string | null,"source_rule": string | null,"status": string,"suggested_message": string | null,"title": string,"type": string,"updated_at": string
+                    "assignee_member_id": string | null,"body": string | null,"completed_at": string | null,"created_at": string,"created_by_ai": boolean,"deal_id": string | null,"due_at": string | null,"id": string,"org_id": string,"outcome_note": string | null,"party_id": string | null,"source_rule": string | null,"status": string,"suggested_message": string | null,"title": string,"type": string,"updated_at": string
                   }
                   Insert: {
-                    "assignee_member_id"?: string | null,"body"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by_ai"?: boolean,"deal_id"?: string | null,"due_at"?: string | null,"id"?: string,"org_id": string,"party_id"?: string | null,"source_rule"?: string | null,"status"?: string,"suggested_message"?: string | null,"title": string,"type"?: string,"updated_at"?: string
+                    "assignee_member_id"?: string | null,"body"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by_ai"?: boolean,"deal_id"?: string | null,"due_at"?: string | null,"id"?: string,"org_id": string,"outcome_note"?: string | null,"party_id"?: string | null,"source_rule"?: string | null,"status"?: string,"suggested_message"?: string | null,"title": string,"type"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "assignee_member_id"?: string | null,"body"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by_ai"?: boolean,"deal_id"?: string | null,"due_at"?: string | null,"id"?: string,"org_id"?: string,"party_id"?: string | null,"source_rule"?: string | null,"status"?: string,"suggested_message"?: string | null,"title"?: string,"type"?: string,"updated_at"?: string
+                    "assignee_member_id"?: string | null,"body"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by_ai"?: boolean,"deal_id"?: string | null,"due_at"?: string | null,"id"?: string,"org_id"?: string,"outcome_note"?: string | null,"party_id"?: string | null,"source_rule"?: string | null,"status"?: string,"suggested_message"?: string | null,"title"?: string,"type"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1879,14 +1898,70 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "audience":
+            "add_interest":
+{ Args: { "p_color"?: string,"p_note"?: string,"p_party": string,"p_product": string,"p_size": string }; Returns: {
+              "color_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"created_via": string,
+"id": string,
+"note": string | null,
+"notified_at": string | null,
+"org_id": string,
+"party_id": string,
+"product_id": string,
+"reservation_id": string | null,
+"size": string,
+"status": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "interest_alerts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"audience":
 { Args: { "p_def": Json }; Returns: {
               "party_id": string
+            }[]
+                           },
+"cancel_interest":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"daily_actions":
+{ Args: { "p_limit"?: number }; Returns: {
+              "at_risk": boolean,"due_at": string,"overdue": boolean,"party_id": string,"party_name": string,"priority": number,"reason": string,"revenue_12m": number,"suggested_message": string,"task_id": string,"tier": string,"title": string,"type": string
             }[]
                            },
 "delete_deal":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"finish_task":
+{ Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
+              "assignee_member_id": string | null,
+"body": string | null,
+"completed_at": string | null,
+"created_at": string,
+"created_by_ai": boolean,
+"deal_id": string | null,
+"due_at": string | null,
+"id": string,
+"org_id": string,
+"outcome_note": string | null,
+"party_id": string | null,
+"source_rule": string | null,
+"status": string,
+"suggested_message": string | null,
+"title": string,
+"type": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tasks"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "generate_outreach":
 { Args: { "p_limit"?: number }; Returns: number
                            },
@@ -1941,6 +2016,7 @@ isOneToOne: false
 "due_at": string | null,
 "id": string,
 "org_id": string,
+"outcome_note": string | null,
 "party_id": string | null,
 "source_rule": string | null,
 "status": string,
@@ -2018,6 +2094,7 @@ isOneToOne: false
 "due_at": string | null,
 "id": string,
 "org_id": string,
+"outcome_note": string | null,
 "party_id": string | null,
 "source_rule": string | null,
 "status": string,
@@ -2069,6 +2146,7 @@ isOneToOne: false
 "due_at": string | null,
 "id": string,
 "org_id": string,
+"outcome_note": string | null,
 "party_id": string | null,
 "source_rule": string | null,
 "status": string,
@@ -5855,6 +5933,9 @@ isOneToOne: false
                            },
 "mark_read":
 { Args: { "p_conversation": string }; Returns: undefined
+                           },
+"open_conversation_for":
+{ Args: { "p_party": string }; Returns: string
                            },
 "outbound_context":
 { Args: { "p_message": string }; Returns: Json

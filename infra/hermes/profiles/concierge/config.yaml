@@ -52,6 +52,7 @@ mcp_servers:
         - update_customer_profile
         - list_upcoming_events
         - rsvp_event
+        - register_interest
         - remember_customer_fact
         - request_handoff
         - propose_reply

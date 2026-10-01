@@ -139,6 +139,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               draft={detail.draft ? { id: detail.draft.id, variants: detail.draft.variants as { messages: string[] }[], confidence: detail.draft.confidence, intent: detail.draft.intent, needsHuman: detail.draft.needs_human } : null}
               backHref={`/atendimento?filtro=${filtro}`}
               suggestedOutcome={detail.suggested}
+              initialText={str(sp.msg)}
             />
             <aside className="space-y-3 rounded-xl border border-border bg-surface p-4 text-sm">
               <div>

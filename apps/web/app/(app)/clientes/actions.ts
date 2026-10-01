@@ -64,3 +64,19 @@ export async function saveLifecycleSettingsAction(formData: FormData) {
   revalidatePath("/clientes", "layout");
   back("/clientes/ciclo-de-vida", error ? { erro: friendly(error.message) } : { ok: "Regras salvas e base recalculada" });
 }
+
+export async function addInterestAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("add_interest", { p_party: id, p_product: str(formData.get("product_id")), p_size: str(formData.get("size")), p_note: str(formData.get("note")) || undefined });
+  revalidatePath(`/clientes/${id}`);
+  back(`/clientes/${id}`, error ? { erro: friendly(error.message) } : { ok: "Avise-me registrado: quando o tamanho chegar, ela é avisada" });
+}
+
+export async function cancelInterestAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("cancel_interest", { p_id: str(formData.get("alert_id")) });
+  revalidatePath(`/clientes/${id}`);
+  back(`/clientes/${id}`, error ? { erro: friendly(error.message) } : { ok: "Avise-me cancelado" });
+}

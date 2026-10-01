@@ -89,7 +89,7 @@ export async function assignConversation(conversationId: string, memberId: strin
   return error ? { ok: false, error: clean(error.message) } : { ok: true };
 }
 
-export const OUTCOMES = ["PURCHASED", "RESERVED", "RESOLVED", "EXCHANGE", "COMPLAINT", "NO_REPLY", "NOT_CUSTOMER", "SPAM"] as const;
+const OUTCOMES = ["PURCHASED", "RESERVED", "RESOLVED", "EXCHANGE", "COMPLAINT", "NO_REPLY", "NOT_CUSTOMER", "SPAM"] as const;
 
 /** Encerra a conversa com o desfecho (uma mensagem nova da cliente abre outra conversa). */
 export async function closeConversation(conversationId: string, outcome: string, note: string) {

@@ -35,6 +35,8 @@ TOOLS: list[dict[str, Any]] = [
     _fn("list_upcoming_events", "Eventos próximos para os quais ESTA cliente foi convidada (data, local, vagas e a resposta dela). Sem convite, não ofereça eventos.", {}),
     _fn("rsvp_event", "Registra a resposta da cliente a um convite (CONFIRMED ou DECLINED) depois de ela dizer que vai ou não vai. Respeita a capacidade: lotado vira lista de espera.",
         {"event_id": UUID, "status": {"type": "string", "enum": ["CONFIRMED", "DECLINED"]}, "plus_ones": {"type": "integer", "minimum": 0, "maximum": 5}}, ["event_id", "status"]),
+    _fn("register_interest", "Registra o 'avise-me': a cliente quer um produto num tamanho sem estoque. Quando chegar, ela é avisada (não prometa data).",
+        {"product_id": UUID, "size": {"type": "string"}, "note": {"type": "string"}}, ["product_id", "size"]),
     _fn("remember_customer_fact", "Guarda um fato útil e não sensível dito pela cliente (ex.: faz pilates às terças).", {"fact": {"type": "string"}, "category": {"type": "string"}, "message_id": UUID}, ["fact"]),
     _fn("request_handoff", "Transfere para uma pessoa da equipe.",
         {"reason_code": {"type": "string", "enum": ["COMPLAINT", "PRICE_NEGOTIATION", "DEFECT", "B2B", "PAYMENT_PROBLEM", "PRESS_PARTNERSHIP", "HIGH_VALUE", "OUT_OF_SCOPE", "OTHER"]},

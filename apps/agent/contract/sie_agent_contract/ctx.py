@@ -12,12 +12,12 @@ TTL_SECONDS = 600
 
 # Ferramentas liberadas por perfil (o perfil 'concierge' atende clientes; nenhuma ferramenta financeira)
 CONCIERGE_CAPS = [
-    "search_catalog", "check_stock_by_size", "get_customer_360", "get_order_status", "get_policies", "search_knowledge", "list_upcoming_events", "rsvp_event", "apply_coupon", "create_reservation", "schedule_locker",
+    "search_catalog", "check_stock_by_size", "get_customer_360", "get_order_status", "get_policies", "search_knowledge", "list_upcoming_events", "rsvp_event", "register_interest", "apply_coupon", "create_reservation", "schedule_locker",
     "create_order_draft", "confirm_order_draft", "create_payment_link", "register_consent", "update_customer_profile", "remember_customer_fact",
     "request_handoff", "propose_reply",
 ]
 # Rascunho/copiloto não cria pedido nem link sozinho: só consulta e propõe (a vendedora executa a partir do rascunho)
-COPILOT_CAPS = [c for c in CONCIERGE_CAPS if c not in {"create_order_draft", "confirm_order_draft", "create_payment_link", "create_reservation", "schedule_locker", "rsvp_event"}]
+COPILOT_CAPS = [c for c in CONCIERGE_CAPS if c not in {"create_order_draft", "confirm_order_draft", "create_payment_link", "create_reservation", "schedule_locker", "rsvp_event", "register_interest"}]
 
 
 def sign_ctx(secret: str, *, org: str, conv: str, party: str, run: str, version: int, caps: list[str], persona_version: str | None = None,

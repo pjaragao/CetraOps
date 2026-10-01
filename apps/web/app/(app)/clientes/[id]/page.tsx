@@ -6,7 +6,7 @@ import { can, requirePerm } from "@/lib/session";
 import { daysSince, str, type SP } from "@/lib/context";
 import { Badge, Button, Card, Empty, inputClass, LinkButton, PageHeader, Stat } from "@/components/ui";
 import { Flash } from "@/components/form";
-import { refreshLifecycleAction, setConsentAction } from "../actions";
+import { addInterestAction, cancelInterestAction, refreshLifecycleAction, setConsentAction } from "../actions";
 
 export const metadata = { title: "Cliente 360°" };
 
@@ -26,7 +26,7 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
   const { data: p } = await supabase.schema("crm").from("parties").select("*").eq("id", id).maybeSingle();
   if (!p) notFound();
 
-  const [contacts, consents, timeline, orders, convs, credit, metrics, owner] = await Promise.all([
+  const [contacts, consents, timeline, orders, convs, credit, metrics, owner, alerts, products] = await Promise.all([
     supabase.schema("crm").from("party_contact_points").select("type, value_display, is_primary").eq("party_id", id),
     supabase.schema("crm").from("v_current_consents").select("purpose, granted, legal_basis, created_at, evidence").eq("party_id", id),
     supabase.schema("crm").from("timeline_events").select("id, occurred_at, kind, summary").eq("party_id", id).order("occurred_at", { ascending: false }).limit(30),
@@ -39,7 +39,10 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
     supabase.schema("sales").rpc("store_credit_balance", { p_party: id }),
     supabase.schema("crm").from("customer_metrics").select("*").eq("party_id", id).maybeSingle(),
     p.relationship_owner_member_id ? supabase.schema("core").from("members").select("display_name").eq("id", p.relationship_owner_member_id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.schema("crm").from("interest_alerts").select("id, product_id, size, note, status, created_via, created_at, notified_at").eq("party_id", id).order("created_at", { ascending: false }).limit(10),
+    supabase.schema("catalog").from("products").select("id, name").eq("status", "ACTIVE").order("name").limit(300),
   ]);
+  const productName = new Map((products.data ?? []).map((x) => [x.id, x.name]));
 
   const list = orders.data ?? [];
   const ltv = list.reduce((a, o) => a + Number(o.total), 0);
@@ -149,6 +152,29 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
           )}
         </Card>
       </div>
+
+      <Card className="mt-4" title="Avise-me (quando chegar o tamanho)">
+        {(alerts.data ?? []).length === 0 ? <p className="text-sm text-muted">Nenhum pedido. Quando faltar o tamanho, registre aqui: ao chegar, ela é avisada e a peça fica separada.</p> : (
+          <ul className="space-y-1 text-sm">{(alerts.data ?? []).map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center justify-between gap-2">
+              <span>{productName.get(a.product_id) ?? "Produto"} · <b>{a.size}</b>{a.note ? ` · ${a.note}` : ""} <span className="text-xs text-muted">({a.created_via === "AI" ? "pela IA" : "pela equipe"})</span></span>
+              <span className="flex items-center gap-1">
+                <Badge tone={a.status === "WAITING" ? "warning" : a.status === "NOTIFIED" ? "success" : "neutral"}>{a.status === "WAITING" ? "aguardando" : a.status === "NOTIFIED" ? "avisada" : "cancelado"}</Badge>
+                {canWrite && a.status === "WAITING" && <form action={cancelInterestAction}><input type="hidden" name="id" value={id} /><input type="hidden" name="alert_id" value={a.id} /><Button variant="ghost" className="px-2 py-1 text-xs">Cancelar</Button></form>}
+              </span>
+            </li>
+          ))}</ul>
+        )}
+        {canWrite && (
+          <form action={addInterestAction} className="mt-3 grid gap-2 sm:grid-cols-[1fr_6rem_1fr_auto] sm:items-end">
+            <input type="hidden" name="id" value={id} />
+            <select name="product_id" required className={inputClass} aria-label="Produto" defaultValue=""><option value="" disabled>Produto…</option>{(products.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+            <input name="size" required maxLength={6} placeholder="Tamanho" aria-label="Tamanho" className={`${inputClass} uppercase`} />
+            <input name="note" maxLength={200} placeholder="Observação (cor, ocasião…)" aria-label="Observação" className={inputClass} />
+            <Button variant="secondary">Registrar</Button>
+          </form>
+        )}
+      </Card>
 
       <Card className="mt-4" title="Linha do tempo">
         {(timeline.data ?? []).length === 0 ? <Empty title="Sem eventos" /> : (

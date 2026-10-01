@@ -12,7 +12,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
-  use: { baseURL: "http://localhost:3000", trace: "retain-on-failure", locale: "pt-BR", timezoneId: "America/Sao_Paulo" },
+  use: { baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000", trace: "retain-on-failure", locale: "pt-BR", timezoneId: "America/Sao_Paulo" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } }, testIgnore: "**/mobile.e2e.ts" },
     { name: "celular", use: { ...devices["Pixel 7"] }, testMatch: "**/mobile.e2e.ts" },

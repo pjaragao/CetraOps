@@ -30,13 +30,13 @@ export function ConversationPane(props: {
   conversationId: string; mode: ConvMode; channel: MessagingChannel; lastInboundAt: string | null;
   customerName: string; messages: Msg[]; draft: Draft | null; backHref: string; templates: Tpl[]; quickReplies: QuickReply[];
   aiPausedUntil: string | null; aiInstruction: string | null; assigneeId: string | null; meId: string; members: Member[]; notes: Note[];
-  suggestedOutcome: string | null;
+  suggestedOutcome: string | null; initialText?: string;
 }) {
   const router = useRouter();
   const [closeOpen, setCloseOpen] = useState(false);
   const [outcome, setOutcome] = useState(props.suggestedOutcome ?? "RESOLVED");
   const [outcomeNote, setOutcomeNote] = useState("");
-  const [text, setText] = useState("");
+  const [text, setText] = useState(props.initialText ?? "");   // mensagem pronta vinda da lista do dia
   const [editingDraft, setEditingDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();

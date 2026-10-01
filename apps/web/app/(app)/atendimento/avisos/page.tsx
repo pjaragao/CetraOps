@@ -16,6 +16,7 @@ const EVENTS: Record<string, { label: string; when: string; vars: string; defaul
   RESERVATION_EXPIRING: { label: "Reserva vencendo", when: "Reserva ativa vence nas próximas 6 horas.", vars: "{nome} {prazo}", defaultText: "Oi, {nome}! A peça que separamos para você fica reservada até {prazo}. Quer que a gente segure mais um pouco?" },
   PAYMENT_LINK_REMINDER: { label: "Lembrete do link de pagamento", when: "Link enviado há 2 horas e ainda não pago (uma vez).", vars: "{nome} {pedido} {link}", defaultText: "Oi, {nome}! Passando para lembrar do link do pedido {pedido}: {link} . Se preferir, dá para pagar na loja também." },
   STORE_CREDIT_ISSUED: { label: "Vale-troca gerado", when: "Vale-troca de devolução, cortesia ou comissão de afiliada.", vars: "{nome} {valor}", defaultText: "Oi, {nome}! Geramos um vale-troca de {valor} para você usar na SIÉ. Ele já está no seu cadastro." },
+  BACK_IN_STOCK: { label: "Chegou o tamanho (avise-me)", when: "O tamanho que a cliente pediu entrou no estoque (a peça fica separada 24 h para ela).", vars: "{nome} {codigo} = produto, {prazo} = reserva", defaultText: "Oi, {nome}! Chegou {codigo} no tamanho que você pediu. {prazo} 💛" },
   EVENT_REMINDER: { label: "Lembrete de evento", when: "Convidada confirmada, evento em cerca de 24 horas.", vars: "{nome} {evento} {prazo}", defaultText: "Oi, {nome}! Lembrando do {evento} amanhã, {prazo}. Te esperamos! ✨" },
 };
 const STATUS: Record<string, { label: string; tone: "success" | "info" | "warning" | "neutral" }> = {

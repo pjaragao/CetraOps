@@ -4952,6 +4952,76 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"journey_enrollments": {
+                  Row: {
+                    "converted_at": string | null,"converted_order_id": string | null,"enrolled_at": string,"exit_reason": string | null,"finished_at": string | null,"grp": string,"id": string,"journey_id": string,"next_run_at": string | null,"next_step": number,"org_id": string,"party_id": string,"source_key": string,"status": string
+                  }
+                  Insert: {
+                    "converted_at"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp": string,"id"?: string,"journey_id": string,"next_run_at"?: string | null,"next_step"?: number,"org_id": string,"party_id": string,"source_key": string,"status"?: string
+                  }
+                  Update: {
+                    "converted_at"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp"?: string,"id"?: string,"journey_id"?: string,"next_run_at"?: string | null,"next_step"?: number,"org_id"?: string,"party_id"?: string,"source_key"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "journey_enrollments_journey_id_fkey"
+      columns: ["journey_id"]
+isOneToOne: false
+      referencedRelation: "journeys"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"journey_events": {
+                  Row: {
+                    "created_at": string,"enrollment_id": string,"id": number,"message_id": string | null,"org_id": string,"reason": string | null,"result": string,"step_position": number,"task_id": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"enrollment_id": string,"id"?: never,"message_id"?: string | null,"org_id": string,"reason"?: string | null,"result": string,"step_position": number,"task_id"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"enrollment_id"?: string,"id"?: never,"message_id"?: string | null,"org_id"?: string,"reason"?: string | null,"result"?: string,"step_position"?: number,"task_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "journey_events_enrollment_id_fkey"
+      columns: ["enrollment_id"]
+isOneToOne: false
+      referencedRelation: "journey_enrollments"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"journey_steps": {
+                  Row: {
+                    "action": string,"due_hours": number,"id": string,"journey_id": string,"message": string | null,"org_id": string,"position": number,"template_id": string | null,"template_vars": NonNullable<Json>,"title": string,"wait_days": number
+                  }
+                  Insert: {
+                    "action": string,"due_hours"?: number,"id"?: string,"journey_id": string,"message"?: string | null,"org_id": string,"position": number,"template_id"?: string | null,"template_vars"?: NonNullable<Json>,"title": string,"wait_days"?: number
+                  }
+                  Update: {
+                    "action"?: string,"due_hours"?: number,"id"?: string,"journey_id"?: string,"message"?: string | null,"org_id"?: string,"position"?: number,"template_id"?: string | null,"template_vars"?: NonNullable<Json>,"title"?: string,"wait_days"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "journey_steps_journey_id_fkey"
+      columns: ["journey_id"]
+isOneToOne: false
+      referencedRelation: "journeys"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"journeys": {
+                  Row: {
+                    "active": boolean,"created_at": string,"description": string | null,"exit_on_purchase": boolean,"holdout_pct": number,"id": string,"key": string,"name": string,"org_id": string,"trigger": string,"trigger_config": NonNullable<Json>,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"description"?: string | null,"exit_on_purchase"?: boolean,"holdout_pct"?: number,"id"?: string,"key": string,"name": string,"org_id": string,"trigger": string,"trigger_config"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"description"?: string | null,"exit_on_purchase"?: boolean,"holdout_pct"?: number,"id"?: string,"key"?: string,"name"?: string,"org_id"?: string,"trigger"?: string,"trigger_config"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"tracking_links": {
                   Row: {
                     "active": boolean,"affiliate_party_id": string | null,"channel_account_id": string,"code": string,"created_at": string,"created_by": string | null,"event_id": string | null,"id": string,"kind": string,"name": string,"org_id": string,"prefill_text": string | null,"updated_at": string
@@ -5032,6 +5102,9 @@ isOneToOne: false
 "delete_campaign":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"delete_journey_step":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "event_guest_sales":
 { Args: { "p_event": string }; Returns: {
               "orders": number,"party_id": string,"revenue": number
@@ -5045,6 +5118,9 @@ isOneToOne: false
                            },
 "invite_guests":
 { Args: { "p_event": string,"p_parties": (string)[],"p_source"?: string }; Returns: number
+                           },
+"journey_report":
+{ Args: { "p_days"?: number,"p_journey": string }; Returns: Json
                            },
 "launch_campaign":
 { Args: { "p_id": string }; Returns: {
@@ -5118,6 +5194,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_contact_policy":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "save_event":
 { Args: { "p": Json }; Returns: {
               "capacity": number | null,
@@ -5141,6 +5220,47 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "events"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_journey":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"created_at": string,
+"description": string | null,
+"exit_on_purchase": boolean,
+"holdout_pct": number,
+"id": string,
+"key": string,
+"name": string,
+"org_id": string,
+"trigger": string,
+"trigger_config": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "journeys"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_journey_step":
+{ Args: { "p": Json }; Returns: {
+              "action": string,
+"due_hours": number,
+"id": string,
+"journey_id": string,
+"message": string | null,
+"org_id": string,
+"position": number,
+"template_id": string | null,
+"template_vars": NonNullable<Json>,
+"title": string,
+"wait_days": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "journey_steps"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -5189,6 +5309,27 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "events"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_journey_active":
+{ Args: { "p_active": boolean,"p_id": string }; Returns: {
+              "active": boolean,
+"created_at": string,
+"description": string | null,
+"exit_on_purchase": boolean,
+"holdout_pct": number,
+"id": string,
+"key": string,
+"name": string,
+"org_id": string,
+"trigger": string,
+"trigger_config": NonNullable<Json>,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "journeys"
         isOneToOne: true
         isSetofReturn: false
       } },

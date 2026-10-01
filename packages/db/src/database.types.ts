@@ -1727,6 +1727,56 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"party_merge_log": {
+                  Row: {
+                    "id": string,"kept_id": string,"merged_at": string,"merged_by": string | null,"merged_id": string,"merged_name": string,"moved": NonNullable<Json>,"org_id": string,"skipped": (string)[]
+                  }
+                  Insert: {
+                    "id"?: string,"kept_id": string,"merged_at"?: string,"merged_by"?: string | null,"merged_id": string,"merged_name": string,"moved"?: NonNullable<Json>,"org_id": string,"skipped"?: (string)[]
+                  }
+                  Update: {
+                    "id"?: string,"kept_id"?: string,"merged_at"?: string,"merged_by"?: string | null,"merged_id"?: string,"merged_name"?: string,"moved"?: NonNullable<Json>,"org_id"?: string,"skipped"?: (string)[]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "party_merge_log_kept_id_fkey"
+      columns: ["kept_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "party_merge_log_merged_id_fkey"
+      columns: ["merged_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"party_relations": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"from_party": string,"id": string,"kind": string,"note": string | null,"org_id": string,"to_party": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"from_party": string,"id"?: string,"kind": string,"note"?: string | null,"org_id": string,"to_party": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"from_party"?: string,"id"?: string,"kind"?: string,"note"?: string | null,"org_id"?: string,"to_party"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "party_relations_from_party_fkey"
+      columns: ["from_party"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "party_relations_to_party_fkey"
+      columns: ["to_party"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"party_roles": {
                   Row: {
                     "created_at": string,"org_id": string,"party_id": string,"role": Database["crm"]['Enums']["party_role"]
@@ -1895,10 +1945,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"v_relatives": {
+                  Row: {
+                    "org_id": string | null,"party_id": string | null,"relation_id": string | null,"relative_id": string | null,"role": string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Functions: {
-            "add_interest":
+            "add_contact":
+{ Args: { "p_party": string,"p_primary"?: boolean,"p_type": Database["crm"]['Enums']["contact_type"],"p_value": string }; Returns: string
+                           },
+"add_interest":
 { Args: { "p_color"?: string,"p_note"?: string,"p_party": string,"p_product": string,"p_size": string }; Returns: {
               "color_id": string | null,
 "created_at": string,
@@ -1920,6 +1980,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"add_relation":
+{ Args: { "p_note"?: string,"p_other": string,"p_party": string,"p_role": string }; Returns: string
+                           },
 "audience":
 { Args: { "p_def": Json }; Returns: {
               "party_id": string
@@ -1928,13 +1991,63 @@ isOneToOne: false
 "cancel_interest":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"create_party":
+{ Args: { "p": Json }; Returns: {
+              "anonymized_at": string | null,
+"archived_at": string | null,
+"birth_date": string | null,
+"city": string | null,
+"cnpj": string | null,
+"created_at": string,
+"custom_fields": NonNullable<Json>,
+"display_name": string,
+"first_purchase_at": string | null,
+"first_touch_at": string,
+"gender": string | null,
+"home_store_id": string | null,
+"id": string,
+"instagram_handle": string | null,
+"joy_member_status": string,
+"kind": Database["crm"]['Enums']["party_kind"],
+"last_purchase_at": string | null,
+"lead_score": number,
+"legal_name": string | null,
+"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],
+"merged_into_id": string | null,
+"org_id": string,
+"preferences": NonNullable<Json>,
+"profession": string | null,
+"relationship_owner_member_id": string | null,
+"score_breakdown": NonNullable<Json>,
+"sizes": NonNullable<Json>,
+"source": string | null,
+"tags": (string)[],
+"tier": Database["crm"]['Enums']["tier"],
+"tier_manual": boolean,
+"uf": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "parties"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "daily_actions":
 { Args: { "p_limit"?: number }; Returns: {
               "at_risk": boolean,"due_at": string,"overdue": boolean,"party_id": string,"party_name": string,"priority": number,"reason": string,"revenue_12m": number,"suggested_message": string,"task_id": string,"tier": string,"title": string,"type": string
             }[]
                            },
+"delete_address":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "delete_deal":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"duplicate_candidates":
+{ Args: { "p_party": string }; Returns: {
+              "display_name": string,"party_id": string,"reason": string
+            }[]
                            },
 "finish_task":
 { Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
@@ -1976,6 +2089,9 @@ isOneToOne: false
 "lifecycle_overview":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
+"merge_parties":
+{ Args: { "p_dup": string,"p_keep": string }; Returns: Json
+                           },
 "move_deal":
 { Args: { "p_deal": string,"p_reason"?: string,"p_stage": string }; Returns: {
               "conversation_id": string | null,
@@ -2008,6 +2124,17 @@ isOneToOne: false
 "refresh_lifecycle":
 { Args: { "p_party"?: string }; Returns: number
                            },
+"relatives_of":
+{ Args: { "p_party": string }; Returns: {
+              "birth_date": string,"birthday_in_days": number,"gender": string,"note": string,"relation_id": string,"relative_id": string,"relative_name": string,"role": string
+            }[]
+                           },
+"remove_contact":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"remove_relation":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "reschedule_task":
 { Args: { "p_due": string,"p_id": string }; Returns: {
               "assignee_member_id": string | null,
@@ -2036,6 +2163,9 @@ isOneToOne: false
       } },
 "resolve_identity":
 { Args: { "p_display_name"?: string,"p_org": string,"p_source"?: string,"p_type": Database["crm"]['Enums']["contact_type"],"p_value": string }; Returns: string
+                           },
+"save_address":
+{ Args: { "p": Json }; Returns: string
                            },
 "save_deal":
 { Args: { "p": Json }; Returns: {
@@ -2141,6 +2271,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_party_roles":
+{ Args: { "p_party": string,"p_roles": (string)[] }; Returns: undefined
+                           },
 "set_task_status":
 { Args: { "p_id": string,"p_status": string }; Returns: {
               "assignee_member_id": string | null,
@@ -2170,6 +2303,48 @@ isOneToOne: false
 "tier_benefits":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"update_party_identity":
+{ Args: { "p": Json,"p_party": string }; Returns: {
+              "anonymized_at": string | null,
+"archived_at": string | null,
+"birth_date": string | null,
+"city": string | null,
+"cnpj": string | null,
+"created_at": string,
+"custom_fields": NonNullable<Json>,
+"display_name": string,
+"first_purchase_at": string | null,
+"first_touch_at": string,
+"gender": string | null,
+"home_store_id": string | null,
+"id": string,
+"instagram_handle": string | null,
+"joy_member_status": string,
+"kind": Database["crm"]['Enums']["party_kind"],
+"last_purchase_at": string | null,
+"lead_score": number,
+"legal_name": string | null,
+"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],
+"merged_into_id": string | null,
+"org_id": string,
+"preferences": NonNullable<Json>,
+"profession": string | null,
+"relationship_owner_member_id": string | null,
+"score_breakdown": NonNullable<Json>,
+"sizes": NonNullable<Json>,
+"source": string | null,
+"tags": (string)[],
+"tier": Database["crm"]['Enums']["tier"],
+"tier_manual": boolean,
+"uf": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "parties"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "update_profile":
 { Args: { "p": Json,"p_party": string }; Returns: {
               "anonymized_at": string | null,

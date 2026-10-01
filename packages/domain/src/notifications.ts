@@ -35,6 +35,8 @@ const KINDS: Record<string, (p: Payload) => NotificationView> = {
   CAMPAIGN: (p) => ({ label: "Campanha", tone: "success", href: str(p.campaign_id) ? `/marketing/campanhas/${str(p.campaign_id)}` : "/marketing" }),
   PERSONA: (p) => ({ label: "Persona", tone: "info", href: str(p.persona_id) ? `/ia/personas/${str(p.persona_id)}` : "/ia/personas" }),
   CSAT_LOW: (p) => ({ label: "Nota baixa no atendimento", tone: "danger", href: str(p.party_id) ? `/clientes/${str(p.party_id)}` : "/atendimento" }),
+  CASE_OPENED: (p) => ({ label: "Caso aberto", tone: "warning", href: "/clientes/casos" + (str(p.case_id) ? "" : "") }),
+  CASE_LATE: () => ({ label: "Caso atrasado", tone: "danger", href: "/clientes/casos?filtro=atrasados" }),
   CUSTOMER_AT_RISK: (p) => ({ label: "Cliente em risco", tone: "warning", href: str(p.party_id) ? `/clientes/${str(p.party_id)}` : "/clientes/ciclo-de-vida" }),
   PAYMENT_LINK_REQUESTED: (p) => ({ label: "Link de pagamento", tone: "info", href: str(p.order_id) ? `/vender/pedidos/${str(p.order_id)}` : "/vender/pedidos" }),
 };

@@ -22,6 +22,12 @@ export async function saveRoutingAction(formData: FormData) {
   back(error, "Distribuição salva");
 }
 
+export async function saveNpsAction(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("save_nps_settings", { p: { enabled: formData.get("enabled") === "on", delay_days: Number(formData.get("delay_days") || 10), thanks: str(formData.get("thanks")) } as Json });
+  back(error, "NPS salvo");
+}
+
 export async function saveCsatAction(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.schema("omni").rpc("save_csat_settings", { p: {

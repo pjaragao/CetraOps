@@ -1519,7 +1519,32 @@ isOneToOne: false
           }
         },"crm": {
           Tables: {
-            "consents": {
+            "cases": {
+                  Row: {
+                    "conversation_id": string | null,"courtesy_amount": number,"courtesy_ledger_id": number | null,"description": string | null,"first_response_at": string | null,"first_response_due": string,"followup_task_id": string | null,"id": string,"kind": string,"late_alerted": boolean,"number": string,"opened_at": string,"opened_by": string | null,"org_id": string,"owner_member_id": string | null,"party_id": string,"resolve_due": string,"resolved_at": string | null,"solution": string | null,"source": string,"source_ref": string | null,"status": string,"title": string
+                  }
+                  Insert: {
+                    "conversation_id"?: string | null,"courtesy_amount"?: number,"courtesy_ledger_id"?: number | null,"description"?: string | null,"first_response_at"?: string | null,"first_response_due": string,"followup_task_id"?: string | null,"id"?: string,"kind": string,"late_alerted"?: boolean,"number": string,"opened_at"?: string,"opened_by"?: string | null,"org_id": string,"owner_member_id"?: string | null,"party_id": string,"resolve_due": string,"resolved_at"?: string | null,"solution"?: string | null,"source"?: string,"source_ref"?: string | null,"status"?: string,"title": string
+                  }
+                  Update: {
+                    "conversation_id"?: string | null,"courtesy_amount"?: number,"courtesy_ledger_id"?: number | null,"description"?: string | null,"first_response_at"?: string | null,"first_response_due"?: string,"followup_task_id"?: string | null,"id"?: string,"kind"?: string,"late_alerted"?: boolean,"number"?: string,"opened_at"?: string,"opened_by"?: string | null,"org_id"?: string,"owner_member_id"?: string | null,"party_id"?: string,"resolve_due"?: string,"resolved_at"?: string | null,"solution"?: string | null,"source"?: string,"source_ref"?: string | null,"status"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cases_followup_task_id_fkey"
+      columns: ["followup_task_id"]
+isOneToOne: false
+      referencedRelation: "tasks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cases_party_id_fkey"
+      columns: ["party_id"]
+isOneToOne: false
+      referencedRelation: "parties"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"consents": {
                   Row: {
                     "created_at": string,"evidence": NonNullable<Json>,"granted": boolean,"id": string,"legal_basis": Database["crm"]['Enums']["legal_basis"],"org_id": string,"party_id": string,"purpose": Database["crm"]['Enums']["consent_purpose"],"recorded_by": string | null
                   }
@@ -1983,6 +2008,38 @@ isOneToOne: false
 "add_relation":
 { Args: { "p_note"?: string,"p_other": string,"p_party": string,"p_role": string }; Returns: string
                            },
+"assign_case":
+{ Args: { "p_id": string,"p_member": string }; Returns: {
+              "conversation_id": string | null,
+"courtesy_amount": number,
+"courtesy_ledger_id": number | null,
+"description": string | null,
+"first_response_at": string | null,
+"first_response_due": string,
+"followup_task_id": string | null,
+"id": string,
+"kind": string,
+"late_alerted": boolean,
+"number": string,
+"opened_at": string,
+"opened_by": string | null,
+"org_id": string,
+"owner_member_id": string | null,
+"party_id": string,
+"resolve_due": string,
+"resolved_at": string | null,
+"solution": string | null,
+"source": string,
+"source_ref": string | null,
+"status": string,
+"title": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cases"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "audience":
 { Args: { "p_def": Json }; Returns: {
               "party_id": string
@@ -1991,6 +2048,38 @@ isOneToOne: false
 "cancel_interest":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"case_responded":
+{ Args: { "p_id": string }; Returns: {
+              "conversation_id": string | null,
+"courtesy_amount": number,
+"courtesy_ledger_id": number | null,
+"description": string | null,
+"first_response_at": string | null,
+"first_response_due": string,
+"followup_task_id": string | null,
+"id": string,
+"kind": string,
+"late_alerted": boolean,
+"number": string,
+"opened_at": string,
+"opened_by": string | null,
+"org_id": string,
+"owner_member_id": string | null,
+"party_id": string,
+"resolve_due": string,
+"resolved_at": string | null,
+"solution": string | null,
+"source": string,
+"source_ref": string | null,
+"status": string,
+"title": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cases"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "create_party":
 { Args: { "p": Json }; Returns: {
               "anonymized_at": string | null,
@@ -2115,12 +2204,52 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"open_case":
+{ Args: { "p": Json }; Returns: {
+              "conversation_id": string | null,
+"courtesy_amount": number,
+"courtesy_ledger_id": number | null,
+"description": string | null,
+"first_response_at": string | null,
+"first_response_due": string,
+"followup_task_id": string | null,
+"id": string,
+"kind": string,
+"late_alerted": boolean,
+"number": string,
+"opened_at": string,
+"opened_by": string | null,
+"org_id": string,
+"owner_member_id": string | null,
+"party_id": string,
+"resolve_due": string,
+"resolved_at": string | null,
+"solution": string | null,
+"source": string,
+"source_ref": string | null,
+"status": string,
+"title": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cases"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "outreach_set_draft":
 { Args: { "p_id": string,"p_message": string }; Returns: undefined
                            },
 "quick_customer":
 { Args: { "p_marketing_whatsapp"?: boolean,"p_name"?: string,"p_phone": string }; Returns: string
                            },
+"record_nps":
+{ Args: { "p_comment"?: string,"p_order"?: string,"p_party": string,"p_score": number }; Returns: Database["omni"]['Tables']["nps_responses"]['Row']
+                          SetofOptions: {
+        from: "*"
+        to: "nps_responses"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "refresh_lifecycle":
 { Args: { "p_party"?: string }; Returns: number
                            },
@@ -2135,6 +2264,38 @@ isOneToOne: false
 "remove_relation":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"reopen_case":
+{ Args: { "p_id": string }; Returns: {
+              "conversation_id": string | null,
+"courtesy_amount": number,
+"courtesy_ledger_id": number | null,
+"description": string | null,
+"first_response_at": string | null,
+"first_response_due": string,
+"followup_task_id": string | null,
+"id": string,
+"kind": string,
+"late_alerted": boolean,
+"number": string,
+"opened_at": string,
+"opened_by": string | null,
+"org_id": string,
+"owner_member_id": string | null,
+"party_id": string,
+"resolve_due": string,
+"resolved_at": string | null,
+"solution": string | null,
+"source": string,
+"source_ref": string | null,
+"status": string,
+"title": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cases"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "reschedule_task":
 { Args: { "p_due": string,"p_id": string }; Returns: {
               "assignee_member_id": string | null,
@@ -2158,6 +2319,38 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "tasks"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"resolve_case":
+{ Args: { "p_courtesy"?: number,"p_id": string,"p_solution": string }; Returns: {
+              "conversation_id": string | null,
+"courtesy_amount": number,
+"courtesy_ledger_id": number | null,
+"description": string | null,
+"first_response_at": string | null,
+"first_response_due": string,
+"followup_task_id": string | null,
+"id": string,
+"kind": string,
+"late_alerted": boolean,
+"number": string,
+"opened_at": string,
+"opened_by": string | null,
+"org_id": string,
+"owner_member_id": string | null,
+"party_id": string,
+"resolve_due": string,
+"resolved_at": string | null,
+"solution": string | null,
+"source": string,
+"source_ref": string | null,
+"status": string,
+"title": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cases"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -6007,6 +6200,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"nps_responses": {
+                  Row: {
+                    "answered_at": string | null,"asked_at": string,"channel_account_id": string | null,"comment": string | null,"id": string,"order_id": string | null,"org_id": string,"party_id": string,"score": number | null,"via": string
+                  }
+                  Insert: {
+                    "answered_at"?: string | null,"asked_at"?: string,"channel_account_id"?: string | null,"comment"?: string | null,"id"?: string,"order_id"?: string | null,"org_id": string,"party_id": string,"score"?: number | null,"via"?: string
+                  }
+                  Update: {
+                    "answered_at"?: string | null,"asked_at"?: string,"channel_account_id"?: string | null,"comment"?: string | null,"id"?: string,"order_id"?: string | null,"org_id"?: string,"party_id"?: string,"score"?: number | null,"via"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "nps_responses_channel_account_id_fkey"
+      columns: ["channel_account_id"]
+isOneToOne: false
+      referencedRelation: "channel_accounts"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"quick_replies": {
                   Row: {
                     "body": string,"id": string,"org_id": string,"shortcut": string
@@ -6209,6 +6421,9 @@ isOneToOne: false
 "mark_read":
 { Args: { "p_conversation": string }; Returns: undefined
                            },
+"nps_summary":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "open_conversation_for":
 { Args: { "p_party": string }; Returns: string
                            },
@@ -6394,6 +6609,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_nps_settings":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "save_quick_reply":
 { Args: { "p_body": string,"p_id"?: string,"p_shortcut": string }; Returns: {
               "body": string,

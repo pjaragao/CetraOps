@@ -3,7 +3,7 @@ import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { Button, Card, inputClass, PageHeader } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
-import { saveCsatAction, saveRoutingAction } from "./actions";
+import { saveCsatAction, saveNpsAction, saveRoutingAction } from "./actions";
 
 export const metadata = { title: "Distribuição e satisfação" };
 
@@ -14,13 +14,15 @@ export default async function RegrasPage({ searchParams }: { searchParams: SP })
   const session = await requirePerm("omni.read");
   const sp = await searchParams;
   const supabase = await createClient();
-  const [{ data: settings }, { data: members }] = await Promise.all([
-    supabase.schema("core").from("settings").select("key, value").in("key", ["routing", "csat"]),
+  const [{ data: settings }, { data: npsRule }, { data: members }] = await Promise.all([
+    supabase.schema("core").from("settings").select("key, value").in("key", ["routing", "csat", "nps"]),
+    supabase.schema("omni").from("notice_rules").select("active").eq("event", "NPS_ASK").maybeSingle(),
     supabase.schema("core").from("members").select("id, display_name").eq("status", "ACTIVE").order("display_name"),
   ]);
   const get = (k: string) => (settings ?? []).find((s) => s.key === k)?.value as Record<string, unknown> | undefined;
   const routing: Routing = { enabled: false, max_open_per_member: 15, on_call_member_id: null, use_roster: true, ...(get("routing") as Partial<Routing>) };
   const csat: Csat = { enabled: false, question: "Antes de ir: de 1 a 5, como foi o seu atendimento? (5 = ótimo) Responda só com o número.", thanks: "Obrigada pela nota! 💛", ...(get("csat") as Partial<Csat>) };
+  const nps = { delay_days: 10, thanks: "Obrigada pela resposta! 💛", ...(get("nps") as { delay_days?: number; thanks?: string } | undefined) };
   const isAdmin = can(session, "core.admin");
   const canWrite = can(session, "omni.write");
 
@@ -49,6 +51,17 @@ export default async function RegrasPage({ searchParams }: { searchParams: SP })
           <Field label="Pergunta"><input name="question" maxLength={300} defaultValue={csat.question} disabled={!canWrite} className={inputClass} /></Field>
           <Field label="Agradecimento"><input name="thanks" maxLength={200} defaultValue={csat.thanks} disabled={!canWrite} className={inputClass} /></Field>
           {canWrite && <Button>Salvar pesquisa</Button>}
+        </form>
+      </Card>
+      <Card className="mt-4" title="NPS (indicaria a SIÉ para uma amiga?)">
+        <p className="mb-3 text-sm text-muted">Alguns dias depois da compra a cliente recebe a pergunta de 0 a 10 (texto se a janela estiver aberta; senão, o template de utilidade escolhido em Avisos automáticos; sem template, vira tarefa). Responder só com o número grava a nota. Nota até 6 abre um caso; 9 ou 10 vira convite para indicar uma amiga.</p>
+        <form action={saveNpsAction} className="space-y-3">
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={Boolean(npsRule?.active)} disabled={!canWrite} /> Ligado</label>
+          <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
+            <Field label="Perguntar após (dias)"><input name="delay_days" type="number" min={3} max={60} defaultValue={nps.delay_days} disabled={!canWrite} className={inputClass} /></Field>
+            <Field label="Agradecimento"><input name="thanks" maxLength={200} defaultValue={nps.thanks} disabled={!canWrite} className={inputClass} /></Field>
+          </div>
+          {canWrite && <Button>Salvar NPS</Button>}
         </form>
       </Card>
     </>

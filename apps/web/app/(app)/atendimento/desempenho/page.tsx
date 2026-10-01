@@ -36,13 +36,15 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: S
   const sp = await searchParams;
   const b = periodBounds(str(sp.periodo));
   const supabase = await createClient();
-  const [{ data, error }, { data: outcomes }, { data: csatData }, { data: topics }, { data: members }] = await Promise.all([
+  const [{ data, error }, { data: outcomes }, { data: csatData }, { data: topics }, { data: members }, { data: npsData }] = await Promise.all([
     supabase.schema("omni").rpc("performance", { p_from: b.fromTs, p_to: b.toTs }),
     supabase.schema("omni").rpc("outcomes", { p_from: b.fromTs, p_to: b.toTs }),
     supabase.schema("omni").rpc("csat_summary", { p_from: b.fromTs, p_to: b.toTs }),
     supabase.schema("omni").rpc("topics_report", { p_from: b.fromTs, p_to: b.toTs }),
     supabase.schema("core").from("members").select("id, display_name"),
+    supabase.schema("omni").rpc("nps_summary", { p_from: b.fromTs, p_to: b.toTs }),
   ]);
+  const nps = npsData as unknown as { asked: number; answered: number; promoters: number; passives: number; detractors: number; nps: number | null } | null;
   const csat = csatData as unknown as { asked: number; answered: number; avg: number | null; low: number; by_member: { member_id: string; n: number; avg: number }[] } | null;
   const memberName = new Map((members ?? []).map((m) => [m.id, m.display_name]));
   const d = data as unknown as Perf | null;
@@ -95,6 +97,11 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: S
                   <p><span className="text-2xl font-semibold tabular-nums">{csat.avg ?? "—"}</span> <span className="text-muted">média · {csat.answered} de {csat.asked} responderam ({pct(csat.answered, csat.asked)}) · {csat.low} nota(s) até 3</span></p>
                   {csat.by_member.length > 0 && <ul className="text-xs text-muted">{csat.by_member.map((m) => <li key={m.member_id}>{memberName.get(m.member_id) ?? "—"}: {m.avg} ({m.n})</li>)}</ul>}
                 </div>
+              )}
+            </Card>
+            <Card title="NPS">
+              {!nps || nps.asked === 0 ? <p className="text-sm text-muted">Nenhuma pergunta no período. Ligue em Atendimento › Distribuição e satisfação.</p> : (
+                <p className="text-sm"><span className="text-2xl font-semibold tabular-nums">{nps.nps ?? "—"}</span> <span className="text-muted">{nps.answered} de {nps.asked} responderam · {nps.promoters} promotoras · {nps.passives} neutras · {nps.detractors} detratoras</span></p>
               )}
             </Card>
             <Card title="O que as clientes mais perguntam">

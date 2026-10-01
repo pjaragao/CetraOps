@@ -8,6 +8,7 @@ import { Badge, Button, Card, Empty, inputClass, LinkButton, PageHeader, Stat } 
 import { Flash } from "@/components/form";
 import { ForHerNow, type ForHerNowData } from "@/components/for-her-now";
 import { addInterestAction, cancelInterestAction, refreshLifecycleAction, setConsentAction } from "../actions";
+import { openCaseAction, recordNpsAction } from "../casos/actions";
 
 export const metadata = { title: "Cliente 360°" };
 
@@ -180,6 +181,27 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
           </form>
         )}
       </Card>
+
+      {canWrite && (
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <Card title="Abrir caso (reclamação, defeito…)">
+            <form action={openCaseAction} className="grid gap-2 sm:grid-cols-[9rem_1fr_auto] sm:items-end">
+              <input type="hidden" name="party_id" value={id} /><input type="hidden" name="back" value={`/clientes/${id}`} />
+              <select name="kind" className={inputClass} aria-label="Tipo do caso" defaultValue="COMPLAINT"><option value="COMPLAINT">Reclamação</option><option value="DEFECT">Defeito / troca</option><option value="DELIVERY">Entrega</option><option value="SERVICE">Atendimento</option><option value="OTHER">Outro</option></select>
+              <input name="title" required minLength={3} maxLength={140} placeholder="O que aconteceu" aria-label="O que aconteceu" className={inputClass} />
+              <Button variant="secondary">Abrir caso</Button>
+            </form>
+          </Card>
+          <Card title="Registrar NPS (0 a 10)">
+            <form action={recordNpsAction} className="grid gap-2 sm:grid-cols-[6rem_1fr_auto] sm:items-end">
+              <input type="hidden" name="party_id" value={id} />
+              <input name="score" type="number" min={0} max={10} required placeholder="0 a 10" aria-label="Nota NPS" className={inputClass} />
+              <input name="comment" maxLength={400} placeholder="O que ela disse (opcional)" aria-label="Comentário do NPS" className={inputClass} />
+              <Button variant="secondary">Registrar</Button>
+            </form>
+          </Card>
+        </div>
+      )}
 
       <Card className="mt-4" title="Linha do tempo">
         {(timeline.data ?? []).length === 0 ? <Empty title="Sem eventos" /> : (

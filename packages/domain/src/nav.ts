@@ -56,6 +56,7 @@ export const NAV: NavArea[] = [
       { label: "Ciclo de vida", href: "/clientes/ciclo-de-vida", ready: true },
       { label: "Funis", href: "/clientes/funis", ready: true },
       { label: "Tarefas", href: "/clientes/tarefas", ready: true },
+      { label: "Casos", href: "/clientes/casos", ready: true },
       { label: "Prospecção assistida", href: "/clientes/prospeccao", ready: true },
       { label: "Afiliados", href: "/clientes/afiliados", ready: true },
     ],

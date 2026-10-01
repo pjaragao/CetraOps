@@ -8,6 +8,8 @@ export const TRIGGERS: Record<string, { label: string; help: string }> = {
   INACTIVE: { label: "Inativa", help: "Ficou inativa (padrão: 120 dias sem comprar)." },
   LONG_INACTIVE: { label: "Inativa há muito", help: "De 180 a 365 dias sem comprar." },
   DEAL_LOST: { label: "Oportunidade perdida", help: "Oportunidade perdida por um dos motivos escolhidos, N dias depois." },
+  RELATED_BIRTHDAY: { label: "Aniversário de parente", help: "N dias antes do aniversário de alguém da família cadastrada na ficha (vínculos). Use {parente}, {nome_parente} e {data_parente} no texto." },
+  OCCASION: { label: "Data comemorativa", help: "N dias antes da data escolhida, uma vez por ano, para quem tem parente cadastrado (Dia das Mães, Pais, Namorados, Natal, Mulher)." },
 };
 
 export const ACTIONS: Record<string, { label: string; help: string }> = {

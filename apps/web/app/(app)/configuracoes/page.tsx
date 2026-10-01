@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, requirePerm } from "@/lib/session";
 import { Badge, Button, Card, inputClass, PageHeader, Table } from "@/components/ui";
+import { EntityForm } from "./entity-form";
 
 export const metadata = { title: "Empresas & lojas" };
 
@@ -13,6 +14,7 @@ async function saveLegalEntity(formData: FormData) {
   await supabase.schema("core").from("legal_entities").insert({
     org_id: s.orgId, cnpj, razao_social: String(formData.get("razao_social")), nome_fantasia: String(formData.get("nome_fantasia") || "") || null,
     ie: String(formData.get("ie") || "") || null, cnae_principal: "4781400",
+    address: Object.fromEntries(["cep", "street", "number", "complement", "district", "city", "uf"].map((k) => [k, String(formData.get(`addr_${k}`) || "").trim()]).filter(([, v]) => v)),
     cnaes_secundarios: ["4763602", "4782201", "4782202", "4772500", "4789099", "4642701", "7319002", "8230001"],
   });
   revalidatePath("/configuracoes");
@@ -54,13 +56,7 @@ export default async function ConfiguracoesPage() {
             {(entities ?? []).map((e) => <tr key={e.id}><td className="px-3 py-2 whitespace-nowrap">{fmtCnpj(e.cnpj)}</td><td className="px-3 py-2">{e.razao_social}</td><td className="px-3 py-2">{e.tax_regime}</td></tr>)}
           </Table>
           <details className="mt-3"><summary className="cursor-pointer text-sm text-brand">+ Adicionar CNPJ</summary>
-            <form action={saveLegalEntity} className="mt-2 grid gap-2">
-              <input name="cnpj" required placeholder="CNPJ" className={inputClass} aria-label="CNPJ" />
-              <input name="razao_social" required placeholder="Razão social" className={inputClass} aria-label="Razão social" />
-              <input name="nome_fantasia" placeholder="Nome fantasia" className={inputClass} aria-label="Nome fantasia" />
-              <input name="ie" placeholder="Inscrição estadual" className={inputClass} aria-label="Inscrição estadual" />
-              <Button className="w-fit">Salvar</Button>
-            </form>
+            <EntityForm action={saveLegalEntity} />
           </details>
         </Card>
         <Card title="Lojas">

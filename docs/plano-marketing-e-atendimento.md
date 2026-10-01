@@ -909,25 +909,22 @@ Seguem as convenções do projeto:
 10. **Autorização da JOY** para QR nas áreas comuns, e regra para trainers como afiliados.
 11. **Metas iniciais** do §3.8 e data da primeira recalibração.
 
-## 5.6 Pedidos registrados em 01/10/2026 (para depois do plano)
+## 5.6 Pedidos de 01/10/2026: situação
 
-Pedidos do Paulo durante a implantação. Entram depois das fases 3 a 5, nesta ordem sugerida:
+Pedidos feitos pelo Paulo durante a implantação. **Entregues na `main` em 01/10/2026**, com o que cada um virou:
 
-1. **Cadastro de pessoas e empresas (pilar do sistema).** Tela própria para criar e editar pessoa física e jurídica (dados, contatos, endereços, papéis: cliente, fornecedor, colaborador, afiliada), com mesclagem de duplicados. Hoje a pessoa só nasce pelo PDV, pela conversa, pela admissão ou pela importação, e a ficha da cliente cobre só o lado comercial.
-2. **CEP preenche o endereço em todos os formulários** (BrasilAPI), com o número e o complemento digitados à mão.
-3. **Vínculos entre pessoas:** mãe/filha, casal, irmãs, amigas etc. Uso no marketing: avisar a filha no aniversário da mãe, no Dia das Mães, no Natal e em outras datas, para vender presente (régua nova com gatilho "data de alguém próximo"; respeita aceite e limites de contato).
-4. **Escala:**
-   - escala semanal padrão por colaborador, aplicada automaticamente a todos os meses (com exceções no dia);
-   - regras configuráveis, com liga/desliga: picos de cobertura (já editáveis), intervalo mínimo de almoço, jornada máxima, descanso de 11 h, sete dias seguidos;
-   - turnos prontos editáveis já existem; falta validar contra o intervalo mínimo configurado e usar esse mínimo como intervalo padrão;
-   - mostrar sempre o total de horas trabalhadas ao editar ou atribuir (no dia, na semana e no mês).
-5. **Admissão:**
-   - deixar claro na tela que Intermitente e Temporário são vínculos **CLT** (mesmos encargos: INSS patronal no Simples conforme o anexo, FGTS, férias e 13º proporcionais);
-   - criar a opção **freelancer sem vínculo (PJ ou MEI)** para datas especiais: cadastro como prestador, pagamento por nota/recibo como conta a pagar, sem folha nem encargos de CLT, com alerta de risco trabalhista se virar rotina.
-6. **Automação venda → financeiro e RH → financeiro (já existe; revisar com o Paulo):**
-   - venda: gera contas a **receber** automaticamente (cartão/Pix/boleto, com a agenda da maquininha); a comissão da vendedora entra na folha do mês (com DSR) quando o extrato é aprovado, e a de afiliada vira conta a pagar ou vale-troca; o DAS do mês vira conta a pagar; contratos (JOY) geram as parcelas;
-   - folha aprovada: gera conta a pagar do líquido de cada colaborador, guias de FGTS, INSS (DAE) e IRRF (DARF), benefícios e pensão, e o lançamento contábil por centro de custo; o rateio acontece na baixa (ADR 0002);
-   - a validar: se o Paulo quer o rateio já no título (e não só na baixa) e quais encargos ainda faltam no fluxo.
+1. **Cadastro de pessoas e empresas (pilar do sistema):** entregue. Nova área **Cadastros › Pessoas e Empresas**: lista com busca (nome, telefone, e-mail, CNPJ) e filtro por papel; ficha de cadastro para criar e corrigir identidade, contatos, endereços e papéis; mesclagem de duplicadas (sócio), com sugestão de possíveis duplicadas. A ficha comercial continua em Clientes, com atalho para o cadastro completo. Pendente: CPF no cadastro geral (hoje só na admissão, por ser dado sensível).
+2. **CEP preenche o endereço:** entregue em todos os formulários que têm endereço (admissão, cadastro de pessoa e empresa, novo CNPJ do grupo). O CNPJ completo também preenche razão social e endereço.
+3. **Vínculos entre pessoas:** entregue. Mãe/filha, casados, companheira(o), irmãs, avós, netas, tias/sobrinhas e amigas, vistos dos dois lados. Réguas novas (desligadas): aniversário de parente, Dia das Mães, Dia dos Pais, Dia dos Namorados, Natal e Dia da Mulher, com `{parente}`, `{nome_parente}` e `{data_parente}` no texto e dentro das regras de contato.
+4. **Escala:** entregue.
+   - escala semanal padrão por colaborador, aplicada em rascunho nos dias vazios dos próximos meses ao salvar e todo dia de madrugada;
+   - regras com liga/desliga e limites editáveis: descanso de 11 h, dias seguidos, jornada máxima, intervalo mínimo, horas semanais e cobertura dos picos; cada pico também liga e desliga;
+   - turnos e horários livres respeitam o intervalo mínimo, que já vem como padrão ao criar;
+   - total de horas trabalhadas ao vivo ao criar turno, lançar horário livre e na grade (dia, semana contra o contratado e mês).
+5. **Admissão:** entregue. Cada vínculo explica o que significa; Intermitente, Temporário e Aprendiz são CLT (mesmos encargos); Estágio e Sócio não. **Freelancer PJ/MEI** como aba própria: prestador sem vínculo, sem folha nem encargos, que vira conta a pagar em rascunho (conta 7.2.09), com alerta de risco trabalhista a partir de 6 diárias em 90 dias.
+6. **Automação venda → financeiro e RH → financeiro:** já existia; resposta ao Paulo:
+   - venda: gera contas a **receber** automaticamente (cartão, Pix, boleto, com a agenda da maquininha); a comissão da vendedora entra na folha do mês (com DSR) quando o extrato é aprovado, e a de afiliada vira conta a pagar ou vale-troca; o DAS do mês e as parcelas do contrato JOY viram contas a pagar;
+   - folha aprovada: gera conta a pagar do líquido de cada colaborador, guias de FGTS, INSS (DAE) e IRRF (DARF), benefícios e pensão, e o lançamento contábil por centro de custo; o rateio acontece na baixa (ADR 0002).
 
 ---
 

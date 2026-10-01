@@ -19,6 +19,8 @@ export async function saveJourneyAction(formData: FormData) {
   if (str(formData.get("days"))) cfg.days = Number(formData.get("days"));
   if (str(formData.get("days_before"))) cfg.days_before = Number(formData.get("days_before"));
   if (str(formData.get("after_days"))) cfg.after_days = Number(formData.get("after_days"));
+  if (str(formData.get("occasion"))) cfg.occasion = str(formData.get("occasion"));
+  if (formData.getAll("roles").length) cfg.roles = formData.getAll("roles").map(String);
   if (formData.has("reasons")) cfg.reasons = str(formData.get("reasons")).split(",").map((x) => x.trim()).filter(Boolean);
   const supabase = await createClient();
   const { data, error } = await supabase.schema("mkt").rpc("save_journey", { p: {

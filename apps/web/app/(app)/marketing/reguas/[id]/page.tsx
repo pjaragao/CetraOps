@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatBRL } from "@sie/domain";
+import { formatBRL, RELATION_OPTIONS, relativeLabel } from "@sie/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
@@ -29,7 +29,7 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
   if (!isNew && !j) notFound();
   const { data: rep } = j ? await supabase.schema("mkt").rpc("journey_report", { p_journey: j.id, p_days: 30 }) : { data: null };
   const r = rep as unknown as Report | null;
-  const cfg = (j?.trigger_config ?? {}) as { days?: number; days_before?: number; after_days?: number; reasons?: string[] };
+  const cfg = (j?.trigger_config ?? {}) as { days?: number; days_before?: number; after_days?: number; reasons?: string[]; occasion?: string; roles?: string[] };
   const editStep = (steps ?? []).find((s) => s.id === str(sp.passo));
   const nextPos = Math.min(10, ((steps ?? []).at(-1)?.position ?? 0) + 1);
   const t = r?.groups.TREATMENT, h = r?.groups.HOLDOUT;
@@ -92,7 +92,7 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
                   <Field label="Prazo da tarefa (h)"><input name="due_hours" type="number" min={1} max={720} defaultValue={editStep?.due_hours ?? 24} className={inputClass} /></Field>
                 </div>
                 <Field label="Título (tarefa)" hint="Use {nome}"><input name="title" required minLength={3} maxLength={140} defaultValue={editStep?.title ?? ""} className={inputClass} placeholder="Convidar {nome} para provar" /></Field>
-                <Field label="Mensagem" hint="Use {nome}, {tamanho}, {ultima_peca}, {data_limite}, {loja}"><textarea name="message" rows={3} maxLength={1000} defaultValue={editStep?.message ?? ""} className={inputClass} /></Field>
+                <Field label="Mensagem" hint="Use {nome}, {tamanho}, {ultima_peca}, {data_limite}, {loja}; nas réguas de família também {parente}, {nome_parente}, {data_parente}"><textarea name="message" rows={3} maxLength={1000} defaultValue={editStep?.message ?? ""} className={inputClass} /></Field>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Template de marketing (só para 'Template de marketing')"><select name="template_id" defaultValue={editStep?.template_id ?? ""} className={inputClass}><option value="">—</option>{(templates ?? []).map((tp) => <option key={tp.id} value={tp.id}>{tp.name}{tp.status !== "APPROVED" ? " (não aprovado)" : ""}</option>)}</select></Field>
                   <Field label="Variáveis do template, em ordem" hint="FIRST_NAME, SIZE, DEADLINE"><input name="template_vars" defaultValue={((editStep?.template_vars ?? []) as string[]).join(", ")} className={`${inputClass} font-mono text-xs`} /></Field>
@@ -120,6 +120,14 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
               <Field label="Aniversário: dias antes"><input name="days_before" type="number" min={0} max={30} defaultValue={cfg.days_before ?? ""} className={inputClass} placeholder="3" /></Field>
               <Field label="Perdida: dias depois"><input name="after_days" type="number" min={1} max={90} defaultValue={cfg.after_days ?? ""} className={inputClass} placeholder="7" /></Field>
               <Field label="Perdida: motivos" hint="Separados por vírgula"><input name="reasons" defaultValue={(cfg.reasons ?? []).join(", ")} className={inputClass} placeholder="sem retorno, tamanho" /></Field>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[14rem_1fr]">
+              <Field label="Data comemorativa" hint="Só para o gatilho “Data comemorativa”">
+                <select name="occasion" defaultValue={cfg.occasion ?? ""} className={inputClass}><option value="">—</option><option value="MOTHERS_DAY">Dia das Mães</option><option value="FATHERS_DAY">Dia dos Pais</option><option value="VALENTINES">Dia dos Namorados</option><option value="CHRISTMAS">Natal</option><option value="WOMENS_DAY">Dia da Mulher</option></select>
+              </Field>
+              <fieldset><legend className="mb-1 text-xs font-medium text-muted">Parentes que valem (vazio = o padrão da data)</legend>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">{RELATION_OPTIONS.map((o) => <label key={o.value} className="flex items-center gap-1"><input type="checkbox" name="roles" value={o.value} defaultChecked={(cfg.roles ?? []).includes(o.value)} />{relativeLabel(o.value, null)}</label>)}</div>
+              </fieldset>
             </div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="exit_on_purchase" defaultChecked={j?.exit_on_purchase ?? true} /> Sai da régua quando comprar (meta atingida)</label>
             <p className="text-xs text-muted">{j ? TRIGGERS[j.trigger]?.help : "Depois de salvar, crie os passos e ligue a régua."}</p>

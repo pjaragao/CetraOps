@@ -3743,13 +3743,13 @@ isOneToOne: false
                   ]
                 },"shift_templates": {
                   Row: {
-                    "active": boolean,"break_minutes": number,"code": string,"color": string,"end_time": string,"id": string,"name": string,"org_id": string,"start_time": string,"store_id": string | null
+                    "active": boolean,"break_minutes": number,"code": string,"color": string,"end_time": string,"id": string,"name": string,"org_id": string,"start_time": string,"store_id": string | null,"updated_at": string
                   }
                   Insert: {
-                    "active"?: boolean,"break_minutes"?: number,"code": string,"color"?: string,"end_time": string,"id"?: string,"name": string,"org_id": string,"start_time": string,"store_id"?: string | null
+                    "active"?: boolean,"break_minutes"?: number,"code": string,"color"?: string,"end_time": string,"id"?: string,"name": string,"org_id": string,"start_time": string,"store_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "active"?: boolean,"break_minutes"?: number,"code"?: string,"color"?: string,"end_time"?: string,"id"?: string,"name"?: string,"org_id"?: string,"start_time"?: string,"store_id"?: string | null
+                    "active"?: boolean,"break_minutes"?: number,"code"?: string,"color"?: string,"end_time"?: string,"id"?: string,"name"?: string,"org_id"?: string,"start_time"?: string,"store_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -4228,6 +4228,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"delete_coverage_rule":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"delete_shift_template":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "link_member":
 { Args: { "p_employee": string,"p_member": string }; Returns: undefined
                            },
@@ -4298,6 +4304,29 @@ isOneToOne: false
 "roll_vacation_status":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"save_coverage_rule":
+{ Args: { "p": Json }; Returns: number
+                           },
+"save_shift_template":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"break_minutes": number,
+"code": string,
+"color": string,
+"end_time": string,
+"id": string,
+"name": string,
+"org_id": string,
+"start_time": string,
+"store_id": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "shift_templates"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "schedule_vacation":
 { Args: { "p": Json }; Returns: {
               "created_at": string,
@@ -4344,6 +4373,52 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "roster"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_roster_hours":
+{ Args: { "p_break"?: number,"p_date": string,"p_employee": string,"p_end": string,"p_notes"?: string,"p_start": string }; Returns: {
+              "break_minutes": number,
+"employee_id": string,
+"end_time": string | null,
+"id": string,
+"kind": string,
+"notes": string | null,
+"org_id": string,
+"shift_id": string | null,
+"start_time": string | null,
+"status": string,
+"store_id": string,
+"updated_at": string,
+"updated_by": string | null,
+"work_date": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "roster"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_roster_notes":
+{ Args: { "p_date": string,"p_employee": string,"p_notes": string }; Returns: undefined
+                           },
+"set_shift_active":
+{ Args: { "p_active": boolean,"p_id": string }; Returns: {
+              "active": boolean,
+"break_minutes": number,
+"code": string,
+"color": string,
+"end_time": string,
+"id": string,
+"name": string,
+"org_id": string,
+"start_time": string,
+"store_id": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "shift_templates"
         isOneToOne: true
         isSetofReturn: false
       } },

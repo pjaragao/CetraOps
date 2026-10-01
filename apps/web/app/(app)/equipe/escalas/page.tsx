@@ -30,8 +30,8 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
 
   const [{ data: emps }, { data: roster }, { data: shifts }, { data: holidays }, { data: vacs }, { data: leaves }, { data: issues }, { data: rules }] = await Promise.all([
     supabase.schema("hr").from("employees").select("id, party_id, job_title, hire_date").eq("store_id", store).eq("status", "ACTIVE").neq("contract_type", "PRO_LABORE").order("hire_date"),
-    supabase.schema("hr").from("roster").select("employee_id, work_date, kind, shift_id, status").eq("store_id", store).gte("work_date", from).lte("work_date", to),
-    supabase.schema("hr").from("shift_templates").select("id, code, name, color, start_time, end_time").eq("active", true).order("start_time"),
+    supabase.schema("hr").from("roster").select("employee_id, work_date, kind, shift_id, status, start_time, end_time, break_minutes, notes").eq("store_id", store).gte("work_date", from).lte("work_date", to),
+    supabase.schema("hr").from("shift_templates").select("id, code, name, color, start_time, end_time, break_minutes").eq("active", true).or(`store_id.is.null,store_id.eq.${store}`).order("start_time"),
     supabase.schema("hr").from("holidays").select("holiday_date, name, optional").gte("holiday_date", from).lte("holiday_date", to),
     supabase.schema("hr").from("vacations").select("employee_id, start_date, end_date").in("status", ["APPROVED", "PAID", "TAKEN"]).lte("start_date", to).gte("end_date", from),
     supabase.schema("hr").from("leaves").select("employee_id, start_date, end_date").lte("start_date", to).gte("end_date", from),
@@ -48,7 +48,7 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
     return { date, day: i + 1, dow: new Date(`${date}T12:00:00Z`).getUTCDay(), holiday: (holidays ?? []).find((h) => h.holiday_date === date)?.name ?? null };
   });
   const cells: Record<string, Record<string, Cell>> = {};
-  for (const r of roster ?? []) (cells[r.employee_id] ??= {})[r.work_date] = { kind: r.kind as Cell["kind"], shiftId: r.shift_id, status: r.status as Cell["status"] };
+  for (const r of roster ?? []) (cells[r.employee_id] ??= {})[r.work_date] = { kind: r.kind as Cell["kind"], shiftId: r.shift_id, status: r.status as Cell["status"], start: r.start_time?.slice(0, 5) ?? null, end: r.end_time?.slice(0, 5) ?? null, breakMin: r.break_minutes, notes: r.notes };
   const blocks: Record<string, Record<string, string>> = {};
   for (const d of days) {
     for (const v of vacs ?? []) if (d.date >= v.start_date && d.date <= v.end_date) (blocks[v.employee_id] ??= {})[d.date] = "VAC";
@@ -64,7 +64,8 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
 
   return (
     <>
-      <PageHeader title="Escalas" description="Monte a escala mensal por loja. O sistema confere descanso de 11h, sete dias seguidos, intervalo, jornada e a cobertura dos horários de pico antes de publicar." />
+      <PageHeader title="Escalas" description="Monte a escala mensal por loja com turnos prontos ou qualquer horário num dia. O sistema confere descanso de 11h, sete dias seguidos, intervalo, jornada e a cobertura dos horários de pico antes de publicar."
+        actions={<Link href={`/equipe/escalas/turnos?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Turnos e picos</Link>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -80,7 +81,7 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
 
       {employees.length === 0 ? <Empty title="Nenhum colaborador nesta loja">Admita colaboradores e vincule-os à loja.</Empty> : (
         <RosterGrid employees={employees} days={days} cells={cells} blocks={blocks} canEdit={canEdit}
-          shifts={(shifts ?? []).map((s) => ({ id: s.id, code: s.code, name: `${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}`, color: s.color }))} />
+          shifts={(shifts ?? []).map((s) => ({ id: s.id, code: s.code, name: `${s.name} ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}`, color: s.color, start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5), breakMin: s.break_minutes }))} />
       )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">

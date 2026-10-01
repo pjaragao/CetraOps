@@ -181,6 +181,46 @@ export async function setRosterCell(employeeId: string, day: string, kind: "WORK
   return error ? { ok: false, error: friendly(error.message) } : { ok: true };
 }
 
+const hhmm = z.string().regex(/^\d{2}:\d{2}$/);
+
+/** Horário livre num dia (sem turno pronto). */
+export async function setRosterHours(employeeId: string, day: string, start: string, end: string, breakMin: number, notes: string): Promise<{ ok: boolean; error?: string }> {
+  const parsed = z.object({ e: uuid, d: date, s: hhmm, f: hhmm, b: z.number().int().min(0).max(240), n: z.string().max(200) })
+    .safeParse({ e: employeeId, d: day, s: start, f: end, b: breakMin, n: notes });
+  if (!parsed.success) return { ok: false, error: "Confira os horários (HH:MM) e o intervalo (0 a 240 min)" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("hr").rpc("set_roster_hours", { p_employee: employeeId, p_date: day, p_start: start, p_end: end, p_break: breakMin, p_notes: notes || undefined });
+  return error ? { ok: false, error: friendly(error.message) } : { ok: true };
+}
+
+export async function saveShiftAction(formData: FormData) {
+  const path = str(formData.get("back")) || "/equipe/escalas/turnos";
+  return call("hr", "save_shift_template", { p: {
+    id: opt(formData.get("id")), code: str(formData.get("code")), name: opt(formData.get("name")), start_time: str(formData.get("start_time")),
+    end_time: str(formData.get("end_time")), break_minutes: Number(formData.get("break_minutes") || 0), color: opt(formData.get("color")), store_id: opt(formData.get("store_id")),
+  } }, path, opt(formData.get("id")) ? "Turno atualizado (a escala em rascunho daqui para frente acompanha o novo horário)" : "Turno criado");
+}
+
+export async function toggleShiftAction(formData: FormData) {
+  return call("hr", "set_shift_active", { p_id: str(formData.get("id")), p_active: str(formData.get("active")) === "1" }, str(formData.get("back")) || "/equipe/escalas/turnos", "Turno atualizado");
+}
+
+export async function deleteShiftAction(formData: FormData) {
+  return call("hr", "delete_shift_template", { p_id: str(formData.get("id")) }, str(formData.get("back")) || "/equipe/escalas/turnos", "Turno excluído");
+}
+
+export async function saveCoverageAction(formData: FormData) {
+  const id = opt(formData.get("id"));
+  return call("hr", "save_coverage_rule", { p: {
+    id, store_id: str(formData.get("store_id")), label: str(formData.get("label")), start_time: str(formData.get("start_time")), end_time: str(formData.get("end_time")),
+    min_staff: Number(formData.get("min_staff") || 1), weekday: opt(formData.get("weekday")), weekdays: formData.getAll("weekdays").map(String),
+  } }, str(formData.get("back")) || "/equipe/escalas/turnos", id ? "Janela atualizada" : "Janela de pico criada");
+}
+
+export async function deleteCoverageAction(formData: FormData) {
+  return call("hr", "delete_coverage_rule", { p_id: str(formData.get("id")) }, str(formData.get("back")) || "/equipe/escalas/turnos", "Janela removida");
+}
+
 export async function copyRosterAction(formData: FormData) {
   const path = str(formData.get("back"));
   return call("hr", "copy_roster", { p_store: str(formData.get("store")), p_source_from: str(formData.get("source_from")), p_days: Number(formData.get("days") || 7), p_target_from: str(formData.get("target_from")) },

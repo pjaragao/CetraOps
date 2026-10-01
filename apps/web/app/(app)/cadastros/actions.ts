@@ -1,0 +1,115 @@
+"use server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import type { Json } from "@sie/db";
+import { createClient } from "@/lib/supabase/server";
+import { findParty } from "../clientes/party-lookup";
+
+export type State = { ok: boolean; error?: string; message?: string } | null;
+
+const friendly = (m: string) => m.replace(/^ERROR:\s*/, "");
+const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
+
+function go(path: string, error: { message: string } | null, ok: string): never {
+  revalidatePath("/cadastros", "layout");
+  revalidatePath("/clientes", "layout");
+  const q = new URLSearchParams(error ? { erro: friendly(error.message) } : { ok });
+  redirect(`${path}${path.includes("?") ? "&" : "?"}${q}`);
+}
+
+const partySchema = z.object({
+  kind: z.enum(["PERSON", "COMPANY"]), display_name: z.string().min(2).max(120), legal_name: z.string().max(160).optional(), cnpj: z.string().max(18).optional(),
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), gender: z.enum(["F", "M", "O"]).optional(), instagram_handle: z.string().max(31).optional(),
+  phones: z.array(z.string().max(25)).max(5), emails: z.array(z.string().max(120)).max(5), roles: z.array(z.string()).max(8), tags: z.array(z.string()).max(10), notes: z.string().max(500).optional(),
+  address: z.record(z.string(), z.string()).optional(),
+});
+
+/** Novo cadastro (pessoa ou empresa). */
+export async function createPartyAction(_prev: State, formData: FormData): Promise<State> {
+  let raw: unknown;
+  try { raw = JSON.parse(String(formData.get("payload") ?? "")); } catch { return { ok: false, error: "Dados inválidos" }; }
+  const parsed = partySchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: `Confira o cadastro: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("crm").rpc("create_party", { p: parsed.data as unknown as Json });
+  if (error) return { ok: false, error: friendly(error.message) };
+  revalidatePath("/cadastros", "layout");
+  return redirect(`/cadastros/${(data as unknown as { id: string }).id}?ok=${encodeURIComponent("Cadastro criado")}`);
+}
+
+export async function updateIdentityAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const p: Record<string, string> = { display_name: str(formData.get("display_name")) };
+  if (formData.has("legal_name")) p.legal_name = str(formData.get("legal_name"));
+  if (formData.has("cnpj")) p.cnpj = str(formData.get("cnpj"));
+  if (formData.has("birth_date")) p.birth_date = str(formData.get("birth_date"));
+  if (formData.has("gender")) p.gender = str(formData.get("gender"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("update_party_identity", { p_party: id, p: p as Json });
+  go(`/cadastros/${id}`, error, "Identidade atualizada");
+}
+
+export async function addContactAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("add_contact", { p_party: id, p_type: str(formData.get("type")) as "PHONE", p_value: str(formData.get("value")), p_primary: formData.get("primary") === "on" });
+  go(`/cadastros/${id}`, error, "Contato adicionado");
+}
+
+export async function removeContactAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("remove_contact", { p_id: str(formData.get("contact_id")) });
+  go(`/cadastros/${id}`, error, "Contato removido");
+}
+
+export async function saveAddressAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const g = (k: string) => str(formData.get(`a_${k}`));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("save_address", { p: {
+    party_id: id, id: str(formData.get("address_id")) || null, label: str(formData.get("label")), cep: g("cep"), street: g("street"), number: g("number"), complement: g("complement"),
+    district: g("district"), city: g("city"), uf: g("uf"), is_default: formData.get("is_default") === "on",
+  } as Json });
+  go(`/cadastros/${id}`, error, "Endereço salvo");
+}
+
+export async function deleteAddressAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("delete_address", { p_id: str(formData.get("address_id")) });
+  go(`/cadastros/${id}`, error, "Endereço removido");
+}
+
+export async function setRolesAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("set_party_roles", { p_party: id, p_roles: formData.getAll("roles").map(String) });
+  go(`/cadastros/${id}`, error, "Papéis atualizados");
+}
+
+export async function addRelationAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const other = await findParty(supabase, str(formData.get("other")));
+  if ("error" in other) go(`/cadastros/${id}`, { message: other.error }, "");
+  const { error } = await supabase.schema("crm").rpc("add_relation", { p_party: id, p_other: other.id, p_role: str(formData.get("role")), p_note: str(formData.get("note")) || undefined });
+  go(`/cadastros/${id}`, error, "Vínculo registrado");
+}
+
+export async function removeRelationAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("remove_relation", { p_id: str(formData.get("relation_id")) });
+  go(`/cadastros/${id}`, error, "Vínculo removido");
+}
+
+/** Mescla a duplicada na principal (a principal é a página aberta). Exige digitar MESCLAR. */
+export async function mergePartiesAction(formData: FormData) {
+  const keep = str(formData.get("id"));
+  if (str(formData.get("confirm")).toUpperCase() !== "MESCLAR") go(`/cadastros/${keep}`, { message: "Digite MESCLAR para confirmar" }, "");
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("merge_parties", { p_keep: keep, p_dup: str(formData.get("dup")) });
+  go(`/cadastros/${keep}`, error, "Cadastros mesclados: tudo da duplicada agora está aqui");
+}

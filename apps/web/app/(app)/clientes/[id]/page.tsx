@@ -68,6 +68,7 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
           {m?.at_risk && <Badge tone="danger">em risco</Badge>}
           <Badge tone={band.tone}>score {p.lead_score} · {band.label}</Badge>
           {canWrite && <LinkButton href={`/clientes/${id}/editar`}>Editar ficha</LinkButton>}
+          <LinkButton href={`/cadastros/${id}`}>Cadastro completo</LinkButton>
         </div>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 

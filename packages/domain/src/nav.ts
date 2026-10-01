@@ -21,6 +21,13 @@ export interface NavArea {
 export const NAV: NavArea[] = [
   { key: "inicio", label: "Início", href: "/inicio", icon: "LayoutDashboard", items: [] },
   {
+    key: "cadastros", label: "Cadastros", href: "/cadastros/pessoas", icon: "Contact", permission: "crm.read",
+    items: [
+      { label: "Pessoas", href: "/cadastros/pessoas", ready: true },
+      { label: "Empresas", href: "/cadastros/empresas", ready: true },
+    ],
+  },
+  {
     key: "atendimento", label: "Atendimento", href: "/atendimento", icon: "MessagesSquare", permission: "omni.read",
     items: [
       { label: "Caixa de entrada", href: "/atendimento", ready: true },

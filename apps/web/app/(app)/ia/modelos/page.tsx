@@ -1,18 +1,56 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
-import { Badge, Button, Card, inputClass, PageHeader } from "@/components/ui";
+import { Button, inputClass, PageHeader } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { str, type SP } from "@/lib/context";
 
 export const metadata = { title: "Modelos de IA" };
 
-const TASK_LABEL: Record<string, string> = {
-  conversation: "Atendimento ao cliente (via Hermes)", classify: "Classificação (intenção, sentimento, tags)",
-  extract: "Extração (enriquecimento, NF-e → SKU, contas)", summarize: "Resumos de conversa e memória",
-  persona_style: "Extração do estilo dos sócios", judge: "Juiz das avaliações", ops_copilot: "Copiloto do ERP e briefing",
-  embeddings: "Embeddings (busca semântica)",
+/** O que cada rota faz, o que ela exige do modelo e como escolher (texto para quem não é técnico). */
+const TASKS: Record<string, { label: string; what: string; pick: string }> = {
+  conversation: {
+    label: "Atendimento ao cliente",
+    what: "Responde clientes no WhatsApp e Instagram, consulta estoque, preço e políticas pelas ferramentas e decide se envia, deixa rascunho ou chama uma pessoa. É a rota que fala com a cliente: erro aqui aparece para ela.",
+    pick: "Escolha um modelo de ponta, bom em português e que use ferramentas com confiança. Mais caro e mais lento é aceitável aqui. Só troca depois de passar em Avaliações da IA.",
+  },
+  classify: {
+    label: "Classificação",
+    what: "Marca cada mensagem com intenção, sentimento e assunto, e separa o que é conversa comercial do que é pessoal no treino das personas. Roda em volume, várias vezes por dia.",
+    pick: "Escolha um modelo rápido e barato; respostas curtas em formato fixo. Qualidade média basta.",
+  },
+  extract: {
+    label: "Extração de dados",
+    what: "Tira dados estruturados de textos: enriquecimento de cadastro, ligar item de nota fiscal ao produto, sugerir conta e rateio de um boleto.",
+    pick: "Escolha um modelo barato que siga bem um formato (JSON). Peça confiança: o que for incerto vai para revisão humana.",
+  },
+  summarize: {
+    label: "Resumos",
+    what: "Resume a conversa na linha do tempo da cliente e guarda fatos úteis (tamanho, preferências) para as próximas conversas.",
+    pick: "Modelo barato ou médio; o texto é curto e o custo soma pelo volume.",
+  },
+  persona_style: {
+    label: "Estilo dos sócios",
+    what: "Lê o histórico de conversas dos sócios (já sem dados pessoais) e descreve o jeito de escrever de cada um; também sugere ajustes a partir das edições da equipe.",
+    pick: "Roda poucas vezes e o contexto é longo: vale um modelo de topo em raciocínio, mesmo mais caro.",
+  },
+  judge: {
+    label: "Juiz das avaliações",
+    what: "Compara respostas da IA com as dos sócios e dá notas de estilo nas avaliações.",
+    pick: "Use um modelo de topo e de família diferente do usado no atendimento, para a nota não ser enviesada.",
+  },
+  ops_copilot: {
+    label: "Copiloto do ERP e textos",
+    what: "Briefing diário, respostas do copiloto interno, textos de campanha e abordagens de prospecção. Só lê dados e escreve rascunhos; nunca executa ação financeira.",
+    pick: "Modelo médio ou de ponta com bom português; a equipe revisa antes de usar.",
+  },
+  embeddings: {
+    label: "Busca por semelhança",
+    what: "Transforma textos em números para achar exemplos parecidos (estilo dos sócios, catálogo). Trocar o modelo exige reindexar tudo.",
+    pick: "Modelo multilíngue de dimensão 1024. Troque só se houver motivo forte.",
+  },
 };
 
 async function saveRoute(formData: FormData) {
@@ -46,27 +84,40 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
     <>
       <PageHeader title="Modelos & custos" description="Cada tarefa usa um modelo do OpenRouter escolhido aqui, sem deploy. Rotas com dado de cliente exigem ZDR (sem retenção)." />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
-      <div className="grid gap-3 lg:grid-cols-2">
-        {(routes ?? []).map((r) => (
-          <Card key={r.id} title={TASK_LABEL[r.task] ?? r.task} action={<Badge tone={r.active ? "success" : "neutral"}>{r.active ? "ativa" : "inativa"}</Badge>}>
-            <form action={saveRoute} className="space-y-2">
-              <input type="hidden" name="id" value={r.id} />
-              <label className="block text-xs text-muted">Modelo principal (slug OpenRouter)
-                <input name="primary_model" defaultValue={r.primary_model} disabled={!editable} className={inputClass} /></label>
-              <label className="block text-xs text-muted">Reservas (separadas por vírgula)
-                <input name="fallback_models" defaultValue={r.fallback_models.join(", ")} disabled={!editable} className={inputClass} /></label>
-              <div className="flex items-end gap-2">
-                <label className="block flex-1 text-xs text-muted">Orçamento diário (US$)
-                  <input name="daily_budget_usd" defaultValue={r.daily_budget_usd ?? ""} disabled={!editable} className={inputClass} /></label>
-                <label className="flex items-center gap-1 pb-2 text-xs"><input type="checkbox" name="active" defaultChecked={r.active} disabled={!editable} /> ativa</label>
-              </div>
-              <p className="text-xs text-muted">Privacidade: {JSON.stringify(r.provider_prefs)}{r.requires_tools ? " · exige tools" : ""}{r.requires_json_schema ? " · exige JSON schema" : ""}</p>
-              {editable && <Button variant="secondary">Salvar</Button>}
-            </form>
-          </Card>
-        ))}
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full text-sm">
+          <thead className="bg-surface-2 text-left text-xs text-muted">
+            <tr><th className="px-3 py-2 font-medium">Tarefa</th><th className="px-3 py-2 font-medium">Modelo principal</th><th className="px-3 py-2 font-medium">Reservas</th><th className="px-3 py-2 font-medium">Teto/dia (US$)</th><th className="px-3 py-2 font-medium">Ativa</th><th className="px-3 py-2" /></tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {(routes ?? []).map((r) => {
+              const t = TASKS[r.task];
+              const f = `route-${r.id}`;
+              return (
+                <tr key={r.id} className="align-top">
+                  <td className="max-w-lg px-3 py-2">
+                    <p className="font-medium">{t?.label ?? r.task}</p>
+                    <p className="mt-0.5 text-xs text-muted">{t?.what ?? "—"}</p>
+                    <details className="text-xs text-muted">
+                      <summary className="cursor-pointer">Como escolher e requisitos</summary>
+                      <p className="mt-1"><b>Como escolher:</b> {t?.pick ?? "—"}</p>
+                      <p className="mt-1"><b>Privacidade e requisitos:</b> {r.provider_prefs && (r.provider_prefs as { zdr?: boolean }).zdr ? "sem retenção de dados (ZDR)" : "sem exigência de ZDR"}{r.requires_tools ? " · precisa usar ferramentas" : ""}{r.requires_json_schema ? " · precisa responder em JSON" : ""}</p>
+                    </details>
+                  </td>
+                  <td className="px-3 py-2"><input form={f} name="primary_model" defaultValue={r.primary_model} disabled={!editable} className={`${inputClass} min-w-52`} aria-label={`Modelo de ${t?.label ?? r.task}`} /></td>
+                  <td className="px-3 py-2"><input form={f} name="fallback_models" defaultValue={r.fallback_models.join(", ")} disabled={!editable} className={`${inputClass} min-w-40`} aria-label="Reservas" /></td>
+                  <td className="px-3 py-2"><input form={f} name="daily_budget_usd" defaultValue={r.daily_budget_usd ?? ""} disabled={!editable} className={`${inputClass} w-20`} aria-label="Orçamento diário" /></td>
+                  <td className="px-3 py-2"><input form={f} type="checkbox" name="active" defaultChecked={r.active} disabled={!editable} aria-label="Ativa" /></td>
+                  <td className="px-3 py-2">
+                    <form id={f} action={saveRoute}><input type="hidden" name="id" value={r.id} />{editable && <Button variant="secondary" className="px-2 py-1 text-xs">Salvar</Button>}</form>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-      <p className="mt-4 text-xs text-muted">Os modelos iniciais são sugestões. Troque a rota de atendimento só depois de o novo modelo passar nas avaliações (ranking de qualidade × custo × latência, em breve nesta tela).</p>
+      <p className="mt-4 text-xs text-muted">Os modelos iniciais são sugestões. Troque a rota de atendimento só depois de o novo modelo passar nas avaliações (veja o ranking de qualidade × custo × latência em <Link className="underline" href="/ia/avaliacoes">Avaliações da IA</Link>).</p>
       <h2 className="mt-6 mb-2 text-sm font-semibold text-muted">Histórico de trocas</h2>
       <ul className="space-y-1 text-sm">
         {(changes ?? []).map((c) => (

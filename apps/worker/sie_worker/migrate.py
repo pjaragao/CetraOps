@@ -98,6 +98,8 @@ def apply(dsn: str, base: Path, check_only: bool = False) -> int:
             if admin.exists():
                 run_sql_file(conn, admin)
                 log.info("administrador inicial conferido")
+            conn.execute("notify pgrst, 'reload schema'")
+            log.info("cache do PostgREST recarregado (NOTIFY pgrst)")
             return 0
         finally:
             conn.execute("select pg_advisory_unlock(%s)", (LOCK_KEY,))

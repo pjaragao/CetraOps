@@ -1,0 +1,67 @@
+services:
+  cetraops-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: "https://mpbflndsk201-wsl.tabby-broadnose.ts.net:8001"
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+    container_name: cetraops-web
+    labels:
+      coolify.managed: "true"
+      coolify.applicationId: "3"
+      coolify.type: "application"
+      coolify.name: "tbwzuutpdgahtsr6rayvxhea"
+    restart: unless-stopped
+    ports:
+      - "3050:3000"
+    networks:
+      - supabase_default
+      - services_internal
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - .env
+
+  cetraops-worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: cetraops-worker
+    labels:
+      coolify.managed: "true"
+      coolify.applicationId: "3"
+      coolify.type: "application"
+      coolify.name: "tbwzuutpdgahtsr6rayvxhea"
+    restart: unless-stopped
+    networks:
+      - supabase_default
+      - services_internal
+    env_file:
+      - .env
+    depends_on:
+      - cetraops-mcp
+
+  cetraops-mcp:
+    build:
+      context: .
+      dockerfile: apps/agent/mcp_server/Dockerfile
+    container_name: cetraops-mcp
+    labels:
+      coolify.managed: "true"
+      coolify.applicationId: "3"
+      coolify.type: "application"
+      coolify.name: "tbwzuutpdgahtsr6rayvxhea"
+    restart: unless-stopped
+    networks:
+      - supabase_default
+      - services_internal
+    env_file:
+      - .env
+
+networks:
+  supabase_default:
+    external: true
+  services_internal:
+    external: true

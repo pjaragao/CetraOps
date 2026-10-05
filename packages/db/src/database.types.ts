@@ -1328,13 +1328,13 @@ isOneToOne: false
                   ]
                 },"members": {
                   Row: {
-                    "created_at": string,"default_store_id": string | null,"display_name": string,"id": string,"must_change_password": boolean,"org_id": string,"pin_hash": string | null,"status": string,"updated_at": string,"user_id": string
+                    "created_at": string,"default_store_id": string | null,"display_name": string,"id": string,"must_change_password": boolean,"org_id": string,"party_id": string | null,"pin_hash": string | null,"status": string,"updated_at": string,"user_id": string
                   }
                   Insert: {
-                    "created_at"?: string,"default_store_id"?: string | null,"display_name": string,"id"?: string,"must_change_password"?: boolean,"org_id": string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id": string
+                    "created_at"?: string,"default_store_id"?: string | null,"display_name": string,"id"?: string,"must_change_password"?: boolean,"org_id": string,"party_id"?: string | null,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"default_store_id"?: string | null,"display_name"?: string,"id"?: string,"must_change_password"?: boolean,"org_id"?: string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id"?: string
+                    "created_at"?: string,"default_store_id"?: string | null,"display_name"?: string,"id"?: string,"must_change_password"?: boolean,"org_id"?: string,"party_id"?: string | null,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1519,6 +1519,9 @@ isOneToOne: false
                            },
 "notify":
 { Args: { "p_kind": string,"p_member"?: string,"p_org": string,"p_payload"?: Json,"p_perm"?: string,"p_title": string }; Returns: number
+                           },
+"party_access":
+{ Args: { "p_party": string }; Returns: Json
                            },
 "record_integration_health":
 { Args: { "p_detail"?: Json,"p_error"?: string,"p_id": string,"p_ok": boolean }; Returns: undefined

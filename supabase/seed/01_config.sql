@@ -11,7 +11,7 @@ on conflict (id) do nothing;
 -- Papéis e permissões
 -- ---------------------------------------------------------------------
 insert into core.roles (org_id, key, name, is_superuser) values
-  ('00000000-0000-4000-8000-000000000001', 'owner', 'Sócio(a)', true),
+  ('00000000-0000-4000-8000-000000000001', 'owner', 'Administrador(a) — acesso total', true),
   ('00000000-0000-4000-8000-000000000001', 'seller', 'Vendedora', false),
   ('00000000-0000-4000-8000-000000000001', 'finance', 'Financeiro', false),
   ('00000000-0000-4000-8000-000000000001', 'accountant', 'Contador (leitura)', false)

@@ -28,6 +28,7 @@ export default async function UsuarioPage({ params, searchParams }: { params: Pr
         {u.status === "ACTIVE" ? <Badge tone="success">ativo</Badge> : <Badge tone="danger">suspenso</Badge>}
         {u.must_change_password && <Badge tone="warning">ainda com a senha provisória</Badge>}
         {u.employee && <Badge tone="info">colaborador: {u.employee.name}</Badge>}
+        {u.party && <Link href={`/cadastros/${u.party.id}`} className="text-sm text-brand">Cadastro: {u.party.name}{u.party.shareholder ? " (sócio(a) da empresa)" : ""}</Link>}
       </div>
 
       <Card title="Acessos">

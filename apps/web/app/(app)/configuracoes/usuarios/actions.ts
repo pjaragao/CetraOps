@@ -27,8 +27,8 @@ const access = (formData: FormData) => ({
 export async function createUserAction(formData: FormData) {
   const supabase = await createClient();
   const email = str(formData.get("email"));
-  const { data, error } = await supabase.schema("core").rpc("create_user", { p: { ...access(formData), email, password: String(formData.get("password") ?? "") } as Json });
-  if (error) go(USERS, { erro: friendly(error.message), novo: "1" });
+  const { data, error } = await supabase.schema("core").rpc("create_user", { p: { ...access(formData), email, password: String(formData.get("password") ?? ""), party_id: str(formData.get("party_id")) || null } as Json });
+  if (error) go(USERS, { erro: friendly(error.message), pessoa: str(formData.get("party_id")) || undefined });
   go(`${USERS}/${data as unknown as string}`, { ok: `Usuário criado. Passe à pessoa o e-mail ${email} e a senha provisória: no primeiro acesso ela cria a própria senha.` });
 }
 

@@ -11,6 +11,8 @@ import { AddressForm } from "./address-form";
 
 export const metadata = { title: "Cadastro" };
 
+interface Access { member_id: string; email: string; status: string; must_change_password: boolean; roles: string[]; superuser: boolean }
+
 const CONTACT_LABEL: Record<string, string> = { PHONE: "Telefone", WHATSAPP: "WhatsApp", EMAIL: "E-mail", INSTAGRAM: "Instagram", TELEGRAM: "Telegram", TIKTOK: "TikTok" };
 const fmtCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 const fmtCep = (c: string | null) => (c ? c.replace(/^(\d{5})(\d{3})$/, "$1-$2") : "");
@@ -34,6 +36,7 @@ export default async function CadastroPage({ params, searchParams }: { params: P
     company ? Promise.resolve({ data: [] as never[] }) : supabase.schema("crm").rpc("relatives_of", { p_party: id }),
     supabase.schema("crm").rpc("duplicate_candidates", { p_party: id }),
   ]);
+  const access = isAdmin && !company ? ((await supabase.schema("core").rpc("party_access", { p_party: id })).data as unknown as Access | null) : null;
   const myRoles = new Set((roles ?? []).map((r) => r.role));
 
   return (
@@ -68,10 +71,28 @@ export default async function CadastroPage({ params, searchParams }: { params: P
             <div className="grid gap-1.5 text-sm sm:grid-cols-2">
               {EDITABLE_ROLES.map((r) => <label key={r} className="flex items-center gap-1.5"><input type="checkbox" name="roles" value={r} defaultChecked={myRoles.has(r)} disabled={!canWrite} />{PARTY_ROLE_LABEL[r]}</label>)}
             </div>
+            {myRoles.has("SHAREHOLDER") && <p className="text-xs text-muted">Sócio(a) da empresa é o vínculo societário (pró-labore, distribuição de lucros). Não dá acesso ao sistema: o acesso fica no quadro “Acesso ao sistema”.</p>}
             {myRoles.has("EMPLOYEE") && <p className="text-xs text-muted"><Badge tone="info">Colaboradora (RH)</Badge> vem da admissão e não se altera aqui.</p>}
             {canWrite && <Button variant="secondary">Salvar papéis</Button>}
           </form>
         </Card>
+
+        {isAdmin && !company && (
+          <Card title="Acesso ao sistema">
+            {access ? (
+              <div className="space-y-2 text-sm">
+                <p><b>{access.email}</b> · {access.status === "ACTIVE" ? (access.must_change_password ? "aguardando o 1º acesso" : "ativo") : "suspenso"}</p>
+                <p className="text-muted">Perfis: {access.roles.join(", ") || "nenhum"}</p>
+                <LinkButton href={`/configuracoes/usuarios/${access.member_id}`}>Gerenciar acesso</LinkButton>
+              </div>
+            ) : (
+              <div className="space-y-2 text-sm">
+                <p className="text-muted">Esta pessoa não entra no sistema.{myRoles.has("SHAREHOLDER") ? " Como é sócia da empresa, o perfil de acesso total já vem sugerido." : ""}</p>
+                <LinkButton href={`/configuracoes/usuarios?pessoa=${id}#novo`}>Dar acesso ao sistema</LinkButton>
+              </div>
+            )}
+          </Card>
+        )}
 
         <Card title="Contatos">
           {(contacts ?? []).length === 0 ? <p className="text-sm text-muted">Nenhum contato.</p> : (

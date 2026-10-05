@@ -1,7 +1,7 @@
 /** Cadastro único: rótulos dos papéis e dos vínculos entre pessoas (a regra mora no banco: crm.add_relation). */
 export const PARTY_ROLE_LABEL: Record<string, string> = {
   CUSTOMER: "Cliente", SUPPLIER: "Fornecedor", AFFILIATE_TRAINER: "Afiliada / trainer", PARTNER_GYM: "Academia parceira", INFLUENCER: "Influenciadora",
-  CARRIER: "Transportadora", SERVICE_PROVIDER: "Prestador de serviço", SHAREHOLDER: "Sócio", EMPLOYEE: "Colaboradora (RH)", ACQUIRER: "Adquirente", BANK: "Banco",
+  CARRIER: "Transportadora", SERVICE_PROVIDER: "Prestador de serviço", SHAREHOLDER: "Sócio(a) da empresa", EMPLOYEE: "Colaboradora (RH)", ACQUIRER: "Adquirente", BANK: "Banco",
 };
 
 /** Papéis que se escolhem à mão (colaboradora vem do RH; adquirente e banco, das integrações). */

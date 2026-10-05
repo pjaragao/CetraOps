@@ -23,7 +23,7 @@ begin
 
   select id into v_role from core.roles where org_id = p_org and is_superuser order by key = 'owner' desc limit 1;
   if v_role is null then
-    insert into core.roles (org_id, key, name, is_superuser) values (p_org, 'owner', 'Sócio(a)', true) returning id into v_role;
+    insert into core.roles (org_id, key, name, is_superuser) values (p_org, 'owner', 'Administrador(a) — acesso total', true) returning id into v_role;
   end if;
   select id into v_store from core.stores where org_id = p_org order by status = 'ACTIVE' desc, created_at limit 1;
 

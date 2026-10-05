@@ -5,11 +5,11 @@ export interface RoleOpt { id: string; name: string; is_superuser: boolean; coun
 export interface StoreOpt { id: string; name: string }
 
 /** Campos de acesso (perfis, lojas e loja padrão), iguais na criação e na edição. */
-export function AccessFields({ roles, stores, value }: {
-  roles: RoleOpt[]; stores: StoreOpt[];
+export function AccessFields({ roles, stores, value, suggestSuperuser }: {
+  roles: RoleOpt[]; stores: StoreOpt[]; suggestSuperuser?: boolean;
   value?: { roles: string[]; all_stores: boolean; stores: string[]; default_store_id: string | null };
 }) {
-  const v = value ?? { roles: [], all_stores: true, stores: [], default_store_id: stores[0]?.id ?? null };
+  const v = value ?? { roles: suggestSuperuser ? roles.filter((r) => r.is_superuser).map((r) => r.id) : [], all_stores: true, stores: [], default_store_id: stores[0]?.id ?? null };
   return (
     <>
       <fieldset className="sm:col-span-2">
@@ -18,7 +18,7 @@ export function AccessFields({ roles, stores, value }: {
           {roles.map((r) => (
             <label key={r.id} className="flex items-start gap-2 rounded-lg border border-border px-3 py-2 text-sm">
               <input type="checkbox" name="roles" value={r.id} defaultChecked={v.roles.includes(r.id)} className="mt-0.5" />
-              <span><b>{r.name}</b>{r.is_superuser ? <span className="block text-xs text-muted">Acesso total, inclusive administração</span> : <span className="block text-xs text-muted">{r.count} permissões</span>}</span>
+              <span><b>{r.name}</b>{r.is_superuser ? <span className="block text-xs text-muted">Pode tudo, inclusive usuários e configurações. Não tem relação com ser sócio(a) no cadastro</span> : <span className="block text-xs text-muted">{r.count} permissões</span>}</span>
             </label>
           ))}
         </div>

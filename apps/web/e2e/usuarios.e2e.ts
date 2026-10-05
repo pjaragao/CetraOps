@@ -47,4 +47,30 @@ test.describe("usuários e permissões", () => {
     await page.goto("/configuracoes/usuarios");
     await expect(page).toHaveURL(/\/inicio\?erro=sem-permissao/);
   });
+
+  test("sócia no cadastro: o acesso é dado pela ficha, já ligado a ela e com o acesso total sugerido", async ({ page }) => {
+    test.setTimeout(120_000);
+    const n = Date.now() % 100000;
+    const nome = `Sócia E2E ${n}`;
+    await login(page, "socio");
+    await page.goto("/cadastros/novo?tipo=pessoa");
+    await page.getByLabel("Nome completo").fill(nome);
+    await page.getByRole("button", { name: "Cadastrar pessoa" }).click();
+    await expect(page).toHaveURL(/\/cadastros\/[0-9a-f-]{36}/, { timeout: 20_000 });
+    await page.locator("input[name=roles][value=SHAREHOLDER]").check();
+    await page.getByRole("button", { name: "Salvar papéis" }).click();
+    await expect(page.getByText(/Não dá acesso ao sistema/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Esta pessoa não entra no sistema.")).toBeVisible();
+    await page.getByRole("link", { name: "Dar acesso ao sistema" }).click();
+    await expect(page.getByText(`Dar acesso ao sistema para ${nome}`)).toBeVisible({ timeout: 20_000 });
+    const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Criar usuário" }) });
+    await expect(form.locator("input[name=display_name]")).toHaveValue(nome);
+    await expect(form.getByRole("checkbox").first()).toBeChecked();      // acesso total sugerido para a sócia
+    await form.locator("input[name=email]").fill(`socia-${n}@sie.test`);
+    await form.locator("input[name=password]").fill("provisoria123");
+    await form.getByRole("button", { name: "Criar usuário" }).click();
+    await expect(page.getByText(/Usuário criado/)).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("link", { name: new RegExp(`Cadastro: ${nome}`) }).click();
+    await expect(page.getByRole("link", { name: "Gerenciar acesso" })).toBeVisible({ timeout: 20_000 });
+  });
 });

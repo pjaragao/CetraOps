@@ -5,6 +5,7 @@ import type { RoleOpt, StoreOpt } from "./access-fields";
 export interface AdminUser {
   id: string; user_id: string; display_name: string; email: string; status: "ACTIVE" | "SUSPENDED"; last_sign_in_at: string | null; created_at: string;
   default_store_id: string | null; must_change_password: boolean; roles: string[]; all_stores: boolean; stores: string[]; employee: { id: string; name: string } | null;
+  party: { id: string; name: string; shareholder: boolean } | null;
 }
 
 /** Usuários, perfis (com o número de permissões) e lojas para as telas de administração. */

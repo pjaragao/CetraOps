@@ -19,7 +19,7 @@ export default defineConfig({
   ],
   webServer: {
     command: process.env.CI ? "pnpm start" : "pnpm dev",
-    url: "http://localhost:3000/login",
+    url: `${process.env.E2E_BASE_URL ?? "http://localhost:3000"}/login`,
     reuseExistingServer: true,
     timeout: 120_000,
   },

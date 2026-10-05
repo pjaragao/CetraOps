@@ -1328,13 +1328,13 @@ isOneToOne: false
                   ]
                 },"members": {
                   Row: {
-                    "created_at": string,"default_store_id": string | null,"display_name": string,"id": string,"org_id": string,"pin_hash": string | null,"status": string,"updated_at": string,"user_id": string
+                    "created_at": string,"default_store_id": string | null,"display_name": string,"id": string,"must_change_password": boolean,"org_id": string,"pin_hash": string | null,"status": string,"updated_at": string,"user_id": string
                   }
                   Insert: {
-                    "created_at"?: string,"default_store_id"?: string | null,"display_name": string,"id"?: string,"org_id": string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id": string
+                    "created_at"?: string,"default_store_id"?: string | null,"display_name": string,"id"?: string,"must_change_password"?: boolean,"org_id": string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"default_store_id"?: string | null,"display_name"?: string,"id"?: string,"org_id"?: string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id"?: string
+                    "created_at"?: string,"default_store_id"?: string | null,"display_name"?: string,"id"?: string,"must_change_password"?: boolean,"org_id"?: string,"pin_hash"?: string | null,"status"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1385,6 +1385,19 @@ isOneToOne: false
                   }
                   Update: {
                     "created_at"?: string,"id"?: string,"name"?: string,"settings"?: NonNullable<Json>,"slug"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"permission_catalog": {
+                  Row: {
+                    "area": string,"description": string,"key": string,"label": string,"position": number
+                  }
+                  Insert: {
+                    "area": string,"description": string,"key": string,"label": string,"position"?: number
+                  }
+                  Update: {
+                    "area"?: string,"description"?: string,"key"?: string,"label"?: string,"position"?: number
                   }
                   Relationships: [
                     
@@ -1483,8 +1496,20 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "cc_subtree":
+            "admin_users":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"cc_subtree":
 { Args: { "p_root": string }; Returns: (string)[]
+                           },
+"change_my_password":
+{ Args: { "p_current": string,"p_new": string }; Returns: undefined
+                           },
+"create_user":
+{ Args: { "p": Json }; Returns: string
+                           },
+"delete_role":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "integration_secret":
 { Args: { "p_connection": string }; Returns: Json
@@ -1504,11 +1529,34 @@ isOneToOne: false
 "request_integration_check":
 { Args: { "p_action"?: string,"p_id": string }; Returns: undefined
                            },
+"reset_user_password":
+{ Args: { "p_member": string,"p_password": string }; Returns: undefined
+                           },
 "save_integration":
 { Args: { "p": Json }; Returns: Json
                            },
+"save_role":
+{ Args: { "p": Json }; Returns: {
+              "id": string,
+"is_superuser": boolean,
+"key": string,
+"name": string,
+"org_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "roles"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_integration_enabled":
 { Args: { "p_enabled": boolean,"p_id": string }; Returns: undefined
+                           },
+"set_user_status":
+{ Args: { "p_active": boolean,"p_member": string }; Returns: undefined
+                           },
+"update_user":
+{ Args: { "p": Json,"p_member": string }; Returns: undefined
                            }
           }
           Enums: {

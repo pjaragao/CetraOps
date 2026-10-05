@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { visibleNav } from "@sie/domain";
 import { getSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -8,6 +9,7 @@ import { CommandPalette } from "@/components/shell/command-palette";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
+  if (session.mustChangePassword) redirect("/conta?primeiro=1");
   const nav = visibleNav(session.perms, session.isSuperuser);
   const supabase = await createClient();
   const { count: unread } = await supabase.schema("core").from("notifications").select("id", { count: "exact", head: true }).eq("member_id", session.memberId).is("read_at", null);

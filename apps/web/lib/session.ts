@@ -13,6 +13,7 @@ export interface Session {
   name: string;
   roles: string[];
   isSuperuser: boolean;
+  mustChangePassword: boolean;
   perms: Set<string>;
   stores: { id: string; name: string; code: string; status: string; legal_entity_id: string }[];
   storeId: string | null; // null = "Todas as lojas"
@@ -27,7 +28,7 @@ export const getSession = cache(async (): Promise<Session> => {
   const { data: member } = await supabase
     .schema("core")
     .from("members")
-    .select("id, org_id, display_name, default_store_id, member_roles(roles(key, is_superuser, role_permissions(permission_key)))")
+    .select("id, org_id, display_name, default_store_id, must_change_password, member_roles(roles(key, is_superuser, role_permissions(permission_key)))")
     .eq("user_id", data.claims.sub)
     .maybeSingle();
 
@@ -57,6 +58,7 @@ export const getSession = cache(async (): Promise<Session> => {
     name: member.display_name,
     roles: roles.map((r) => r!.key),
     isSuperuser,
+    mustChangePassword: Boolean(member.must_change_password),
     perms,
     stores: list,
     storeId,

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { LogOut, Plus, Search } from "lucide-react";
@@ -66,7 +67,7 @@ export function Topbar({ name, memberId, unreadNotifications, stores, storeId, c
         <Plus size={15} /> <span className="hidden sm:inline">Nova venda</span>
       </button>
       <NotificationBell memberId={memberId} initialUnread={unreadNotifications} />
-      <span className="hidden text-sm text-muted md:inline">{name}</span>
+      <Link href="/conta" className="hidden text-sm text-muted hover:underline md:inline" title="Minha conta: trocar a senha">{name}</Link>
       <form action={signOut}>
         <button className="rounded-lg p-2 text-muted hover:bg-surface-2" aria-label="Sair" title="Sair"><LogOut size={16} /></button>
       </form>

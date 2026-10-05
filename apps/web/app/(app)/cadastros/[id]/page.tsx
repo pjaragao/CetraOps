@@ -9,6 +9,7 @@ import { Field, Flash } from "@/components/form";
 import { addContactAction, addRelationAction, deleteAddressAction, mergePartiesAction, removeContactAction, removeRelationAction, saveAddressAction, setRolesAction, updateIdentityAction } from "../actions";
 import { AddressForm } from "./address-form";
 import { RegistryCard } from "./registry-card";
+import { PayeeCard } from "./payee-card";
 import type { CnpjData } from "@sie/domain";
 
 export const metadata = { title: "Cadastro" };
@@ -38,6 +39,7 @@ export default async function CadastroPage({ params, searchParams }: { params: P
     company ? Promise.resolve({ data: [] as never[] }) : supabase.schema("crm").rpc("relatives_of", { p_party: id }),
     supabase.schema("crm").rpc("duplicate_candidates", { p_party: id }),
   ]);
+  const { data: accounts } = company ? await supabase.schema("fin").from("chart_accounts").select("id, code, name").eq("kind", "ANALYTIC").is("archived_at", null).order("code") : { data: [] as { id: string; code: string; name: string }[] };
   const access = isAdmin && !company ? ((await supabase.schema("core").rpc("party_access", { p_party: id })).data as unknown as Access | null) : null;
   const myRoles = new Set((roles ?? []).map((r) => r.role));
 
@@ -49,6 +51,9 @@ export default async function CadastroPage({ params, searchParams }: { params: P
 
       <div className="grid gap-4 lg:grid-cols-2">
         {company && <RegistryCard id={id} hasCnpj={Boolean(p.cnpj)} registry={(p.registry as unknown as CnpjData | null) ?? null} registryAt={p.registry_at} canWrite={canWrite} />}
+
+        {company && <PayeeCard id={id} kind={p.payee_kind} account={p.default_chart_account_id} notes={(p.preferences as { notes?: string } | null)?.notes ?? null}
+          accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))} canWrite={canWrite} />}
 
         <Card title="Identidade">
           <form action={updateIdentityAction} className="space-y-3">

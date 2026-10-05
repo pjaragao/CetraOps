@@ -130,3 +130,11 @@ export async function refreshRegistryAction(formData: FormData) {
   const { error } = await supabase.schema("crm").rpc("save_registry", { p_party: id, p_data: r.data as unknown as Json });
   go(`/cadastros/${id}`, error, `Dados da Receita atualizados (${r.data.sources.join(", ")})`);
 }
+
+/** Tipo de favorecido e categoria padrão do plano de contas (usada quando o título é lançado sem conta). */
+export async function setPayeeDefaultsAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("crm").rpc("set_payee_defaults", { p_party: id, p_kind: str(formData.get("payee_kind")), p_account: (str(formData.get("account")) || null) as string });
+  go(`/cadastros/${id}`, error, "Dados de favorecido salvos");
+}

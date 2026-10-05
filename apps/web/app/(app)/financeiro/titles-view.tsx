@@ -18,7 +18,7 @@ export async function TitlesView({ direction, erro, ok, filtro }: { direction: "
   const in7 = addDaysIsoSP(7);
 
   let q = supabase.schema("fin").from("v_open_installments")
-    .select("installment_id, title_id, title_number, description, party_name, n, due_date, amount, balance, fee_expected, approval_status, days_overdue, status, store_id")
+    .select("installment_id, title_id, title_number, description, party_name, receiver_name, n, due_date, amount, balance, fee_expected, approval_status, days_overdue, status, store_id")
     .eq("direction", direction).order("due_date").limit(400);
   // títulos corporativos (sem loja) aparecem em qualquer contexto de loja
   if (session.storeId) q = q.or(`store_id.eq.${session.storeId},store_id.is.null`);
@@ -27,8 +27,8 @@ export async function TitlesView({ direction, erro, ok, filtro }: { direction: "
   else if (filtro === "rascunho") q = q.eq("approval_status", "DRAFT");
 
   const partyQuery = direction === "PAYABLE"
-    ? supabase.schema("crm").from("parties").select("id, display_name, party_roles!inner(role)").in("party_roles.role", [...SUPPLIER_ROLES]).is("archived_at", null).order("display_name").limit(400)
-    : supabase.schema("crm").from("parties").select("id, display_name").is("archived_at", null).order("display_name").limit(400);
+    ? supabase.schema("crm").from("parties").select("id, display_name, default_chart_account_id, party_roles!inner(role)").in("party_roles.role", [...SUPPLIER_ROLES]).is("archived_at", null).order("display_name").limit(400)
+    : supabase.schema("crm").from("parties").select("id, display_name, default_chart_account_id").is("archived_at", null).order("display_name").limit(400);
 
   const [{ data: rows }, { data: accounts }, { data: ccs }, { data: templates }, { data: parties }] = await Promise.all([
     q,
@@ -39,6 +39,10 @@ export async function TitlesView({ direction, erro, ok, filtro }: { direction: "
     partyQuery,
   ]);
 
+  // categoria padrão de cada favorecido (aparece como dica no lançamento)
+  const defaultIds = [...new Set((parties ?? []).map((p) => p.default_chart_account_id).filter(Boolean))] as string[];
+  const { data: defaults } = defaultIds.length ? await supabase.schema("fin").from("chart_accounts").select("id, code, name").in("id", defaultIds) : { data: [] as { id: string; code: string; name: string }[] };
+  const defaultLabel = new Map((defaults ?? []).map((a) => [a.id, `${a.code} · ${a.name}`]));
   const list = (rows ?? []) as unknown as (TitleRow & { store_id: string | null })[];
   const total = list.reduce((a, r) => a + Number(r.balance), 0);
   const overdue = list.filter((r) => r.days_overdue > 0).reduce((a, r) => a + Number(r.balance), 0);
@@ -63,7 +67,7 @@ export async function TitlesView({ direction, erro, ok, filtro }: { direction: "
           <summary className="cursor-pointer text-sm font-medium">+ Novo lançamento</summary>
           <TitleForm direction={direction} today={today}
             stores={session.stores.map((s) => ({ id: s.id, name: s.name, legal_entity_id: s.legal_entity_id }))}
-            parties={(parties ?? []).map((p) => ({ id: p.id, label: p.display_name }))}
+            parties={(parties ?? []).map((p) => ({ id: p.id, label: p.display_name, hint: p.default_chart_account_id ? defaultLabel.get(p.default_chart_account_id) : undefined }))}
             accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))}
             costCenters={(ccs ?? []).map((c) => ({ id: c.id, label: `${c.code} · ${c.name}` }))}
             templates={(templates ?? []).map((t) => ({ id: t.id, label: t.name }))} />

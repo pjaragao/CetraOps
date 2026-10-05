@@ -31,6 +31,7 @@ const titleSchema = z.object({
   legal_entity_id: uuid,
   store_id: optUuid,
   party_id: optUuid,
+  receiver_party_id: optUuid,
   description: z.string().min(2).max(200),
   document_kind: z.string().max(40).optional(),
   document_number: z.string().max(60).optional(),

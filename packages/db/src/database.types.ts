@@ -1748,13 +1748,13 @@ isOneToOne: false
                   ]
                 },"parties": {
                   Row: {
-                    "anonymized_at": string | null,"archived_at": string | null,"birth_date": string | null,"city": string | null,"cnpj": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"display_name": string,"first_purchase_at": string | null,"first_touch_at": string,"gender": string | null,"home_store_id": string | null,"id": string,"instagram_handle": string | null,"joy_member_status": string,"kind": Database["crm"]['Enums']["party_kind"],"last_purchase_at": string | null,"lead_score": number,"legal_name": string | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id": string | null,"org_id": string,"preferences": NonNullable<Json>,"profession": string | null,"registry": Json | null,"registry_at": string | null,"relationship_owner_member_id": string | null,"score_breakdown": NonNullable<Json>,"sizes": NonNullable<Json>,"source": string | null,"tags": (string)[],"tier": Database["crm"]['Enums']["tier"],"tier_manual": boolean,"uf": string | null,"updated_at": string
+                    "anonymized_at": string | null,"archived_at": string | null,"birth_date": string | null,"city": string | null,"cnpj": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"default_chart_account_id": string | null,"display_name": string,"first_purchase_at": string | null,"first_touch_at": string,"gender": string | null,"home_store_id": string | null,"id": string,"instagram_handle": string | null,"joy_member_status": string,"kind": Database["crm"]['Enums']["party_kind"],"last_purchase_at": string | null,"lead_score": number,"legal_name": string | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id": string | null,"org_id": string,"payee_kind": string | null,"preferences": NonNullable<Json>,"profession": string | null,"registry": Json | null,"registry_at": string | null,"relationship_owner_member_id": string | null,"score_breakdown": NonNullable<Json>,"sizes": NonNullable<Json>,"source": string | null,"tags": (string)[],"tier": Database["crm"]['Enums']["tier"],"tier_manual": boolean,"uf": string | null,"updated_at": string
                   }
                   Insert: {
-                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name": string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id": string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"default_chart_account_id"?: string | null,"display_name": string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id": string,"payee_kind"?: string | null,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"display_name"?: string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id"?: string,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"default_chart_account_id"?: string | null,"display_name"?: string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"joy_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id"?: string,"payee_kind"?: string | null,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -2165,6 +2165,7 @@ isOneToOne: false
 "cnpj": string | null,
 "created_at": string,
 "custom_fields": NonNullable<Json>,
+"default_chart_account_id": string | null,
 "display_name": string,
 "first_purchase_at": string | null,
 "first_touch_at": string,
@@ -2180,6 +2181,7 @@ isOneToOne: false
 "lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],
 "merged_into_id": string | null,
 "org_id": string,
+"payee_kind": string | null,
 "preferences": NonNullable<Json>,
 "profession": string | null,
 "registry": Json | null,
@@ -2517,6 +2519,7 @@ isOneToOne: false
 "cnpj": string | null,
 "created_at": string,
 "custom_fields": NonNullable<Json>,
+"default_chart_account_id": string | null,
 "display_name": string,
 "first_purchase_at": string | null,
 "first_touch_at": string,
@@ -2532,6 +2535,7 @@ isOneToOne: false
 "lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],
 "merged_into_id": string | null,
 "org_id": string,
+"payee_kind": string | null,
 "preferences": NonNullable<Json>,
 "profession": string | null,
 "registry": Json | null,
@@ -2610,6 +2614,9 @@ isOneToOne: false
 "set_party_roles":
 { Args: { "p_party": string,"p_roles": (string)[] }; Returns: undefined
                            },
+"set_payee_defaults":
+{ Args: { "p_account": string,"p_kind": string,"p_party": string }; Returns: undefined
+                           },
 "set_task_status":
 { Args: { "p_id": string,"p_status": string }; Returns: {
               "assignee_member_id": string | null,
@@ -2648,6 +2655,7 @@ isOneToOne: false
 "cnpj": string | null,
 "created_at": string,
 "custom_fields": NonNullable<Json>,
+"default_chart_account_id": string | null,
 "display_name": string,
 "first_purchase_at": string | null,
 "first_touch_at": string,
@@ -2663,6 +2671,7 @@ isOneToOne: false
 "lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],
 "merged_into_id": string | null,
 "org_id": string,
+"payee_kind": string | null,
 "preferences": NonNullable<Json>,
 "profession": string | null,
 "registry": Json | null,
@@ -2692,6 +2701,7 @@ isOneToOne: false
 "cnpj": string | null,
 "created_at": string,
 "custom_fields": NonNullable<Json>,
+"default_chart_account_id": string | null,
 "display_name": string,
 "first_purchase_at": string | null,
 "first_touch_at": string,
@@ -2707,6 +2717,7 @@ isOneToOne: false
 "lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],
 "merged_into_id": string | null,
 "org_id": string,
+"payee_kind": string | null,
 "preferences": NonNullable<Json>,
 "profession": string | null,
 "registry": Json | null,
@@ -3465,13 +3476,13 @@ isOneToOne: false
                   ]
                 },"titles": {
                   Row: {
-                    "accrual_entry_id": string | null,"accrual_mode": string,"approval_status": string,"approved_at": string | null,"approved_by": string | null,"chart_account_id": string | null,"competence_date": string,"control_account_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"custom_fields": NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind": string | null,"document_number": string | null,"id": string,"issue_date": string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id": string | null,"origin_type": string,"party_id": string | null,"status": Database["fin"]['Enums']["title_status"],"store_id": string | null,"tags": (string)[],"total_amount": number,"updated_at": string
+                    "accrual_entry_id": string | null,"accrual_mode": string,"approval_status": string,"approved_at": string | null,"approved_by": string | null,"chart_account_id": string | null,"competence_date": string,"control_account_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"custom_fields": NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind": string | null,"document_number": string | null,"id": string,"issue_date": string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id": string | null,"origin_type": string,"party_id": string | null,"receiver_party_id": string | null,"status": Database["fin"]['Enums']["title_status"],"store_id": string | null,"tags": (string)[],"total_amount": number,"updated_at": string
                   }
                   Insert: {
-                    "accrual_entry_id"?: string | null,"accrual_mode"?: string,"approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"control_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount": number,"updated_at"?: string
+                    "accrual_entry_id"?: string | null,"accrual_mode"?: string,"approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"control_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id": string,"number": string,"org_id": string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"receiver_party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount": number,"updated_at"?: string
                   }
                   Update: {
-                    "accrual_entry_id"?: string | null,"accrual_mode"?: string,"approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"control_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description"?: string,"direction"?: Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id"?: string,"number"?: string,"org_id"?: string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount"?: number,"updated_at"?: string
+                    "accrual_entry_id"?: string | null,"accrual_mode"?: string,"approval_status"?: string,"approved_at"?: string | null,"approved_by"?: string | null,"chart_account_id"?: string | null,"competence_date"?: string,"control_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_fields"?: NonNullable<Json>,"description"?: string,"direction"?: Database["fin"]['Enums']["title_direction"],"document_kind"?: string | null,"document_number"?: string | null,"id"?: string,"issue_date"?: string,"legal_entity_id"?: string,"number"?: string,"org_id"?: string,"origin_id"?: string | null,"origin_type"?: string,"party_id"?: string | null,"receiver_party_id"?: string | null,"status"?: Database["fin"]['Enums']["title_status"],"store_id"?: string | null,"tags"?: (string)[],"total_amount"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -3525,7 +3536,7 @@ isOneToOne: false
                   ]
                 },"v_open_installments": {
                   Row: {
-                    "amount": number | null,"amount_settled": number | null,"approval_status": string | null,"balance": number | null,"cost_center_id": string | null,"days_overdue": number | null,"description": string | null,"direction": Database["fin"]['Enums']["title_direction"] | null,"document_kind": string | null,"document_number": string | null,"due_date": string | null,"expected_date": string | null,"fee_anticipation_expected": number | null,"fee_expected": number | null,"installment_id": string | null,"legal_entity_id": string | null,"n": number | null,"org_id": string | null,"origin_type": string | null,"party_id": string | null,"party_name": string | null,"status": Database["fin"]['Enums']["title_status"] | null,"store_id": string | null,"title_id": string | null,"title_number": string | null
+                    "amount": number | null,"amount_settled": number | null,"approval_status": string | null,"balance": number | null,"cost_center_id": string | null,"days_overdue": number | null,"description": string | null,"direction": Database["fin"]['Enums']["title_direction"] | null,"document_kind": string | null,"document_number": string | null,"due_date": string | null,"expected_date": string | null,"fee_anticipation_expected": number | null,"fee_expected": number | null,"installment_id": string | null,"legal_entity_id": string | null,"n": number | null,"org_id": string | null,"origin_type": string | null,"party_id": string | null,"party_name": string | null,"receiver_name": string | null,"receiver_party_id": string | null,"status": Database["fin"]['Enums']["title_status"] | null,"store_id": string | null,"title_id": string | null,"title_number": string | null
                   }
                   Relationships: [
                     
@@ -3600,6 +3611,7 @@ isOneToOne: false
 "origin_id": string | null,
 "origin_type": string,
 "party_id": string | null,
+"receiver_party_id": string | null,
 "status": Database["fin"]['Enums']["title_status"],
 "store_id": string | null,
 "tags": (string)[],
@@ -3739,6 +3751,9 @@ isOneToOne: false
                            },
 "set_period_status":
 { Args: { "p_competence": string,"p_entity": string,"p_notes"?: string,"p_status": string }; Returns: undefined
+                           },
+"set_title_receiver":
+{ Args: { "p_receiver": string,"p_title": string }; Returns: undefined
                            },
 "settle":
 { Args: { "p": Json }; Returns: {

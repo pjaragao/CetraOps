@@ -6,7 +6,7 @@ import { formatBRL, splitInstallments } from "@sie/domain";
 import { Button, inputClass } from "@/components/ui";
 import { createTitleAction } from "./actions";
 
-interface Opt { id: string; label: string }
+interface Opt { id: string; label: string; hint?: string }
 type Mode = "single" | "template" | "manual";
 
 const addDays = (iso: string, days: number) => {
@@ -28,6 +28,7 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
   const { state, pending, formProps } = useKeptForm(createTitleAction);
   const [storeId, setStoreId] = useState(stores[0]?.id ?? "");
   const [partyId, setPartyId] = useState("");
+  const [receiverId, setReceiverId] = useState("");
   const [description, setDescription] = useState("");
   const [docKind, setDocKind] = useState("");
   const [docNumber, setDocNumber] = useState("");
@@ -53,6 +54,7 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
     legal_entity_id: store?.legal_entity_id,
     store_id: storeId || undefined,
     party_id: partyId || undefined,
+    receiver_party_id: receiverId && receiverId !== partyId ? receiverId : undefined,
     description,
     document_kind: docKind || undefined,
     document_number: docNumber || undefined,
@@ -64,8 +66,9 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
   };
 
   const manualOk = mode !== "manual" || Math.abs(rowsTotal - total) < 0.005;
+  const partyDefault = parties.find((p) => p.id === partyId)?.hint;   // categoria padrão do favorecido (o banco usa quando a conta fica vazia)
   const canSubmit = !pending && description.trim().length > 1 && total > 0 && !!store && manualOk
-    && (mode === "manual" || !!account) && (mode !== "template" || !!template);
+    && (mode === "manual" || !!account || (mode === "single" && !!partyDefault)) && (mode !== "template" || !!template);
 
   return (
     <form {...formProps} className="mt-3 grid gap-3 sm:grid-cols-6">
@@ -78,6 +81,14 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
           <option value="">— não informar —</option>
           {parties.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
+        {(() => { const h = parties.find((p) => p.id === partyId)?.hint; return h && !account ? <span className="mt-0.5 block text-[11px]">Sem conta escolhida, usa a categoria padrão: {h}</span> : null; })()}
+      </label>
+      <label className="sm:col-span-2 text-xs text-muted">{direction === "PAYABLE" ? "Recebedor do pagamento (se diferente)" : "Quem paga de fato (se diferente)"}
+        <select className={inputClass} value={receiverId} onChange={(e) => setReceiverId(e.target.value)}>
+          <option value="">— o mesmo —</option>
+          {parties.filter((p) => p.id !== partyId).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
+        <span className="mt-0.5 block text-[11px]">{direction === "PAYABLE" ? "Ex.: boleto de um restaurante emitido por um banco ou intermediador: o fornecedor é o restaurante, o recebedor é quem aparece no boleto/extrato." : "Ex.: o cliente é a empresa, mas o dinheiro vem de outra conta."}</span>
       </label>
       <label className="sm:col-span-2 text-xs text-muted">Competência (mês da despesa/receita)
         <input type="date" className={inputClass} value={competence} onChange={(e) => setCompetence(e.target.value)} />

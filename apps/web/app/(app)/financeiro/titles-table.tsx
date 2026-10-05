@@ -6,7 +6,7 @@ import { Badge, Button } from "@/components/ui";
 import { approveTitle, cancelTitle } from "./actions";
 
 export interface TitleRow {
-  installment_id: string; title_id: string; title_number: string; description: string; party_name: string | null;
+  installment_id: string; title_id: string; title_number: string; description: string; party_name: string | null; receiver_name?: string | null;
   n: number; due_date: string; balance: number; amount: number; fee_expected: number; approval_status: string; days_overdue: number;
   status: string;
 }
@@ -59,7 +59,7 @@ export function TitlesTable({ direction, rows, canWrite, canApprove, back }: {
                   {r.due_date.split("-").reverse().join("/")}{r.days_overdue > 0 && <span className="ml-1 text-xs">({r.days_overdue}d)</span>}
                 </td>
                 <td className="px-3 py-2 text-xs">{r.title_number}</td>
-                <td className="px-3 py-2">{r.description}{r.party_name && <span className="block text-xs text-muted">{r.party_name}</span>}</td>
+                <td className="px-3 py-2">{r.description}{r.party_name && <span className="block text-xs text-muted">{r.party_name}{r.receiver_name ? ` · recebe: ${r.receiver_name}` : ""}</span>}</td>
                 <td className="px-3 py-2">{r.n}</td>
                 <td className="px-3 py-2 font-medium whitespace-nowrap">
                   {formatBRL(r.balance)}{r.status === "PARTIAL" && <span className="block text-xs font-normal text-muted">de {formatBRL(r.amount)}</span>}

@@ -10,7 +10,7 @@ on conflict (org_id, key) do nothing;
 
 insert into core.role_permissions (role_id, permission_key)
 select r.id, p from core.roles r, unnest(case r.key
-  when 'hr' then array['core.read', 'crm.read', 'fin.read', 'fiscal.read', 'hr.read', 'hr.write', 'hr.payroll.read', 'hr.payroll.write', 'hr.sensitive', 'fin.reimburse']
+  when 'hr' then array['core.read', 'crm.read', 'fin.read', 'fiscal.read', 'hr.read', 'hr.write', 'hr.payroll.read', 'hr.payroll.write', 'hr.sensitive', 'fin.reimburse', 'ai.assistant']
   when 'accountant' then array['hr.read', 'hr.payroll.read']
   else array[]::text[] end) as p
 where r.org_id = '00000000-0000-4000-8000-000000000001' and r.key in ('hr', 'accountant')

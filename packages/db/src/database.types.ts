@@ -146,7 +146,83 @@ isOneToOne: false
           }
         },"ai": {
           Tables: {
-            "corpus_dialogues": {
+            "assistant_actions": {
+                  Row: {
+                    "args": NonNullable<Json>,"created_at": string,"decided_at": string | null,"error": string | null,"expires_at": string,"id": string,"idempotency_key": string,"member_id": string,"org_id": string,"preview": NonNullable<Json>,"result": Json | null,"status": string,"summary": string | null,"target_id": string | null,"target_type": string | null,"thread_id": string | null,"tool": string
+                  }
+                  Insert: {
+                    "args": NonNullable<Json>,"created_at"?: string,"decided_at"?: string | null,"error"?: string | null,"expires_at": string,"id"?: string,"idempotency_key"?: string,"member_id": string,"org_id": string,"preview"?: NonNullable<Json>,"result"?: Json | null,"status"?: string,"summary"?: string | null,"target_id"?: string | null,"target_type"?: string | null,"thread_id"?: string | null,"tool": string
+                  }
+                  Update: {
+                    "args"?: NonNullable<Json>,"created_at"?: string,"decided_at"?: string | null,"error"?: string | null,"expires_at"?: string,"id"?: string,"idempotency_key"?: string,"member_id"?: string,"org_id"?: string,"preview"?: NonNullable<Json>,"result"?: Json | null,"status"?: string,"summary"?: string | null,"target_id"?: string | null,"target_type"?: string | null,"thread_id"?: string | null,"tool"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assistant_actions_thread_id_fkey"
+      columns: ["thread_id"]
+isOneToOne: false
+      referencedRelation: "assistant_threads"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"assistant_messages": {
+                  Row: {
+                    "content": NonNullable<Json>,"created_at": string,"id": string,"org_id": string,"role": string,"run_id": string | null,"thread_id": string
+                  }
+                  Insert: {
+                    "content": NonNullable<Json>,"created_at"?: string,"id"?: string,"org_id": string,"role": string,"run_id"?: string | null,"thread_id": string
+                  }
+                  Update: {
+                    "content"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"org_id"?: string,"role"?: string,"run_id"?: string | null,"thread_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assistant_messages_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "runs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "assistant_messages_thread_id_fkey"
+      columns: ["thread_id"]
+isOneToOne: false
+      referencedRelation: "assistant_threads"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"assistant_threads": {
+                  Row: {
+                    "archived_at": string | null,"channel": string,"context": NonNullable<Json>,"created_at": string,"id": string,"member_id": string,"org_id": string,"title": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"channel"?: string,"context"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"member_id": string,"org_id": string,"title"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"channel"?: string,"context"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"member_id"?: string,"org_id"?: string,"title"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"assistant_uploads": {
+                  Row: {
+                    "created_at": string,"extracted": Json | null,"id": string,"kind": string,"member_id": string,"mime": string,"org_id": string,"path": string | null,"sha256": string | null,"thread_id": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"extracted"?: Json | null,"id"?: string,"kind"?: string,"member_id": string,"mime": string,"org_id": string,"path"?: string | null,"sha256"?: string | null,"thread_id"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"extracted"?: Json | null,"id"?: string,"kind"?: string,"member_id"?: string,"mime"?: string,"org_id"?: string,"path"?: string | null,"sha256"?: string | null,"thread_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assistant_uploads_thread_id_fkey"
+      columns: ["thread_id"]
+isOneToOne: false
+      referencedRelation: "assistant_threads"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"corpus_dialogues": {
                   Row: {
                     "classified_at": string | null,"commercial": boolean | null,"created_at": string,"digest": string,"id": string,"include": boolean,"org_id": string,"outcome": string | null,"persona_id": string,"source_id": string,"topics": (string)[],"turns": NonNullable<Json>
                   }
@@ -434,13 +510,13 @@ isOneToOne: false
                   ]
                 },"runs": {
                   Row: {
-                    "cache_read_tokens": number | null,"confidence": number | null,"conversation_id": string | null,"cost_usd": number | null,"created_at": string,"error": string | null,"id": string,"latency_ms": number | null,"model": string | null,"org_id": string,"party_id": string | null,"persona_version_id": string | null,"provider": string | null,"route_task": string,"status": string,"tokens_in": number | null,"tokens_out": number | null,"trace_id": string | null
+                    "cache_read_tokens": number | null,"confidence": number | null,"conversation_id": string | null,"cost_usd": number | null,"created_at": string,"error": string | null,"id": string,"latency_ms": number | null,"member_id": string | null,"model": string | null,"org_id": string,"party_id": string | null,"persona_version_id": string | null,"provider": string | null,"route_task": string,"status": string,"tokens_in": number | null,"tokens_out": number | null,"trace_id": string | null
                   }
                   Insert: {
-                    "cache_read_tokens"?: number | null,"confidence"?: number | null,"conversation_id"?: string | null,"cost_usd"?: number | null,"created_at"?: string,"error"?: string | null,"id"?: string,"latency_ms"?: number | null,"model"?: string | null,"org_id": string,"party_id"?: string | null,"persona_version_id"?: string | null,"provider"?: string | null,"route_task": string,"status"?: string,"tokens_in"?: number | null,"tokens_out"?: number | null,"trace_id"?: string | null
+                    "cache_read_tokens"?: number | null,"confidence"?: number | null,"conversation_id"?: string | null,"cost_usd"?: number | null,"created_at"?: string,"error"?: string | null,"id"?: string,"latency_ms"?: number | null,"member_id"?: string | null,"model"?: string | null,"org_id": string,"party_id"?: string | null,"persona_version_id"?: string | null,"provider"?: string | null,"route_task": string,"status"?: string,"tokens_in"?: number | null,"tokens_out"?: number | null,"trace_id"?: string | null
                   }
                   Update: {
-                    "cache_read_tokens"?: number | null,"confidence"?: number | null,"conversation_id"?: string | null,"cost_usd"?: number | null,"created_at"?: string,"error"?: string | null,"id"?: string,"latency_ms"?: number | null,"model"?: string | null,"org_id"?: string,"party_id"?: string | null,"persona_version_id"?: string | null,"provider"?: string | null,"route_task"?: string,"status"?: string,"tokens_in"?: number | null,"tokens_out"?: number | null,"trace_id"?: string | null
+                    "cache_read_tokens"?: number | null,"confidence"?: number | null,"conversation_id"?: string | null,"cost_usd"?: number | null,"created_at"?: string,"error"?: string | null,"id"?: string,"latency_ms"?: number | null,"member_id"?: string | null,"model"?: string | null,"org_id"?: string,"party_id"?: string | null,"persona_version_id"?: string | null,"provider"?: string | null,"route_task"?: string,"status"?: string,"tokens_in"?: number | null,"tokens_out"?: number | null,"trace_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -528,6 +604,44 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"assistant_cancel":
+{ Args: { "p_action": string }; Returns: undefined
+                           },
+"assistant_execute":
+{ Args: { "p_action": string }; Returns: Json
+                           },
+"assistant_log_run":
+{ Args: { "p": Json }; Returns: string
+                           },
+"assistant_propose":
+{ Args: { "p": Json }; Returns: {
+              "args": NonNullable<Json>,
+"created_at": string,
+"decided_at": string | null,
+"error": string | null,
+"expires_at": string,
+"id": string,
+"idempotency_key": string,
+"member_id": string,
+"org_id": string,
+"preview": NonNullable<Json>,
+"result": Json | null,
+"status": string,
+"summary": string | null,
+"target_id": string | null,
+"target_type": string | null,
+"thread_id": string | null,
+"tool": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "assistant_actions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"assistant_route":
+{ Args: { "p_task": string }; Returns: Json
+                           },
 "corpus_add_live_pair":
 { Args: { "p": Json }; Returns: string
                            },
@@ -1017,6 +1131,9 @@ isOneToOne: false
 { Args: { "p_price_list"?: string,"p_variant": string }; Returns: number
                            },
 "import_rows":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"search_products":
 { Args: { "p": Json }; Returns: Json
                            }
           }
@@ -1748,13 +1865,13 @@ isOneToOne: false
                   ]
                 },"parties": {
                   Row: {
-                    "anonymized_at": string | null,"archived_at": string | null,"birth_date": string | null,"city": string | null,"cnpj": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"default_chart_account_id": string | null,"display_name": string,"first_purchase_at": string | null,"first_touch_at": string,"gender": string | null,"home_store_id": string | null,"id": string,"instagram_handle": string | null,"host_member_status": string,"kind": Database["crm"]['Enums']["party_kind"],"last_purchase_at": string | null,"lead_score": number,"legal_name": string | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id": string | null,"org_id": string,"payee_kind": string | null,"preferences": NonNullable<Json>,"profession": string | null,"registry": Json | null,"registry_at": string | null,"relationship_owner_member_id": string | null,"score_breakdown": NonNullable<Json>,"sizes": NonNullable<Json>,"source": string | null,"tags": (string)[],"tier": Database["crm"]['Enums']["tier"],"tier_manual": boolean,"uf": string | null,"updated_at": string
+                    "anonymized_at": string | null,"archived_at": string | null,"birth_date": string | null,"city": string | null,"cnpj": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"default_chart_account_id": string | null,"display_name": string,"first_purchase_at": string | null,"first_touch_at": string,"gender": string | null,"home_store_id": string | null,"host_member_status": string,"id": string,"instagram_handle": string | null,"kind": Database["crm"]['Enums']["party_kind"],"last_purchase_at": string | null,"lead_score": number,"legal_name": string | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id": string | null,"org_id": string,"payee_kind": string | null,"preferences": NonNullable<Json>,"profession": string | null,"registry": Json | null,"registry_at": string | null,"relationship_owner_member_id": string | null,"score_breakdown": NonNullable<Json>,"sizes": NonNullable<Json>,"source": string | null,"tags": (string)[],"tier": Database["crm"]['Enums']["tier"],"tier_manual": boolean,"uf": string | null,"updated_at": string
                   }
                   Insert: {
-                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"default_chart_account_id"?: string | null,"display_name": string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"host_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id": string,"payee_kind"?: string | null,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"default_chart_account_id"?: string | null,"display_name": string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"host_member_status"?: string,"id"?: string,"instagram_handle"?: string | null,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id": string,"payee_kind"?: string | null,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"default_chart_account_id"?: string | null,"display_name"?: string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"id"?: string,"instagram_handle"?: string | null,"host_member_status"?: string,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id"?: string,"payee_kind"?: string | null,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
+                    "anonymized_at"?: string | null,"archived_at"?: string | null,"birth_date"?: string | null,"city"?: string | null,"cnpj"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"default_chart_account_id"?: string | null,"display_name"?: string,"first_purchase_at"?: string | null,"first_touch_at"?: string,"gender"?: string | null,"home_store_id"?: string | null,"host_member_status"?: string,"id"?: string,"instagram_handle"?: string | null,"kind"?: Database["crm"]['Enums']["party_kind"],"last_purchase_at"?: string | null,"lead_score"?: number,"legal_name"?: string | null,"lifecycle_stage"?: Database["crm"]['Enums']["lifecycle_stage"],"merged_into_id"?: string | null,"org_id"?: string,"payee_kind"?: string | null,"preferences"?: NonNullable<Json>,"profession"?: string | null,"registry"?: Json | null,"registry_at"?: string | null,"relationship_owner_member_id"?: string | null,"score_breakdown"?: NonNullable<Json>,"sizes"?: NonNullable<Json>,"source"?: string | null,"tags"?: (string)[],"tier"?: Database["crm"]['Enums']["tier"],"tier_manual"?: boolean,"uf"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -2171,9 +2288,9 @@ isOneToOne: false
 "first_touch_at": string,
 "gender": string | null,
 "home_store_id": string | null,
+"host_member_status": string,
 "id": string,
 "instagram_handle": string | null,
-"host_member_status": string,
 "kind": Database["crm"]['Enums']["party_kind"],
 "last_purchase_at": string | null,
 "lead_score": number,
@@ -2226,6 +2343,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"find_by_cpf":
+{ Args: { "p_cpf": string }; Returns: Json
+                           },
 "finish_task":
 { Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
               "assignee_member_id": string | null,
@@ -2525,9 +2645,9 @@ isOneToOne: false
 "first_touch_at": string,
 "gender": string | null,
 "home_store_id": string | null,
+"host_member_status": string,
 "id": string,
 "instagram_handle": string | null,
-"host_member_status": string,
 "kind": Database["crm"]['Enums']["party_kind"],
 "last_purchase_at": string | null,
 "lead_score": number,
@@ -2585,8 +2705,14 @@ isOneToOne: false
 "save_tier_benefits":
 { Args: { "p": Json }; Returns: Json
                            },
+"search_people":
+{ Args: { "p_limit"?: number,"p_query": string }; Returns: Json
+                           },
 "set_consent":
 { Args: { "p_channel": string,"p_granted": boolean,"p_party": string,"p_purpose": Database["crm"]['Enums']["consent_purpose"],"p_text_version"?: string }; Returns: undefined
+                           },
+"set_cpf":
+{ Args: { "p_cpf": string,"p_party": string }; Returns: Json
                            },
 "set_outreach_status":
 { Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
@@ -2661,9 +2787,9 @@ isOneToOne: false
 "first_touch_at": string,
 "gender": string | null,
 "home_store_id": string | null,
+"host_member_status": string,
 "id": string,
 "instagram_handle": string | null,
-"host_member_status": string,
 "kind": Database["crm"]['Enums']["party_kind"],
 "last_purchase_at": string | null,
 "lead_score": number,
@@ -2707,9 +2833,9 @@ isOneToOne: false
 "first_touch_at": string,
 "gender": string | null,
 "home_store_id": string | null,
+"host_member_status": string,
 "id": string,
 "instagram_handle": string | null,
-"host_member_status": string,
 "kind": Database["crm"]['Enums']["party_kind"],
 "last_purchase_at": string | null,
 "lead_score": number,
@@ -8186,6 +8312,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"quote_order":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "register_payment":
 { Args: { "p": Json }; Returns: {
               "assisted_by_ai": boolean,

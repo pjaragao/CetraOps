@@ -20,10 +20,10 @@ on conflict (org_id, key) do nothing;
 insert into core.role_permissions (role_id, permission_key)
 select r.id, p from core.roles r, unnest(case r.key
   when 'seller' then array['crm.read', 'crm.write', 'catalog.read', 'inv.read', 'sales.read', 'sales.write',
-                           'omni.read', 'omni.write', 'ai.read', 'fin.reimburse']
+                           'omni.read', 'omni.write', 'ai.read', 'fin.reimburse', 'ai.assistant']
   when 'finance' then array['core.read', 'crm.read', 'catalog.read', 'inv.read', 'sales.read', 'fin.read', 'fin.write',
-                            'fiscal.read', 'fiscal.write', 'ai.read', 'fin.reimburse']
-  when 'accountant' then array['core.read', 'catalog.read', 'inv.read', 'sales.read', 'fin.read', 'fiscal.read']
+                            'fiscal.read', 'fiscal.write', 'ai.read', 'fin.reimburse', 'ai.assistant']
+  when 'accountant' then array['core.read', 'catalog.read', 'inv.read', 'sales.read', 'fin.read', 'fiscal.read', 'ai.assistant']
   else array[]::text[] end) as p
 where r.org_id = '00000000-0000-4000-8000-000000000001'
 on conflict do nothing;
@@ -245,7 +245,9 @@ insert into ai.model_routes (org_id, task, primary_model, fallback_models, param
   ('00000000-0000-4000-8000-000000000001', 'persona_style', 'anthropic/claude-opus-4.1',   '{}',                      '{"temperature": 0.3, "max_tokens": 8000}', false, true, 5),
   ('00000000-0000-4000-8000-000000000001', 'judge',         'openai/gpt-4.1',              '{}',                      '{"temperature": 0}',                      false, true,  3),
   ('00000000-0000-4000-8000-000000000001', 'ops_copilot',   'anthropic/claude-sonnet-4.5', '{}',                      '{"temperature": 0.3}',                    true,  false, 3),
-  ('00000000-0000-4000-8000-000000000001', 'embeddings',    'openai/text-embedding-3-small', '{}',                    '{"dimensions": 1024}',                    false, false, 1)
+  ('00000000-0000-4000-8000-000000000001', 'embeddings',    'openai/text-embedding-3-small', '{}',                    '{"dimensions": 1024}',                    false, false, 1),
+  ('00000000-0000-4000-8000-000000000001', 'assistant',     'anthropic/claude-sonnet-4.5', '{}',                      '{"temperature": 0.2, "max_tokens": 1200}', true,  false, 5),
+  ('00000000-0000-4000-8000-000000000001', 'vision_extract', 'google/gemini-2.5-flash',    '{}',                      '{"temperature": 0}',                      false, true,  3)
 on conflict (org_id, task) do nothing;
 
 -- Feature flags de domínio
@@ -256,11 +258,13 @@ insert into core.feature_flags (org_id, key, enabled) values
   ('00000000-0000-4000-8000-000000000001', 'channel.tiktok', false),
   ('00000000-0000-4000-8000-000000000001', 'ai.autopilot.whatsapp', false),
   ('00000000-0000-4000-8000-000000000001', 'ai.autopilot.instagram', false),
-  ('00000000-0000-4000-8000-000000000001', 'enrichment.apify', false)
+  ('00000000-0000-4000-8000-000000000001', 'enrichment.apify', false),
+  ('00000000-0000-4000-8000-000000000001', 'ai.assistant', true)
 on conflict (org_id, key) do nothing;
 
 insert into core.settings (org_id, key, value) values
   ('00000000-0000-4000-8000-000000000001', 'revenue_attribution', '{"pos": "STORE_COUNTER", "remote": "HOME_STORE_DIGITAL", "fallback": "CORP-DIGITAL", "fulfillment_fee_pct": 0}'),
+  ('00000000-0000-4000-8000-000000000001', 'assistant_policies', '{"action_ttl_minutes": 15, "max_settle_amount": 5000, "max_messages_per_day": 300, "keep_threads_days": 90}'),
   ('00000000-0000-4000-8000-000000000001', 'ai_policies', '{"max_discount_pct": 0, "handoff_cart_value": 1500, "reservation_max_hours": 48, "max_ai_reserved_items": 3, "sla_minutes": {"VIP": 5, "STANDARD": 15}}'),
   ('00000000-0000-4000-8000-000000000001', 'commission_plan_default', '{"base": "STORE_REVENUE", "rates_by_channel": {"POS": 3, "WHATSAPP": 3, "INSTAGRAM": 3}, "tiers": [{"from": 35000, "to": 60000, "bonus": 200}, {"from": 60000, "pct_over": 1}]}')
 on conflict (org_id, key) do nothing;

@@ -16,6 +16,9 @@ ENV PATH="/repo/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 RUN useradd --system --uid 10001 --no-create-home app
 WORKDIR /repo
 COPY --from=build --chown=10001:10001 /repo/.venv /repo/.venv
+# migrations e seeds de configuração: o mesmo container roda `sie-migrate` antes de cada deploy (serviço migrate do compose)
+COPY --chown=10001:10001 supabase/migrations /repo/supabase/migrations
+COPY --chown=10001:10001 supabase/seed /repo/supabase/seed
 USER 10001
 # sem porta: o worker só consome filas (pgmq) e fala com Meta, Telegram, Focus NFe, OpenRouter/Hermes e o banco
 CMD ["sie-worker"]

@@ -76,6 +76,15 @@ As funções só validam, gravam (idempotente por evento) e respondem 200. Se a 
 
 ## 6. Operação
 
+### Migrations a cada deploy (serviço `migrate`)
+Todo `docker compose up` (e todo deploy pelo Coolify) roda primeiro o serviço **`migrate`** (imagem do worker, comando `sie-migrate`):
+1. compara `supabase/migrations` com `supabase_migrations.schema_migrations` (a mesma tabela do `supabase db push`) e aplica as pendentes em ordem, cada uma numa transação;
+2. em banco novo (empresa ainda não existe) roda os seeds de configuração `supabase/seed/0*.sql`;
+3. confere o **administrador inicial** (`seed/08_initial_admin.sql`): se não houver sócio ativo, ou se a conta do e-mail existir sem vínculo, cria/vincula como Sócio(a) com a senha provisória padrão e troca obrigatória no primeiro acesso.
+
+`web` e `worker` só sobem depois que o `migrate` termina com sucesso; se uma migration falhar, ela é desfeita e a versão nova não sobe sobre banco desatualizado (veja o log com `docker compose logs migrate`). Para só conferir: `docker compose run --rm migrate sie-migrate --check` (sai com 2 se houver pendência). `SIE_DATABASE_URL` precisa ser uma conexão como usuário `postgres` (o mesmo do worker).
+
+
 - **Deploy**: `git tag v1.2.3 && git push --tags` → imagens → **aprovação** → migrations → `prod` reapontada → Coolify troca sem downtime.
 - **Rollback**: Actions › **Rollback** › informe a tag anterior (aprovação). Migrations não voltam: corrija com outra migration.
 - **Saúde**: `web` `/api/health`; `mcp` `/healthz`; alertas de fila morta (`DLQ_ALERT`) e de integrações chegam no sino do app. Configure heartbeats/uptime no Better Stack e Sentry nos três apps.

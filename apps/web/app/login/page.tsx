@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
         {erro && (
           <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-            {erro === "sem-acesso" ? "Sua conta ainda não foi vinculada à empresa." : "E-mail ou senha inválidos."}
+            {erro === "sem-acesso" ? "Sua conta ainda não foi vinculada à empresa." : erro === "sistema" ? "O sistema não conseguiu ler o seu cadastro (banco fora do ar ou desatualizado). Tente de novo em instantes ou avise quem administra o servidor." : "E-mail ou senha inválidos."}
           </p>
         )}
 

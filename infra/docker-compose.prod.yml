@@ -21,8 +21,24 @@ x-hardening: &hardening
     options: { max-size: "10m", max-file: "5" }
 
 services:
+  # Roda a cada deploy ANTES de web e worker: confere o banco e aplica as migrations que faltarem (e o administrador inicial).
+  # Se falhar, web e worker não sobem a versão nova sobre um banco desatualizado. Ver apps/worker/sie_worker/migrate.py.
+  migrate:
+    <<: *hardening
+    image: ghcr.io/${SIE_IMAGE_OWNER:?}/sie-worker:${SIE_TAG:-prod}
+    command: ["sie-migrate"]
+    restart: "no"
+    read_only: true
+    tmpfs: ["/tmp"]
+    environment:
+      SIE_DATABASE_URL: ${SIE_DATABASE_URL:?conexão de serviço do Supabase (como usuário postgres)}
+      SIE_LOG_LEVEL: ${SIE_LOG_LEVEL:-INFO}
+    networks: [sie]
+
   web:
     <<: *hardening
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     image: ghcr.io/${SIE_IMAGE_OWNER:?}/sie-web:${SIE_TAG:-prod}
     read_only: true
     tmpfs: ["/tmp", "/app/apps/web/.next/cache"]
@@ -54,6 +70,8 @@ services:
   worker:
     <<: *hardening
     image: ghcr.io/${SIE_IMAGE_OWNER:?}/sie-worker:${SIE_TAG:-prod}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     read_only: true
     tmpfs: ["/tmp"]
     environment:

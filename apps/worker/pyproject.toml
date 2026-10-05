@@ -24,6 +24,7 @@ dev = [
 
 [project.scripts]
 sie-worker = "sie_worker.main:run"
+sie-migrate = "sie_worker.migrate:main"
 
 [build-system]
 requires = ["hatchling"]

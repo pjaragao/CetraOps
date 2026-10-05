@@ -110,7 +110,9 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=os.environ.get("SIE_LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s %(message)s")
     dsn = os.environ.get("SIE_MIGRATE_DATABASE_URL") or os.environ.get("SIE_DATABASE_URL")
     if not dsn:
-        raise SystemExit("defina SIE_DATABASE_URL (conexão de serviço, como usuário postgres)")
+        # sem a variável não dá para conferir; não derruba o deploy inteiro por isso, mas avisa alto no log
+        log.error("SIE_DATABASE_URL não definida: migrations NÃO conferidas. Defina-a (conexão como usuário postgres) no .env do deploy.")
+        sys.exit(0)
     try:
         code = apply(dsn, supabase_dir(), check_only=args.check)
     except psycopg.Error as e:

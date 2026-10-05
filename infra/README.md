@@ -82,7 +82,7 @@ Todo `docker compose up` (e todo deploy pelo Coolify) roda primeiro o serviço *
 2. em banco novo (empresa ainda não existe) roda os seeds de configuração `supabase/seed/0*.sql`;
 3. confere o **administrador inicial** (`seed/08_initial_admin.sql`): se não houver sócio ativo, ou se a conta do e-mail existir sem vínculo, cria/vincula como Sócio(a) com a senha provisória padrão e troca obrigatória no primeiro acesso.
 
-`web` e `worker` só sobem depois que o `migrate` termina com sucesso; se uma migration falhar, ela é desfeita e a versão nova não sobe sobre banco desatualizado (veja o log com `docker compose logs migrate`). Para só conferir: `docker compose run --rm migrate sie-migrate --check` (sai com 2 se houver pendência). `SIE_DATABASE_URL` precisa ser uma conexão como usuário `postgres` (o mesmo do worker).
+`web` e `worker` só sobem depois que o `migrate` termina com sucesso; se uma migration falhar, ela é desfeita e a versão nova não sobe sobre banco desatualizado (veja o log com `docker compose logs migrate`). Para só conferir: `docker compose run --rm migrate sie-migrate --check` (sai com 2 se houver pendência). `SIE_DATABASE_URL` precisa ser uma conexão como usuário `postgres` (a mesma do worker); sem ela o `migrate` só registra o aviso no log e não confere nada. No homelab (Coolify, `docker-compose.yml` da raiz) o mesmo passo existe como `cetraops-migrate`, lendo o `.env` do deploy.
 
 
 - **Deploy**: `git tag v1.2.3 && git push --tags` → imagens → **aprovação** → migrations → `prod` reapontada → Coolify troca sem downtime.

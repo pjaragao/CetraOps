@@ -1,4 +1,25 @@
 services:
+  # Roda a cada deploy ANTES do web e do worker: confere o banco e aplica as migrations que faltarem
+  # (e garante o administrador inicial). Se falhar, web e worker não sobem sobre um banco desatualizado.
+  # Log: docker logs cetraops-migrate · ver apps/worker/sie_worker/migrate.py
+  cetraops-migrate:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: cetraops-migrate
+    command: ["sie-migrate"]
+    labels:
+      coolify.managed: "true"
+      coolify.applicationId: "3"
+      coolify.type: "application"
+      coolify.name: "tbwzuutpdgahtsr6rayvxhea"
+    restart: "no"
+    networks:
+      - supabase_default
+      - services_internal
+    env_file:
+      - .env
+
   cetraops-web:
     build:
       context: .
@@ -23,6 +44,9 @@ services:
       - PORT=3000
     env_file:
       - .env
+    depends_on:
+      cetraops-migrate:
+        condition: service_completed_successfully
 
   cetraops-worker:
     build:
@@ -41,7 +65,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - cetraops-mcp
+      cetraops-migrate:
+        condition: service_completed_successfully
+      cetraops-mcp:
+        condition: service_started
 
   cetraops-mcp:
     build:

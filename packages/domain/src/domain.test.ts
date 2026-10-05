@@ -61,4 +61,14 @@ describe("período e menu", () => {
     expect(keys).not.toContain("financeiro");
     expect(keys).not.toContain("configuracoes");
   });
+  it("quem só pede reembolso vê Financeiro apenas com Reembolsos", () => {
+    const fin = visibleNav(new Set(["sales.read", "fin.reimburse"]), false).find((a) => a.key === "financeiro");
+    expect(fin?.items.map((i) => i.label)).toEqual(["Reembolsos"]);
+    expect(fin?.href).toBe("/financeiro/reembolsos");
+  });
+  it("o financeiro vê Reembolsos junto com o resto", () => {
+    const fin = visibleNav(new Set(["fin.read"]), false).find((a) => a.key === "financeiro");
+    expect(fin?.href).toBe("/financeiro");
+    expect(fin?.items.map((i) => i.label)).toContain("Reembolsos");
+  });
 });

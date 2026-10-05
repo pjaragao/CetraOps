@@ -21,7 +21,7 @@ export default async function CheckinPage({ searchParams }: { searchParams: SP }
     const { data, error } = await supabase.schema("mkt").rpc("guest_by_token", { p_token: token });
     if (error) tokenError = error.message.replace(/^ERROR:\s*/, ""); else guest = data as unknown as Guest;
   }
-  const since = isoFromNow(-24 * 3600 * 1000);
+  const since = isoFromNow(-24);   // eventos de ontem para cá
   const { data: events } = await supabase.schema("mkt").from("events").select("id, name, starts_at").in("status", ["PLANNED", "CONFIRMED", "DONE"]).gte("starts_at", since).order("starts_at").limit(20);
   const selected = str(sp.evento) || events?.[0]?.id || "";
 

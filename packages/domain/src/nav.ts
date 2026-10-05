@@ -101,6 +101,7 @@ export const NAV: NavArea[] = [
       { label: "Orçamento", href: "/financeiro/orcamento", ready: true },
       { label: "Fechamento mensal", href: "/financeiro/fechamento", ready: true },
       { label: "Contratos", href: "/financeiro/contratos", ready: true },
+      { label: "Reembolsos", href: "/financeiro/reembolsos", ready: true, permission: "fin.read|fin.reimburse" },
     ],
   },
   {
@@ -163,7 +164,16 @@ export const NAV: NavArea[] = [
 ];
 
 /** Filtra o menu pelas permissões do usuário (superusuário vê tudo). */
+/**
+ * Menu do usuário. Um item pode ter permissão própria ("a|b" = qualquer uma delas): ele aparece mesmo sem a permissão da área,
+ * e a área surge só com esse item (ex.: a vendedora vê Financeiro › Reembolsos e nada mais do financeiro).
+ */
 export function visibleNav(perms: ReadonlySet<string>, isSuperuser: boolean): NavArea[] {
-  const can = (p?: string) => !p || isSuperuser || perms.has(p);
-  return NAV.filter((a) => can(a.permission)).map((a) => ({ ...a, items: a.items.filter((i) => can(i.permission)) }));
+  const can = (p?: string) => !p || isSuperuser || p.split("|").some((x) => perms.has(x));
+  return NAV.flatMap((a) => {
+    const areaOk = can(a.permission);
+    const items = a.items.filter((i) => (i.permission ? can(i.permission) : areaOk));
+    if (!areaOk && items.length === 0) return [];
+    return [{ ...a, href: areaOk ? a.href : items[0].href, items }];
+  });
 }

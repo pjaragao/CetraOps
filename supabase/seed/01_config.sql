@@ -20,9 +20,9 @@ on conflict (org_id, key) do nothing;
 insert into core.role_permissions (role_id, permission_key)
 select r.id, p from core.roles r, unnest(case r.key
   when 'seller' then array['crm.read', 'crm.write', 'catalog.read', 'inv.read', 'sales.read', 'sales.write',
-                           'omni.read', 'omni.write', 'ai.read']
+                           'omni.read', 'omni.write', 'ai.read', 'fin.reimburse']
   when 'finance' then array['core.read', 'crm.read', 'catalog.read', 'inv.read', 'sales.read', 'fin.read', 'fin.write',
-                            'fiscal.read', 'fiscal.write', 'ai.read']
+                            'fiscal.read', 'fiscal.write', 'ai.read', 'fin.reimburse']
   when 'accountant' then array['core.read', 'catalog.read', 'inv.read', 'sales.read', 'fin.read', 'fiscal.read']
   else array[]::text[] end) as p
 where r.org_id = '00000000-0000-4000-8000-000000000001'

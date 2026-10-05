@@ -3288,6 +3288,56 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"reimbursement_items": {
+                  Row: {
+                    "access_key": string | null,"amount": number,"attachment_name": string | null,"attachment_path": string | null,"chart_account_id": string | null,"cost_center_id": string | null,"created_at": string,"description": string,"document_kind": string,"document_number": string | null,"id": string,"no_document_reason": string | null,"org_id": string,"position": number,"reimbursement_id": string,"spent_on": string,"supplier_doc": string | null,"supplier_name": string | null,"supplier_party_id": string | null
+                  }
+                  Insert: {
+                    "access_key"?: string | null,"amount": number,"attachment_name"?: string | null,"attachment_path"?: string | null,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"description": string,"document_kind": string,"document_number"?: string | null,"id"?: string,"no_document_reason"?: string | null,"org_id": string,"position"?: number,"reimbursement_id": string,"spent_on": string,"supplier_doc"?: string | null,"supplier_name"?: string | null,"supplier_party_id"?: string | null
+                  }
+                  Update: {
+                    "access_key"?: string | null,"amount"?: number,"attachment_name"?: string | null,"attachment_path"?: string | null,"chart_account_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"description"?: string,"document_kind"?: string,"document_number"?: string | null,"id"?: string,"no_document_reason"?: string | null,"org_id"?: string,"position"?: number,"reimbursement_id"?: string,"spent_on"?: string,"supplier_doc"?: string | null,"supplier_name"?: string | null,"supplier_party_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reimbursement_items_chart_account_id_fkey"
+      columns: ["chart_account_id"]
+isOneToOne: false
+      referencedRelation: "chart_accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reimbursement_items_reimbursement_id_fkey"
+      columns: ["reimbursement_id"]
+isOneToOne: false
+      referencedRelation: "reimbursements"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"reimbursements": {
+                  Row: {
+                    "created_at": string,"decided_at": string | null,"decided_by": string | null,"due_date": string | null,"id": string,"legal_entity_id": string,"number": string,"org_id": string,"party_id": string,"purpose": string,"reject_reason": string | null,"requester_member_id": string | null,"status": string,"store_id": string | null,"submitted_at": string | null,"title_id": string | null,"total": number,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"due_date"?: string | null,"id"?: string,"legal_entity_id": string,"number": string,"org_id": string,"party_id": string,"purpose": string,"reject_reason"?: string | null,"requester_member_id"?: string | null,"status"?: string,"store_id"?: string | null,"submitted_at"?: string | null,"title_id"?: string | null,"total"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"due_date"?: string | null,"id"?: string,"legal_entity_id"?: string,"number"?: string,"org_id"?: string,"party_id"?: string,"purpose"?: string,"reject_reason"?: string | null,"requester_member_id"?: string | null,"status"?: string,"store_id"?: string | null,"submitted_at"?: string | null,"title_id"?: string | null,"total"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reimbursements_title_id_fkey"
+      columns: ["title_id"]
+isOneToOne: false
+      referencedRelation: "titles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reimbursements_title_id_fkey"
+      columns: ["title_id"]
+isOneToOne: false
+      referencedRelation: "v_open_installments"
+      referencedColumns: ["title_id"]
+    }
+                  ]
                 },"settlement_lines": {
                   Row: {
                     "amount": number,"cash_effect": number,"chart_account_id": string | null,"cost_center_id": string | null,"credit_id": string | null,"id": string,"installment_id": string | null,"kind": string,"line_no": number,"memo": string | null,"org_id": string,"settlement_id": string
@@ -3566,6 +3616,9 @@ isOneToOne: false
               "account_id": string,"actual": number,"budget": number,"code": string,"grp": Database["fin"]['Enums']["account_group"],"name": string
             }[]
                            },
+"cancel_reimbursement":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "cancel_title":
 { Args: { "p_reason": string,"p_title": string }; Returns: undefined
                            },
@@ -3573,6 +3626,9 @@ isOneToOne: false
 { Args: { "p_bank"?: string,"p_entity"?: string,"p_from": string,"p_to": string }; Returns: {
               "balance": number,"day": string,"projected_in": number,"projected_out": number,"realized_in": number,"realized_out": number
             }[]
+                           },
+"classify_reimbursement_item":
+{ Args: { "p_account": string,"p_cost_center": string,"p_item": string }; Returns: undefined
                            },
 "classify_statement_line":
 { Args: { "p": Json,"p_line": string }; Returns: string
@@ -3621,6 +3677,33 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "titles"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"decide_reimbursement":
+{ Args: { "p_approve": boolean,"p_due_date"?: string,"p_id": string,"p_reason"?: string }; Returns: {
+              "created_at": string,
+"decided_at": string | null,
+"decided_by": string | null,
+"due_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"number": string,
+"org_id": string,
+"party_id": string,
+"purpose": string,
+"reject_reason": string | null,
+"requester_member_id": string | null,
+"status": string,
+"store_id": string | null,
+"submitted_at": string | null,
+"title_id": string | null,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "reimbursements"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -3746,11 +3829,41 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_reimbursement":
+{ Args: { "p": Json }; Returns: {
+              "created_at": string,
+"decided_at": string | null,
+"decided_by": string | null,
+"due_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"number": string,
+"org_id": string,
+"party_id": string,
+"purpose": string,
+"reject_reason": string | null,
+"requester_member_id": string | null,
+"status": string,
+"store_id": string | null,
+"submitted_at": string | null,
+"title_id": string | null,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "reimbursements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_budget_status":
 { Args: { "p_budget": string,"p_status": string }; Returns: undefined
                            },
 "set_period_status":
 { Args: { "p_competence": string,"p_entity": string,"p_notes"?: string,"p_status": string }; Returns: undefined
+                           },
+"set_reimbursement_attachment":
+{ Args: { "p_item": string,"p_name": string,"p_path": string }; Returns: undefined
                            },
 "set_title_receiver":
 { Args: { "p_receiver": string,"p_title": string }; Returns: undefined
@@ -3819,6 +3932,33 @@ isOneToOne: false
               "amount": number,"cost_center_id": string
             }[]
                            },
+"submit_reimbursement":
+{ Args: { "p_id": string }; Returns: {
+              "created_at": string,
+"decided_at": string | null,
+"decided_by": string | null,
+"due_date": string | null,
+"id": string,
+"legal_entity_id": string,
+"number": string,
+"org_id": string,
+"party_id": string,
+"purpose": string,
+"reject_reason": string | null,
+"requester_member_id": string | null,
+"status": string,
+"store_id": string | null,
+"submitted_at": string | null,
+"title_id": string | null,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "reimbursements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "transfer":
 { Args: { "p": Json }; Returns: string
                            },

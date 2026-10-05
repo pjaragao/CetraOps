@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import type { CnpjData } from "@sie/domain";
 import { EDITABLE_ROLES, PARTY_ROLE_LABEL } from "@sie/domain";
 import { useKeptForm } from "@/components/use-kept-form";
 import { AddressFields, EMPTY_ADDRESS, type Address } from "@/components/address-fields";
@@ -16,6 +17,7 @@ export function PartyForm({ company }: { company: boolean }) {
   const [roles, setRoles] = useState<string[]>([company ? "SUPPLIER" : "CUSTOMER"]);
   const [addr, setAddr] = useState<Address>(EMPTY_ADDRESS);
   const [cnpjMsg, setCnpjMsg] = useState<string | null>(null);
+  const [registry, setRegistry] = useState<CnpjData | null>(null);
   const set = <K extends keyof typeof f>(k: K, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   async function lookupCnpj(raw: string) {
@@ -26,9 +28,12 @@ export function PartyForm({ company }: { company: boolean }) {
       const r = await fetch(`/api/cnpj/${digits(raw)}`);
       const j = await r.json();
       if (!r.ok) { setCnpjMsg(String(j.error ?? "Não achei esse CNPJ")); return; }
-      setF((p) => ({ ...p, legal: j.legal_name || p.legal, name: p.name || j.trade_name || j.legal_name || "", phone: p.phone || (j.phone ? String(j.phone) : ""), email: p.email || j.email || "" }));
+      setF((p) => ({ ...p, legal: j.legal_name || p.legal, name: p.name || j.trade_name || j.legal_name || "", phone: p.phone || (j.phone ? String(j.phone) : ""), phone2: p.phone2 || (j.phone2 ? String(j.phone2) : ""), email: p.email || j.email || "" }));
+      setRegistry((j.data as CnpjData) ?? null);
       setAddr((a) => ({ cep: j.cep ? String(j.cep).replace(/^(\d{5})(\d{3})$/, "$1-$2") : a.cep, street: j.street || a.street, number: j.number || a.number, complement: j.complement || a.complement, district: j.district || a.district, city: j.city || a.city, uf: j.uf || a.uf }));
-      setCnpjMsg(`Preenchido pela Receita${j.situation ? ` (situação: ${j.situation})` : ""}. Confira os dados.`);
+      const d = j.data as CnpjData | undefined;
+      const alerta = d && d.situation && d.situation.toLowerCase() !== "ativa" ? ` ATENÇÃO: situação ${d.situation} na Receita.` : "";
+      setCnpjMsg(`Preenchido pela Receita (${d?.sources.join(", ") ?? "consulta"})${d?.cnae_main ? `: ${d.cnae_main.description}` : ""}${d?.simples ? " · Simples Nacional" : ""}${d?.mei ? " · MEI" : ""}. Confira os dados.${alerta}`);
     } catch { setCnpjMsg("Consulta indisponível: preencha à mão"); }
   }
 
@@ -36,7 +41,8 @@ export function PartyForm({ company }: { company: boolean }) {
     kind: company ? "COMPANY" : "PERSON", display_name: f.name, legal_name: f.legal || undefined, cnpj: company ? f.cnpj : undefined, birth_date: !company && f.birth ? f.birth : undefined,
     gender: !company && f.gender ? f.gender : undefined, instagram_handle: f.ig || undefined, phones: [f.phone, f.phone2].filter(Boolean), emails: f.email ? [f.email] : [], roles,
     tags: f.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean), notes: f.notes || undefined, address: Object.fromEntries(Object.entries(addr).filter(([, v]) => v)),
-  }), [f, roles, addr, company]);
+    registry: company && registry && digits(f.cnpj) === registry.cnpj ? registry : undefined,
+  }), [f, roles, addr, company, registry]);
   const ok = f.name.trim().length > 1 && (!company || digits(f.cnpj).length === 14) && roles.length > 0;
 
   return (

@@ -8,6 +8,8 @@ import { Badge, Button, Card, Empty, inputClass, LinkButton, PageHeader } from "
 import { Field, Flash } from "@/components/form";
 import { addContactAction, addRelationAction, deleteAddressAction, mergePartiesAction, removeContactAction, removeRelationAction, saveAddressAction, setRolesAction, updateIdentityAction } from "../actions";
 import { AddressForm } from "./address-form";
+import { RegistryCard } from "./registry-card";
+import type { CnpjData } from "@sie/domain";
 
 export const metadata = { title: "Cadastro" };
 
@@ -46,6 +48,8 @@ export default async function CadastroPage({ params, searchParams }: { params: P
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
       <div className="grid gap-4 lg:grid-cols-2">
+        {company && <RegistryCard id={id} hasCnpj={Boolean(p.cnpj)} registry={(p.registry as unknown as CnpjData | null) ?? null} registryAt={p.registry_at} canWrite={canWrite} />}
+
         <Card title="Identidade">
           <form action={updateIdentityAction} className="space-y-3">
             <input type="hidden" name="id" value={id} />

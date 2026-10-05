@@ -1,0 +1,393 @@
+{
+ "brasilapi": {
+  "uf": "DF",
+  "cep": "70092900",
+  "qsa": [
+   {
+    "pais": null,
+    "nome_socio": "ADRIANE VELLOSO FERREIRA",
+    "codigo_pais": null,
+    "faixa_etaria": "Entre 51 a 60 anos",
+    "cnpj_cpf_do_socio": "***011759**",
+    "qualificacao_socio": "Diretor",
+    "codigo_faixa_etaria": 6,
+    "data_entrada_sociedade": "2024-10-18",
+    "identificador_de_socio": 2,
+    "cpf_representante_legal": "***000000**",
+    "nome_representante_legal": "",
+    "codigo_qualificacao_socio": 10,
+    "qualificacao_representante_legal": "Não informada",
+    "codigo_qualificacao_representante_legal": 0
+   }
+  ],
+  "cnpj": "00360305000104",
+  "pais": null,
+  "email": null,
+  "porte": "DEMAIS",
+  "bairro": "ASA SUL",
+  "numero": "S/N",
+  "ddd_fax": "",
+  "municipio": "BRASILIA",
+  "logradouro": "SETOR SBS",
+  "cnae_fiscal": 6423900,
+  "codigo_pais": null,
+  "complemento": "QUADRA4 BLOCO A ANDAR TODOS",
+  "codigo_porte": 5,
+  "razao_social": "CAIXA ECONOMICA FEDERAL",
+  "nome_fantasia": "CEF MATRIZ",
+  "capital_social": 112600000000,
+  "ddd_telefone_1": "0040040104",
+  "ddd_telefone_2": "",
+  "opcao_pelo_mei": false,
+  "codigo_municipio": 9701,
+  "cnaes_secundarios": [],
+  "natureza_juridica": "Empresa Pública",
+  "regime_tributario": [
+   {
+    "ano": 2016,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2017,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2018,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2019,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2020,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2021,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2022,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2023,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   },
+   {
+    "ano": 2024,
+    "cnpj_da_scp": null,
+    "forma_de_tributacao": "LUCRO REAL",
+    "quantidade_de_escrituracoes": 1
+   }
+  ],
+  "situacao_especial": "",
+  "opcao_pelo_simples": false,
+  "situacao_cadastral": 2,
+  "data_opcao_pelo_mei": null,
+  "data_exclusao_do_mei": null,
+  "cnae_fiscal_descricao": "Caixas econômicas",
+  "codigo_municipio_ibge": 5300108,
+  "data_inicio_atividade": "1971-02-03",
+  "data_situacao_especial": null,
+  "data_opcao_pelo_simples": "2007-07-01",
+  "data_situacao_cadastral": "2005-11-03",
+  "nome_cidade_no_exterior": "",
+  "codigo_natureza_juridica": 2011,
+  "data_exclusao_do_simples": "2007-07-01",
+  "motivo_situacao_cadastral": 0,
+  "ente_federativo_responsavel": "",
+  "identificador_matriz_filial": 1,
+  "qualificacao_do_responsavel": 5,
+  "descricao_situacao_cadastral": "ATIVA",
+  "descricao_tipo_de_logradouro": "SETOR",
+  "descricao_motivo_situacao_cadastral": "SEM MOTIVO",
+  "descricao_identificador_matriz_filial": "MATRIZ"
+ },
+ "cnpjws": {
+  "cnpj_raiz": "00360305",
+  "razao_social": "CAIXA ECONOMICA FEDERAL",
+  "capital_social": "112600000000.00",
+  "responsavel_federativo": "",
+  "atualizado_em": "2026-09-12T03:00:00.000Z",
+  "porte": {
+   "id": "05",
+   "descricao": "Demais"
+  },
+  "natureza_juridica": {
+   "id": "2011",
+   "descricao": "Empresa Pública"
+  },
+  "qualificacao_do_responsavel": {
+   "id": 5,
+   "descricao": "Administrador "
+  },
+  "socios": [
+   {
+    "cpf_cnpj_socio": "***040466**",
+    "nome": "TARSO DUARTE DE TASSIS",
+    "tipo": "Pessoa Física",
+    "data_entrada": "2024-02-26",
+    "cpf_representante_legal": "***000000**",
+    "nome_representante": null,
+    "faixa_etaria": "41 a 50 anos",
+    "atualizado_em": "2026-05-09T03:00:00.000Z",
+    "pais_id": "1058",
+    "qualificacao_socio": {
+     "id": 5,
+     "descricao": "Administrador "
+    },
+    "qualificacao_representante": null,
+    "pais": {
+     "id": "1058",
+     "iso2": "BR",
+     "iso3": "BRA",
+     "nome": "Brasil",
+     "comex_id": "105"
+    }
+   }
+  ],
+  "simples": {
+   "mei": "Não",
+   "simples": "Não",
+   "data_opcao_mei": null,
+   "data_exclusao_mei": null,
+   "data_opcao_simples": "2007-07-01",
+   "data_exclusao_simples": "2007-07-01",
+   "atualizado_em": "2026-09-12T03:00:00.000Z"
+  },
+  "estabelecimento": {
+   "cnpj": "00360305000104",
+   "atividades_secundarias": [],
+   "cnpj_raiz": "00360305",
+   "cnpj_ordem": "0001",
+   "cnpj_digito_verificador": "04",
+   "tipo": "Matriz",
+   "nome_fantasia": "CEF MATRIZ",
+   "situacao_cadastral": "Ativa",
+   "data_situacao_cadastral": "2005-11-03",
+   "data_inicio_atividade": "1971-02-03",
+   "nome_cidade_exterior": null,
+   "tipo_logradouro": "SETOR",
+   "logradouro": "SETOR SBS",
+   "numero": "S/N",
+   "complemento": "QUADRA4                   BLOCO A                   ANDAR TODOS",
+   "bairro": "ASA SUL",
+   "cep": "70092900",
+   "ddd1": "00",
+   "telefone1": "40040104",
+   "ddd2": null,
+   "telefone2": null,
+   "ddd_fax": null,
+   "fax": null,
+   "email": null,
+   "situacao_especial": null,
+   "data_situacao_especial": null,
+   "atualizado_em": "2026-09-12T03:00:00.000Z",
+   "atividade_principal": {
+    "id": "6423900",
+    "secao": "K",
+    "divisao": "64",
+    "grupo": "64.2",
+    "classe": "64.23-9",
+    "subclasse": "6423-9/00",
+    "descricao": "Caixas econômicas"
+   },
+   "pais": {
+    "id": "1058",
+    "iso2": "BR",
+    "iso3": "BRA",
+    "nome": "Brasil",
+    "comex_id": "105"
+   },
+   "estado": {
+    "id": 7,
+    "nome": "Distrito Federal",
+    "sigla": "DF",
+    "ibge_id": 53
+   },
+   "cidade": {
+    "id": 5570,
+    "nome": "Brasília",
+    "ibge_id": 5300108,
+    "siafi_id": "9701"
+   },
+   "motivo_situacao_cadastral": null,
+   "inscricoes_estaduais": [
+    {
+     "inscricao_estadual": "0731282500175",
+     "ativo": true,
+     "atualizado_em": "2025-10-12T22:41:10.100Z",
+     "estado": {
+      "id": 7,
+      "nome": "Distrito Federal",
+      "sigla": "DF",
+      "ibge_id": 53
+     }
+    }
+   ]
+  },
+  "observacao": null
+ },
+ "opencnpj": {
+  "cnpj": "00360305000104",
+  "razao_social": "CAIXA ECONOMICA FEDERAL",
+  "nome_fantasia": "CEF MATRIZ",
+  "situacao_cadastral": "Ativa",
+  "data_situacao_cadastral": "2005-11-03",
+  "matriz_filial": "Matriz",
+  "data_inicio_atividade": "1971-02-03",
+  "cnae_principal": "6423900",
+  "cnaes_secundarios": [],
+  "cnaes": [
+   {
+    "codigo": "6423900",
+    "descricao": "Caixas econômicas",
+    "is_principal": true
+   }
+  ],
+  "natureza_juridica": "Empresa Pública",
+  "tipo_logradouro": "SETOR",
+  "logradouro": "SETOR SBS",
+  "numero": "S/N",
+  "complemento": "QUADRA4                   BLOCO A                   ANDAR TODOS",
+  "bairro": "ASA SUL",
+  "cep": "70092900",
+  "uf": "DF",
+  "municipio": "BRASILIA",
+  "codigo_municipio": "9701",
+  "email": "",
+  "telefones": [
+   {
+    "ddd": "00",
+    "numero": "40040104",
+    "is_fax": false
+   }
+  ],
+  "capital_social": "112600000000,00",
+  "qualificacao_responsavel": {
+   "codigo": "05",
+   "descricao": "Administrador"
+  },
+  "ente_federativo": "",
+  "porte_empresa": "Demais",
+  "opcao_simples": "N",
+  "data_opcao_simples": "2007-07-01",
+  "data_exclusao_simples": "2007-07-01",
+  "opcao_mei": "N",
+  "data_opcao_mei": "0000-00-00",
+  "data_exclusao_mei": "0000-00-00",
+  "motivo_situacao_cadastral": {
+   "codigo": "00",
+   "descricao": "SEM MOTIVO"
+  },
+  "nome_cidade_exterior": "",
+  "codigo_pais": "",
+  "pais": {
+   "codigo": "",
+   "descricao": ""
+  },
+  "situacao_especial": "",
+  "data_situacao_especial": "",
+  "QSA": [
+   {
+    "nome_socio": "MARCOS BRASILIANO ROSA",
+    "cnpj_cpf_socio": "***904751**",
+    "qualificacao_socio": "Administrador",
+    "data_entrada_sociedade": "2020-03-30",
+    "identificador_socio": "Pessoa Física",
+    "codigo_pais": "",
+    "pais": {
+     "codigo": "",
+     "descricao": ""
+    },
+    "representante_legal": "***000000**",
+    "nome_representante": "",
+    "qualificacao_representante": {
+     "codigo": "00",
+     "descricao": "Não informada"
+    },
+    "faixa_etaria": "61 a 70 anos"
+   }
+  ]
+ },
+ "receitaws": {
+  "abertura": "03/02/1971",
+  "situacao": "ATIVA",
+  "tipo": "MATRIZ",
+  "nome": "CAIXA ECONOMICA FEDERAL",
+  "fantasia": "CEF MATRIZ",
+  "porte": "DEMAIS",
+  "natureza_juridica": "201-1 - Empresa Pública",
+  "atividade_principal": [
+   {
+    "code": "64.23-9-00",
+    "text": "Caixas econômicas"
+   }
+  ],
+  "qsa": [
+   {
+    "nome": "MARCOS BRASILIANO ROSA",
+    "qual": "05-Administrador"
+   }
+  ],
+  "logradouro": "ST SETOR SBS",
+  "numero": "S/N",
+  "complemento": "QUADRA4 BLOCO A ANDAR TODOS",
+  "municipio": "BRASILIA",
+  "bairro": "ASA SUL",
+  "uf": "DF",
+  "cep": "70.092-900",
+  "telefone": "(00) 4004-0104",
+  "data_situacao": "03/11/2005",
+  "efr": "UNIÃO",
+  "cnpj": "00.360.305/0001-04",
+  "ultima_atualizacao": "2026-10-04T02:09:06.953Z",
+  "status": "OK",
+  "email": "",
+  "motivo_situacao": "",
+  "situacao_especial": "",
+  "data_situacao_especial": "",
+  "atividades_secundarias": [
+   {
+    "code": "00.00-0-00",
+    "text": "Não informada"
+   }
+  ],
+  "capital_social": "112600000000.00",
+  "simples": {
+   "optante": false,
+   "data_opcao": "01/07/2007",
+   "data_exclusao": "01/07/2007",
+   "ultima_atualizacao": "2026-09-15T23:59:59.000Z"
+  },
+  "simei": {
+   "optante": false,
+   "data_opcao": null,
+   "data_exclusao": null,
+   "ultima_atualizacao": "2026-09-15T23:59:59.000Z"
+  },
+  "extra": {},
+  "billing": {
+   "free": true,
+   "database": true
+  }
+ }
+}

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { Json } from "@sie/db";
 import { createClient } from "@/lib/supabase/server";
+import { lookupCnpj } from "@/lib/cnpj";
 import { findParty } from "../clientes/party-lookup";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;
@@ -34,6 +35,10 @@ export async function createPartyAction(_prev: State, formData: FormData): Promi
   const supabase = await createClient();
   const { data, error } = await supabase.schema("crm").rpc("create_party", { p: parsed.data as unknown as Json });
   if (error) return { ok: false, error: friendly(error.message) };
+  const registry = (raw as { registry?: unknown }).registry;
+  if (registry && typeof registry === "object") {   // retrato da Receita da consulta de CNPJ (falha aqui não desfaz o cadastro)
+    await supabase.schema("crm").rpc("save_registry", { p_party: (data as unknown as { id: string }).id, p_data: registry as Json });
+  }
   revalidatePath("/cadastros", "layout");
   return redirect(`/cadastros/${(data as unknown as { id: string }).id}?ok=${encodeURIComponent("Cadastro criado")}`);
 }
@@ -112,4 +117,16 @@ export async function mergePartiesAction(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.schema("crm").rpc("merge_parties", { p_keep: keep, p_dup: str(formData.get("dup")) });
   go(`/cadastros/${keep}`, error, "Cadastros mesclados: tudo da duplicada agora está aqui");
+}
+
+/** Consulta o CNPJ de novo (Receita via fontes gratuitas) e grava o retrato; só preenche o que estiver vazio no cadastro. */
+export async function refreshRegistryAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { data: p } = await supabase.schema("crm").from("parties").select("cnpj").eq("id", id).maybeSingle();
+  if (!p?.cnpj) go(`/cadastros/${id}`, { message: "Cadastre o CNPJ antes de consultar a Receita" }, "");
+  const r = await lookupCnpj(p!.cnpj!);
+  if (!r.ok) go(`/cadastros/${id}`, { message: r.error }, "");
+  const { error } = await supabase.schema("crm").rpc("save_registry", { p_party: id, p_data: r.data as unknown as Json });
+  go(`/cadastros/${id}`, error, `Dados da Receita atualizados (${r.data.sources.join(", ")})`);
 }

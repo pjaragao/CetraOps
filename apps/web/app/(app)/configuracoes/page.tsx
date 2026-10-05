@@ -13,9 +13,10 @@ async function saveLegalEntity(formData: FormData) {
   const cnpj = String(formData.get("cnpj") || "").replace(/\D/g, "");
   await supabase.schema("core").from("legal_entities").insert({
     org_id: s.orgId, cnpj, razao_social: String(formData.get("razao_social")), nome_fantasia: String(formData.get("nome_fantasia") || "") || null,
-    ie: String(formData.get("ie") || "") || null, cnae_principal: "4781400",
+    ie: String(formData.get("ie") || "") || null, cnae_principal: String(formData.get("cnae") || "") || "4781400",
     address: Object.fromEntries(["cep", "street", "number", "complement", "district", "city", "uf"].map((k) => [k, String(formData.get(`addr_${k}`) || "").trim()]).filter(([, v]) => v)),
-    cnaes_secundarios: ["4763602", "4782201", "4782202", "4772500", "4789099", "4642701", "7319002", "8230001"],
+    // CNAEs da consulta de CNPJ; sem consulta, os da loja SIÉ
+    cnaes_secundarios: String(formData.get("cnaes") || "") ? String(formData.get("cnaes")).split(",") : ["4763602", "4782201", "4782202", "4772500", "4789099", "4642701", "7319002", "8230001"],
   });
   revalidatePath("/configuracoes");
 }

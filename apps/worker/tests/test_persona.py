@@ -6,32 +6,32 @@ from datetime import timedelta
 
 import pytest
 
-from sie_worker.persona.normalize import Dialogue, Turn, dedupe, merge_turns, split_dialogues, two_sided
-from sie_worker.persona.pairs import build_pairs
-from sie_worker.persona.parsers import BRT, fix_mojibake, parse_instagram_json, parse_whatsapp_txt
-from sie_worker.persona.pipeline import parse_source, process
-from sie_worker.persona.pseudonymize import Pseudonymizer, residual_pii
-from sie_worker.persona.style import EMOJI, compute_style
+from centralops_worker.persona.normalize import Dialogue, Turn, dedupe, merge_turns, split_dialogues, two_sided
+from centralops_worker.persona.pairs import build_pairs
+from centralops_worker.persona.parsers import BRT, fix_mojibake, parse_instagram_json, parse_whatsapp_txt
+from centralops_worker.persona.pipeline import parse_source, process
+from centralops_worker.persona.pseudonymize import Pseudonymizer, residual_pii
+from centralops_worker.persona.style import EMOJI, compute_style
 
 ANDROID = "\n".join([
     "30/09/2026 08:59 - As mensagens e ligações são protegidas com a criptografia de ponta a ponta. Ninguém fora desta conversa pode ler.",
     "30/09/2026 09:00 - Fernanda Souza: Oi Luisa! Vocês têm legging preta no M?",
-    "30/09/2026 09:02 - Luisa Sié: Oi, Fernanda! ✨",
+    "30/09/2026 09:02 - Luisa Moura: Oi, Fernanda! ✨",
     "Temos sim, linda",
     "Quer que eu separe pra você?",
     "30/09/2026 09:03 - Fernanda Souza: <Mídia oculta>",
     "30/09/2026 09:03 - Fernanda Souza: Quanto fica? Tenho 10 reais de crédito kkk",
-    "30/09/2026 2:05 PM - Luisa Sié: Esta mensagem foi apagada",
-    "30/09/2026 14:06 - Luisa Sié: Fica R$ 429,00 ou 3x de R$ 143,00 <Mensagem editada>",
-    "01/10/2026 10:00 - Luisa Sié criou o grupo",
+    "30/09/2026 2:05 PM - Luisa Moura: Esta mensagem foi apagada",
+    "30/09/2026 14:06 - Luisa Moura: Fica R$ 429,00 ou 3x de R$ 143,00 <Mensagem editada>",
+    "01/10/2026 10:00 - Luisa Moura criou o grupo",
 ])
 
 IOS = "\n".join([
     "‎[30/09/26, 09:00:12] Carla Dias: Bom dia!",
-    "[30/09/26, 09:01:40] Paulo Sié: Bom dia, Carla! Em que posso ajudar?",
+    "[30/09/26, 09:01:40] Paulo Moura: Bom dia, Carla! Em que posso ajudar?",
     "‎[30/09/26, 09:02:10] Carla Dias: ‎imagem ocultada",
     "‎[30/09/26, 09:02:50] Carla Dias: ‎áudio ocultado",
-    "[30/09/26, 09:03:00] Paulo Sié: Me manda seu CEP que eu calculo o frete",
+    "[30/09/26, 09:03:00] Paulo Moura: Me manda seu CEP que eu calculo o frete",
 ])
 
 
@@ -50,7 +50,7 @@ def test_whatsapp_android_parses_authors_times_and_kinds() -> None:
 
 def test_whatsapp_ios_ignores_invisible_marks_and_detects_media() -> None:
     msgs = parse_whatsapp_txt(IOS)
-    assert [m.author for m in msgs] == ["Carla Dias", "Paulo Sié", "Carla Dias", "Carla Dias", "Paulo Sié"]
+    assert [m.author for m in msgs] == ["Carla Dias", "Paulo Moura", "Carla Dias", "Carla Dias", "Paulo Moura"]
     assert [m.kind for m in msgs] == ["text", "text", "media", "media", "text"]
     assert msgs[0].ts is not None and (msgs[0].ts.year, msgs[0].ts.hour, msgs[0].ts.second) == (2026, 9, 12)
 
@@ -58,8 +58,8 @@ def test_whatsapp_ios_ignores_invisible_marks_and_detects_media() -> None:
 def test_instagram_json_fixes_mojibake_orders_messages_and_flags_system() -> None:
     mojibake = "Não sei o tamanho 😊".encode().decode("latin-1")
     assert fix_mojibake(mojibake) == "Não sei o tamanho 😊" and fix_mojibake("texto normal") == "texto normal"
-    data = {"participants": [{"name": "sie.wear"}, {"name": "Ana"}], "messages": [                      # o Instagram exporta do mais novo para o mais antigo
-        {"sender_name": "sie.wear", "timestamp_ms": 1790000300000, "content": "Posso separar pra você!"},
+    data = {"participants": [{"name": "loja.demo"}, {"name": "Ana"}], "messages": [                      # o Instagram exporta do mais novo para o mais antigo
+        {"sender_name": "loja.demo", "timestamp_ms": 1790000300000, "content": "Posso separar pra você!"},
         {"sender_name": "Ana", "timestamp_ms": 1790000200000, "photos": [{"uri": "x.jpg"}]},
         {"sender_name": "Ana", "timestamp_ms": 1790000100000, "content": mojibake},
         {"sender_name": "Ana", "timestamp_ms": 1790000050000, "content": "Ana curtiu uma mensagem"},
@@ -73,13 +73,13 @@ def test_instagram_json_fixes_mojibake_orders_messages_and_flags_system() -> Non
 def test_turns_dialogues_dedupe_and_sides() -> None:
     msgs = parse_whatsapp_txt(ANDROID)
     turns = merge_turns(msgs)
-    assert [(t.author, len(t.bubbles)) for t in turns] == [("Fernanda Souza", 1), ("Luisa Sié", 1), ("Fernanda Souza", 2), ("Luisa Sié", 1)]   # 14:06 é outro turno (apagada some)
+    assert [(t.author, len(t.bubbles)) for t in turns] == [("Fernanda Souza", 1), ("Luisa Moura", 1), ("Fernanda Souza", 2), ("Luisa Moura", 1)]   # 14:06 é outro turno (apagada some)
     assert turns[1].bubbles == ["Oi, Fernanda! ✨\nTemos sim, linda\nQuer que eu separe pra você?"]
     assert turns[2].bubbles == ["[mídia]", "Quanto fica? Tenho 10 reais de crédito kkk"]
     dialogues = split_dialogues(turns, gap=timedelta(hours=3))
-    assert len(dialogues) == 2 and dialogues[1].turns[0].author == "Luisa Sié"                   # pausa das 09h às 14h
+    assert len(dialogues) == 2 and dialogues[1].turns[0].author == "Luisa Moura"                   # pausa das 09h às 14h
     assert len(dedupe(dialogues + dialogues)) == 2
-    assert two_sided(dialogues[0], "Luisa Sié") and not two_sided(dialogues[1], "Luisa Sié")
+    assert two_sided(dialogues[0], "Luisa Moura") and not two_sided(dialogues[1], "Luisa Moura")
 
 
 @pytest.mark.parametrize("text,expected", [
@@ -94,7 +94,7 @@ def test_turns_dialogues_dedupe_and_sides() -> None:
     ("tenho 2 no M e temos só 3 peças do G", "tenho {ESTOQUE} no M e temos só {ESTOQUE} peças do G"),
     ("moro na Rua das Flores, 123 - Centro", "moro na {ENDERECO}"),
     ("CEP 88010-000", "{CEP}"),
-    ("segue no @ana.silva e veja instagram.com/sie.wear ou https://wa.me/5548999998888", "segue no @{USUARIO} e veja {LINK} ou {LINK}"),
+    ("segue no @ana.silva e veja instagram.com/loja.demo ou https://wa.me/5548999998888", "segue no @{USUARIO} e veja {LINK} ou {LINK}"),
     ("Oi Fernanda! Tudo bem?", "Oi {CLIENTE}! Tudo bem?"),
     ("Bom dia Carla Dias, como vai?", "Bom dia {CLIENTE}, como vai?"),
     ("Oi Tudo bem? Show, combinado", "Oi Tudo bem? Show, combinado"),                            # palavras comuns não viram nome
@@ -106,10 +106,10 @@ def test_pseudonymizer_cases(text: str, expected: str) -> None:
 
 
 def test_pseudonymizer_names_from_the_source_and_keep_the_owner() -> None:
-    p = Pseudonymizer(customer_names=["Fernanda Souza", "Ana"], keep_names=["Luisa Sié"])
+    p = Pseudonymizer(customer_names=["Fernanda Souza", "Ana"], keep_names=["Luisa Moura"])
     r = p.apply("Fernanda, aqui é a Luisa. A Souza e a ana já pegaram!")
     assert r.text == "{CLIENTE}, aqui é a Luisa. A {CLIENTE} e a {CLIENTE} já pegaram!" and r.counts["nome"] == 3
-    assert Pseudonymizer(customer_names=["Luisa Sié"], keep_names=["Luisa Sié"]).apply("Oi Luisa").text == "Oi Luisa"      # nome do sócio não é tratado como cliente
+    assert Pseudonymizer(customer_names=["Luisa Moura"], keep_names=["Luisa Moura"]).apply("Oi Luisa").text == "Oi Luisa"      # nome do sócio não é tratado como cliente
 
 
 def test_residual_pii_detects_what_is_left() -> None:
@@ -153,13 +153,13 @@ def test_pairs_context_ends_with_the_customer_and_skips_owner_follow_ups() -> No
 def test_end_to_end_pipeline_anonymizes_and_drops_dialogues_with_residual_pii() -> None:
     raw = "\n".join([
         "30/09/2026 09:00 - Fernanda Souza: Oi Luisa! Quanto é a legging? Meu cel 48 99999-8888",
-        "30/09/2026 09:02 - Luisa Sié: Oi, Fernanda! Fica R$ 429,00 ✨",
+        "30/09/2026 09:02 - Luisa Moura: Oi, Fernanda! Fica R$ 429,00 ✨",
         "30/09/2026 09:03 - Fernanda Souza: Separa a preta no M pra mim?",
-        "30/09/2026 09:04 - Luisa Sié: Separo sim, linda! Retira em 2 dias.",
+        "30/09/2026 09:04 - Luisa Moura: Separo sim, linda! Retira em 2 dias.",
         "01/10/2026 10:00 - Carla Dias: Oi, o link é https://exemplo.com/x e meu CPF 111.444.777-35",
-        "01/10/2026 10:05 - Luisa Sié: Recebi, obrigada!",
+        "01/10/2026 10:05 - Luisa Moura: Recebi, obrigada!",
     ])
-    out = process(parse_source("WA_TXT", raw), "Luisa Sié", lexicon=["linda"])
+    out = process(parse_source("WA_TXT", raw), "Luisa Moura", lexicon=["linda"])
     text = "\n".join(t.text for d in out.dialogues for t in d.turns)
     assert out.report["dialogues"] == 2 and out.report["dialogues_kept"] == 2                # os dados pessoais foram trocados, então nada sobra
     assert "Fernanda" not in text and "99999" not in text and "429" not in text and "111.444" not in text and "exemplo.com" not in text
@@ -170,7 +170,7 @@ def test_end_to_end_pipeline_anonymizes_and_drops_dialogues_with_residual_pii() 
 
 
 def test_greeting_followed_by_an_exclamation_mark_does_not_swallow_the_next_sentence() -> None:
-    from sie_worker.persona.pseudonymize import Pseudonymizer
+    from centralops_worker.persona.pseudonymize import Pseudonymizer
 
     p = Pseudonymizer([])
     assert p.apply("Oi amiga! Tem sim 💛").text == "Oi amiga! Tem sim 💛"

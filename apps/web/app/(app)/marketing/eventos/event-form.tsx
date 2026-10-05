@@ -21,7 +21,7 @@ export function EventForm({ stores, collections, initial }: { stores: { id: stri
       <Field label="Loja"><select name="store_id" defaultValue={initial?.store_id ?? stores[0]?.id ?? ""} className={inputClass}><option value="">—</option>{stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
       <Field label="Começa em"><input name="starts_at" type="datetime-local" required defaultValue={toLocalInput(initial?.starts_at)} className={inputClass} /></Field>
       <Field label="Termina em (opcional)"><input name="ends_at" type="datetime-local" defaultValue={toLocalInput(initial?.ends_at)} className={inputClass} /></Field>
-      <Field label="Local"><input name="venue" maxLength={120} defaultValue={initial?.venue ?? ""} className={inputClass} placeholder="Loja JOY" /></Field>
+      <Field label="Local"><input name="venue" maxLength={120} defaultValue={initial?.venue ?? ""} className={inputClass} placeholder="Loja Centro" /></Field>
       <Field label="Capacidade (pessoas)" hint="Passou disso, entra em lista de espera"><input name="capacity" type="number" min={0} defaultValue={initial?.capacity ?? ""} className={inputClass} /></Field>
       <Field label="Meta de vendas (R$)"><input name="target_revenue" inputMode="decimal" defaultValue={initial?.target_revenue ?? ""} className={inputClass} placeholder="8.000,00" /></Field>
       <Field label="Coleção (opcional)"><select name="collection_id" defaultValue={initial?.collection_id ?? ""} className={inputClass}><option value="">—</option>{collections.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>

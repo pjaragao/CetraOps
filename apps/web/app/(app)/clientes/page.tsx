@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { SEGMENTS, STAGE_LABEL, TIER_LABEL } from "@sie/domain";
+import { SEGMENTS, STAGE_LABEL, TIER_LABEL } from "@centralops/domain";
 import { Badge, Empty, inputClass, PageHeader, Table } from "@/components/ui";
 
 export const metadata = { title: "Clientes" };

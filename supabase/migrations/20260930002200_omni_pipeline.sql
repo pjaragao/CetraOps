@@ -207,7 +207,7 @@ begin
     returning * into d;
   else
     select tier::text into v_tier from crm.parties where id = cv.party_id;
-    perform set_config('sie.mode_trigger', coalesce(p ->> 'trigger', 'AI_REQUEST_HANDOFF'), true);
+    perform set_config('centralops.mode_trigger', coalesce(p ->> 'trigger', 'AI_REQUEST_HANDOFF'), true);
     update omni.conversations set mode = 'WAITING_HUMAN', sla_due_at = now() + case when v_tier in ('VIP', 'VIP_BLACK') then interval '5 minutes' else interval '15 minutes' end
     where id = cv.id;
     update omni.mode_events set reason = p ->> 'reason' where id = (select max(id) from omni.mode_events where conversation_id = cv.id);

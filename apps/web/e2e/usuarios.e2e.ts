@@ -5,7 +5,7 @@ test.describe("usuários e permissões", () => {
   test("sócio cria perfil e usuário; a pessoa troca a senha provisória e só vê o que o perfil permite", async ({ page }) => {
     test.setTimeout(150_000);
     const n = Date.now() % 100000;
-    const email = `e2e-${n}@sie.test`;
+    const email = `e2e-${n}@centralops.test`;
     const perfil = `Atendimento E2E ${n}`;
     await login(page, "socio");
 
@@ -66,7 +66,7 @@ test.describe("usuários e permissões", () => {
     const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Criar usuário" }) });
     await expect(form.locator("input[name=display_name]")).toHaveValue(nome);
     await expect(form.getByRole("checkbox").first()).toBeChecked();      // acesso total sugerido para a sócia
-    await form.locator("input[name=email]").fill(`socia-${n}@sie.test`);
+    await form.locator("input[name=email]").fill(`socia-${n}@centralops.test`);
     await form.locator("input[name=password]").fill("provisoria123");
     await form.getByRole("button", { name: "Criar usuário" }).click();
     await expect(page.getByText(/Usuário criado/)).toBeVisible({ timeout: 20_000 });

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fmtHours, netMinutes } from "@sie/domain";
+import { fmtHours, netMinutes } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";

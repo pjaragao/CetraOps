@@ -6,11 +6,11 @@ from typing import Any
 
 import pytest
 
-from sie_worker import queues
-from sie_worker.adapters.errors import PermanentError
-from sie_worker.db import fetch_one
-from sie_worker.deps import Deps
-from sie_worker.handlers import ai_tasks
+from centralops_worker import queues
+from centralops_worker.adapters.errors import PermanentError
+from centralops_worker.db import fetch_one
+from centralops_worker.deps import Deps
+from centralops_worker.handlers import ai_tasks
 
 from .conftest import ORG, ingest, unique_phone
 

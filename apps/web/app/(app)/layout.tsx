@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { visibleNav } from "@sie/domain";
+import { visibleNav } from "@centralops/domain";
 import { getSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/shell/sidebar";

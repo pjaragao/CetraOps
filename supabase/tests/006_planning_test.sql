@@ -69,23 +69,23 @@ select throws_ok($$ select fin.save_budget(jsonb_build_object('id', (select v fr
 select lives_ok($$ select fin.post_manual_entry(jsonb_build_object('legal_entity_id', '00000000-0000-4000-8000-0000000000e1', 'entry_date', '2026-08-10',
   'description', 'Receita balcão (teste)', 'lines', jsonb_build_array(
     jsonb_build_object('account_id', (select id from fin.chart_accounts where code = '1.1.1.02'), 'debit', 10000),
-    jsonb_build_object('account_id', (select id from fin.chart_accounts where code = '4.1.01'), 'cost_center_id', (select id from core.cost_centers where code = 'JOY-BALCAO'), 'credit', 6000),
-    jsonb_build_object('account_id', (select id from fin.chart_accounts where code = '4.1.02'), 'cost_center_id', (select id from core.cost_centers where code = 'JOY-DIGITAL'), 'credit', 4000)))) $$, 'receita do mês por canal');
+    jsonb_build_object('account_id', (select id from fin.chart_accounts where code = '4.1.01'), 'cost_center_id', (select id from core.cost_centers where code = 'PILOTO-BALCAO'), 'credit', 6000),
+    jsonb_build_object('account_id', (select id from fin.chart_accounts where code = '4.1.02'), 'cost_center_id', (select id from core.cost_centers where code = 'PILOTO-DIGITAL'), 'credit', 4000)))) $$, 'receita do mês por canal');
 select lives_ok($$ select fin.post_manual_entry(jsonb_build_object('legal_entity_id', '00000000-0000-4000-8000-0000000000e1', 'entry_date', '2026-08-12',
   'description', 'Despesa corporativa (teste)', 'lines', jsonb_build_array(
     jsonb_build_object('account_id', (select id from fin.chart_accounts where code = '7.2.99'), 'cost_center_id', (select id from core.cost_centers where code = 'CORP'), 'debit', 1000),
     jsonb_build_object('account_id', (select id from fin.chart_accounts where code = '1.1.1.02'), 'credit', 1000)))) $$, 'despesa no centro corporativo');
 select lives_ok($$ insert into fin.allocation_rules (org_id, name, method, source_cost_center_id, targets)
   values ('00000000-0000-4000-8000-000000000001', 'Corporativo por receita', 'REVENUE_SHARE', (select id from core.cost_centers where code = 'CORP'),
-    jsonb_build_array(jsonb_build_object('cost_center_id', (select id from core.cost_centers where code = 'JOY-BALCAO')),
-                      jsonb_build_object('cost_center_id', (select id from core.cost_centers where code = 'JOY-DIGITAL')))) $$, 'regra: corporativo rateado pela receita');
+    jsonb_build_array(jsonb_build_object('cost_center_id', (select id from core.cost_centers where code = 'PILOTO-BALCAO')),
+                      jsonb_build_object('cost_center_id', (select id from core.cost_centers where code = 'PILOTO-DIGITAL')))) $$, 'regra: corporativo rateado pela receita');
 select is((select total from fin.run_allocation_batch('00000000-0000-4000-8000-0000000000e1', date '2026-08-01')), 1000.00, 'lote aplicado: pool de R$ 1.000');
 select is((select amount from fin.dre(date '2026-08-01', date '2026-08-31', '00000000-0000-4000-8000-0000000000e1',
-            core.cc_subtree((select id from core.cost_centers where code = 'JOY-BALCAO')), 'ALL') where code = 'DF'), 600.00, 'DRE do balcão com rateio: 60% do corporativo');
+            core.cc_subtree((select id from core.cost_centers where code = 'PILOTO-BALCAO')), 'ALL') where code = 'DF'), 600.00, 'DRE do balcão com rateio: 60% do corporativo');
 select is((select amount from fin.dre(date '2026-08-01', date '2026-08-31', '00000000-0000-4000-8000-0000000000e1',
-            core.cc_subtree((select id from core.cost_centers where code = 'JOY-DIGITAL')), 'ALL') where code = 'DF'), 400.00, 'DRE do digital com rateio: 40%');
+            core.cc_subtree((select id from core.cost_centers where code = 'PILOTO-DIGITAL')), 'ALL') where code = 'DF'), 400.00, 'DRE do digital com rateio: 40%');
 select is((select amount from fin.dre(date '2026-08-01', date '2026-08-31', '00000000-0000-4000-8000-0000000000e1',
-            core.cc_subtree((select id from core.cost_centers where code = 'JOY-BALCAO')), 'LEGAL') where code = 'DF'), 0.00, 'sem rateio: margem da unidade sem o corporativo');
+            core.cc_subtree((select id from core.cost_centers where code = 'PILOTO-BALCAO')), 'LEGAL') where code = 'DF'), 0.00, 'sem rateio: margem da unidade sem o corporativo');
 select is((select amount from fin.dre(date '2026-08-01', date '2026-08-31', '00000000-0000-4000-8000-0000000000e1', null, 'ALL') where code = 'DF'), 1000.00, 'consolidado não muda com o rateio');
 select throws_ok($$ select fin.run_allocation_batch('00000000-0000-4000-8000-0000000000e1', date '2026-08-01') $$, 'P0091', null, 'não aplica o rateio duas vezes');
 

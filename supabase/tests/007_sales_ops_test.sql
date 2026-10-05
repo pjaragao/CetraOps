@@ -99,7 +99,7 @@ select is((select total from sales.orders where id = (select v from ids where k 
 select is((select status::text from sales.orders where id = (select v from ids where k = 'oR')), 'PENDING_PAYMENT', 'aguardando pagamento');
 select is((select reserved from inv.stock_levels sl join catalog.variants v on v.id = sl.variant_id where v.sku = 'DEMO-LEG01-PRT-G' and sl.location_id = '00000000-0000-4000-8000-0000000000b1'), 1.000, 'estoque reservado enquanto aguarda pagamento');
 select is((select role from sales.order_credits where order_id = (select v from ids where k = 'oR')), 'AI', 'crédito da venda para a IA (sem humano atribuído)');
-select is((select cc.code from sales.orders o join core.cost_centers cc on cc.id = o.profit_cost_center_id where o.id = (select v from ids where k = 'oR')), 'JOY-DIGITAL', 'resultado no centro DIGITAL da loja');
+select is((select cc.code from sales.orders o join core.cost_centers cc on cc.id = o.profit_cost_center_id where o.id = (select v from ids where k = 'oR')), 'PILOTO-DIGITAL', 'resultado no centro DIGITAL da loja');
 select lives_ok($$ insert into ids select 'lnk', (sales.create_payment_link((select v from ids where k = 'oR'), 3)).id $$, 'gera o link de pagamento');
 select lives_ok($$ select sales.register_payment(jsonb_build_object('order_id', (select v from ids where k = 'oR'), 'method', 'PIX', 'amount', 300, 'acquirer', 'STONE', 'external_id', 'pix-1')) $$, 'Pix parcial de R$ 300');
 select lives_ok($$ select sales.register_payment(jsonb_build_object('order_id', (select v from ids where k = 'oR'), 'method', 'PIX', 'amount', 300, 'acquirer', 'STONE', 'external_id', 'pix-1')) $$, 'mesmo evento repetido é ignorado (idempotente)');

@@ -1,4 +1,4 @@
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { str, todayIsoSP, type SP } from "@/lib/context";

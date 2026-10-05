@@ -12,13 +12,13 @@ import pytest
 import pytest_asyncio
 from psycopg.rows import dict_row
 
-from sie_worker.config import Settings
-from sie_worker.db import call_fn, fetch_one
-from sie_worker.deps import Deps
+from centralops_worker.config import Settings
+from centralops_worker.db import call_fn, fetch_one
+from centralops_worker.deps import Deps
 
 ORG = "00000000-0000-4000-8000-000000000001"
 STORE = "00000000-0000-4000-8000-0000000000a1"
-DB_URL = os.environ.get("SIE_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:55322/postgres")
+DB_URL = os.environ.get("CENTRALOPS_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:55322/postgres")
 CTX_SECRET = "test-secret-with-at-least-32-bytes!!"
 
 

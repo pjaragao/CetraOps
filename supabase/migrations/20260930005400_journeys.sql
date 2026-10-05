@@ -86,7 +86,7 @@ begin
     '{tamanho}', coalesce(p.sizes ->> 'bottom', p.sizes ->> 'top', 'seu tamanho')),
     '{ultima_peca}', coalesce(lower(v_last), 'sua última peça')),
     '{data_limite}', to_char(private.today_sp() + 30, 'DD/MM')),
-    '{loja}', coalesce(v_store, 'SIÉ'));
+    '{loja}', coalesce(v_store, 'nossa loja'));
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -412,7 +412,7 @@ begin
   end loop;
   return jsonb_build_object('enrolled', v_enrolled, 'steps', v_done);
 end $$;
-select cron.schedule('sie-journeys', '*/15 * * * *', $$ select private.run_journeys() $$);
+select cron.schedule('centralops-journeys', '*/15 * * * *', $$ select private.run_journeys() $$);
 
 -- ---------------------------------------------------------------------
 -- 5) Resultado: tratamento × controle (compra em até N dias da inscrição)
@@ -491,7 +491,7 @@ begin
   on conflict (org_id, key) do nothing returning id into v;
   if v is not null then
     insert into mkt.journey_steps (org_id, journey_id, position, wait_days, action, title, message, due_hours) values
-      (p_org, v, 1, 0, 'TASK', 'Convidar {nome} para voltar', 'Oi, {nome}! Faz um tempinho que você não passa na SIÉ. Que tal provar as novidades no seu próximo treino? Posso separar no seu tamanho.', 72);
+      (p_org, v, 1, 0, 'TASK', 'Convidar {nome} para voltar', 'Oi, {nome}! Faz um tempinho que você não passa na {loja}. Que tal provar as novidades no seu próximo treino? Posso separar no seu tamanho.', 72);
   end if;
   v := null;
   insert into mkt.journeys (org_id, key, name, description, trigger) values

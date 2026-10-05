@@ -1,6 +1,6 @@
-# SIÉ JOY OS 2.0 — ERP de varejo + plataforma omnichannel com IA (SIÉ Wear)
+# CentralOps — ERP de varejo + plataforma omnichannel com IA
 
-Plataforma da **[SIÉ Wear](https://siewear.com/)** para a unidade piloto no **[JOY Wellness Club](https://www.founderjoy.com.br/)** (Florianópolis/SC) e para a expansão em rede.
+**CentralOps** é a central de operações de lojas de moda: do balcão ao financeiro, com IA em todas as áreas. Foi desenhado para lojas físicas (inclusive no modelo *shop-in-shop*, dentro de uma academia parceira) e para a expansão em rede.
 São duas frentes sobre uma fundação comum:
 
 - **ERP de varejo** — PDV, estoque por grade, NFC-e, financeiro com partidas dobradas e rateio na baixa, conciliação, compras com NF-e, RH integrado à folha/contábil/fiscal, fiscal (Simples/DAS/eSocial).
@@ -36,11 +36,11 @@ pnpm install
 npx supabase start                # Postgres + Auth + Realtime + Storage + Edge runtime locais (portas 553xx)
 npx supabase db reset             # migrations + seeds (config + dados FICTÍCIOS de desenvolvimento)
 cp .env.example .env              # e preencha o necessário
-pnpm --filter @sie/web dev        # http://localhost:3000  (usuários de teste: supabase/seed/90_dev_demo.sql)
+pnpm --filter @centralops/web dev        # http://localhost:3000  (usuários de teste: supabase/seed/90_dev_demo.sql)
 pnpm worker                       # worker (consome as filas)
 ```
 
-Sem as chaves da IA o sistema funciona: conversas em modo IA caem para atendimento humano (o rascunho exige `SIE_OPENROUTER_KEY` ou `SIE_HERMES_KEY`).
+Sem as chaves da IA o sistema funciona: conversas em modo IA caem para atendimento humano (o rascunho exige `CENTRALOPS_OPENROUTER_KEY` ou `CENTRALOPS_HERMES_KEY`).
 
 ## Testes e qualidade
 
@@ -71,13 +71,13 @@ Menu por tarefa, protegido por permissões (RBAC + RLS em todas as tabelas):
 | **Inteligência** — rotas de modelos por tarefa, custos | parcial (personas, base de conhecimento, sugestões: em construção) |
 | **Clientes / Marketing** — ficha 360°, cupons | parcial (funis, tarefas, campanhas, eventos: em construção) |
 
-## Plano de negócios e expansão
+## Documentos de negócio de terceiros (fora do produto)
 
-O modelo financeiro (Excel com fórmulas nativas) e a documentação de negócio continuam no repositório:
+Estas pastas são documentos de negócio de um cliente (plano de negócios, expansão e contrato). **Não fazem parte do CentralOps**, não são publicadas e não foram renomeadas:
 
 - [`primeira_unidade_joy/`](primeira_unidade_joy) — Plano de Negócios (12 abas), descritivo de CNAEs e 10 notas técnicas (premissas, DRE, cenários, tributário, operação do PDV, riscos, remuneração).
 - [`plano_de_expansao/`](plano_de_expansao) — dossiê de expansão high-ticket (mapeamento de academias, modelos Shop-in-Shop/Consignação/Drops, planejamento tributário e societário).
 - [`scripts/`](scripts) — gerador do Excel, validador de fórmulas e compiladores de PDF.
 - [`PROJECT_INSTRUCTIONS.md`](PROJECT_INSTRUCTIONS.md) — regra de ouro: **toda mudança de premissa deve refletir no Excel e nos `.md`**.
 
-> Decisões de negócio que viram configuração do sistema (não constantes no código): a JOY é **patrocínio + licença de espaço** (não aluguel); faixa 1 do Simples (Anexo I) é 4%; taxas de cartão por modalidade/parcelas/antecipação; pró-labore dos sócios entra no DRE.
+> Decisões de negócio que viram configuração do sistema (não constantes no código): a licença de espaço do parceiro anfitrião é **patrocínio + licença de espaço** (não aluguel); faixa 1 do Simples (Anexo I) é 4%; taxas de cartão por modalidade/parcelas/antecipação; pró-labore dos sócios entra no DRE.

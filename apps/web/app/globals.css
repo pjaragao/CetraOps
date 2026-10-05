@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Tokens da marca SIÉ JOY: off-white, champagne, burgundy e verde-floresta sobre neutros. */
+/* Tokens visuais do CentralOps: off-white, champagne, burgundy e verde-floresta sobre neutros. */
 :root {
   --bg: #faf8f4;
   --surface: #ffffff;

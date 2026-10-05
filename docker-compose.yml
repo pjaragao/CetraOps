@@ -1,13 +1,13 @@
 services:
   # Roda a cada deploy ANTES do web e do worker: confere o banco e aplica as migrations que faltarem
   # (e garante o administrador inicial). Se falhar, web e worker não sobem sobre um banco desatualizado.
-  # Log: docker logs cetraops-migrate · ver apps/worker/sie_worker/migrate.py
-  cetraops-migrate:
+  # Log: docker logs centralops-migrate · ver apps/worker/centralops_worker/migrate.py
+  centralops-migrate:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
-    container_name: cetraops-migrate
-    command: ["sie-migrate"]
+    container_name: centralops-migrate
+    command: ["centralops-migrate"]
     labels:
       coolify.managed: "true"
       coolify.applicationId: "3"
@@ -20,14 +20,14 @@ services:
     env_file:
       - .env
 
-  cetraops-web:
+  centralops-web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_SUPABASE_URL: "https://mpbflndsk201-wsl.tabby-broadnose.ts.net:8001"
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
-    container_name: cetraops-web
+    container_name: centralops-web
     labels:
       coolify.managed: "true"
       coolify.applicationId: "3"
@@ -45,14 +45,14 @@ services:
     env_file:
       - .env
     depends_on:
-      cetraops-migrate:
+      centralops-migrate:
         condition: service_completed_successfully
 
-  cetraops-worker:
+  centralops-worker:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
-    container_name: cetraops-worker
+    container_name: centralops-worker
     labels:
       coolify.managed: "true"
       coolify.applicationId: "3"
@@ -65,16 +65,16 @@ services:
     env_file:
       - .env
     depends_on:
-      cetraops-migrate:
+      centralops-migrate:
         condition: service_completed_successfully
-      cetraops-mcp:
+      centralops-mcp:
         condition: service_started
 
-  cetraops-mcp:
+  centralops-mcp:
     build:
       context: .
       dockerfile: apps/agent/mcp_server/Dockerfile
-    container_name: cetraops-mcp
+    container_name: centralops-mcp
     labels:
       coolify.managed: "true"
       coolify.applicationId: "3"

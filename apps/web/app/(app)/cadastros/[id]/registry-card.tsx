@@ -1,5 +1,5 @@
-import type { CnpjData } from "@sie/domain";
-import { formatBRL } from "@sie/domain";
+import type { CnpjData } from "@centralops/domain";
+import { formatBRL } from "@centralops/domain";
 import { Badge, Button, Card } from "@/components/ui";
 import { refreshRegistryAction } from "../actions";
 

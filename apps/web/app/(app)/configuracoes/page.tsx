@@ -15,7 +15,7 @@ async function saveLegalEntity(formData: FormData) {
     org_id: s.orgId, cnpj, razao_social: String(formData.get("razao_social")), nome_fantasia: String(formData.get("nome_fantasia") || "") || null,
     ie: String(formData.get("ie") || "") || null, cnae_principal: String(formData.get("cnae") || "") || "4781400",
     address: Object.fromEntries(["cep", "street", "number", "complement", "district", "city", "uf"].map((k) => [k, String(formData.get(`addr_${k}`) || "").trim()]).filter(([, v]) => v)),
-    // CNAEs da consulta de CNPJ; sem consulta, os da loja SIÉ
+    // CNAEs da consulta de CNPJ; sem consulta, os de uma loja de vestuário
     cnaes_secundarios: String(formData.get("cnaes") || "") ? String(formData.get("cnaes")).split(",") : ["4763602", "4782201", "4782202", "4772500", "4789099", "4642701", "7319002", "8230001"],
   });
   revalidatePath("/configuracoes");
@@ -67,7 +67,7 @@ export default async function ConfiguracoesPage() {
           <details className="mt-3"><summary className="cursor-pointer text-sm text-brand">+ Adicionar loja</summary>
             <form action={saveStore} className="mt-2 grid gap-2">
               <select name="legal_entity_id" className={inputClass} aria-label="Empresa">{(entities ?? []).map((e) => <option key={e.id} value={e.id}>{e.razao_social}</option>)}</select>
-              <input name="code" required placeholder="Código (ex.: JOY)" className={inputClass} aria-label="Código" />
+              <input name="code" required placeholder="Código (ex.: CENTRO)" className={inputClass} aria-label="Código" />
               <input name="name" required placeholder="Nome da loja" className={inputClass} aria-label="Nome" />
               <select name="format" className={inputClass} aria-label="Formato">
                 <option value="SHOP_IN_SHOP">Shop-in-shop</option><option value="CONSIGNMENT_CORNER">Corner em consignação</option>

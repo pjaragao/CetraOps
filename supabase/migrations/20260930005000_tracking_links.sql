@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Marketing › Links rastreados e origem da cliente (plano de marketing e atendimento, Fase 1).
--- Cada QR/link (recepção da JOY, vestiário, bio, trainer, evento…) abre o WhatsApp com um texto pronto que termina em "(ref: código)"
+-- Cada QR/link (recepção da academia parceira, vestiário, bio, trainer, evento…) abre o WhatsApp com um texto pronto que termina em "(ref: código)"
 -- ou o Telegram com /start código. Quando a mensagem chega, o banco reconhece o código e grava o TOQUE (primeiro e últimos),
 -- a origem da pessoa (se ainda não tinha) e a etiqueta origem-<código>. O anúncio que abre o WhatsApp (CTWA) também vira toque.
 -- Códigos de erro: P0310 dado inválido · P0311 situação não permite · P0312 não encontrado.
@@ -101,7 +101,7 @@ begin
     if length(v) not between 12 and 15 then raise exception 'Informe o número com DDI e DDD (ex.: 55 48 99999-0000)' using errcode = 'P0310'; end if;
   elsif ca.channel = 'TELEGRAM' then
     v := ltrim(v, '@');
-    if v !~* '^[a-z0-9_]{5,32}$' then raise exception 'Informe o @ do bot (ex.: siejoybot)' using errcode = 'P0310'; end if;
+    if v !~* '^[a-z0-9_]{5,32}$' then raise exception 'Informe o @ do bot (ex.: minhalojabot)' using errcode = 'P0310'; end if;
   else
     raise exception 'Só WhatsApp e Telegram usam link direto' using errcode = 'P0311';
   end if;

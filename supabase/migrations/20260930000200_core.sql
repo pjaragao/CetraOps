@@ -69,7 +69,7 @@ create table core.stores (
   code text not null,
   name text not null,
   format core.store_format not null,
-  host_partner_party_id uuid,                                  -- FK para crm.parties (JOY), adicionada no crm
+  host_partner_party_id uuid,                                  -- FK para crm.parties (academia/parceiro anfitrião), adicionada no crm
   area_m2 numeric(8,2),
   business_hours jsonb not null default '{}',
   fiscal_mode text not null default 'ESTABELECIMENTO',

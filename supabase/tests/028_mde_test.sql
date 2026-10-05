@@ -53,7 +53,7 @@ select throws_ok($$ select fiscal.request_manifest((select v from ids where k = 
 
 -- ---------- Varredura agendada ----------
 reset role;
-select is((select count(*)::int from cron.job where jobname = 'sie-dfe-sync'), 1, 'varredura agendada a cada 2 horas');
+select is((select count(*)::int from cron.job where jobname = 'centralops-dfe-sync'), 1, 'varredura agendada a cada 2 horas');
 select ok(not has_function_privilege('authenticated', 'fiscal.dfe_upsert(uuid,uuid,jsonb)', 'execute') and has_function_privilege('authenticated', 'fiscal.request_manifest(uuid,text,text)', 'execute'), 'privilégios');
 
 select * from finish();

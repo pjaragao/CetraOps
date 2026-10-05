@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";

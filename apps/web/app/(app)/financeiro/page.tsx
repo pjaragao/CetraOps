@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { addDaysIsoSP, todayIsoSP } from "@/lib/context";
@@ -59,7 +59,7 @@ export default async function FinanceiroPage() {
           <li><Link className="text-brand" href="/financeiro/pagar">Contas a pagar</Link></li>
           <li><Link className="text-brand" href="/financeiro/receber">Contas a receber</Link></li>
           <li><Link className="text-brand" href="/financeiro/dre">DRE</Link> · <Link className="text-brand" href="/financeiro/razao">Razão contábil</Link></li>
-          <li><Link className="text-brand" href="/financeiro/contratos">Contratos (JOY)</Link></li>
+          <li><Link className="text-brand" href="/financeiro/contratos">Contratos de parceiros</Link></li>
           <li><Link className="text-brand" href="/fiscal">Apuração do Simples</Link></li>
         </ul></Card>
       </div>

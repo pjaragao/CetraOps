@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { templateExamples, templateParts, type TemplateComponent } from "@sie/domain";
+import { templateExamples, templateParts, type TemplateComponent } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";

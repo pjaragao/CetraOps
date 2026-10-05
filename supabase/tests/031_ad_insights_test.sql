@@ -51,7 +51,7 @@ select is(mkt.request_ads_sync(), 1, 'com a Meta conectada, pede a atualização
 reset role;
 select is((select count(*)::int from pgmq.q_campaign_tasks where message ->> 'action' = 'AD_INSIGHTS_SYNC'), 1, 'o worker recebe a tarefa');
 select is(private.enqueue_ad_sync(), 1, 'a rotina diária também enfileira uma tarefa por organização conectada');
-select is((select count(*)::int from cron.job where jobname = 'sie-ad-insights'), 1, 'atualização agendada todo dia às 06:00 (Brasília)');
+select is((select count(*)::int from cron.job where jobname = 'centralops-ad-insights'), 1, 'atualização agendada todo dia às 06:00 (Brasília)');
 
 select * from finish();
 rollback;

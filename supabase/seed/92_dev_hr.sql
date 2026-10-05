@@ -20,7 +20,7 @@ select hr.create_employee(jsonb_build_object(
   'name', 'Vendedora Teste (dev)', 'cpf', '529.982.247-25', 'birth_date', '1996-05-14', 'phone', '48 99999-0002',
   'contract_type', 'CLT', 'job_title', 'Consultora de moda', 'cbo', '521110', 'hire_date', '2026-08-03', 'salary', 2200,
   'commissioned', true, 'member_id', '00000000-0000-4000-8000-000000000102', 'experience_days', jsonb_build_array(45, 45),
-  'pix_key', 'vendedora@sie.test', 'dependents', jsonb_build_array(jsonb_build_object('name', 'Filha Teste', 'birth_date', '2019-03-10', 'irrf', true, 'family_allowance', true))))
+  'pix_key', 'vendedora@centralops.test', 'dependents', jsonb_build_array(jsonb_build_object('name', 'Filha Teste', 'birth_date', '2019-03-10', 'irrf', true, 'family_allowance', true))))
 where not exists (select 1 from hr.employee_private where cpf = '52998224725');
 
 select hr.create_employee(jsonb_build_object(

@@ -38,7 +38,7 @@ reset role;
 -- mensagem com o código: primeiro toque, origem e etiqueta
 select lives_ok($$ insert into ids select 'conv', ((omni.ingest_event(jsonb_build_object('kind', 'MESSAGE', 'channel', 'WHATSAPP', 'provider_account_id', 'PNID-LINKS',
   'external_id', '5548977770001', 'phone', '5548977770001', 'display_name', 'Lia (teste)', 'provider_message_id', 'wamid.L1', 'type', 'TEXT',
-  'body', 'Oi, SIÉ! Vim pelo QR da recepção. (ref: qr-recepcao)')))->>'conversation_id')::uuid $$, 'mensagem com o código do QR');
+  'body', 'Oi! Vim pelo QR da recepção. (ref: qr-recepcao)')))->>'conversation_id')::uuid $$, 'mensagem com o código do QR');
 insert into ids select 'lia', party_id from omni.conversations where id = (select v from ids where k = 'conv');
 select is((select count(*)::int || '/' || bool_and(is_first)::text from mkt.attribution_touches where party_id = (select v from ids where k = 'lia')), '1/true', 'primeiro toque gravado');
 select is((select source from crm.parties where id = (select v from ids where k = 'lia')), 'LINK:qr-recepcao', 'origem da pessoa = o link');

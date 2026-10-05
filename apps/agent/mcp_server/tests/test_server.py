@@ -9,10 +9,10 @@ import psycopg
 import pytest
 from mcp import Client
 
-from sie_agent_contract import BY_NAME, CONCIERGE_CAPS, COPILOT_CAPS, sign_ctx
-from sie_mcp.config import Settings
-from sie_mcp.db import AgentDb
-from sie_mcp.server import Invoker, build_app, build_server
+from centralops_agent_contract import BY_NAME, CONCIERGE_CAPS, COPILOT_CAPS, sign_ctx
+from centralops_mcp.config import Settings
+from centralops_mcp.db import AgentDb
+from centralops_mcp.server import Invoker, build_app, build_server
 
 from .conftest import CTX_SECRET, MCP_KEY, ORG, TxPool
 
@@ -124,7 +124,7 @@ async def test_nested_items_are_validated_and_forwarded(settings: Settings) -> N
 async def test_http_requires_the_bearer_key(settings: Settings) -> None:
     app = build_app(settings, FakeDb())  # type: ignore[arg-type]
     async with app.router.lifespan_context(app):
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://sie-mcp:8000") as http:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://centralops-mcp:8000") as http:
             assert (await http.get("/healthz")).status_code == 200
             for headers in ({}, {"Authorization": "Bearer errada"}, {"Authorization": MCP_KEY}):
                 r = await http.post("/mcp", json={}, headers=headers)

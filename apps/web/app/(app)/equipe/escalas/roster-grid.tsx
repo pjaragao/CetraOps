@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { fmtHours, netMinutes } from "@sie/domain";
+import { fmtHours, netMinutes } from "@centralops/domain";
 import { setRosterCell, setRosterHours } from "../actions";
 
 export interface GridDay { date: string; day: number; dow: number; holiday: string | null }

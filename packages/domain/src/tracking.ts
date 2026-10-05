@@ -7,7 +7,7 @@ export const LINK_KINDS: Record<string, string> = {
 };
 
 export function trackingMessage(code: string, prefill?: string | null): string {
-  const base = (prefill ?? "").trim() || "Oi, SIÉ! Quero saber das novidades.";
+  const base = (prefill ?? "").trim() || "Oi! Quero saber das novidades.";
   return `${base} (ref: ${code})`;
 }
 

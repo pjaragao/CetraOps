@@ -1,5 +1,5 @@
 -- =====================================================================
--- SIÉ JOY OS 2.0 · Fundação: extensões, schemas por domínio, grants e utilitários
+-- CentralOps · Fundação: extensões, schemas por domínio, grants e utilitários
 -- =====================================================================
 
 create extension if not exists pgcrypto with schema extensions;

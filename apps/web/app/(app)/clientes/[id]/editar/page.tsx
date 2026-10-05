@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { TIER_LABEL } from "@sie/domain";
+import { TIER_LABEL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
@@ -42,8 +42,8 @@ export default async function EditarFicha({ params, searchParams }: { params: Pr
             <Field label="UF"><input name="uf" maxLength={2} defaultValue={p.uf ?? ""} className={`${inputClass} uppercase`} /></Field>
             <Field label="Instagram"><input name="instagram_handle" maxLength={31} defaultValue={p.instagram_handle ?? ""} className={inputClass} placeholder="@usuario" /></Field>
             <Field label="E-mail" hint={emails?.[0] ? `Atual: ${emails[0].value_display} (um novo é acrescentado)` : undefined}><input name="email" type="email" className={inputClass} /></Field>
-            <Field label="Aluna JOY">
-              <select name="joy_member_status" defaultValue={p.joy_member_status} className={inputClass}>
+            <Field label="Aluna da academia parceira">
+              <select name="host_member_status" defaultValue={p.host_member_status} className={inputClass}>
                 <option value="UNKNOWN">Não informado</option><option value="SELF_DECLARED">Disse que é aluna</option><option value="CONFIRMED_IN_STORE">Confirmado na loja</option>
               </select>
             </Field>

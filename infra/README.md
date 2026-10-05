@@ -1,4 +1,4 @@
-# Infraestrutura de produção — SIÉ JOY OS
+# Infraestrutura de produção — CentralOps
 
 Tudo que roda fora do navegador, versionado aqui para **recriar a VPS em menos de 1 hora**.
 
@@ -17,7 +17,7 @@ Tudo que roda fora do navegador, versionado aqui para **recriar a VPS em menos d
 |---|---|---|
 | Banco, Auth, Realtime, Storage, Vault, pg_cron, Edge Functions | Supabase Cloud (sa-east-1) | migrations pelo workflow **Release** |
 | `web`, `worker`, `mcp`, `hermes` | VPS em São Paulo (Docker + Coolify + Traefik) | `infra/docker-compose.prod.yml` |
-| Imagens | GHCR (`ghcr.io/<dono>/sie-{web,worker,mcp}`) | workflow **CI** (main) e **Release** (tags) |
+| Imagens | GHCR (`ghcr.io/<dono>/centralops-{web,worker,mcp}`) | workflow **CI** (main) e **Release** (tags) |
 
 ## 1. Contas e pré-requisitos
 
@@ -45,8 +45,10 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash          # pai
 ## 3. Primeiro deploy
 
 1. Coolify › novo recurso › **Docker Compose** a partir deste repositório, arquivo `infra/docker-compose.prod.yml`.
-2. Variáveis (modelo em `infra/.env.example`) como **secretas**. `SIE_AGENT_CTX_SECRET`, `SIE_MCP_KEY`, `SIE_HERMES_KEY`: `openssl rand -hex 32` (o `SIE_AGENT_CTX_SECRET` precisa ser **o mesmo** no worker e no MCP).
-3. Domínio do `web` = `SIE_DOMAIN`. O Traefik emite o TLS (Let's Encrypt).
+2. Variáveis (modelo em `infra/.env.example`) como **secretas**. `CENTRALOPS_AGENT_CTX_SECRET`, `CENTRALOPS_MCP_KEY`, `CENTRALOPS_HERMES_KEY`: `openssl rand -hex 32` (o `CENTRALOPS_AGENT_CTX_SECRET` precisa ser **o mesmo** no worker e no MCP).
+3. Domínio do `web` = `CENTRALOPS_DOMAIN`. O Traefik emite o TLS (Let's Encrypt).
+
+> **Nome antigo (SIE_\*).** Até outubro de 2026 o produto se chamava de outro jeito e as variáveis tinham o prefixo `SIE_`. Worker, MCP, `centralops-migrate` e o assistente da web ainda aceitam o prefixo antigo (cada `SIE_X` vale como `CENTRALOPS_X` quando esta não existe, com um aviso no log). Renomeie as variáveis no Coolify/.env; depois, o módulo `centralops_agent_contract/legacy_env.py` pode ser apagado. No `docker-compose.prod.yml` (interpolação do Compose) o prefixo antigo **não** é aceito: lá as variáveis precisam ter o nome novo.
 4. Imagens: a primeira publicação sai da tag `v0.1.0` (workflow **Release**); o compose usa a tag móvel `prod`.
 5. Hermes: use uma imagem **fixada por digest** (`HERMES_IMAGE=nousresearch/hermes-agent@sha256:…`) e siga o checklist `infra/hermes/SPIKE.md` antes de ligar o autopiloto.
 
@@ -54,7 +56,7 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash          # pai
 
 - `supabase link --project-ref <ref>` e `supabase db push` (o workflow **Release** faz isso, com aprovação).
 - **Schemas expostos** (Project Settings › API): `core, crm, catalog, inv, sales, fin, fiscal, omni, ai, hr, comm, purch`. **Não** exponha `private`, `agent`, `audit`.
-- **Role `agent_rpc`**: a migration cria com senha de desenvolvimento — **troque**: `alter role agent_rpc password '<senha forte>'` e use-a em `SIE_AGENT_DATABASE_URL`.
+- **Role `agent_rpc`**: a migration cria com senha de desenvolvimento — **troque**: `alter role agent_rpc password '<senha forte>'` e use-a em `CENTRALOPS_AGENT_DATABASE_URL`.
 - **Vault**: os tokens de integração (WhatsApp, Instagram, Telegram, Focus NFe) ficam no Vault; o nome do segredo vai em `core.integration_connections.secret_ref`.
 - **Secrets das Edge Functions**: `supabase secrets set META_VERIFY_TOKEN=… META_APP_SECRETS=app_secret_wa,app_secret_ig TELEGRAM_WEBHOOK_SECRET=…`.
 - **pg_cron** já vem agendado pela migration (SLA, janela de 24 h, reservas/armários, DLQ, retenção de 90 dias).
@@ -77,12 +79,12 @@ As funções só validam, gravam (idempotente por evento) e respondem 200. Se a 
 ## 6. Operação
 
 ### Migrations a cada deploy (serviço `migrate`)
-Todo `docker compose up` (e todo deploy pelo Coolify) roda primeiro o serviço **`migrate`** (imagem do worker, comando `sie-migrate`):
+Todo `docker compose up` (e todo deploy pelo Coolify) roda primeiro o serviço **`migrate`** (imagem do worker, comando `centralops-migrate`):
 1. compara `supabase/migrations` com `supabase_migrations.schema_migrations` (a mesma tabela do `supabase db push`) e aplica as pendentes em ordem, cada uma numa transação;
 2. em banco novo (empresa ainda não existe) roda os seeds de configuração `supabase/seed/0*.sql`;
 3. confere o **administrador inicial** (`seed/08_initial_admin.sql`): se não houver sócio ativo, ou se a conta do e-mail existir sem vínculo, cria/vincula como Sócio(a) com a senha provisória padrão e troca obrigatória no primeiro acesso.
 
-`web` e `worker` só sobem depois que o `migrate` termina com sucesso; se uma migration falhar, ela é desfeita e a versão nova não sobe sobre banco desatualizado (veja o log com `docker compose logs migrate`). Para só conferir: `docker compose run --rm migrate sie-migrate --check` (sai com 2 se houver pendência). `SIE_DATABASE_URL` precisa ser uma conexão como usuário `postgres` (a mesma do worker); sem ela o `migrate` só registra o aviso no log e não confere nada. No homelab (Coolify, `docker-compose.yml` da raiz) o mesmo passo existe como `cetraops-migrate`, lendo o `.env` do deploy.
+`web` e `worker` só sobem depois que o `migrate` termina com sucesso; se uma migration falhar, ela é desfeita e a versão nova não sobe sobre banco desatualizado (veja o log com `docker compose logs migrate`). Para só conferir: `docker compose run --rm migrate centralops-migrate --check` (sai com 2 se houver pendência). `CENTRALOPS_DATABASE_URL` precisa ser uma conexão como usuário `postgres` (a mesma do worker); sem ela o `migrate` só registra o aviso no log e não confere nada. No homelab (Coolify, `docker-compose.yml` da raiz) o mesmo passo existe como `centralops-migrate`, lendo o `.env` do deploy.
 
 
 - **Deploy**: `git tag v1.2.3 && git push --tags` → imagens → **aprovação** → migrations → `prod` reapontada → Coolify troca sem downtime.
@@ -102,9 +104,9 @@ Todo `docker compose up` (e todo deploy pelo Coolify) roda primeiro o serviço *
 **Teste de restauração (trimestral)** — um backup que ninguém restaurou não é backup:
 
 ```bash
-aws s3 cp s3://<bucket>/weekly/sie-<data>.dump . --endpoint-url <endpoint>
-createdb sie_restore && pg_restore --no-owner -d sie_restore sie-<data>.dump
-psql sie_restore -c "select count(*) from sales.orders; select count(*) from fin.journal_entries;"   # confira contra a produção
+aws s3 cp s3://<bucket>/weekly/centralops-<data>.dump . --endpoint-url <endpoint>
+createdb centralops_restore && pg_restore --no-owner -d centralops_restore centralops-<data>.dump
+psql centralops_restore -c "select count(*) from sales.orders; select count(*) from fin.journal_entries;"   # confira contra a produção
 ```
 
 ## 8. Recriar a VPS em < 1 h

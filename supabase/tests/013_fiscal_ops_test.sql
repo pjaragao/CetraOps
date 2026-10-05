@@ -112,7 +112,7 @@ select is((select count(*)::int from core.notifications where kind = 'FISCAL_PEN
 -- ---------- Privilégios e agenda ----------
 select ok(not has_function_privilege('authenticated', 'fiscal.record_document_event(uuid,jsonb)', 'execute') and not has_function_privilege('authenticated', 'fiscal.record_cancellation(uuid,jsonb)', 'execute')
       and not has_function_privilege('authenticated', 'private.check_uninvoiced_orders()', 'execute'), 'registro de eventos/cancelamento e o alerta só pelo servidor');
-select is((select count(*)::int from cron.job where jobname = 'sie-uninvoiced-orders' and active), 1, 'alerta de vendas sem nota agendado (de hora em hora)');
+select is((select count(*)::int from cron.job where jobname = 'centralops-uninvoiced-orders' and active), 1, 'alerta de vendas sem nota agendado (de hora em hora)');
 
 select * from finish();
 rollback;

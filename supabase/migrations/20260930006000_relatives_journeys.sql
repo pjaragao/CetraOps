@@ -140,7 +140,7 @@ begin
   on conflict (org_id, key) do nothing returning id into v;
   if v is not null then
     insert into mkt.journey_steps (org_id, journey_id, position, wait_days, action, title, message, due_hours) values
-      (p_org, v, 1, 0, 'TASK', 'Aniversário de {nome_parente} ({parente} de {nome}): presente?', 'Oi, {nome}! O aniversário da sua {parente}, {nome_parente}, é dia {data_parente}. Quer que eu separe algo especial da SIÉ para presentear? Posso embalar com carinho. 💛', 72);
+      (p_org, v, 1, 0, 'TASK', 'Aniversário de {nome_parente} ({parente} de {nome}): presente?', 'Oi, {nome}! O aniversário da sua {parente}, {nome_parente}, é dia {data_parente}. Quer que eu separe algo especial da {loja} para presentear? Posso embalar com carinho. 💛', 72);
   end if;
   v := null;
   insert into mkt.journeys (org_id, key, name, description, trigger, trigger_config, exit_on_purchase) values

@@ -1,5 +1,5 @@
 import "server-only";
-import { fromBrasilApi, fromCnpjWs, fromOpenCnpj, fromReceitaWs, stateRegs, type CnpjData, type CnpjRaw } from "@sie/domain";
+import { fromBrasilApi, fromCnpjWs, fromOpenCnpj, fromReceitaWs, stateRegs, type CnpjData, type CnpjRaw } from "@centralops/domain";
 
 /**
  * Consulta de CNPJ em fontes gratuitas (sem chave; todas com limite de uso, por isso o cache de 1 dia).

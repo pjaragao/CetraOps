@@ -1,5 +1,5 @@
 {
-  "name": "sie-joy-os",
+  "name": "centralops",
   "private": true,
   "packageManager": "pnpm@10.34.6",
   "engines": { "node": ">=22" },
@@ -13,11 +13,11 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local --schema core,crm,catalog,inv,sales,fin,fiscal,omni,ai,hr,comm,purch,aff,mkt > packages/db/src/database.types.ts",
-    "test:py": "uv run --package sie-agent-contract pytest apps/agent/contract/tests -q && uv run --package sie-worker pytest apps/worker/tests -q && uv run --package sie-mcp pytest apps/agent/mcp_server/tests -q",
+    "test:py": "uv run --package centralops-agent-contract pytest apps/agent/contract/tests -q && uv run --package centralops-worker pytest apps/worker/tests -q && uv run --package centralops-mcp pytest apps/agent/mcp_server/tests -q",
     "test:edge": "node --test \"supabase/functions/_shared/*.test.ts\"",
     "lint:py": "uvx ruff check apps",
-    "worker": "uv run --package sie-worker sie-worker",
-    "mcp": "uv run --package sie-mcp sie-mcp"
+    "worker": "uv run --package centralops-worker centralops-worker",
+    "mcp": "uv run --package centralops-mcp centralops-mcp"
   },
   "devDependencies": {
     "supabase": "^2.118.0",

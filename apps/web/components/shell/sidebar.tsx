@@ -6,24 +6,24 @@ import {
   BadgeCheck, BarChart3, ChevronDown, Contact, FileText, Landmark, LayoutDashboard, Megaphone, Menu, MessagesSquare, PanelLeftClose, PanelLeftOpen, Settings, Shirt,
   ShoppingBag, Sparkles, Users, X,
 } from "lucide-react";
-import type { NavArea } from "@sie/domain";
+import type { NavArea } from "@centralops/domain";
 import { cn } from "@/components/ui";
 
 const ICONS = { BadgeCheck, BarChart3, Contact, FileText, Landmark, LayoutDashboard, Megaphone, MessagesSquare, Settings, Shirt, ShoppingBag, Sparkles, Users };
-const KEY = "sie:sidebar-collapsed";
+const KEY = "centralops:sidebar-collapsed";
 
 /** A escolha de recolher a barra fica no navegador (por pessoa); sem armazenamento disponível, a barra abre expandida. */
 function subscribe(cb: () => void) {
   window.addEventListener("storage", cb);
-  window.addEventListener("sie:sidebar", cb);
-  return () => { window.removeEventListener("storage", cb); window.removeEventListener("sie:sidebar", cb); };
+  window.addEventListener("centralops:sidebar", cb);
+  return () => { window.removeEventListener("storage", cb); window.removeEventListener("centralops:sidebar", cb); };
 }
 function readCollapsed(): boolean {
   try { return window.localStorage.getItem(KEY) === "1"; } catch { return false; }
 }
 function writeCollapsed(v: boolean) {
   try { window.localStorage.setItem(KEY, v ? "1" : "0"); } catch { /* sem armazenamento: vale só nesta página */ }
-  window.dispatchEvent(new Event("sie:sidebar"));
+  window.dispatchEvent(new Event("centralops:sidebar"));
 }
 
 export function Sidebar({ nav }: { nav: NavArea[] }) {
@@ -36,10 +36,10 @@ export function Sidebar({ nav }: { nav: NavArea[] }) {
   const render = (rail: boolean) => (
     <nav aria-label="Menu principal" className={cn("flex h-full flex-col gap-1 overflow-y-auto p-3", rail && "items-center px-2")}>
       <Link href="/inicio" className={cn("mb-4 px-2 pt-1", rail && "px-0 text-center")} onClick={() => setOpen(false)} title="Início">
-        {rail ? <span className="text-sm font-semibold tracking-wider text-accent">SJ</span> : (
+        {rail ? <span className="text-sm font-semibold tracking-wider text-accent">CO</span> : (
           <>
-            <span className="block text-xs tracking-[0.3em] text-accent uppercase">SIÉ JOY</span>
-            <span className="text-lg font-semibold">OS</span>
+            <span className="block text-xs tracking-[0.3em] text-accent uppercase">Central de operações</span>
+            <span className="text-lg font-semibold">CentralOps</span>
           </>
         )}
       </Link>

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Imagem do app web (Next.js standalone). Contexto de build = RAIZ do repositório:
-#   docker build -f apps/web/Dockerfile -t sie-web \
+#   docker build -f apps/web/Dockerfile -t centralops-web \
 #     --build-arg NEXT_PUBLIC_SUPABASE_URL=https://<projeto>.supabase.co --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key> .
 # As variáveis NEXT_PUBLIC_* são embutidas no bundle em tempo de build (a chave anon é pública por desenho; a service role NUNCA entra aqui).
 
@@ -15,7 +15,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
 COPY packages/db/package.json packages/db/
 COPY packages/domain/package.json packages/domain/
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --filter @sie/web...
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --filter @centralops/web...
 
 # 2) build
 FROM deps AS build
@@ -25,7 +25,7 @@ ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY NEXT_OUTPUT=standalone
 ENV NODE_OPTIONS="--max-old-space-size=2048" NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @sie/web build
+RUN pnpm --filter @centralops/web build
 
 # 3) execução: só o servidor standalone, sem root e com o sistema de arquivos pronto para somente-leitura
 FROM node:22-bookworm-slim AS runtime

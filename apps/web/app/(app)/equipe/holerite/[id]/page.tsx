@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { LinkButton } from "@/components/ui";

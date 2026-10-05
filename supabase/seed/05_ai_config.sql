@@ -12,4 +12,4 @@ insert into core.settings (org_id, key, value) values ('00000000-0000-4000-8000-
 on conflict (org_id, key) do nothing;
 
 -- Persona da marca (as dos sócios são criadas na tela Inteligência › Personas, cada uma com o seu histórico)
-insert into ai.personas (org_id, name) values ('00000000-0000-4000-8000-000000000001', 'Concierge SIÉ') on conflict (org_id, name) do nothing;
+insert into ai.personas (org_id, name) values ('00000000-0000-4000-8000-000000000001', 'Concierge') on conflict (org_id, name) do nothing;

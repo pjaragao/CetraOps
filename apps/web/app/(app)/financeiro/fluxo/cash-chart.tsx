@@ -1,4 +1,4 @@
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 
 export interface FlowDay { day: string; inn: number; out: number; projected: boolean; balance: number }
 

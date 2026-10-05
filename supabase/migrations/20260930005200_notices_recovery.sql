@@ -46,12 +46,12 @@ create or replace function private.notice_default_text(p_event text) returns tex
 language sql immutable as $$
   select case p_event
     when 'ORDER_PAID' then 'Oi, {nome}! Recebemos o pagamento do pedido {pedido}. Avisamos por aqui assim que estiver pronto. 💛'
-    when 'READY_FOR_PICKUP' then 'Oi, {nome}! Seu pedido {pedido} está pronto para retirar na SIÉ, dentro da JOY.'
+    when 'READY_FOR_PICKUP' then 'Oi, {nome}! Seu pedido {pedido} está pronto para retirar na loja.'
     when 'SHIPPED' then 'Oi, {nome}! Seu pedido {pedido} saiu para entrega. Rastreio: {rastreio}'
     when 'LOCKER_READY' then 'Oi, {nome}! Suas peças estão separadas no Armário VIP {codigo} até {prazo}. É só pedir a chave na loja. ✨'
     when 'RESERVATION_EXPIRING' then 'Oi, {nome}! A peça que separamos para você fica reservada até {prazo}. Quer que a gente segure mais um pouco?'
     when 'PAYMENT_LINK_REMINDER' then 'Oi, {nome}! Passando para lembrar do link do pedido {pedido}: {link} . Se preferir, dá para pagar na loja também.'
-    when 'STORE_CREDIT_ISSUED' then 'Oi, {nome}! Geramos um vale-troca de {valor} para você usar na SIÉ. Ele já está no seu cadastro.'
+    when 'STORE_CREDIT_ISSUED' then 'Oi, {nome}! Geramos um vale-troca de {valor} para você usar na loja. Ele já está no seu cadastro.'
     when 'EVENT_REMINDER' then 'Oi, {nome}! Lembrando do {evento} amanhã, {prazo}. Te esperamos! ✨'
   end
 $$;
@@ -258,7 +258,7 @@ begin
   end loop;
   return n;
 end $$;
-select cron.schedule('sie-sweep-notices', '*/15 * * * *', $$ select private.sweep_notices() $$);
+select cron.schedule('centralops-sweep-notices', '*/15 * * * *', $$ select private.sweep_notices() $$);
 
 -- ---------------------------------------------------------------------
 -- Vendas recuperadas: pedidos pagos até 7 dias depois de um aviso de reserva/link ou de uma tarefa de retomada

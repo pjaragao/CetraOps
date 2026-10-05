@@ -2,7 +2,7 @@
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import type { NavArea } from "@sie/domain";
+import type { NavArea } from "@centralops/domain";
 import { globalSearch, type SearchHit } from "@/app/(app)/actions";
 
 /** Ctrl+K: navegação, ações rápidas e busca de clientes, produtos (SKU/EAN) e pedidos. */
@@ -19,8 +19,8 @@ export function CommandPalette({ nav }: { nav: NavArea[] }) {
     };
     const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    window.addEventListener("sie:palette", onOpen);
-    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("sie:palette", onOpen); };
+    window.addEventListener("centralops:palette", onOpen);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("centralops:palette", onOpen); };
   }, []);
 
   useEffect(() => {

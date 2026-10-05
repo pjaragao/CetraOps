@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CONSENT_LABEL, formatBRL, scoreBand, SEGMENTS, STAGE_LABEL, TIER_LABEL } from "@sie/domain";
+import { CONSENT_LABEL, formatBRL, scoreBand, SEGMENTS, STAGE_LABEL, TIER_LABEL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { daysSince, str, type SP } from "@/lib/context";
@@ -13,7 +13,7 @@ import { openCaseAction, recordNpsAction } from "../casos/actions";
 export const metadata = { title: "Cliente 360°" };
 
 const SIZE_LABEL: Record<string, string> = { top: "Top", bottom: "Calça/short", bra: "Top/sutiã", shoe: "Calçado" };
-const JOY_LABEL: Record<string, string> = { UNKNOWN: "não informado", SELF_DECLARED: "autodeclarada", CONFIRMED_IN_STORE: "confirmada na loja" };
+const HOST_MEMBER_LABEL: Record<string, string> = { UNKNOWN: "não informado", SELF_DECLARED: "autodeclarada", CONFIRMED_IN_STORE: "confirmada na loja" };
 const CHANNELS: [string, string][] = [["BALCAO", "No balcão"], ["TELEFONE", "Por telefone"], ["EVENTO", "Em evento"], ["WHATSAPP", "Pelo WhatsApp"], ["INSTAGRAM", "Pelo Instagram"], ["EMAIL", "Por e-mail"]];
 
 interface ScoreItem { key: string; label: string; points: number }
@@ -107,7 +107,7 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
             <li className="flex justify-between gap-2"><span className="text-muted">Aniversário</span><span>{p.birth_date ? p.birth_date.slice(5).split("-").reverse().join("/") : "—"}</span></li>
             <li className="flex justify-between gap-2"><span className="text-muted">Pagamento preferido</span><span>{favMethod ?? "—"}</span></li>
             <li className="flex justify-between gap-2"><span className="text-muted">Parcelamento médio</span><span>{avgInst ? `${avgInst.toFixed(1)}x` : "—"}</span></li>
-            <li className="flex justify-between gap-2"><span className="text-muted">Aluna JOY</span><span>{JOY_LABEL[p.joy_member_status] ?? p.joy_member_status}</span></li>
+            <li className="flex justify-between gap-2"><span className="text-muted">Aluna da academia parceira</span><span>{HOST_MEMBER_LABEL[p.host_member_status] ?? p.host_member_status}</span></li>
             <li className="flex justify-between gap-2"><span className="text-muted">Origem</span><span>{p.source ?? "—"}</span></li>
             {(p.tags ?? []).length > 0 && <li className="flex flex-wrap gap-1 pt-1">{p.tags.map((t: string) => <Badge key={t}>{t}</Badge>)}</li>}
             {prefs.notes && <li className="rounded-lg bg-surface-2 p-2 text-xs">{prefs.notes}</li>}

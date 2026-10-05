@@ -59,9 +59,9 @@ select is((select lifecycle_stage::text from crm.parties where id = (select v fr
 
 -- ---------- Ficha editável e score ----------
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');   -- vendedora
-select lives_ok($$ select crm.update_profile((select v from ids where k = 'lead'), '{"profession":"Arquiteta","city":"Florianópolis","activities":["Pilates","corrida"],"sizes":{"top":"m","bottom":"p"},"birth_date":"1990-04-12","joy_member_status":"SELF_DECLARED","email":"lead.ciclo@example.com"}') $$, 'vendedora edita a ficha');
+select lives_ok($$ select crm.update_profile((select v from ids where k = 'lead'), '{"profession":"Arquiteta","city":"Florianópolis","activities":["Pilates","corrida"],"sizes":{"top":"m","bottom":"p"},"birth_date":"1990-04-12","host_member_status":"SELF_DECLARED","email":"lead.ciclo@example.com"}') $$, 'vendedora edita a ficha');
 select is((select sizes ->> 'top' from crm.parties where id = (select v from ids where k = 'lead')), 'M', 'tamanho normalizado');
-select ok((select lead_score from crm.parties where id = (select v from ids where k = 'lead')) >= 75, 'score recalculado com profissão, esporte, cidade, contato e JOY');
+select ok((select lead_score from crm.parties where id = (select v from ids where k = 'lead')) >= 75, 'score recalculado com profissão, esporte, cidade, contato e academia parceira');
 select ok((select score_breakdown -> 'items' @> '[{"key":"sports"}]' from crm.parties where id = (select v from ids where k = 'lead')), 'explicação do score lista o esporte');
 select is((select lifecycle_stage::text from crm.parties where id = (select v from ids where k = 'lead')), 'PROSPECT', 'lead com score alto vira prospect');
 select is((select count(*)::int from crm.party_contact_points where party_id = (select v from ids where k = 'lead') and type = 'EMAIL'), 1, 'e-mail entra nos contatos');

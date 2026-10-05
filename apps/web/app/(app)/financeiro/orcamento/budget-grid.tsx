@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { useKeptForm } from "@/components/use-kept-form";
 import { Button, inputClass } from "@/components/ui";
 import { saveBudgetAction } from "../plan-actions";

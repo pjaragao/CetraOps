@@ -1,6 +1,6 @@
-# Perfil "concierge" do Hermes Agent: atende clientes SÓ pelas ferramentas do servidor MCP da SIÉ (sem terminal, arquivos, web ou navegador).
+# Perfil "concierge" do Hermes Agent: atende clientes SÓ pelas ferramentas do servidor MCP do CentralOps (sem terminal, arquivos, web ou navegador).
 # Montado somente-leitura em /opt/data/profiles/concierge/config.yaml. Segredos ficam no .env do perfil / variáveis do container
-# (OPENROUTER_API_KEY, API_SERVER_KEY, SIE_MCP_KEY) — nunca aqui.
+# (OPENROUTER_API_KEY, API_SERVER_KEY, CENTRALOPS_MCP_KEY) — nunca aqui.
 #
 # ⚠ Validar no spike S0 (go/no-go, plano §1.4) contra a versão fixada por digest: nomes das chaves abaixo, e se o Hermes honra o campo
 #   `model` enviado em cada requisição ou se o modelo vale o deste arquivo. Se não honrar, a rota `conversation` de ai.model_routes
@@ -28,10 +28,10 @@ gateway:
     max_concurrent_runs: 20                             # acima disso o Hermes responde 429 e o worker tenta de novo com recuo
 
 mcp_servers:
-  sie:
+  centralops:
     url: "http://mcp:8000/mcp"
     headers:
-      Authorization: "Bearer ${SIE_MCP_KEY}"
+      Authorization: "Bearer ${CENTRALOPS_MCP_KEY}"
     timeout: 30
     connect_timeout: 10
     tools:

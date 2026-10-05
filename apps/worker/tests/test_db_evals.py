@@ -9,10 +9,10 @@ import httpx
 import pytest
 import respx
 
-from sie_worker.db import fetch_all, fetch_one
-from sie_worker.evals.runner import EvalCase, evaluate, run_case, run_suite
-from sie_worker.handlers import ai_tasks
-from sie_worker.queues import QueueMessage
+from centralops_worker.db import fetch_all, fetch_one
+from centralops_worker.evals.runner import EvalCase, evaluate, run_case, run_suite
+from centralops_worker.handlers import ai_tasks
+from centralops_worker.queues import QueueMessage
 
 from .conftest import ORG
 
@@ -143,7 +143,7 @@ async def test_suite_saves_one_batch_per_model_with_totals(pool: Any, eval_setti
 
 
 async def test_suite_refuses_to_run_without_provider_key_or_cases(pool: Any, settings: Any, http: httpx.AsyncClient) -> None:
-    from sie_worker.adapters.errors import PermanentError
+    from centralops_worker.adapters.errors import PermanentError
 
     with pytest.raises(PermanentError, match="OpenRouter"):
         await run_suite(settings, http, pool, ORG, ["x/um"])

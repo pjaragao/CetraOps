@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useKeptForm } from "@/components/use-kept-form";
 import { Plus, Trash2 } from "lucide-react";
-import { formatBRL, splitInstallments } from "@sie/domain";
+import { formatBRL, splitInstallments } from "@centralops/domain";
 import { Button, inputClass } from "@/components/ui";
 import { createTitleAction } from "./actions";
 

@@ -1,6 +1,6 @@
 "use client";
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@sie/db";
+import type { Database } from "@centralops/db";
 
 let client: ReturnType<typeof createBrowserClient<Database>> | undefined;
 

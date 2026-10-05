@@ -68,7 +68,7 @@ begin
   v_first := split_part(p.display_name, ' ', 1);
   v_code := 'ind-' || left(coalesce(nullif(regexp_replace(lower(private.norm(v_first)), '[^a-z0-9]', '', 'g'), ''), 'amiga'), 8) || substr(md5(gen_random_uuid()::text), 1, 4);
   insert into mkt.tracking_links (org_id, code, name, kind, channel_account_id, prefill_text, referrer_party_id, created_by)
-  values (v_org, v_code, 'Indicação de ' || p.display_name, 'REFERRAL', v_acc, 'Oi, SIÉ! Fui indicada por ' || v_first || '.', p_party, private.member_id()) returning * into l;
+  values (v_org, v_code, 'Indicação de ' || p.display_name, 'REFERRAL', v_acc, 'Oi! Fui indicada por ' || v_first || '.', p_party, private.member_id()) returning * into l;
   return l;
 end $$;
 
@@ -148,7 +148,7 @@ begin
   end loop;
   return n;
 end $$;
-select cron.schedule('sie-sweep-referrals', '20 6 * * *', $$ select private.sweep_referrals() $$);
+select cron.schedule('centralops-sweep-referrals', '20 6 * * *', $$ select private.sweep_referrals() $$);
 
 -- ---------------------------------------------------------------------
 -- 2) Check-in por QR

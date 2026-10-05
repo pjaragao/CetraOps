@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { computeCommission, DEFAULT_COMMISSION_PLAN, formatBRL, type Channel } from "@sie/domain";
+import { computeCommission, DEFAULT_COMMISSION_PLAN, formatBRL, type Channel } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, getSession } from "@/lib/session";
 import { periodBounds, str, type SP } from "@/lib/context";

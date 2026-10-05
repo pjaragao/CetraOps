@@ -8,14 +8,14 @@ from typing import Any
 
 import pytest
 
-from sie_worker import queues
-from sie_worker.adapters.errors import PermanentError as ProviderPermanent
-from sie_worker.adapters.errors import TransientError
-from sie_worker.ai.agent import AgentInput, AgentOutput
-from sie_worker.db import call_fn, fetch_all, fetch_one
-from sie_worker.deps import Deps
-from sie_worker.handlers import router
-from sie_worker.runner import RetryLater
+from centralops_worker import queues
+from centralops_worker.adapters.errors import PermanentError as ProviderPermanent
+from centralops_worker.adapters.errors import TransientError
+from centralops_worker.ai.agent import AgentInput, AgentOutput
+from centralops_worker.db import call_fn, fetch_all, fetch_one
+from centralops_worker.deps import Deps
+from centralops_worker.handlers import router
+from centralops_worker.runner import RetryLater
 
 from .conftest import ORG, ingest, unique_phone
 
@@ -276,7 +276,7 @@ async def close_store_now(pool: Any, channel: dict[str, str], after_hours_ai: st
 async def test_after_hours_copilot_answers_information_alone(pool: Any, deps: Deps, channel: dict[str, str]) -> None:
     await close_store_now(pool, channel)
     conv = await start(pool, channel, "Que horas vocês abrem?")
-    agent = FakeAgent(pool, says("Abrimos às 9h, dentro da JOY!", intent="STORE_INFO", confidence=0.9))
+    agent = FakeAgent(pool, says("Abrimos às 9h, dentro da academia!", intent="STORE_INFO", confidence=0.9))
     await router.handle(with_deps(deps, agent), job(conv))
     assert [o["author_type"] for o in await outgoing(pool, conv)] == ["AI"]                             # fora do horário, informação sai sozinha
     assert "create_payment_link" not in agent.inputs[0].ctx["caps"]                                        # sem ferramentas de pedido/link/reserva

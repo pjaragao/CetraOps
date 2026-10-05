@@ -1,7 +1,7 @@
 [project]
-name = "sie-mcp"
+name = "centralops-mcp"
 version = "0.1.0"
-description = "Servidor MCP do SIÉ JOY OS: expõe ao Hermes as ferramentas seguras (funções agent.* do banco) com token de contexto"
+description = "Servidor MCP do CentralOps: expõe ao Hermes as ferramentas seguras (funções agent.* do banco) com token de contexto"
 requires-python = ">=3.12"
 dependencies = [
   "mcp>=2.2",
@@ -9,24 +9,24 @@ dependencies = [
   "pyjwt>=2.9",
   "pydantic>=2.8",
   "pydantic-settings>=2.4",
-  "sie-agent-contract",
+  "centralops-agent-contract",
 ]
 
 [tool.uv.sources]
-sie-agent-contract = { workspace = true }
+centralops-agent-contract = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=8.3", "pytest-asyncio>=0.24", "httpx>=0.27"]
 
 [project.scripts]
-sie-mcp = "sie_mcp.server:main"
+centralops-mcp = "centralops_mcp.server:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["sie_mcp"]
+packages = ["centralops_mcp"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

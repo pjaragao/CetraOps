@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import QRCode from "qrcode";
-import { trackingUrl } from "@sie/domain";
+import { trackingUrl } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, getSession } from "@/lib/session";
 

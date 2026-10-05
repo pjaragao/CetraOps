@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL, formatPct } from "@sie/domain";
+import { formatBRL, formatPct } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { periodBounds, str, type SP } from "@/lib/context";

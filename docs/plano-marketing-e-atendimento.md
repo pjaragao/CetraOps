@@ -22,7 +22,7 @@
 ## Resumo executivo
 
 ### O desafio
-A loja fica dentro da JOY, e a base de alunas é finita: 400 no 1º mês e cerca de 1.100 na maturidade (doc 04 do plano de negócios).
+A loja fica dentro da academia parceira, e a base de alunas é finita: 400 no 1º mês e cerca de 1.100 na maturidade (doc 04 do plano de negócios).
 
 A projeção pede que **15 a 16% dos alunos comprem todo mês**: 150 a 176 vendas por mês, com ticket de R$ 430 a R$ 450. Essa conta só fecha com recompra:
 
@@ -40,7 +40,7 @@ O sistema já tem as peças certas:
 - **Marketing:** campanhas com consentimento, eventos com RSVP, anúncios com retorno real e cupons.
 
 Mas a operação é **reativa e não mede o ciclo da cliente**:
-- **Origem:** não se sabe de onde vêm as alunas da JOY. Só o anúncio de WhatsApp registra origem.
+- **Origem:** não se sabe de onde vêm as alunas da academia parceira. Só o anúncio de WhatsApp registra origem.
 - **Score:** aparece nas telas, mas nada o calcula (fica zero).
 - **Estágios:** ninguém vira VIP, inativa ou perdida sozinha.
 - **Pós-compra:** não existe régua depois da compra.
@@ -50,7 +50,7 @@ Mas a operação é **reativa e não mede o ciclo da cliente**:
 ### O que propomos
 Um **motor de ciclo de vida** com quatro frentes e uma base comum:
 
-1. **Aquisição** com origem registrada em todo contato: QR na JOY, links rastreados, anúncios, indicação, eventos e trainers.
+1. **Aquisição** com origem registrada em todo contato: QR na academia parceira, links rastreados, anúncios, indicação, eventos e trainers.
 2. **Atendimento que converte:**
    - horário de atendimento real e distribuição automática das conversas;
    - avisos transacionais automáticos e retomada de vendas paradas;
@@ -112,7 +112,7 @@ Um **motor de ciclo de vida** com quatro frentes e uma base comum:
 | Balcão (PDV) | Cadastro rápido por telefone e nome, com caixa de aceite de marketing no WhatsApp | **Perguntar** se ela aceita receber novidades | Clientes › Clientes & Leads |
 | Telegram | Atende depois do `/start` | — | Atendimento |
 
-> **Limite importante:** fora do anúncio de WhatsApp, a origem não é registrada. Uma aluna que viu a loja na JOY e mandou mensagem aparece apenas como "WhatsApp".
+> **Limite importante:** fora do anúncio de WhatsApp, a origem não é registrada. Uma aluna que viu a loja na academia parceira e mandou mensagem aparece apenas como "WhatsApp".
 
 ## 1.4 Atendimento hoje: a caixa de entrada
 
@@ -177,7 +177,7 @@ Um **motor de ciclo de vida** com quatro frentes e uma base comum:
 
 - **Ficha 360°** (Clientes › nome da cliente). Mostra:
   - números: LTV, ticket médio, dias desde a última compra (alerta acima de 60) e vale-troca disponível;
-  - perfil: pagamento preferido, parcelamento médio, tamanhos, se é sócia JOY e origem;
+  - perfil: pagamento preferido, parcelamento médio, tamanhos, se é aluna da academia parceira e origem;
   - contatos e aceites (LGPD);
   - histórico: conversas, compras e linha do tempo.
 
@@ -247,7 +247,7 @@ Um **motor de ciclo de vida** com quatro frentes e uma base comum:
 
 | # | Etapa | O que falta | Efeito no negócio | Onde se vê no sistema |
 |---|---|---|---|---|
-| 1 | Aquisição | Origem das alunas da JOY (QR, bio, links, trainers) | Não se sabe qual ação traz cliente; o investimento em eventos e materiais não tem retorno medido | Só o anúncio CTWA grava origem; não há links rastreados |
+| 1 | Aquisição | Origem das alunas da academia parceira (QR, bio, links, trainers) | Não se sabe qual ação traz cliente; o investimento em eventos e materiais não tem retorno medido | Só o anúncio CTWA grava origem; não há links rastreados |
 | 2 | Aquisição | Score de lead calculado | Prospecção e públicos ordenados por um número que fica zero | Regras v1 estão no seed (`crm.lead_scoring_rules`), mas nenhuma rotina as aplica |
 | 3 | Aquisição | Cadastro completo | Aniversário, tamanho e preferências faltam, e as automações e a recomendação ficam cegas | Ficha 360° só leitura; o PDV grava só nome, telefone e aceite |
 | 4 | Aquisição | Indicação de clientes ("indique uma amiga") | O canal mais barato, numa base de alto padrão, fica parado | Só trainers têm cupom |
@@ -344,25 +344,25 @@ RFM combina **Recência** (dias desde a última compra), **Frequência** (compra
 
    Faixas: quente a partir de 70 e morna a partir de 40.
 2. **Sinais novos propostos:**
-   - aluna JOY confirmada: +15;
+   - aluna da academia parceira confirmada: +15;
    - veio por indicação: +10;
    - compareceu a evento: +10;
    - respondeu nos últimos 7 dias: +10;
    - perguntou tamanho ou preço: +10.
-3. **Explicação visível.** Exemplo: "72 = esporte (pilates) 20 + JOY 15 + conversa 20 + indicação 10 + contato 7". Isso atende à transparência exigida pela LGPD para perfilamento.
+3. **Explicação visível.** Exemplo: "72 = esporte (pilates) 20 + academia parceira 15 + conversa 20 + indicação 10 + contato 7". Isso atende à transparência exigida pela LGPD para perfilamento.
 4. **Uso:** recalculado toda noite e a cada evento relevante. Ordena a prospecção, a lista do dia e os públicos.
 
 ## 3.3 Aquisição
 
-**A1. QR e links rastreados (captura dentro da JOY)**
+**A1. QR e links rastreados (captura dentro da academia parceira)**
 - **Onde entram os QR:** recepção, vestiários, estúdio de pilates/reformer, araras, sacolas, cartão de agradecimento e materiais de evento.
 - **Links rastreados:** bio do Instagram, stories, TikTok, um por trainer e um por campanha.
 - **Como funciona:** cada QR ou link abre o WhatsApp com um texto pronto e um código. O sistema grava a origem no **primeiro e no último toque**.
 - **Na tela:** Marketing › Links rastreados. Cria o link, baixa o QR e mostra leads, clientes e receita por link.
 - **Já dá para começar hoje (Fase 0):**
-  - o texto pronto do QR ("Oi! Vim pelo QR da recepção da JOY") dispara uma automação de palavra-chave;
+  - o texto pronto do QR ("Oi! Vim pelo QR da recepção da academia parceira") dispara uma automação de palavra-chave;
   - a automação só coloca a etiqueta `origem-qr-recepcao` e não responde, para a IA atender normalmente.
-- **Atenção:** colocar QR nas áreas da JOY depende da autorização da JOY (contrato).
+- **Atenção:** colocar QR nas áreas da academia parceira depende da autorização dela (contrato).
 
 **A2. Boas-vindas e qualificação no primeiro contato**
 - **Roteiro curto da IA** (no máximo 3 perguntas, ao longo da conversa e não em formulário):
@@ -400,7 +400,7 @@ RFM combina **Recência** (dias desde a última compra), **Frequência** (compra
 **A6. Trainers 2.0**
 - **Portal do parceiro** (acesso por link mágico): cupom, link e QR rastreados, vendas, comissão e materiais.
 - Ranking mensal e kit de conteúdo.
-- **Antes de ampliar:** validar o §6.5.2 do contrato JOY, que trata da relação com os funcionários da JOY.
+- **Antes de ampliar:** validar a cláusula do contrato com a academia parceira que trata da relação com os funcionários dela.
 
 **A7. Prospecção com prioridade**
 - Lista do dia ordenada pelo **score real**.
@@ -549,7 +549,7 @@ Os sócios veem o placar do dia.
 
 | Nível | Benefícios (proposta) |
 |---|---|
-| SIÉ (cliente) | Avise-me, convite para eventos abertos, presente de aniversário |
+| Cliente | Avise-me, convite para eventos abertos, presente de aniversário |
 | VIP | Pré-venda de drops 48 h antes; provador ou armário reservado; eventos fechados |
 | VIP Black | Tudo do VIP + atendimento direto da sócia; peças separadas antes do lançamento |
 
@@ -660,7 +660,7 @@ Detratoras de NPS e CSAT entram no mesmo fluxo. Há um painel de casos abertos.
 | Indicador | Como se calcula | Hoje | Meta inicial |
 |---|---|---|---|
 | Leads com origem identificada | Leads do mês com origem ÷ leads do mês | Não medido | ≥ 90% |
-| Alunas JOY no cadastro | Clientes com "sócia JOY" ÷ total de alunos ativos informado pela JOY (só o número) | Não medido | 50% em 6 meses |
+| Alunas da academia parceira no cadastro | Clientes marcadas como alunas ÷ total de alunos ativos informado pela academia (só o número) | Não medido | 50% em 6 meses |
 | Aceite de marketing no WhatsApp | Clientes com aceite ÷ clientes | Visível só na ficha | ≥ 60% |
 | Conversão lead → 1ª compra (30 dias) | Leads do mês que compraram em até 30 dias | Não medido | Base + 30% |
 | Tempo até a 1ª resposta, no horário | Mediana | Existe (Desempenho) | ≤ 2 min |
@@ -682,7 +682,7 @@ Detratoras de NPS e CSAT entram no mesmo fluxo. Há um painel de casos abertos.
   - marketing por consentimento (já implementado, com evidência e recusa imediata);
   - score e segmentação por **legítimo interesse**, com avaliação documentada (LIA), aviso de privacidade e explicação do score;
   - a cliente pode pedir revisão (art. 20).
-- **Dados da JOY nunca são importados.** O cadastro das alunas é feito por nós, com aceite (QR, PDV, eventos).
+- **Dados da academia parceira nunca são importados.** O cadastro das alunas é feito por nós, com aceite (QR, PDV, eventos).
 
 **Meta: WhatsApp**
 - Janela de 24 h desde a última mensagem da cliente; fora dela, só template aprovado.
@@ -707,7 +707,7 @@ Detratoras de NPS e CSAT entram no mesmo fluxo. Há um painel de casos abertos.
 
 ```
  ┌──────────── AQUISIÇÃO ────────────┐   ┌────── ATENDIMENTO ──────┐   ┌──────── RETENÇÃO ────────┐
- QR na JOY · links rastreados          ─▶ boas-vindas + perfil + aceite ─▶ régua pós-compra · 2ª compra
+ QR na academia parceira · links rastreados          ─▶ boas-vindas + perfil + aceite ─▶ régua pós-compra · 2ª compra
  anúncios · indicação · eventos           IA no horário certo             lista do dia da vendedora
  trainers · prospecção                    distribuição automática         níveis e benefícios · avise-me
  (origem gravada em todo contato)         avisos · desfecho · satisfação  pré-venda VIP de drops
@@ -761,7 +761,7 @@ Detratoras de NPS e CSAT entram no mesmo fluxo. Há um painel de casos abertos.
 
 ## 4.5 Jornadas: antes × depois
 
-**J1. Aluna da JOY que viu a loja**
+**J1. Aluna da academia parceira que viu a loja**
 
 | Hoje | Com a proposta |
 |---|---|
@@ -823,12 +823,12 @@ Detratoras de NPS e CSAT entram no mesmo fluxo. Há um painel de casos abertos.
    - criar e aprovar os de utilidade (pagamento confirmado, pronto para retirada, Armário VIP, reserva vencendo, link de pagamento);
    - criar e aprovar os de marketing (convite de evento, novidades no tamanho, aniversário, reativação).
    Textos no Anexo C.
-3. **Base de conhecimento:** publicar trocas (incluindo o arrependimento em 7 dias nas compras à distância), cuidados, medidas, pagamento e parcelamento, retirada e armário, eventos, sobre a marca e a JOY.
+3. **Base de conhecimento:** publicar trocas (incluindo o arrependimento em 7 dias nas compras à distância), cuidados, medidas, pagamento e parcelamento, retirada e armário, eventos, sobre a marca e a academia parceira.
 4. **Persona:** importar os históricos e aprovar.
 5. **Modo dos canais:** começar em Copiloto. Passar a **Piloto** quando os rascunhos chegarem a ≥ 70% enviados sem edição (meta do Desempenho) e as avaliações passarem.
 6. **Respostas rápidas:** `/endereco`, `/trocas`, `/provador`, `/pix`, `/obrigada`.
 7. **PDV:** sempre cadastrar o telefone e **perguntar o aceite**. Frase sugerida: "Posso te avisar por WhatsApp quando chegarem novidades no seu tamanho?"
-8. **QR com texto pronto** (depois da autorização da JOY), mais a automação que coloca a etiqueta de origem.
+8. **QR com texto pronto** (depois da autorização da academia parceira), mais a automação que coloca a etiqueta de origem.
 9. **Rotina** da seção 1.7, com a reunião semanal dos sócios.
 
 **Pronto quando:**
@@ -844,14 +844,14 @@ Detratoras de NPS e CSAT entram no mesmo fluxo. Há um painel de casos abertos.
 | 2. Atendimento que converte | 2 semanas | Avisos transacionais; retomada de link, reserva, armário e pedido; distribuição automática; resumo e etiquetas; CSAT; "lacuna na base" na Central de sugestões | Templates de utilidade aprovados (Fase 0) | Avisos saem sozinhos e sem duplicar; relatório de vendas recuperadas |
 | 3. Retenção | 3 semanas | Motor de réguas (passos, esperas, saídas, grupo de controle); régua pós-compra e da 2ª compra; Minha lista de hoje; avise-me; níveis e benefícios; pré-venda VIP; aniversário com presente | Fases 1 e 2 | Cada régua mostra resultado por passo e contra o controle |
 | 4. Recuperação | 2 semanas | Reativação em 3 faixas; retomada por motivo de perda; casos de reclamação + NPS + detratoras | Fase 3 (motor de réguas) | Reativação medida contra o controle; casos com prazo e retorno |
-| 5. Aquisição ampliada | 2 a 3 semanas | Indique uma amiga; portal do parceiro; check-in de evento com cadastro; públicos Meta; relatórios de CAC e coortes completos | Validação da API de públicos; contrato JOY (trainers) | Indicações rastreadas até a compra; CAC por origem |
+| 5. Aquisição ampliada | 2 a 3 semanas | Indique uma amiga; portal do parceiro; check-in de evento com cadastro; públicos Meta; relatórios de CAC e coortes completos | Validação da API de públicos; contrato com a academia (trainers) | Indicações rastreadas até a compra; CAC por origem |
 
-> **Situação da fase 5:** entregues indique uma amiga (link pessoal, vale-troca após o prazo de troca, teto mensal), check-in de evento por QR com cadastro de quem chega sem convite e os relatórios de aquisição por origem, coortes de recompra, desempenho das réguas, satisfação e motivos de perda. Seguem adiados: portal do parceiro (depende do contrato JOY) e públicos Meta (depende de validar a API).
+> **Situação da fase 5:** entregues indique uma amiga (link pessoal, vale-troca após o prazo de troca, teto mensal), check-in de evento por QR com cadastro de quem chega sem convite e os relatórios de aquisição por origem, coortes de recompra, desempenho das réguas, satisfação e motivos de perda. Seguem adiados: portal do parceiro (depende do contrato academia parceira) e públicos Meta (depende de validar a API).
 
 **Por que essa ordem:**
 - **Dados primeiro:** sem estágio, score e origem, as réguas não sabem quem incluir e o painel não mede.
 - **Atendimento antes da retenção:** os avisos transacionais e a retomada geram receita logo, com pouco risco.
-- **Aquisição ampliada por último:** depende de terceiros (Meta, JOY).
+- **Aquisição ampliada por último:** depende de terceiros (Meta, academia parceira).
 
 ## 5.3 Mudanças técnicas previstas (para quem desenvolve)
 
@@ -893,7 +893,7 @@ Seguem as convenções do projeto:
 | Base pequena deixa os testes inconclusivos | Grupo de controle acumulado por meses; decisões por tendência, não por um disparo |
 | Sobrecarga da vendedora | Teto diário na lista do dia e na prospecção; o automático cuida do transacional |
 | Perfilamento e LGPD | LIA documentada, aviso de privacidade, explicação do score, revisão a pedido |
-| Dependência da JOY (QR, trainers, dados) | Pedir autorização formal; nunca importar dados da JOY; validar o §6.5.2 |
+| Dependência da academia parceira (QR, trainers, dados) | Pedir autorização formal; nunca importar dados da academia; validar a cláusula sobre funcionários |
 | IA errar em mensagem proativa | Proativo pessoal sai da vendedora; template aprovado; avaliações com casos de retenção |
 | Benefícios que corroem a margem | Começar com benefícios não monetários; cashback só depois da análise de margem |
 
@@ -908,7 +908,7 @@ Seguem as convenções do projeto:
 7. **Orçamento mensal** de templates e de mídia.
 8. **Texto do aceite** (versão 1) e do aviso de privacidade.
 9. **Número VIP em coexistência** (a sócia escreve pelo próprio app, e o sistema vê o eco).
-10. **Autorização da JOY** para QR nas áreas comuns, e regra para trainers como afiliados.
+10. **Autorização da academia parceira** para QR nas áreas comuns, e regra para trainers como afiliados.
 11. **Metas iniciais** do §3.8 e data da primeira recalibração.
 
 ## 5.6 Pedidos de 01/10/2026: situação
@@ -925,7 +925,7 @@ Pedidos feitos pelo Paulo durante a implantação. **Entregues na `main` em 01/1
    - total de horas trabalhadas ao vivo ao criar turno, lançar horário livre e na grade (dia, semana contra o contratado e mês).
 5. **Admissão:** entregue. Cada vínculo explica o que significa; Intermitente, Temporário e Aprendiz são CLT (mesmos encargos); Estágio e Sócio não. **Freelancer PJ/MEI** como aba própria: prestador sem vínculo, sem folha nem encargos, que vira conta a pagar em rascunho (conta 7.2.09), com alerta de risco trabalhista a partir de 6 diárias em 90 dias.
 6. **Automação venda → financeiro e RH → financeiro:** já existia; resposta ao Paulo:
-   - venda: gera contas a **receber** automaticamente (cartão, Pix, boleto, com a agenda da maquininha); a comissão da vendedora entra na folha do mês (com DSR) quando o extrato é aprovado, e a de afiliada vira conta a pagar ou vale-troca; o DAS do mês e as parcelas do contrato JOY viram contas a pagar;
+   - venda: gera contas a **receber** automaticamente (cartão, Pix, boleto, com a agenda da maquininha); a comissão da vendedora entra na folha do mês (com DSR) quando o extrato é aprovado, e a de afiliada vira conta a pagar ou vale-troca; o DAS do mês e as parcelas do contrato academia parceira viram contas a pagar;
    - folha aprovada: gera conta a pagar do líquido de cada colaborador, guias de FGTS, INSS (DAE) e IRRF (DARF), benefícios e pensão, e o lançamento contábil por centro de custo; o rateio acontece na baixa (ADR 0002).
 
 ---
@@ -961,9 +961,9 @@ Configurar em **Atendimento › Automações**. Regras de preenchimento:
 | 1 | Origem: QR recepção | Palavra na mensagem | "qr da recepcao" | Etiqueta `origem-qr-recepcao` | 365 dias |
 | 2 | Origem: QR vestiário | Palavra na mensagem | "qr do vestiario" | Etiqueta `origem-qr-vestiario` | 365 dias |
 | 3 | Origem: bio do Instagram | Palavra na mensagem | "link da bio" | Etiqueta `origem-bio` | 365 dias |
-| 4 | Horário e endereço | Palavra na mensagem | horario, endereco, onde fica, que horas abre | Responder com horário, endereço na JOY e link do mapa | 1 dia |
+| 4 | Horário e endereço | Palavra na mensagem | horario, endereco, onde fica, que horas abre | Responder com horário, endereço na academia parceira e link do mapa | 1 dia |
 | 5 | Lead de anúncio | Chegou por anúncio no WhatsApp | — | Etiqueta `origem-anuncio` + tarefa "Acompanhar lead do anúncio: {nome}" (prazo 24 h) | 30 dias |
-| 6 | Obrigada pela menção | Menção em story | — | Responder "Obrigada por marcar a SIÉ, {nome}! ✨" + etiqueta `embaixadora` | 7 dias |
+| 6 | Obrigada pela menção | Menção em story | — | Responder "Obrigada por marcar a {loja}, {nome}! ✨" + etiqueta `embaixadora` | 7 dias |
 | 7 | Interesse no post | Comentário no Instagram | quero, preco, valor, tamanho | Resposta privada "Oi, {nome}! Vi seu comentário ✨ Qual tamanho você usa? Te passo os detalhes por aqui." + etiqueta `interesse-post` | 0 (uma por comentário) |
 | 8 | Troca | Palavra na mensagem | troca, trocar, devolucao, devolver | Chamar uma pessoa + etiqueta `troca` | 1 dia |
 | 9 | Aniversário | Aniversário | 3 dias antes | Tarefa "Aniversário de {nome} em 3 dias", com mensagem pronta (prazo 48 h) | 300 dias |
@@ -985,18 +985,18 @@ Nos templates, `{{n}}` são as variáveis. Comece e termine o texto com palavras
 
 | # | Uso | Tipo | Texto |
 |---|---|---|---|
-| 1 | Boas-vindas (QR) | [IA] | Oi! Que bom te ver por aqui ✨ Somos a SIÉ, a loja aqui dentro da JOY. Me conta: qual atividade você mais pratica? Assim te mostro as peças certas. |
+| 1 | Boas-vindas (QR) | [IA] | Oi! Que bom te ver por aqui ✨ Somos a {loja}, aqui dentro da academia. Me conta: qual atividade você mais pratica? Assim te mostro as peças certas. |
 | 2 | Aceite (v1) | [IA] / [Pessoal] | Posso te avisar por WhatsApp quando chegarem novidades no seu tamanho e convites para os nossos eventos? Você pode sair quando quiser, é só responder SAIR. |
 | 3 | `pagamento_confirmado` | [Utilidade] | Oi, {{1}}! Recebemos o pagamento do pedido {{2}}. Avisamos por aqui assim que estiver pronto. |
-| 4 | `armario_vip_pronto` | [Utilidade] | Oi, {{1}}! Suas peças estão separadas no Armário VIP até {{2}}. É só passar na loja da SIÉ dentro da JOY. |
+| 4 | `armario_vip_pronto` | [Utilidade] | Oi, {{1}}! Suas peças estão separadas no Armário VIP até {{2}}. É só passar na loja, dentro da academia. |
 | 5 | `reserva_vencendo` | [Utilidade] | Oi, {{1}}! A peça que separamos para você fica reservada até {{2}}. Quer que a gente segure mais um pouco? |
 | 6 | `lembrete_link_pagamento` | [Utilidade] | Oi, {{1}}! O link do pedido {{2}} vale até {{3}}: {{4}} . Se preferir, você também pode pagar na loja. |
-| 7 | Caimento (D+4) | [Pessoal] | Oi, {nome}! Aqui é a {vendedora}, da SIÉ. Como ficou a {peça} no treino? Se o caimento não ficou perfeito, a gente troca rapidinho. |
-| 8 | `pesquisa_nps` (D+10) | [Utilidade/Marketing: decisão da Meta] | Oi, {{1}}! De 0 a 10, quanto você indicaria a SIÉ para uma amiga? Sua resposta ajuda muito a gente. |
+| 7 | Caimento (D+4) | [Pessoal] | Oi, {nome}! Aqui é a {vendedora}, da {loja}. Como ficou a {peça} no treino? Se o caimento não ficou perfeito, a gente troca rapidinho. |
+| 8 | `pesquisa_nps` (D+10) | [Utilidade/Marketing: decisão da Meta] | Oi, {{1}}! De 0 a 10, quanto você indicaria a nossa loja para uma amiga? Sua resposta ajuda muito a gente. |
 | 9 | `indique_amiga` | [Marketing] | Oi, {{1}}! Quer presentear uma amiga? Com o seu código {{2}}, ela ganha {{3}} na primeira compra e você ganha {{4}} em vale-troca. É só compartilhar. |
 | 10 | Aniversário | [Pessoal] / [Marketing] | Feliz aniversário, {nome}! 💛 Separamos um mimo para você retirar na loja até {data}. |
 | 11 | Em risco (45 a 90 dias) | [Pessoal] | {nome}, chegou a nova {peça} no seu tamanho e lembrei de você. Quer que eu separe para provar? |
-| 12 | `convite_evento` (90 dias) | [Marketing] | Oi, {{1}}! Vamos fazer um café na SIÉ no dia {{2}} para apresentar o drop novo. Quer vir? Responda SIM e colocamos seu nome na lista. |
+| 12 | `convite_evento` (90 dias) | [Marketing] | Oi, {{1}}! Vamos fazer um café na loja no dia {{2}} para apresentar o drop novo. Quer vir? Responda SIM e colocamos seu nome na lista. |
 | 13 | `sentimos_sua_falta` (180 dias) | [Marketing] | Oi, {{1}}! Sentimos sua falta por aqui. Na sua próxima visita até {{2}}, tem um mimo te esperando. Quer que a gente separe algo no seu tamanho? |
 | 14 | `chegou_seu_tamanho` (avise-me) | [Utilidade/Marketing: decisão da Meta] | Oi, {{1}}! Chegou {{2}} no tamanho {{3}} que você pediu. Separamos por 24 h para você. |
 | 15 | `pre_venda_vip` | [Marketing] | Oi, {{1}}! O drop {{2}} chega para todo mundo no dia {{3}}. Como VIP, você pode reservar antes: responda QUERO e te mandamos as peças. |

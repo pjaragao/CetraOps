@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { parseStatement } from "@sie/domain";
-import type { Json } from "@sie/db";
+import { parseStatement } from "@centralops/domain";
+import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
 
@@ -328,7 +328,7 @@ export async function createTemplateAction(_prev: State, formData: FormData): Pr
 }
 
 // ---------------------------------------------------------------------
-// Contrato de patrocínio + licença de espaço (JOY)
+// Contrato de patrocínio + licença de espaço (parceiro anfitrião)
 // ---------------------------------------------------------------------
 const contractSchema = z.object({
   partner_name: z.string().min(2), partner_cnpj: z.string().regex(/^\d{14}$/),
@@ -338,7 +338,7 @@ const contractSchema = z.object({
   late_fee_pct: z.number().min(0), monthly_interest_pct: z.number().min(0), exit_penalty_pct: z.number().min(0),
 });
 
-/** Cadastra o contrato de patrocínio + licença de espaço (ex.: JOY), gera o cronograma e as contrapartidas. */
+/** Cadastra o contrato de patrocínio + licença de espaço (ex.: a academia onde a loja funciona), gera o cronograma e as contrapartidas. */
 export async function createContract(formData: FormData) {
   const session = await getSession();
   const parsed = contractSchema.safeParse({
@@ -387,7 +387,7 @@ export async function createContract(formData: FormData) {
     const d = new Date(`${c.start_date}T12:00:00Z`);
     d.setUTCMonth(d.getUTCMonth() + i);
     const due = d.toISOString().slice(0, 10);
-    obligations.push({ org_id: session.orgId, contract_id: contract!.id, kind: "GUEST_PASS" as const, description: `Mês ${i + 1}: até 2 convidados SIÉ no Plano Club`, due_date: due });
+    obligations.push({ org_id: session.orgId, contract_id: contract!.id, kind: "GUEST_PASS" as const, description: `Mês ${i + 1}: convidados da loja no plano do parceiro`, due_date: due });
     obligations.push({ org_id: session.orgId, contract_id: contract!.id, kind: "BREAKFAST_ACTIVATION" as const, description: `Mês ${i + 1}: ativação café da manhã`, due_date: due });
     if (i % 6 === 5) obligations.push({ org_id: session.orgId, contract_id: contract!.id, kind: "PHOTOSHOOT" as const, description: "Ensaio fotográfico semestral", due_date: due });
   }

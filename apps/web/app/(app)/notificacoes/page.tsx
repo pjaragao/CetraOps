@@ -1,4 +1,4 @@
-import { describeNotification, timeAgo } from "@sie/domain";
+import { describeNotification, timeAgo } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
 import { str, type SP } from "@/lib/context";

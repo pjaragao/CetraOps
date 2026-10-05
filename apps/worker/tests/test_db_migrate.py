@@ -1,4 +1,4 @@
-"""sie-migrate contra o Postgres local: confere pendências, aplica uma migration nova uma única vez e grava na tabela do Supabase CLI."""
+"""centralops-migrate contra o Postgres local: confere pendências, aplica uma migration nova uma única vez e grava na tabela do Supabase CLI."""
 from __future__ import annotations
 
 import shutil
@@ -7,7 +7,7 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from sie_worker import migrate
+from centralops_worker import migrate
 
 from .conftest import DB_URL
 
@@ -22,7 +22,7 @@ def fake_supabase(tmp_path: Path):
     shutil.copytree(REPO / "supabase" / "migrations", base / "migrations")
     (base / "seed").mkdir()
     shutil.copy(REPO / "supabase" / "seed" / "08_initial_admin.sql", base / "seed")
-    (base / "migrations" / f"{VERSION}_sie_migrate_test.sql").write_text(
+    (base / "migrations" / f"{VERSION}_centralops_migrate_test.sql").write_text(
         "create schema zz_migrate_test;\ncreate table zz_migrate_test.t (id int);\ninsert into zz_migrate_test.t values (1);\n", encoding="utf-8")
     yield base
     with psycopg.connect(DB_URL, autocommit=True) as conn:
@@ -40,14 +40,14 @@ def test_applies_pending_once_and_records_it(fake_supabase: Path):
     with psycopg.connect(DB_URL) as conn:
         assert conn.execute("select count(*) from zz_migrate_test.t").fetchone()[0] == 1
         row = conn.execute("select name from supabase_migrations.schema_migrations where version = %s", (VERSION,)).fetchone()
-        assert row == ("sie_migrate_test",)
+        assert row == ("centralops_migrate_test",)
     assert migrate.apply(DB_URL, fake_supabase) == 0  # segunda vez: nada pendente, não reaplica
     with psycopg.connect(DB_URL) as conn:
         assert conn.execute("select count(*) from zz_migrate_test.t").fetchone()[0] == 1
 
 
 def test_failed_migration_is_rolled_back_and_not_recorded(fake_supabase: Path):
-    (fake_supabase / "migrations" / f"{VERSION}_sie_migrate_test.sql").write_text(
+    (fake_supabase / "migrations" / f"{VERSION}_centralops_migrate_test.sql").write_text(
         "create schema zz_migrate_test;\nselect 1/0;\n", encoding="utf-8")
     with pytest.raises(psycopg.Error):
         migrate.apply(DB_URL, fake_supabase)

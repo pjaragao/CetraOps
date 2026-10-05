@@ -12,7 +12,7 @@ export default async function PlanoDeContasPage() {
 
   return (
     <>
-      <PageHeader title="Plano de contas" description="Reclassificado: JOY é patrocínio + licença de espaço; MDR (despesa de venda) separado da antecipação (financeira). Coluna do contador para o de-para." />
+      <PageHeader title="Plano de contas" description="Reclassificado: a licença de espaço do parceiro anfitrião é patrocínio (não aluguel); MDR (despesa de venda) separado da antecipação (financeira). Coluna do contador para o de-para." />
       <Table head={["Código", "Conta", "Tipo", "Grupo", "Linha do DRE", "Cód. contador"]}>
         {(accounts ?? []).map((a) => {
           const depth = a.code.split(".").length - 1;

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export const STORE_COOKIE = "sie_store";
+export const STORE_COOKIE = "centralops_store";
 
 export interface Session {
   userId: string;

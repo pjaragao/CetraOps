@@ -53,7 +53,7 @@ export default async function RegrasPage({ searchParams }: { searchParams: SP })
           {canWrite && <Button>Salvar pesquisa</Button>}
         </form>
       </Card>
-      <Card className="mt-4" title="NPS (indicaria a SIÉ para uma amiga?)">
+      <Card className="mt-4" title="NPS (indicaria a nossa loja para uma amiga?)">
         <p className="mb-3 text-sm text-muted">Alguns dias depois da compra a cliente recebe a pergunta de 0 a 10 (texto se a janela estiver aberta; senão, o template de utilidade escolhido em Avisos automáticos; sem template, vira tarefa). Responder só com o número grava a nota. Nota até 6 abre um caso; 9 ou 10 vira convite para indicar uma amiga.</p>
         <form action={saveNpsAction} className="space-y-3">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={Boolean(npsRule?.active)} disabled={!canWrite} /> Ligado</label>

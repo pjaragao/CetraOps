@@ -1,5 +1,5 @@
 import "server-only";
-import { periodRange, todaySP } from "@sie/domain";
+import { periodRange, todaySP } from "@centralops/domain";
 
 /** Converte o período da URL em limites timestamptz no fuso de São Paulo. */
 export function periodBounds(periodo?: string) {

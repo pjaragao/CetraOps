@@ -28,7 +28,7 @@ id "$SSH_USER" >/dev/null 2>&1 || { echo "usuário $SSH_USER não existe (crie: 
 echo "==> Pacotes e atualizações automáticas de segurança"
 run "apt-get update -y"
 run "DEBIAN_FRONTEND=noninteractive apt-get install -y ufw fail2ban unattended-upgrades apt-listchanges curl ca-certificates"
-run "cat > /etc/apt/apt.conf.d/52sie-unattended <<'EOF'
+run "cat > /etc/apt/apt.conf.d/52centralops-unattended <<'EOF'
 Unattended-Upgrade::Automatic-Reboot \"true\";
 Unattended-Upgrade::Automatic-Reboot-Time \"06:30\";
 Unattended-Upgrade::Remove-Unused-Dependencies \"true\";
@@ -38,7 +38,7 @@ run "systemctl enable --now unattended-upgrades"
 echo "==> SSH: só chave, sem root"
 AUTH_KEYS="/home/${SSH_USER}/.ssh/authorized_keys"
 if [[ -s "$AUTH_KEYS" ]]; then
-  run "cat > /etc/ssh/sshd_config.d/99-sie-hardening.conf <<EOF
+  run "cat > /etc/ssh/sshd_config.d/99-centralops-hardening.conf <<EOF
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin no
@@ -53,7 +53,7 @@ else
 fi
 
 echo "==> fail2ban (SSH)"
-run "cat > /etc/fail2ban/jail.d/sie-sshd.conf <<'EOF'
+run "cat > /etc/fail2ban/jail.d/centralops-sshd.conf <<'EOF'
 [sshd]
 enabled = true
 maxretry = 4
@@ -81,7 +81,7 @@ fi
 run "ufw --force enable"
 
 echo "==> Kernel: endurecimento básico de rede"
-run "cat > /etc/sysctl.d/99-sie-hardening.conf <<'EOF'
+run "cat > /etc/sysctl.d/99-centralops-hardening.conf <<'EOF'
 net.ipv4.conf.all.rp_filter = 1
 net.ipv4.conf.default.rp_filter = 1
 net.ipv4.conf.all.accept_redirects = 0

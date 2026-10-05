@@ -1,5 +1,5 @@
 /**
- * Arquitetura de informação do SIÉ JOY OS 2.0: menu organizado pela tarefa do usuário.
+ * Arquitetura de informação do CentralOps: menu organizado pela tarefa do usuário.
  * Cada área exige uma permissão; o sócio (superusuário) vê tudo. Ícones = nomes do lucide-react.
  */
 export interface NavItem {

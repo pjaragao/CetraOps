@@ -1,5 +1,5 @@
 "use client";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { SearchPicker } from "@/components/search-picker";
 import { searchParties, searchSellable, type SellableHit } from "./actions";
 

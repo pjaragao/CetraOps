@@ -10,7 +10,7 @@ from (values
   ('00000000-0000-4000-8000-000000000701', null,                                   'Inter — conta PJ (dev)',        'CHECKING',         '077', '0001', '1234567-8', '1.1.1.02', '0'),
   ('00000000-0000-4000-8000-000000000702', null,                                   'BTG Pactual Empresas (dev)',    'CHECKING',         '208', '0050', '7654321-0', '1.1.1.03', '0'),
   ('00000000-0000-4000-8000-000000000703', null,                                   'Mercado Pago (dev)',            'CHECKING',         '323', '0001', '99887766-1', '1.1.1.04', '0'),
-  ('00000000-0000-4000-8000-000000000704', '00000000-0000-4000-8000-0000000000a1', 'Caixa da loja JOY (gaveta)',    'CASH_DRAWER',      null,  null,   null,        '1.1.1.01', '0'),
+  ('00000000-0000-4000-8000-000000000704', '00000000-0000-4000-8000-0000000000a1', 'Caixa da loja piloto (gaveta)',    'CASH_DRAWER',      null,  null,   null,        '1.1.1.01', '0'),
   ('00000000-0000-4000-8000-000000000705', null,                                   'Saldo na adquirente (Stone)',   'ACQUIRER_BALANCE', null,  null,   null,        '1.1.1.05', '0')
 ) as x(id, store, name, kind, bank, agency, num, acc, opening)
 on conflict (id) do nothing;
@@ -45,7 +45,7 @@ on conflict do nothing;
 
 -- Modelo de rateio: mídia paga 80% digital / 20% balcão
 insert into fin.allocation_templates (id, org_id, name, description) values
-  ('00000000-0000-4000-8000-000000000721', '00000000-0000-4000-8000-000000000001', 'Mídia paga 80/20', 'Meta Ads: 80% JOY Digital, 20% JOY Balcão')
+  ('00000000-0000-4000-8000-000000000721', '00000000-0000-4000-8000-000000000001', 'Mídia paga 80/20', 'Meta Ads: 80% Piloto Digital, 20% Piloto Balcão')
 on conflict (id) do nothing;
 insert into fin.allocation_template_lines (org_id, template_id, cost_center_id, pct)
 select '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000721', x.cc::uuid, x.pct

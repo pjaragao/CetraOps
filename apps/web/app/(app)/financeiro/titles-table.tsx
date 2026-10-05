@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { Badge, Button } from "@/components/ui";
 import { approveTitle, cancelTitle } from "./actions";
 

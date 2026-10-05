@@ -14,4 +14,4 @@ ignore = ["RUF001", "RUF002", "RUF003", "B008", "E501"]   # acentos em portuguê
 "**/tests/**" = ["B011", "RUF012"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["sie_worker", "sie_mcp", "sie_agent_contract"]
+known-first-party = ["centralops_worker", "centralops_mcp", "centralops_agent_contract"]

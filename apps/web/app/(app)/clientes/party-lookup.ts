@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@sie/db";
+import type { Database } from "@centralops/db";
 
 /** Acha a cliente pelo que a pessoa digitou (nome ou parte dele, ou o telefone). Devolve o id, ou o motivo de não ter achado uma só. */
 export async function findParty(supabase: SupabaseClient<Database>, text: string): Promise<{ id: string } | { error: string }> {

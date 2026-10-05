@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL, trackingUrl } from "@sie/domain";
+import { formatBRL, trackingUrl } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";

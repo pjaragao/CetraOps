@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Marketing › Anúncios Meta: resultados diários por anúncio (gasto, alcance, cliques, conversas e compras que a Meta conta) lidos da Marketing API,
--- cruzados com o que o SIÉ sabe de verdade: quem chegou por aquele anúncio (Click-to-WhatsApp) e quanto comprou. O ROAS "real" usa a venda do sistema.
+-- cruzados com o que o CentralOps sabe de verdade: quem chegou por aquele anúncio (Click-to-WhatsApp) e quanto comprou. O ROAS "real" usa a venda do sistema.
 -- Códigos de erro: P0270 situação não permite.
 -- =====================================================================
 
@@ -90,7 +90,7 @@ begin
   end loop;
   return n;
 end $$;
-select cron.schedule('sie-ad-insights', '0 9 * * *', $$ select private.enqueue_ad_sync() $$);
+select cron.schedule('centralops-ad-insights', '0 9 * * *', $$ select private.enqueue_ad_sync() $$);
 
 -- ---------------------------------------------------------------------
 -- Visão por anúncio: o que a Meta mediu + o que o sistema confirma (quem chegou por ele e quanto comprou)

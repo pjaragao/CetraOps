@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
 import { Minus, Plus, Trash2, UserRound } from "lucide-react";
-import { formatBRL, roundCents } from "@sie/domain";
+import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { finalizeSale, identifyCustomer, type SaleInput } from "./actions";
 

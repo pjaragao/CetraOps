@@ -86,4 +86,4 @@ end $$;
 insert into private.internal_functions (fqname) values ('fiscal.record_document_event'), ('fiscal.record_cancellation'), ('private.check_uninvoiced_orders') on conflict do nothing;
 select private.lock_functions();
 
-select cron.schedule('sie-uninvoiced-orders', '10 * * * *', $$ select private.check_uninvoiced_orders() $$);
+select cron.schedule('centralops-uninvoiced-orders', '10 * * * *', $$ select private.check_uninvoiced_orders() $$);

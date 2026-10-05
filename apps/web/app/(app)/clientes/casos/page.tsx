@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { isoFromNow, str, type SP } from "@/lib/context";

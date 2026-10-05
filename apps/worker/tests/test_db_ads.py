@@ -10,10 +10,10 @@ import httpx
 import pytest
 import respx
 
-from sie_worker.adapters.meta import normalize_insight
-from sie_worker.db import fetch_all, fetch_one
-from sie_worker.handlers import ad_insights, campaigns
-from sie_worker.queues import QueueMessage
+from centralops_worker.adapters.meta import normalize_insight
+from centralops_worker.db import fetch_all, fetch_one
+from centralops_worker.handlers import ad_insights, campaigns
+from centralops_worker.queues import QueueMessage
 
 from .conftest import ORG
 
@@ -78,7 +78,7 @@ async def test_refused_credential_is_recorded_and_warns_the_team_without_retryin
 
 @respx.mock
 async def test_rate_limit_is_retried_later(pool: Any, deps: Any, ads_connection: None) -> None:
-    from sie_worker.runner import RetryLater
+    from centralops_worker.runner import RetryLater
 
     respx.get(f"{GRAPH}/{ACCOUNT}/insights").mock(return_value=httpx.Response(400, json={"error": {"code": 17, "message": "User request limit reached"}}))
     with pytest.raises(RetryLater):

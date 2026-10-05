@@ -7,7 +7,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="min-h-dvh grid place-items-center px-4">
       <form action={signIn} className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <p className="text-xs tracking-[0.3em] text-accent uppercase">SIÉ JOY</p>
+        <p className="text-xs tracking-[0.3em] text-accent uppercase">CentralOps</p>
         <h1 className="mt-1 text-2xl font-semibold">Entrar no sistema</h1>
         <p className="mt-1 text-sm text-muted">Acesso por convite. Fale com um sócio se ainda não tem conta.</p>
 

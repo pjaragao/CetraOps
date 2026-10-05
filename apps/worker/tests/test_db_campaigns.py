@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from sie_worker import queues
-from sie_worker.db import fetch_one
-from sie_worker.handlers import campaigns
+from centralops_worker import queues
+from centralops_worker.db import fetch_one
+from centralops_worker.handlers import campaigns
 
 from .conftest import ORG
 

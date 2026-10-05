@@ -298,7 +298,7 @@ begin
   end loop;
   return n;
 end $$;
-select cron.schedule('sie-schedule-patterns', '0 6 * * *', $$ select private.apply_patterns_rolling() $$);   -- 03:00 BRT
+select cron.schedule('centralops-schedule-patterns', '0 6 * * *', $$ select private.apply_patterns_rolling() $$);   -- 03:00 BRT
 
 insert into private.internal_functions (fqname) values ('private.apply_pattern_core'), ('private.apply_patterns_rolling'), ('private.check_break_min') on conflict do nothing;
 select private.lock_functions();

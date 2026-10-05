@@ -1,4 +1,4 @@
-import { monthBounds } from "@sie/domain";
+import { monthBounds } from "@centralops/domain";
 import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { Button, Card, LinkButton, PageHeader, inputClass } from "@/components/ui";

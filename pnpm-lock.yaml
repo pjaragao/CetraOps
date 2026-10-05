@@ -20,10 +20,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@sie/db':
+      '@centralops/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@sie/domain':
+      '@centralops/domain':
         specifier: workspace:*
         version: link:../../packages/domain
       '@supabase/ssr':

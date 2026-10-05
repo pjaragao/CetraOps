@@ -80,7 +80,7 @@ begin
   select rules into r from crm.lead_scoring_rules where org_id = p.org_id and active order by version desc limit 1;
   r := coalesce(r, '{}');
   w := jsonb_build_object('profession', 20, 'sports', 20, 'has_contact', 10, 'target_city', 10, 'engaged_conversation', 20, 'purchased', 20,
-                          'joy_member', 15, 'referral', 10, 'event_attended', 10, 'recent_reply', 10, 'asked_product', 10) || coalesce(r -> 'weights', '{}');
+                          'host_member', 15, 'referral', 10, 'event_attended', 10, 'recent_reply', 10, 'asked_product', 10) || coalesce(r -> 'weights', '{}');
 
   -- profissão-alvo
   if p.profession is not null then
@@ -118,9 +118,9 @@ begin
   if exists (select 1 from sales.orders o where o.party_id = p.id and o.status::text = any (v_paid)) then
     items := items || jsonb_build_object('key', 'purchased', 'label', 'Já comprou', 'points', (w ->> 'purchased')::int);
   end if;
-  -- aluna JOY (autodeclarada ou confirmada na loja)
-  if p.joy_member_status <> 'UNKNOWN' then
-    items := items || jsonb_build_object('key', 'joy_member', 'label', case p.joy_member_status when 'CONFIRMED_IN_STORE' then 'Aluna JOY (confirmada)' else 'Aluna JOY (autodeclarada)' end, 'points', (w ->> 'joy_member')::int);
+  -- aluna da academia parceira (autodeclarada ou confirmada na loja)
+  if p.host_member_status <> 'UNKNOWN' then
+    items := items || jsonb_build_object('key', 'host_member', 'label', case p.host_member_status when 'CONFIRMED_IN_STORE' then 'Aluna da academia parceira (confirmada)' else 'Aluna da academia parceira (autodeclarada)' end, 'points', (w ->> 'host_member')::int);
   end if;
   -- veio por indicação (afiliada ou cliente)
   if upper(coalesce(p.source, '')) in ('REFERRAL', 'AFFILIATE', 'INDICACAO') or 'indicacao' = any (p.tags)
@@ -240,7 +240,7 @@ end $$;
 create trigger trg_lifecycle_on_order after insert or update of status on sales.orders
   for each row execute function private.lifecycle_on_order();
 
-select cron.schedule('sie-lifecycle-nightly', '30 6 * * *', $$ select private.refresh_lifecycle(null, null) $$);   -- 03:30 BRT
+select cron.schedule('centralops-lifecycle-nightly', '30 6 * * *', $$ select private.refresh_lifecycle(null, null) $$);   -- 03:30 BRT
 
 -- Recalcular na hora (botão da tela)
 create or replace function crm.refresh_lifecycle(p_party uuid default null) returns integer
@@ -256,7 +256,7 @@ end $$;
 -- ---------------------------------------------------------------------
 -- Ficha editável
 -- p = {display_name?, birth_date?, city?, uf?, profession?, instagram_handle?, email?, sizes?{top,bottom,bra,shoe}, activities?[],
---      notes?, joy_member_status?, relationship_owner_member_id?, home_store_id?, tier? ('AUTO'|'STANDARD'|'VIP'|'VIP_BLACK'), tags?[]}
+--      notes?, host_member_status?, relationship_owner_member_id?, home_store_id?, tier? ('AUTO'|'STANDARD'|'VIP'|'VIP_BLACK'), tags?[]}
 -- Só altera as chaves enviadas. Campo vazio ("") apaga.
 -- ---------------------------------------------------------------------
 create or replace function crm.update_profile(p_party uuid, p jsonb) returns crm.parties
@@ -305,9 +305,9 @@ begin
     x.preferences := x.preferences || jsonb_build_object('activities', v_act);
   end if;
   if p ? 'notes' then x.preferences := x.preferences || jsonb_build_object('notes', left(coalesce(p ->> 'notes', ''), 500)); end if;
-  if p ? 'joy_member_status' then
-    if p ->> 'joy_member_status' not in ('UNKNOWN', 'SELF_DECLARED', 'CONFIRMED_IN_STORE') then raise exception 'Situação JOY inválida' using errcode = 'P0300'; end if;
-    x.joy_member_status := p ->> 'joy_member_status';
+  if p ? 'host_member_status' then
+    if p ->> 'host_member_status' not in ('UNKNOWN', 'SELF_DECLARED', 'CONFIRMED_IN_STORE') then raise exception 'Situação de aluna da academia parceira inválida' using errcode = 'P0300'; end if;
+    x.host_member_status := p ->> 'host_member_status';
   end if;
   if p ? 'relationship_owner_member_id' then
     v_owner := nullif(p ->> 'relationship_owner_member_id', '')::uuid;
@@ -335,7 +335,7 @@ begin
   end if;
 
   update crm.parties set display_name = x.display_name, birth_date = x.birth_date, city = x.city, uf = x.uf, profession = x.profession,
-         instagram_handle = x.instagram_handle, sizes = x.sizes, preferences = x.preferences, joy_member_status = x.joy_member_status,
+         instagram_handle = x.instagram_handle, sizes = x.sizes, preferences = x.preferences, host_member_status = x.host_member_status,
          relationship_owner_member_id = x.relationship_owner_member_id, home_store_id = x.home_store_id, tier = x.tier, tier_manual = x.tier_manual, tags = x.tags
   where id = x.id;
 

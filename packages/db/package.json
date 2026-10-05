@@ -1,5 +1,5 @@
 {
-  "name": "@sie/db",
+  "name": "@centralops/db",
   "version": "0.1.0",
   "private": true,
   "main": "src/index.ts",

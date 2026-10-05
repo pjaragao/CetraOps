@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { useKeptForm } from "@/components/use-kept-form";
 import { Button, inputClass } from "@/components/ui";
 import { saveReimbursementAction } from "./actions";

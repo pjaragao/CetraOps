@@ -30,8 +30,8 @@ create table crm.parties (
   tier crm.tier not null default 'STANDARD',
   lead_score smallint not null default 0 check (lead_score between 0 and 100),
   score_breakdown jsonb not null default '{}',
-  joy_member_status text not null default 'UNKNOWN'
-    check (joy_member_status in ('UNKNOWN', 'SELF_DECLARED', 'CONFIRMED_IN_STORE')),  -- nunca importado da JOY
+  host_member_status text not null default 'UNKNOWN'
+    check (host_member_status in ('UNKNOWN', 'SELF_DECLARED', 'CONFIRMED_IN_STORE')),  -- nunca importado do parceiro
   sizes jsonb not null default '{}',                            -- {top, bottom, bra, shoe}
   preferences jsonb not null default '{}',
   source text,

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { fmtHours, netMinutes, spanMinutes } from "@sie/domain";
+import { fmtHours, netMinutes, spanMinutes } from "@centralops/domain";
 import { Button, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";
 import { saveShiftAction } from "../../actions";

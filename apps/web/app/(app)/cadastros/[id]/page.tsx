@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EDITABLE_ROLES, PARTY_ROLE_LABEL, RELATION_OPTIONS, relativeLabel } from "@sie/domain";
+import { EDITABLE_ROLES, PARTY_ROLE_LABEL, RELATION_OPTIONS, relativeLabel } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
@@ -10,7 +10,7 @@ import { addContactAction, addRelationAction, deleteAddressAction, mergePartiesA
 import { AddressForm } from "./address-form";
 import { RegistryCard } from "./registry-card";
 import { PayeeCard } from "./payee-card";
-import type { CnpjData } from "@sie/domain";
+import type { CnpjData } from "@centralops/domain";
 
 export const metadata = { title: "Cadastro" };
 

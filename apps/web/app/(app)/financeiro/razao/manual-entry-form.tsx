@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useKeptForm } from "@/components/use-kept-form";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { Button, inputClass } from "@/components/ui";
 import { manualEntryAction } from "../actions";
 

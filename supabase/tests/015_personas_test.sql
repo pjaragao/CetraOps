@@ -129,12 +129,12 @@ select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 select lives_ok($$ select ai.request_persona_profile((select v from ids where k = 'persona')::uuid, array['mimos', 'look']) $$, 'com 10 diálogos aproveitáveis pede o perfil');
 reset role;
 select is((select message ->> 'action' || '/' || (message -> 'lexicon' ->> 1) from pgmq.q_persona_tasks order by msg_id desc limit 1), 'PROFILE/look', 'PROFILE na fila, com o vocabulário da marca');
-insert into ids select 'v1', ai.persona_new_version(jsonb_build_object('persona_id', (select v from ids where k = 'persona'), 'style_profile', '{"stats":{"bubbles":10}}'::jsonb, 'system_prompt', 'Você é a Luisa da SIÉ.'))::text;
+insert into ids select 'v1', ai.persona_new_version(jsonb_build_object('persona_id', (select v from ids where k = 'persona'), 'style_profile', '{"stats":{"bubbles":10}}'::jsonb, 'system_prompt', 'Você é a Luisa da loja.'))::text;
 select is((select version from ai.persona_versions where id = (select v from ids where k = 'v1')::uuid), 1, 'primeira versão');
 select ok((select approved_at is null from ai.persona_versions where id = (select v from ids where k = 'v1')::uuid), 'a versão gerada nasce sem aprovação');
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
-select is((ai.save_persona_version(jsonb_build_object('id', (select v from ids where k = 'v1'), 'system_prompt', 'Você é a Luisa, sócia da SIÉ. Fale curto.', 'guardrails', '{"extra_rules":["Nunca fale de política"]}'::jsonb))).system_prompt,
-  'Você é a Luisa, sócia da SIÉ. Fale curto.', 'sócio edita o rascunho');
+select is((ai.save_persona_version(jsonb_build_object('id', (select v from ids where k = 'v1'), 'system_prompt', 'Você é a Luisa, sócia da loja. Fale curto.', 'guardrails', '{"extra_rules":["Nunca fale de política"]}'::jsonb))).system_prompt,
+  'Você é a Luisa, sócia da loja. Fale curto.', 'sócio edita o rascunho');
 select throws_ok($$ select ai.save_persona_version(jsonb_build_object('id', (select v from ids where k = 'v1'), 'guardrails', '[1]'::jsonb)) $$, 'P0140', null, 'regras extras precisam ser um objeto');
 select is((select active_version_id from ai.personas where id = (select v from ids where k = 'persona')::uuid), null, 'nada ativo antes da aprovação');
 select is((ai.approve_persona_version((select v from ids where k = 'v1')::uuid)).active_version_id, (select v from ids where k = 'v1')::uuid, 'aprovar ativa a versão');

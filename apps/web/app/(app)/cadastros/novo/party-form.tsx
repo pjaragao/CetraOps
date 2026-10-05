@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import type { CnpjData } from "@sie/domain";
-import { EDITABLE_ROLES, PARTY_ROLE_LABEL } from "@sie/domain";
+import type { CnpjData } from "@centralops/domain";
+import { EDITABLE_ROLES, PARTY_ROLE_LABEL } from "@centralops/domain";
 import { useKeptForm } from "@/components/use-kept-form";
 import { AddressFields, EMPTY_ADDRESS, type Address } from "@/components/address-fields";
 import { Button, Card, inputClass } from "@/components/ui";

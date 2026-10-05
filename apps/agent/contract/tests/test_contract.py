@@ -7,7 +7,7 @@ from pathlib import Path
 import jwt
 import pytest
 
-from sie_agent_contract import BY_NAME, CONCIERGE_CAPS, COPILOT_CAPS, TOOLS, schemas_for, sign_ctx, verify_ctx
+from centralops_agent_contract import BY_NAME, CONCIERGE_CAPS, COPILOT_CAPS, TOOLS, schemas_for, sign_ctx, verify_ctx
 
 SECRET = "contract-secret-with-at-least-32-bytes"
 MIGRATIONS = Path(__file__).resolve().parents[4] / "supabase" / "migrations"
@@ -50,3 +50,12 @@ def test_token_roundtrip_expiry_and_required_claims() -> None:
         verify_ctx(SECRET, jwt.encode({"exp": 9_999_999_999}, SECRET, algorithm="HS256"))
     with pytest.raises(jwt.InvalidTokenError):                                            # algoritmo "none" nunca é aceito
         verify_ctx(SECRET, jwt.encode({"org": "o", "conv": "c", "party": "p", "caps": [], "exp": 9_999_999_999}, None, algorithm="none"))
+
+
+def test_legacy_env_prefix_is_adopted_without_overriding_new_names() -> None:
+    from centralops_agent_contract.legacy_env import adopt_legacy_env
+
+    env = {"SIE_DATABASE_URL": "postgresql://antigo", "SIE_MCP_KEY": "antiga", "CENTRALOPS_MCP_KEY": "nova", "OUTRA": "x"}
+    assert adopt_legacy_env(env) == ["CENTRALOPS_DATABASE_URL"]
+    assert env["CENTRALOPS_DATABASE_URL"] == "postgresql://antigo"
+    assert env["CENTRALOPS_MCP_KEY"] == "nova"                   # o nome novo sempre vence

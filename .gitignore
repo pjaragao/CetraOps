@@ -72,7 +72,7 @@ yarn-error.log*
 .coverage
 htmlcov/
 
-# Monorepo (SIÉ JOY OS 2.0)
+# Monorepo (CentralOps)
 .next/
 .turbo/
 out/

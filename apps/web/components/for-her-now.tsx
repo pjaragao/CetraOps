@@ -1,4 +1,4 @@
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 
 export interface ForHerNowData {
   sizes: string[]; arrivals: Item[]; matches: Item[]; last_purchase: string | null; reservations: number; store_credit: number;

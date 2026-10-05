@@ -24,22 +24,22 @@ select is((select count(*)::int from core.members where party_id is null), 0, 't
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 insert into ids select 'luisa', (crm.create_party('{"display_name":"Luisa Sócia","roles":["SHAREHOLDER"]}')).id;
 select is(core.party_access((select v from ids where k = 'luisa')), null, 'ser sócia no cadastro não dá acesso ao sistema');
-select lives_ok($$ insert into ids select 'm_luisa', core.create_user(jsonb_build_object('party_id', (select v from ids where k = 'luisa'), 'email', 'luisa@sie.test', 'display_name', 'Luisa', 'password', 'provisoria123',
+select lives_ok($$ insert into ids select 'm_luisa', core.create_user(jsonb_build_object('party_id', (select v from ids where k = 'luisa'), 'email', 'luisa@centralops.test', 'display_name', 'Luisa', 'password', 'provisoria123',
   'roles', jsonb_build_array((select v from ids where k = 'owner')), 'all_stores', true)) $$, 'dá acesso a partir do cadastro');
 select is((select party_id from core.members where id = (select v from ids where k = 'm_luisa')), (select v from ids where k = 'luisa'), 'usuário ligado à pessoa escolhida');
-select ok(exists (select 1 from crm.party_contact_points where party_id = (select v from ids where k = 'luisa') and type = 'EMAIL' and value_normalized = 'luisa@sie.test'), 'o e-mail de acesso entra nos contatos da pessoa');
+select ok(exists (select 1 from crm.party_contact_points where party_id = (select v from ids where k = 'luisa') and type = 'EMAIL' and value_normalized = 'luisa@centralops.test'), 'o e-mail de acesso entra nos contatos da pessoa');
 select is((core.party_access((select v from ids where k = 'luisa')) ->> 'superuser')::boolean, true, 'a ficha da pessoa mostra o acesso total');
-select throws_ok($$ select core.create_user(jsonb_build_object('party_id', (select v from ids where k = 'luisa'), 'email', 'outra@sie.test', 'display_name', 'Outra', 'password', 'provisoria123',
+select throws_ok($$ select core.create_user(jsonb_build_object('party_id', (select v from ids where k = 'luisa'), 'email', 'outra@centralops.test', 'display_name', 'Outra', 'password', 'provisoria123',
   'roles', jsonb_build_array((select v from ids where k = 'seller')), 'all_stores', true)) $$, 'P0421', null, 'uma pessoa tem um só usuário');
 
 -- sem indicar a pessoa: acha pelo e-mail
-insert into ids select 'bia', (crm.create_party('{"display_name":"Bia Vendedora","emails":["bia@sie.test"],"roles":["CUSTOMER"]}')).id;
-select lives_ok($$ insert into ids select 'm_bia', core.create_user(jsonb_build_object('email', 'Bia@sie.test', 'display_name', 'Bia', 'password', 'provisoria123',
+insert into ids select 'bia', (crm.create_party('{"display_name":"Bia Vendedora","emails":["bia@centralops.test"],"roles":["CUSTOMER"]}')).id;
+select lives_ok($$ insert into ids select 'm_bia', core.create_user(jsonb_build_object('email', 'Bia@centralops.test', 'display_name', 'Bia', 'password', 'provisoria123',
   'roles', jsonb_build_array((select v from ids where k = 'seller')), 'all_stores', true)) $$, 'cria usuário sem indicar a pessoa');
 select is((select party_id from core.members where id = (select v from ids where k = 'm_bia')), (select v from ids where k = 'bia'), 'vínculo achado pelo e-mail');
 
 -- e-mail desconhecido: cria a pessoa
-select lives_ok($$ insert into ids select 'm_novo', core.create_user(jsonb_build_object('email', 'novo-usuario@sie.test', 'display_name', 'Carla Nova', 'password', 'provisoria123',
+select lives_ok($$ insert into ids select 'm_novo', core.create_user(jsonb_build_object('email', 'novo-usuario@centralops.test', 'display_name', 'Carla Nova', 'password', 'provisoria123',
   'roles', jsonb_build_array((select v from ids where k = 'seller')), 'all_stores', true)) $$, 'cria usuário com e-mail que não está no cadastro');
 select is((select p.display_name from core.members m join crm.parties p on p.id = m.party_id where m.id = (select v from ids where k = 'm_novo')), 'Carla Nova', 'a pessoa é criada no cadastro');
 

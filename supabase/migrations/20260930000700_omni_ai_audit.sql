@@ -121,9 +121,9 @@ begin
   else
     -- Resposta enviada pelo app oficial (celular) → a conversa passa para HUMANO automaticamente
     if new.author_type = 'ECHO_FROM_APP' then
-      perform set_config('sie.mode_trigger', 'HUMAN_REPLIED_FROM_APP', true);
+      perform set_config('centralops.mode_trigger', 'HUMAN_REPLIED_FROM_APP', true);
     elsif new.author_type = 'HUMAN' then
-      perform set_config('sie.mode_trigger', 'HUMAN_REPLIED', true);
+      perform set_config('centralops.mode_trigger', 'HUMAN_REPLIED', true);
     end if;
     update omni.conversations set last_message_at = new.created_at,
       unread_count = case when new.author_type in ('HUMAN', 'ECHO_FROM_APP') then 0 else unread_count end,
@@ -184,7 +184,7 @@ begin
   if new.mode is distinct from old.mode then
     insert into omni.mode_events (org_id, conversation_id, from_mode, to_mode, trigger, actor_type, actor_member_id)
     values (new.org_id, new.id, old.mode, new.mode,
-            coalesce(current_setting('sie.mode_trigger', true), 'UNSPECIFIED'),
+            coalesce(current_setting('centralops.mode_trigger', true), 'UNSPECIFIED'),
             case when private.member_id() is not null then 'USER' else 'SYSTEM' end, private.member_id());
     new.version := old.version + 1;                              -- invalida execuções de IA em andamento
   end if;
@@ -200,7 +200,7 @@ language plpgsql security definer set search_path = '' as $$
 declare c omni.conversations;
 begin
   perform private.require_perm('omni.write');
-  perform set_config('sie.mode_trigger', 'MANUAL', true);
+  perform set_config('centralops.mode_trigger', 'MANUAL', true);
   update omni.conversations set
     mode = p_mode,
     assignee_member_id = case when p_mode = 'HUMAN' then coalesce(assignee_member_id, private.member_id()) else assignee_member_id end,
@@ -299,7 +299,7 @@ create trigger trg_route_change after insert or update on ai.model_routes
 create table ai.personas (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references core.orgs(id),
-  name text not null,                                            -- 'Luisa', 'Paulo', 'Concierge SIÉ'
+  name text not null,                                            -- 'Luisa', 'Paulo', 'Concierge'
   member_id uuid references core.members(id),
   active_version_id uuid,
   created_at timestamptz not null default now(),

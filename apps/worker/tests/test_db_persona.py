@@ -10,12 +10,12 @@ import httpx
 import pytest
 import respx
 
-from sie_worker import queues
-from sie_worker.adapters.errors import PermanentError
-from sie_worker.ai.llm import LLM, parse_json_content, vector_text
-from sie_worker.db import fetch_all, fetch_one
-from sie_worker.handlers import persona as handler
-from sie_worker.handlers import router
+from centralops_worker import queues
+from centralops_worker.adapters.errors import PermanentError
+from centralops_worker.ai.llm import LLM, parse_json_content, vector_text
+from centralops_worker.db import fetch_all, fetch_one
+from centralops_worker.handlers import persona as handler
+from centralops_worker.handlers import router
 
 from .conftest import ORG, ingest, unique_phone
 

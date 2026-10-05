@@ -39,7 +39,7 @@ select throws_ok($$ select mkt.save_event(jsonb_build_object('kind', 'DROP', 'na
 
 -- ---------- Criar e editar ----------
 insert into ids select 'ev', (mkt.save_event(jsonb_build_object('kind', 'drop', 'name', 'Drop 02 — Inverno', 'store_id', '00000000-0000-4000-8000-0000000000a1', 'starts_at', (now() - interval '1 day'), 'ends_at', (now() - interval '1 day' + interval '3 hours'),
-  'capacity', 2, 'target_revenue', 8000, 'venue', 'Loja JOY', 'create_cost_center', true))).id::text;
+  'capacity', 2, 'target_revenue', 8000, 'venue', 'Loja Piloto', 'create_cost_center', true))).id::text;
 select is((select kind || '/' || status || '/' || capacity from mkt.events where id = (select v from ids where k = 'ev')::uuid), 'DROP/PLANNED/2', 'tipo em maiúsculas, nasce planejado');
 reset role;
 select is((select c.kind::text || '/' || (c.code like 'EVT-%') || '/' || (c.parent_id = '00000000-0000-4000-8000-0000000000c2') from mkt.events e join core.cost_centers c on c.id = e.cost_center_id where e.id = (select v from ids where k = 'ev')::uuid), 'PROJECT_EVENT/true/true', 'cria o centro de custo do projeto, filho da loja');

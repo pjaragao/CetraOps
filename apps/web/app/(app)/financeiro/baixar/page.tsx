@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
-import { findExactCombination, roundCents } from "@sie/domain";
+import { findExactCombination, roundCents } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { todayIsoSP } from "@/lib/context";

@@ -9,10 +9,10 @@ import httpx
 import pytest
 import respx
 
-from sie_worker import queues
-from sie_worker.db import call_fn, fetch_all, fetch_one
-from sie_worker.handlers import inbound, media, notifications, outbound
-from sie_worker.runner import PermanentError, RetryLater, drain, process_one
+from centralops_worker import queues
+from centralops_worker.db import call_fn, fetch_all, fetch_one
+from centralops_worker.handlers import inbound, media, notifications, outbound
+from centralops_worker.runner import PermanentError, RetryLater, drain, process_one
 
 from .conftest import ORG, ingest, unique_phone
 

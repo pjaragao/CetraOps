@@ -20,25 +20,25 @@ insert into ids select 'owner', id from core.roles where key = 'owner' and org_i
 -- ---------- Quem pode ----------
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');   -- vendedora
 select throws_ok($$ select core.admin_users() $$, '42501', null, 'vendedora não vê usuários');
-select throws_ok($$ select core.create_user('{"email":"x@sie.test","display_name":"X","password":"abcd1234"}') $$, '42501', null, 'vendedora não cria usuário');
+select throws_ok($$ select core.create_user('{"email":"x@centralops.test","display_name":"X","password":"abcd1234"}') $$, '42501', null, 'vendedora não cria usuário');
 
 -- ---------- Criar usuário ----------
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');   -- sócio
 select ok(jsonb_array_length(core.admin_users()) >= 2, 'sócio vê a lista de usuários');
-select throws_ok($$ select core.create_user(jsonb_build_object('email', 'socia@sie.test', 'display_name', 'Sócia Teste', 'password', 'curta', 'roles', jsonb_build_array((select v from ids where k = 'owner')), 'all_stores', true)) $$,
+select throws_ok($$ select core.create_user(jsonb_build_object('email', 'socia@centralops.test', 'display_name', 'Sócia Teste', 'password', 'curta', 'roles', jsonb_build_array((select v from ids where k = 'owner')), 'all_stores', true)) $$,
   'P0420', null, 'senha provisória fraca é recusada');
-select throws_ok($$ select core.create_user(jsonb_build_object('email', 'socia@sie.test', 'display_name', 'Sócia Teste', 'password', 'provisoria123', 'roles', '[]'::jsonb, 'all_stores', true)) $$,
+select throws_ok($$ select core.create_user(jsonb_build_object('email', 'socia@centralops.test', 'display_name', 'Sócia Teste', 'password', 'provisoria123', 'roles', '[]'::jsonb, 'all_stores', true)) $$,
   'P0420', null, 'precisa de ao menos um perfil');
-select lives_ok($$ insert into ids select 'socia', core.create_user(jsonb_build_object('email', 'Socia@SIE.test', 'display_name', 'Sócia Teste', 'password', 'provisoria123', 'roles', jsonb_build_array((select v from ids where k = 'owner')), 'all_stores', true)) $$,
+select lives_ok($$ insert into ids select 'socia', core.create_user(jsonb_build_object('email', 'Socia@CENTRALOPS.test', 'display_name', 'Sócia Teste', 'password', 'provisoria123', 'roles', jsonb_build_array((select v from ids where k = 'owner')), 'all_stores', true)) $$,
   'cria a sócia com senha provisória');
 reset role;
-select is((select email from auth.users u join core.members m on m.user_id = u.id where m.id = (select v from ids where k = 'socia')), 'socia@sie.test', 'conta de login criada com o e-mail em minúsculas');
+select is((select email from auth.users u join core.members m on m.user_id = u.id where m.id = (select v from ids where k = 'socia')), 'socia@centralops.test', 'conta de login criada com o e-mail em minúsculas');
 select ok((select encrypted_password = extensions.crypt('provisoria123', encrypted_password) and email_confirmed_at is not null from auth.users u join core.members m on m.user_id = u.id where m.id = (select v from ids where k = 'socia')), 'senha guardada com hash e e-mail confirmado');
 select ok(exists (select 1 from auth.identities i join core.members m on m.user_id = i.user_id where m.id = (select v from ids where k = 'socia') and i.provider = 'email'), 'identidade de e-mail criada (login por senha)');
 select is((select must_change_password from core.members where id = (select v from ids where k = 'socia')), true, 'troca de senha exigida no 1º acesso');
 select ok(exists (select 1 from core.member_store_access where member_id = (select v from ids where k = 'socia') and all_stores), 'acesso a todas as lojas');
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
-select throws_ok($$ select core.create_user(jsonb_build_object('email', 'socia@sie.test', 'display_name', 'Outra', 'password', 'provisoria123', 'roles', jsonb_build_array((select v from ids where k = 'owner')), 'all_stores', true)) $$,
+select throws_ok($$ select core.create_user(jsonb_build_object('email', 'socia@centralops.test', 'display_name', 'Outra', 'password', 'provisoria123', 'roles', jsonb_build_array((select v from ids where k = 'owner')), 'all_stores', true)) $$,
   'P0421', null, 'e-mail repetido é recusado');
 
 -- ---------- Perfis ----------

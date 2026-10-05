@@ -2,8 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * E2E contra o Supabase local (seed de desenvolvimento) e o app em http://localhost:3000.
- * Local: `supabase start`, `pnpm --filter @sie/web dev` (ou deixe o Playwright subir) e `pnpm --filter @sie/web e2e`.
- * CI: o job "E2E" sobe o Supabase, constrói o app e roda `pnpm --filter @sie/web e2e`.
+ * Local: `supabase start`, `pnpm --filter @centralops/web dev` (ou deixe o Playwright subir) e `pnpm --filter @centralops/web e2e`.
+ * CI: o job "E2E" sobe o Supabase, constrói o app e roda `pnpm --filter @centralops/web e2e`.
  */
 export default defineConfig({
   testDir: "./e2e",

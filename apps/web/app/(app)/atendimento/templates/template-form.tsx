@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { renderTemplate, templatePlaceholders, validateTemplateDraft } from "@sie/domain";
+import { renderTemplate, templatePlaceholders, validateTemplateDraft } from "@centralops/domain";
 import { useKeptForm } from "@/components/use-kept-form";
 import { Button, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";

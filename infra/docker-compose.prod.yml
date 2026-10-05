@@ -1,4 +1,4 @@
-# SIÉ JOY OS — stack de produção na VPS (Coolify + Traefik). O banco NÃO roda aqui: é o Supabase Cloud (sa-east-1).
+# CentralOps — stack de produção na VPS (Coolify + Traefik). O banco NÃO roda aqui: é o Supabase Cloud (sa-east-1).
 #
 # Só o `web` é público (Traefik, TLS automático). `worker`, `mcp` e `hermes` ficam na rede interna, sem porta publicada:
 #   web ──(Supabase, JWT do usuário + RLS)──▶ Supabase
@@ -9,7 +9,7 @@
 # Segredos: variáveis criptografadas do Coolify (modelo em infra/.env.example). Nada de .env versionado.
 # Subir à mão (fora do Coolify):  docker compose --env-file .env -f infra/docker-compose.prod.yml up -d
 
-name: sie-joy-os
+name: centralops
 
 x-hardening: &hardening
   restart: unless-stopped
@@ -22,29 +22,29 @@ x-hardening: &hardening
 
 services:
   # Roda a cada deploy ANTES de web e worker: confere o banco e aplica as migrations que faltarem (e o administrador inicial).
-  # Se falhar, web e worker não sobem a versão nova sobre um banco desatualizado. Ver apps/worker/sie_worker/migrate.py.
+  # Se falhar, web e worker não sobem a versão nova sobre um banco desatualizado. Ver apps/worker/centralops_worker/migrate.py.
   migrate:
     <<: *hardening
-    image: ghcr.io/${SIE_IMAGE_OWNER:?}/sie-worker:${SIE_TAG:-prod}
-    command: ["sie-migrate"]
+    image: ghcr.io/${CENTRALOPS_IMAGE_OWNER:?}/centralops-worker:${CENTRALOPS_TAG:-prod}
+    command: ["centralops-migrate"]
     restart: "no"
     read_only: true
     tmpfs: ["/tmp"]
     environment:
-      SIE_DATABASE_URL: ${SIE_DATABASE_URL:?conexão de serviço do Supabase (como usuário postgres)}
-      SIE_LOG_LEVEL: ${SIE_LOG_LEVEL:-INFO}
-    networks: [sie]
+      CENTRALOPS_DATABASE_URL: ${CENTRALOPS_DATABASE_URL:?conexão de serviço do Supabase (como usuário postgres)}
+      CENTRALOPS_LOG_LEVEL: ${CENTRALOPS_LOG_LEVEL:-INFO}
+    networks: [centralops]
 
   web:
     <<: *hardening
     depends_on:
       migrate: { condition: service_completed_successfully }
-    image: ghcr.io/${SIE_IMAGE_OWNER:?}/sie-web:${SIE_TAG:-prod}
+    image: ghcr.io/${CENTRALOPS_IMAGE_OWNER:?}/centralops-web:${CENTRALOPS_TAG:-prod}
     read_only: true
     tmpfs: ["/tmp", "/app/apps/web/.next/cache"]
     environment:
       NODE_ENV: production
-    networks: [edge, sie]
+    networks: [edge, centralops]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -54,54 +54,54 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=${EDGE_NETWORK:-coolify}
-      - traefik.http.routers.sie-web.rule=Host(`${SIE_DOMAIN:?}`)
-      - traefik.http.routers.sie-web.entrypoints=websecure
-      - traefik.http.routers.sie-web.tls=true
-      - traefik.http.routers.sie-web.tls.certresolver=letsencrypt
-      - traefik.http.services.sie-web.loadbalancer.server.port=3000
-      - traefik.http.routers.sie-web-http.rule=Host(`${SIE_DOMAIN}`)
-      - traefik.http.routers.sie-web-http.entrypoints=web
-      - traefik.http.routers.sie-web-http.middlewares=sie-https
-      - traefik.http.middlewares.sie-https.redirectscheme.scheme=https
+      - traefik.http.routers.centralops-web.rule=Host(`${CENTRALOPS_DOMAIN:?}`)
+      - traefik.http.routers.centralops-web.entrypoints=websecure
+      - traefik.http.routers.centralops-web.tls=true
+      - traefik.http.routers.centralops-web.tls.certresolver=letsencrypt
+      - traefik.http.services.centralops-web.loadbalancer.server.port=3000
+      - traefik.http.routers.centralops-web-http.rule=Host(`${CENTRALOPS_DOMAIN}`)
+      - traefik.http.routers.centralops-web-http.entrypoints=web
+      - traefik.http.routers.centralops-web-http.middlewares=centralops-https
+      - traefik.http.middlewares.centralops-https.redirectscheme.scheme=https
     deploy:
       resources:
         limits: { cpus: "1.5", memory: 1G }
 
   worker:
     <<: *hardening
-    image: ghcr.io/${SIE_IMAGE_OWNER:?}/sie-worker:${SIE_TAG:-prod}
+    image: ghcr.io/${CENTRALOPS_IMAGE_OWNER:?}/centralops-worker:${CENTRALOPS_TAG:-prod}
     depends_on:
       migrate: { condition: service_completed_successfully }
     read_only: true
     tmpfs: ["/tmp"]
     environment:
-      SIE_DATABASE_URL: ${SIE_DATABASE_URL:?conexão de serviço do Supabase (pooler, modo sessão)}
-      SIE_SUPABASE_URL: ${SIE_SUPABASE_URL:?}
-      SIE_SUPABASE_SERVICE_KEY: ${SIE_SUPABASE_SERVICE_KEY:?}
-      SIE_AGENT_CTX_SECRET: ${SIE_AGENT_CTX_SECRET:?}
-      SIE_HERMES_BASE: ${SIE_HERMES_BASE:-http://hermes:8642/v1}
-      SIE_HERMES_KEY: ${SIE_HERMES_KEY:-}
-      SIE_OPENROUTER_KEY: ${SIE_OPENROUTER_KEY:-}
-      SIE_FOCUS_API_BASE: ${SIE_FOCUS_API_BASE:-https://api.focusnfe.com.br}
-      SIE_FOCUS_TOKEN: ${SIE_FOCUS_TOKEN:-}
-      SIE_GROQ_KEY: ${SIE_GROQ_KEY:-}
-      SIE_LOG_LEVEL: ${SIE_LOG_LEVEL:-INFO}
-    networks: [sie]
+      CENTRALOPS_DATABASE_URL: ${CENTRALOPS_DATABASE_URL:?conexão de serviço do Supabase (pooler, modo sessão)}
+      CENTRALOPS_SUPABASE_URL: ${CENTRALOPS_SUPABASE_URL:?}
+      CENTRALOPS_SUPABASE_SERVICE_KEY: ${CENTRALOPS_SUPABASE_SERVICE_KEY:?}
+      CENTRALOPS_AGENT_CTX_SECRET: ${CENTRALOPS_AGENT_CTX_SECRET:?}
+      CENTRALOPS_HERMES_BASE: ${CENTRALOPS_HERMES_BASE:-http://hermes:8642/v1}
+      CENTRALOPS_HERMES_KEY: ${CENTRALOPS_HERMES_KEY:-}
+      CENTRALOPS_OPENROUTER_KEY: ${CENTRALOPS_OPENROUTER_KEY:-}
+      CENTRALOPS_FOCUS_API_BASE: ${CENTRALOPS_FOCUS_API_BASE:-https://api.focusnfe.com.br}
+      CENTRALOPS_FOCUS_TOKEN: ${CENTRALOPS_FOCUS_TOKEN:-}
+      CENTRALOPS_GROQ_KEY: ${CENTRALOPS_GROQ_KEY:-}
+      CENTRALOPS_LOG_LEVEL: ${CENTRALOPS_LOG_LEVEL:-INFO}
+    networks: [centralops]
     deploy:
       resources:
         limits: { cpus: "1.5", memory: 1G }
 
   mcp:
     <<: *hardening
-    image: ghcr.io/${SIE_IMAGE_OWNER:?}/sie-mcp:${SIE_TAG:-prod}
+    image: ghcr.io/${CENTRALOPS_IMAGE_OWNER:?}/centralops-mcp:${CENTRALOPS_TAG:-prod}
     read_only: true
     tmpfs: ["/tmp"]
     environment:
-      SIE_AGENT_DATABASE_URL: ${SIE_AGENT_DATABASE_URL:?conexão como a role agent_rpc}
-      SIE_AGENT_CTX_SECRET: ${SIE_AGENT_CTX_SECRET:?}
-      SIE_MCP_KEY: ${SIE_MCP_KEY:?}
-      SIE_MCP_ALLOWED_HOSTS: '["mcp:8000"]'
-    networks: [sie]            # sem labels do Traefik e sem portas: inacessível de fora
+      CENTRALOPS_AGENT_DATABASE_URL: ${CENTRALOPS_AGENT_DATABASE_URL:?conexão como a role agent_rpc}
+      CENTRALOPS_AGENT_CTX_SECRET: ${CENTRALOPS_AGENT_CTX_SECRET:?}
+      CENTRALOPS_MCP_KEY: ${CENTRALOPS_MCP_KEY:?}
+      CENTRALOPS_MCP_ALLOWED_HOSTS: '["mcp:8000"]'
+    networks: [centralops]            # sem labels do Traefik e sem portas: inacessível de fora
     deploy:
       resources:
         limits: { cpus: "0.5", memory: 384M }
@@ -116,13 +116,13 @@ services:
     environment:
       API_SERVER_ENABLED: "true"
       API_SERVER_HOST: 0.0.0.0
-      API_SERVER_KEY: ${SIE_HERMES_KEY:?}
-      OPENROUTER_API_KEY: ${SIE_OPENROUTER_KEY:?}
-      SIE_MCP_KEY: ${SIE_MCP_KEY:?}
+      API_SERVER_KEY: ${CENTRALOPS_HERMES_KEY:?}
+      OPENROUTER_API_KEY: ${CENTRALOPS_OPENROUTER_KEY:?}
+      CENTRALOPS_MCP_KEY: ${CENTRALOPS_MCP_KEY:?}
     volumes:
       - hermes-data:/opt/data
       - ./hermes/profiles/concierge/config.yaml:/opt/data/profiles/concierge/config.yaml:ro
-    networks: [sie]            # rede interna: só o worker fala com ele
+    networks: [centralops]            # rede interna: só o worker fala com ele
     deploy:
       resources:
         limits: { cpus: "2.0", memory: 3G }
@@ -136,5 +136,5 @@ networks:
     external: true
     name: ${EDGE_NETWORK:-coolify}
   # rede privada da stack
-  sie:
+  centralops:
     driver: bridge

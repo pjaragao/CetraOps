@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EDITABLE_ROLES, PARTY_ROLE_LABEL } from "@sie/domain";
+import { EDITABLE_ROLES, PARTY_ROLE_LABEL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";

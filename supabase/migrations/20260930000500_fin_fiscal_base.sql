@@ -1,6 +1,6 @@
 -- =====================================================================
 -- fin (base): plano de contas, linhas do DRE, contas bancárias, títulos a pagar/receber com parcelas,
---             tabela de taxas da adquirente, contratos (patrocínio JOY)
+--             tabela de taxas da adquirente, contratos (patrocínio do parceiro anfitrião)
 -- fiscal (base): faixas do Simples Nacional
 -- Rateio, conciliação, extratos e orçamento entram no sprint A3/A4.
 -- =====================================================================
@@ -156,7 +156,7 @@ end $$;
 create trigger trg_refresh_title_status after insert or update of status on fin.title_installments
   for each row execute function private.refresh_title_status();
 
--- Contratos com parceiros (patrocínio + licença de espaço JOY, consignação, pop-up, serviços)
+-- Contratos com parceiros (patrocínio + licença de espaço do parceiro anfitrião, consignação, pop-up, serviços)
 create table fin.contracts (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references core.orgs(id),
@@ -167,9 +167,9 @@ create table fin.contracts (
   title text not null,
   start_date date not null,
   months int not null check (months > 0),
-  in_kind_months int not null default 0,                         -- meses pagos em peças (JOY: 3)
+  in_kind_months int not null default 0,                         -- meses pagos em peças (ex.: 3)
   in_kind_description text,
-  installment_amount numeric(14,2),                              -- JOY: 6.000
+  installment_amount numeric(14,2),                              -- ex.: 6.000
   due_day smallint check (due_day between 1 and 31),
   late_fee_pct numeric(5,2),
   monthly_interest_pct numeric(5,2),

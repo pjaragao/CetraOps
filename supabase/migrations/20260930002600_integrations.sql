@@ -188,4 +188,4 @@ end $$;
 insert into private.internal_functions (fqname) values ('core.record_integration_health'), ('private.enqueue_health_checks') on conflict do nothing;
 select private.lock_functions();
 
-select cron.schedule('sie-integration-health', '*/30 * * * *', $$ select private.enqueue_health_checks() $$);
+select cron.schedule('centralops-integration-health', '*/30 * * * *', $$ select private.enqueue_health_checks() $$);

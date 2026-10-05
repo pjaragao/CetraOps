@@ -1,10 +1,10 @@
 -- =====================================================================
 -- Seed de CONFIGURAÇÃO (idempotente). Roda em qualquer ambiente.
--- Org fixa da SIÉ JOY; CNPJ/lojas reais são cadastrados pela tela de Configurações.
+-- Org fixa da instalação; CNPJ/lojas reais são cadastrados pela tela de Configurações.
 -- =====================================================================
 
 insert into core.orgs (id, name, slug)
-values ('00000000-0000-4000-8000-000000000001', 'SIÉ JOY', 'sie-joy')
+values ('00000000-0000-4000-8000-000000000001', 'Minha empresa', 'principal')
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------
@@ -47,7 +47,7 @@ insert into fin.dre_lines (org_id, code, name, position, sign, is_subtotal, form
 on conflict (org_id, code) do nothing;
 
 -- ---------------------------------------------------------------------
--- Plano de contas (reclassificado: JOY = patrocínio + licença de espaço; MDR ≠ antecipação)
+-- Plano de contas (reclassificado: licença de espaço do parceiro anfitrião = patrocínio; MDR ≠ antecipação)
 -- colunas: code, name, kind, nature, group, dre_line, accountant_code (código legado quando existe)
 -- ---------------------------------------------------------------------
 do $$
@@ -79,7 +79,7 @@ begin
     ('1.2.1.09', '(−) Depreciação acumulada',                      'ANALYTIC',  'CREDIT', 'ASSET',     null,  null),
     ('2',        'PASSIVO',                                        'SYNTHETIC', 'CREDIT', 'LIABILITY', null,  null),
     ('2.1.1.01', 'Fornecedores de mercadorias (30/60/90)',         'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.1.01'),
-    ('2.1.2.01', 'Patrocínio a pagar — JOY',                       'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.2.01'),
+    ('2.1.2.01', 'Patrocínio a pagar — parceiro anfitrião',                       'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.2.01'),
     ('2.1.3.01', 'Salários a pagar',                               'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.3.01'),
     ('2.1.3.02', 'Comissões a pagar',                              'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.3.02'),
     ('2.1.3.03', 'FGTS a recolher',                                'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.3.03'),
@@ -88,7 +88,7 @@ begin
     ('2.1.3.06', 'Provisão de férias + 1/3',                       'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.3.06'),
     ('2.1.4.01', 'DAS — Simples Nacional a recolher',              'ANALYTIC',  'CREDIT', 'LIABILITY', null,  '2.1.4.01'),
     ('2.1.5.01', 'Vale-troca a honrar (clientes)',                 'ANALYTIC',  'CREDIT', 'LIABILITY', null,  null),
-    ('2.1.5.02', 'Crédito de afiliados (JOY Trainers)',            'ANALYTIC',  'CREDIT', 'LIABILITY', null,  null),
+    ('2.1.5.02', 'Crédito de afiliados (trainers parceiros)',            'ANALYTIC',  'CREDIT', 'LIABILITY', null,  null),
     ('3',        'PATRIMÔNIO LÍQUIDO',                             'SYNTHETIC', 'CREDIT', 'EQUITY',    null,  '2.2.0.00'),
     ('3.1.01',   'Capital social',                                 'ANALYTIC',  'CREDIT', 'EQUITY',    null,  '2.2.1.01'),
     ('3.1.02',   'Lucros acumulados',                              'ANALYTIC',  'CREDIT', 'EQUITY',    null,  '2.2.2.01'),
@@ -112,9 +112,9 @@ begin
     ('7.1.01',   'Comissões de vendedoras',                        'ANALYTIC',  'DEBIT',  'EXPENSE',   'DV',  '4.1.1.01'),
     ('7.1.02',   'MDR — taxa de cartão da adquirente',             'ANALYTIC',  'DEBIT',  'EXPENSE',   'DV',  '4.1.2.01'),
     ('7.1.03',   'Fretes e entregas',                              'ANALYTIC',  'DEBIT',  'EXPENSE',   'DV',  '4.1.3.01'),
-    ('7.1.04',   'Comissões de afiliados (JOY Trainers)',          'ANALYTIC',  'DEBIT',  'EXPENSE',   'DV',  '4.1.4.01'),
+    ('7.1.04',   'Comissões de afiliados (trainers parceiros)',          'ANALYTIC',  'DEBIT',  'EXPENSE',   'DV',  '4.1.4.01'),
     ('7.2',      'Despesas fixas',                                 'SYNTHETIC', 'DEBIT',  'EXPENSE',   'DF',  '4.3.0.00'),
-    ('7.2.01',   'Patrocínio & licença de espaço — JOY',           'ANALYTIC',  'DEBIT',  'EXPENSE',   'DF',  '4.3.1.01'),
+    ('7.2.01',   'Patrocínio & licença de espaço — parceiro anfitrião',           'ANALYTIC',  'DEBIT',  'EXPENSE',   'DF',  '4.3.1.01'),
     ('7.2.02',   'Patrocínio pago em peças (meses em espécie)',    'ANALYTIC',  'DEBIT',  'EXPENSE',   'DF',  null),
     ('7.2.03',   'Salários e encargos',                            'ANALYTIC',  'DEBIT',  'EXPENSE',   'DF',  null),
     ('7.2.04',   'Pró-labore dos sócios',                          'ANALYTIC',  'DEBIT',  'EXPENSE',   'DF',  '4.3.3.01'),

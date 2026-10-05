@@ -108,12 +108,12 @@ select private.lock_functions();
 -- ---------------------------------------------------------------------
 -- Agenda (nome fixo = reaplicar a migration não duplica)
 -- ---------------------------------------------------------------------
-select cron.schedule('sie-sweep-sla',              '* * * * *',   $$ select omni.sweep_sla() $$);
-select cron.schedule('sie-sweep-windows',          '*/5 * * * *', $$ select omni.sweep_windows() $$);
-select cron.schedule('sie-expire-reservations',    '*/5 * * * *', $$ select inv.expire_reservations() $$);
-select cron.schedule('sie-expire-locker-drops',    '*/5 * * * *', $$ select sales.expire_locker_drops() $$);
-select cron.schedule('sie-expire-pending-orders',  '*/5 * * * *', $$ select sales.expire_pending_orders() $$);
-select cron.schedule('sie-sweep-ai-runs',          '*/10 * * * *', $$ select private.sweep_ai_runs() $$);
-select cron.schedule('sie-check-queues',           '*/15 * * * *', $$ select private.check_queues() $$);
-select cron.schedule('sie-hr-roll-vacations',      '0 9 * * *',   $$ select hr.roll_vacation_status() $$);      -- 06:00 BRT
-select cron.schedule('sie-purge-old-data',         '30 6 * * 0',  $$ select private.purge_old_data() $$);      -- domingo 03:30 BRT
+select cron.schedule('centralops-sweep-sla',              '* * * * *',   $$ select omni.sweep_sla() $$);
+select cron.schedule('centralops-sweep-windows',          '*/5 * * * *', $$ select omni.sweep_windows() $$);
+select cron.schedule('centralops-expire-reservations',    '*/5 * * * *', $$ select inv.expire_reservations() $$);
+select cron.schedule('centralops-expire-locker-drops',    '*/5 * * * *', $$ select sales.expire_locker_drops() $$);
+select cron.schedule('centralops-expire-pending-orders',  '*/5 * * * *', $$ select sales.expire_pending_orders() $$);
+select cron.schedule('centralops-sweep-ai-runs',          '*/10 * * * *', $$ select private.sweep_ai_runs() $$);
+select cron.schedule('centralops-check-queues',           '*/15 * * * *', $$ select private.check_queues() $$);
+select cron.schedule('centralops-hr-roll-vacations',      '0 9 * * *',   $$ select hr.roll_vacation_status() $$);      -- 06:00 BRT
+select cron.schedule('centralops-purge-old-data',         '30 6 * * 0',  $$ select private.purge_old_data() $$);      -- domingo 03:30 BRT

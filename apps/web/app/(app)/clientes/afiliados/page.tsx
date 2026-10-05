@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, todayIsoSP, type SP } from "@/lib/context";
@@ -43,9 +43,9 @@ export default async function AfiliadosPage({ searchParams }: { searchParams: SP
 
   return (
     <>
-      <PageHeader title="Afiliados (JOY Trainers)" description="Cada trainer tem um cupom com desconto para a aluna e ganha comissão sobre as vendas feitas com ele, paga em vale-troca ou por Pix." />
+      <PageHeader title="Afiliados (trainers parceiros)" description="Cada trainer tem um cupom com desconto para a aluna e ganha comissão sobre as vendas feitas com ele, paga em vale-troca ou por Pix." />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
-      <p className="mb-3 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">Atenção: pelo contrato com a JOY (cláusula 6.5.2) a SIÉ não pode dirigir funcionários da JOY. Confirme com o jurídico antes de cadastrar trainers que trabalham na JOY.</p>
+      <p className="mb-3 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">Atenção: confira no contrato com a academia parceira se a loja pode dirigir funcionários dela. Confirme com o jurídico antes de cadastrar trainers que trabalham na academia.</p>
 
       {canFin && (
         <div className="mb-4 grid gap-3 sm:grid-cols-3">

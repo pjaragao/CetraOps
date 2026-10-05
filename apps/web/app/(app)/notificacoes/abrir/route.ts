@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { describeNotification } from "@sie/domain";
+import { describeNotification } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 
 /** Abre a notificação: marca como lida e leva para a tela de quem resolve (conversa, nota, integração…). */

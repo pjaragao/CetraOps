@@ -14,7 +14,7 @@ docs
 primeira_unidade_joy
 plano_de_expansao
 scripts
-# do supabase/ só entram as migrations e os seeds de configuração (o sie-migrate roda a cada deploy); seeds de dev (9x) ficam fora
+# do supabase/ só entram as migrations e os seeds de configuração (o centralops-migrate roda a cada deploy); seeds de dev (9x) ficam fora
 supabase/*
 !supabase/migrations
 !supabase/seed

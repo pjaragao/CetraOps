@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { Badge, Button, inputClass } from "@/components/ui";
 import { createProductFromItem, setReceiptItem } from "../../compras/actions";
 import { MATCH_LABEL } from "../../compras/labels";

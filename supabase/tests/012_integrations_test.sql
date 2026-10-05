@@ -61,9 +61,9 @@ select throws_ok($$ select core.request_integration_check((select v from ids whe
 
 -- ---------- Resultado da verificação (worker) ----------
 reset role;
-select core.record_integration_health((select v from ids where k = 'wa')::uuid, true, '{"verified_name":"SIÉ Wear"}');
+select core.record_integration_health((select v from ids where k = 'wa')::uuid, true, '{"verified_name":"Loja Demo"}');
 select is((select status from core.integration_connections where id = (select v from ids where k = 'wa')::uuid), 'ACTIVE', 'verificação ok ativa a conexão');
-select is((select config -> 'health' -> 'detail' ->> 'verified_name' from core.integration_connections where id = (select v from ids where k = 'wa')::uuid), 'SIÉ Wear', 'detalhes da verificação guardados');
+select is((select config -> 'health' -> 'detail' ->> 'verified_name' from core.integration_connections where id = (select v from ids where k = 'wa')::uuid), 'Loja Demo', 'detalhes da verificação guardados');
 select core.record_integration_health((select v from ids where k = 'wa')::uuid, false, '{}', 'token expirado');
 select is((select status || '/' || last_error from core.integration_connections where id = (select v from ids where k = 'wa')::uuid), 'ERROR/token expirado', 'falha marca erro e guarda o motivo');
 select ok((select count(*)::int from core.notifications where kind = 'INTEGRATION_ERROR' and payload ->> 'connection_id' = (select v from ids where k = 'wa')) >= 1, 'administradores são avisados quando a integração passa a dar erro');
@@ -91,7 +91,7 @@ reset role;
 select is((select status from core.integration_connections where id = (select v from ids where k = 'nosec')::uuid), 'DISABLED', 'integração desativada');
 select ok(private.enqueue_health_checks() >= 1, 'verificação periódica enfileira as conexões com credencial');   -- a da Focus NFe criada acima
 select ok(not has_function_privilege('authenticated', 'core.record_integration_health(uuid,boolean,jsonb,text)', 'execute') and not has_function_privilege('authenticated', 'private.enqueue_health_checks()', 'execute'), 'resultado da verificação só pelo servidor');
-select is((select count(*)::int from cron.job where jobname = 'sie-integration-health' and active), 1, 'verificação a cada 30 minutos agendada');
+select is((select count(*)::int from cron.job where jobname = 'centralops-integration-health' and active), 1, 'verificação a cada 30 minutos agendada');
 
 select * from finish();
 rollback;

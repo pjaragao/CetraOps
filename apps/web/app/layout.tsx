@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "SIÉ JOY OS", template: "%s · SIÉ JOY OS" },
-  description: "ERP e atendimento omnichannel da SIÉ JOY",
+  title: { default: "CentralOps", template: "%s · CentralOps" },
+  description: "ERP de varejo e atendimento omnichannel com IA",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };

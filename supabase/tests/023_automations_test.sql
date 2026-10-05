@@ -140,7 +140,7 @@ select is((select suggested_message from crm.tasks where title = 'Parabenizar An
 select is((select count(*)::int from crm.tasks where title = 'Reativar Parada' and type = 'REACTIVATION'), 1, 'cliente parada há 70 dias (só a que está na faixa de 60 a 90)');
 select is((select count(*)::int from crm.tasks where title like 'Reativar Fornecedora%'), 0, 'fornecedora nunca entra');
 select is(private.run_scheduled_automations(), 0, 'rodar de novo no mesmo dia não duplica (intervalo por pessoa)');
-select is((select count(*)::int from cron.job where jobname = 'sie-automations-daily'), 1, 'agendada todo dia às 08:00');
+select is((select count(*)::int from cron.job where jobname = 'centralops-automations-daily'), 1, 'agendada todo dia às 08:00');
 
 -- ---------- Desligar, excluir e privilégios ----------
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');

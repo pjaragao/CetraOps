@@ -1,4 +1,4 @@
-import type { CsvColumn } from "@sie/domain";
+import type { CsvColumn } from "@centralops/domain";
 import type { createClient } from "@/lib/supabase/server";
 
 type Db = Awaited<ReturnType<typeof createClient>>;

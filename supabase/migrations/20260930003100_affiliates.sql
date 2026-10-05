@@ -1,9 +1,9 @@
 -- =====================================================================
--- Afiliados (JOY Trainers): cada trainer tem um cupom (desconto para a aluna) e ganha comissão sobre as vendas feitas com ele.
+-- Afiliados (trainers parceiros): cada trainer tem um cupom (desconto para a aluna) e ganha comissão sobre as vendas feitas com ele.
 -- O extrato do mês é calculado no banco a partir dos pedidos com o cupom (menos as devoluções do mês); ao aprovar, a comissão vira
 -- vale-troca (passivo, com lançamento contábil) ou conta a pagar por Pix (título aprovado), sempre no centro de custo da venda.
 -- Códigos de erro: P0160 dado inválido · P0161 situação não permite · P0162 não encontrado.
--- ⚠ Contrato JOY §6.5.2: a SIÉ não pode dirigir funcionários da JOY — validar com o jurídico antes de cadastrar trainers da JOY.
+-- ⚠ Confira o contrato com a academia parceira: a loja pode não poder dirigir funcionários dela — validar com o jurídico antes de cadastrar trainers da academia.
 -- =====================================================================
 
 select private.init_schema('aff');

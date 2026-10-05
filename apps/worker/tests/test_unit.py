@@ -6,15 +6,15 @@ import jwt
 import pytest
 import respx
 
-from sie_agent_contract import CONCIERGE_CAPS, COPILOT_CAPS, sign_ctx, verify_ctx
-from sie_worker.adapters.errors import PermanentError, TransientError
-from sie_worker.adapters.focus import FocusClient
-from sie_worker.adapters.meta import MetaClient
-from sie_worker.adapters.telegram import TelegramClient
-from sie_worker.ai import guardrails, rules
-from sie_worker.ai.agent import AgentInput, AgentOutput, FallbackAgent, HermesAgent, OpenRouterAgent
-from sie_worker.normalizer import normalize
-from sie_worker.runner import backoff_s
+from centralops_agent_contract import CONCIERGE_CAPS, COPILOT_CAPS, sign_ctx, verify_ctx
+from centralops_worker.adapters.errors import PermanentError, TransientError
+from centralops_worker.adapters.focus import FocusClient
+from centralops_worker.adapters.meta import MetaClient
+from centralops_worker.adapters.telegram import TelegramClient
+from centralops_worker.ai import guardrails, rules
+from centralops_worker.ai.agent import AgentInput, AgentOutput, FallbackAgent, HermesAgent, OpenRouterAgent
+from centralops_worker.normalizer import normalize
+from centralops_worker.runner import backoff_s
 
 WA = {"object": "whatsapp_business_account", "entry": [{"id": "WABA", "changes": [{"field": "messages", "value": {
     "messaging_product": "whatsapp", "metadata": {"phone_number_id": "PNID1"},
@@ -231,8 +231,8 @@ async def test_fallback_agent_half_open_failure_reopens_immediately() -> None:
 
 
 def test_build_agent_picks_the_right_implementation() -> None:
-    from sie_worker.config import Settings
-    from sie_worker.main import build_agent
+    from centralops_worker.config import Settings
+    from centralops_worker.main import build_agent
 
     http, pool = httpx.AsyncClient(), object()
     assert build_agent(Settings(hermes_key="", openrouter_key=""), pool, http) is None  # type: ignore[arg-type]
@@ -258,7 +258,7 @@ def test_whatsapp_template_webhooks_become_template_events() -> None:
 
 # ---------- persona: rótulos e exemplos de estilo ----------
 def test_persona_fewshot_mmr_prefers_relevant_but_diverse_examples() -> None:
-    from sie_worker.persona.fewshot import cosine, format_examples, mmr
+    from centralops_worker.persona.fewshot import cosine, format_examples, mmr
 
     def cand(dist: float, vec: list[float], weight: float = 1.0) -> dict:
         return {"distance": dist, "embedding": vec, "weight": weight, "context": [{"role": "customer", "text": "tem M?"}], "reply": ["Tem sim!", "Qual cor?"]}
@@ -272,7 +272,7 @@ def test_persona_fewshot_mmr_prefers_relevant_but_diverse_examples() -> None:
 
 
 def test_persona_label_helpers_keep_only_known_values() -> None:
-    from sie_worker.persona import labels
+    from centralops_worker.persona import labels
 
     turns = [{"role": "customer", "text": "oi"}, {"role": "owner", "text": "oi!"}, {"role": "owner", "text": "tudo bem?"}, {"role": "customer", "text": "sim"}, {"role": "owner", "text": "ótimo"}]
     assert labels.owner_positions(turns) == [1, 4]               # só respostas a um turno da cliente
@@ -282,7 +282,7 @@ def test_persona_label_helpers_keep_only_known_values() -> None:
 
 
 def test_team_instruction_reaches_the_volatile_prompt_only_when_present() -> None:
-    from sie_worker.ai import prompts
+    from centralops_worker.ai import prompts
 
     base = dict(ctx_token="t", mode="AI_COPILOT", channel="WHATSAPP", window_mode="FREE_FORM", party_first_name="Ana")
     assert "Instrução da equipe" not in prompts.system_volatile(**base)
@@ -290,7 +290,7 @@ def test_team_instruction_reaches_the_volatile_prompt_only_when_present() -> Non
 
 
 def test_amounts_written_in_knowledge_text_count_as_grounded() -> None:
-    from sie_worker.ai import guardrails
+    from centralops_worker.ai import guardrails
 
     kb = guardrails.ToolResult("search_knowledge", True, {"results": [{"title": "Frete", "text": "Frete grátis para compras acima de R$ 500,00 na cidade."}]})
     assert guardrails.validate(["O frete é grátis acima de R$ 500,00."], [kb]) == []

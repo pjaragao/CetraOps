@@ -47,7 +47,7 @@ export default async function CheckinPage({ searchParams }: { searchParams: SP }
             <Field label="Nome"><input name="name" required minLength={2} className={inputClass} /></Field>
             <Field label="WhatsApp"><input name="phone" inputMode="tel" placeholder="(48) 90000-0000" className={inputClass} /></Field>
             <Field label="Acompanhantes"><input name="plus_ones" type="number" min={0} max={5} defaultValue={0} className={inputClass} /></Field>
-            <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" name="accept_marketing" /> Ela aceitou receber novidades e convites da SIÉ pelo WhatsApp</label>
+            <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" name="accept_marketing" /> Ela aceitou receber novidades e convites da loja pelo WhatsApp</label>
             <Button>Cadastrar e confirmar presença</Button>
           </form>
         )}

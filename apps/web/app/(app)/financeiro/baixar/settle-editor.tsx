@@ -5,7 +5,7 @@ import { Plus, Sparkles, Trash2 } from "lucide-react";
 import {
   allocateOldestFirst, findExactCombination, formatBRL, kindsFor, lateCharges, netCash, roundCents,
   SETTLEMENT_KIND_LABEL, type Direction, type SettlementKind, type SettlementLineInput,
-} from "@sie/domain";
+} from "@centralops/domain";
 import { Badge, Button, Card, inputClass } from "@/components/ui";
 import { settleAction } from "../actions";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@sie/web",
+  "name": "@centralops/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,8 +12,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@sie/db": "workspace:*",
-    "@sie/domain": "workspace:*",
+    "@centralops/db": "workspace:*",
+    "@centralops/domain": "workspace:*",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
     "clsx": "^2.1.1",

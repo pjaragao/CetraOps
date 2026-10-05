@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { Button, Card, Empty, inputClass, PageHeader, Table } from "@/components/ui";

@@ -111,7 +111,7 @@ begin
   end loop;
   return n;
 end $$;
-select cron.schedule('sie-dfe-sync', '15 */2 * * *', $$ select private.enqueue_dfe_sync() $$);
+select cron.schedule('centralops-dfe-sync', '15 */2 * * *', $$ select private.enqueue_dfe_sync() $$);
 
 insert into private.internal_functions (fqname) values ('fiscal.dfe_upsert'), ('fiscal.dfe_set_state'), ('fiscal.dfe_mark'), ('private.enqueue_dfe_sync') on conflict do nothing;
 select private.lock_functions();

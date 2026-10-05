@@ -206,7 +206,7 @@ begin
         v_out := v_out || jsonb_build_object('type', 'CREATE_TASK', 'task_id', v_id);
       when 'HANDOFF' then
         if cv.id is not null and cv.mode not in ('WAITING_HUMAN', 'HUMAN') then
-          perform set_config('sie.mode_trigger', 'AUTOMATION', true);
+          perform set_config('centralops.mode_trigger', 'AUTOMATION', true);
           update omni.conversations set mode = 'WAITING_HUMAN', sla_due_at = now() + interval '15 minutes' where id = cv.id;
           update omni.mode_events set reason = left('Automação: ' || a.name, 200) where id = (select max(id) from omni.mode_events where conversation_id = cv.id);
           perform core.notify(a.org_id, 'HANDOFF', 'Automação chamou uma pessoa: ' || a.name, jsonb_build_object('conversation_id', cv.id), case when cv.assignee_member_id is null then 'omni.write' end, cv.assignee_member_id);
@@ -296,14 +296,14 @@ begin
   return v_n;
 end $$;
 
-select cron.schedule('sie-automations-daily', '0 11 * * *', $$ select private.run_scheduled_automations() $$);      -- 08:00 BRT
+select cron.schedule('centralops-automations-daily', '0 11 * * *', $$ select private.run_scheduled_automations() $$);      -- 08:00 BRT
 
 -- Limpeza: o histórico de execuções guarda 90 dias
 create or replace function private.purge_automation_runs() returns integer
 language sql security definer set search_path = '' as $$
   with d as (delete from omni.automation_runs where created_at < now() - interval '90 days' returning 1) select count(*)::int from d
 $$;
-select cron.schedule('sie-purge-automation-runs', '15 6 * * 0', $$ select private.purge_automation_runs() $$);
+select cron.schedule('centralops-purge-automation-runs', '15 6 * * 0', $$ select private.purge_automation_runs() $$);
 
 insert into private.internal_functions (fqname) values ('private.automation_actions'), ('omni.run_automations'), ('private.run_scheduled_automations'), ('private.purge_automation_runs') on conflict do nothing;
 select private.lock_functions();

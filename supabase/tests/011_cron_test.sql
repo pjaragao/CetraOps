@@ -17,9 +17,9 @@ create or replace function pg_temp.notified(p_kind text, p_key text) returns int
 $$;
 
 -- ---------- Agenda ----------
-select is((select count(*)::int from cron.job where active and jobname = any(array['sie-sweep-sla', 'sie-sweep-windows', 'sie-expire-reservations', 'sie-expire-locker-drops', 'sie-expire-pending-orders',
-  'sie-sweep-ai-runs', 'sie-check-queues', 'sie-hr-roll-vacations', 'sie-purge-old-data'])), 9, 'as nove rotinas de manutenção estão agendadas no pg_cron');
-select ok((select bool_and(btrim(command) like 'select %') from cron.job where jobname like 'sie-%'), 'cada rotina só chama uma função');
+select is((select count(*)::int from cron.job where active and jobname = any(array['centralops-sweep-sla', 'centralops-sweep-windows', 'centralops-expire-reservations', 'centralops-expire-locker-drops', 'centralops-expire-pending-orders',
+  'centralops-sweep-ai-runs', 'centralops-check-queues', 'centralops-hr-roll-vacations', 'centralops-purge-old-data'])), 9, 'as nove rotinas de manutenção estão agendadas no pg_cron');
+select ok((select bool_and(btrim(command) like 'select %') from cron.job where jobname like 'centralops-%'), 'cada rotina só chama uma função');
 
 -- ---------- SLA ----------
 select pg_temp.new_conv('sla', '5548930000001');

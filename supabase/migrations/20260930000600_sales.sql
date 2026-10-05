@@ -17,7 +17,7 @@ create table sales.coupons (
   code text not null,
   kind text not null check (kind in ('PERCENT', 'AMOUNT')),
   value numeric(14,2) not null check (value > 0),
-  affiliate_party_id uuid references crm.parties(id),           -- cupom de JOY Trainer
+  affiliate_party_id uuid references crm.parties(id),           -- cupom de trainer parceiro
   max_uses int,
   per_customer_limit int,
   min_order numeric(14,2),

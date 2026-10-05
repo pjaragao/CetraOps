@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatBRL, RELATION_OPTIONS, relativeLabel } from "@sie/domain";
+import { formatBRL, RELATION_OPTIONS, relativeLabel } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";

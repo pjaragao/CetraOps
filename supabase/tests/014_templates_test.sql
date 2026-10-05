@@ -40,7 +40,7 @@ select throws_ok($$ select omni.save_template('{"channel_account_id":"00000000-0
 select throws_ok($$ select omni.save_template('{"channel_account_id":"00000000-0000-4000-8000-0000000009f1","name":"ola","category":"UTILITY","body":"{{1}}, tudo bem?","examples":["Ana"]}') $$, 'P0130', null, 'não começa com variável');
 
 -- ---------- Criar ----------
-insert into ids select 'tpl', (omni.save_template('{"channel_account_id":"00000000-0000-4000-8000-0000000009f1","name":"pedido_pronto","category":"UTILITY","header":"Seu pedido","body":"Oi {{1}}! Seu pedido {{2}} está pronto para retirada.","footer":"SIÉ Wear","buttons":["Retirar hoje","Outro dia"],"examples":["Ana","VEN-2026-000123"]}')).id::text;
+insert into ids select 'tpl', (omni.save_template('{"channel_account_id":"00000000-0000-4000-8000-0000000009f1","name":"pedido_pronto","category":"UTILITY","header":"Seu pedido","body":"Oi {{1}}! Seu pedido {{2}} está pronto para retirada.","footer":"Loja Demo","buttons":["Retirar hoje","Outro dia"],"examples":["Ana","VEN-2026-000123"]}')).id::text;
 select is((select status from omni.templates where id = (select v from ids where k = 'tpl')::uuid), 'DRAFT', 'nasce como rascunho');
 select is((select jsonb_array_length(components) from omni.templates where id = (select v from ids where k = 'tpl')::uuid), 4, 'cabeçalho, corpo, rodapé e botões montados');
 select is((select components -> 1 -> 'example' -> 'body_text' from omni.templates where id = (select v from ids where k = 'tpl')::uuid), '[["Ana", "VEN-2026-000123"]]'::jsonb, 'exemplos no formato da Meta');

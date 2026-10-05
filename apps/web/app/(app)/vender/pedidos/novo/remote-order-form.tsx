@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { useKeptForm } from "@/components/use-kept-form";
 import { Button, Card, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";

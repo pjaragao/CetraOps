@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import type { Json } from "@sie/db";
+import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;

@@ -1,5 +1,5 @@
 /**
- * Arquivo de recebíveis da adquirente no layout padrão do SIÉ (uma linha por parcela a receber). Serve para qualquer adquirente que exporte
+ * Arquivo de recebíveis da adquirente no layout padrão do CentralOps (uma linha por parcela a receber). Serve para qualquer adquirente que exporte
  * relatório: basta ajustar as colunas na planilha. Cada adquirente com API ganha um adaptador próprio depois; este é o caminho comum.
  *
  * Colunas (separador ; ou ,): codigo, nsu, autorizacao, terminal, bandeira, final_cartao, data_hora, forma (PIX|DEBITO|CREDITO), parcelas, valor_bruto,

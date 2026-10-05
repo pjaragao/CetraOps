@@ -295,7 +295,7 @@ begin
   update crm.parties set birth_date = coalesce(k.birth_date, d.birth_date), city = coalesce(k.city, d.city), uf = coalesce(k.uf, d.uf), profession = coalesce(k.profession, d.profession),
          instagram_handle = coalesce(k.instagram_handle, d.instagram_handle), gender = coalesce(k.gender, d.gender), relationship_owner_member_id = coalesce(k.relationship_owner_member_id, d.relationship_owner_member_id),
          sizes = d.sizes || k.sizes, tags = array(select distinct unnest(k.tags || d.tags)), preferences = d.preferences || k.preferences,
-         joy_member_status = case when k.joy_member_status = 'UNKNOWN' then d.joy_member_status else k.joy_member_status end,
+         host_member_status = case when k.host_member_status = 'UNKNOWN' then d.host_member_status else k.host_member_status end,
          first_touch_at = least(k.first_touch_at, d.first_touch_at)
   where id = p_keep;
   update crm.parties set merged_into_id = p_keep, tags = array(select distinct unnest(tags || array['mesclada'])) where id = p_dup;

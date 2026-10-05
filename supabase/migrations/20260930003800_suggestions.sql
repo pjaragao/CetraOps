@@ -114,7 +114,7 @@ begin
   return private.detect_anomalies();
 end $$;
 
-select cron.schedule('sie-detect-anomalies', '0 9 * * *', $$ select private.detect_anomalies() $$);        -- 06:00 BRT, depois do fechamento do dia
+select cron.schedule('centralops-detect-anomalies', '0 9 * * *', $$ select private.detect_anomalies() $$);        -- 06:00 BRT, depois do fechamento do dia
 
 insert into private.internal_functions (fqname) values ('private.open_suggestion'), ('private.detect_anomalies') on conflict do nothing;
 select private.lock_functions();

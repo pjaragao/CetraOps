@@ -78,7 +78,7 @@ select is(ai.run_detectors(), 0, '"verificar agora" roda os detectores (nada nov
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');
 select throws_ok($$ select ai.run_detectors() $$, '42501', null, 'só quem decide pode pedir a verificação');
 reset role;
-select is((select count(*)::int from cron.job where jobname = 'sie-detect-anomalies'), 1, 'varredura agendada todo dia às 06:00');
+select is((select count(*)::int from cron.job where jobname = 'centralops-detect-anomalies'), 1, 'varredura agendada todo dia às 06:00');
 select ok(not has_function_privilege('authenticated', 'private.detect_anomalies()', 'execute') and has_function_privilege('authenticated', 'ai.decide_suggestion(uuid,text,text)', 'execute'), 'privilégios');
 
 select * from finish();

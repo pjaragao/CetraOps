@@ -1,13 +1,13 @@
 -- =====================================================================
 -- Seed de DESENVOLVIMENTO (somente ambiente local). Dados FICTÍCIOS para testar telas e fluxos.
 -- NUNCA rodar em produção: o catálogo real é importado pela tela de importação.
--- Usuários de teste: socio@sie.test e vendedora@sie.test — senha: sie-dev-2026
+-- Usuários de teste: socio@centralops.test e vendedora@centralops.test — senha: centralops-dev-2026
 -- =====================================================================
 
 -- Empresa e lojas de teste (CNPJ fictício)
 insert into core.legal_entities (id, org_id, cnpj, razao_social, nome_fantasia, cnae_principal, cnaes_secundarios, nfce_series, nfe_series, address)
 values ('00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-000000000001', '11222333000181',
-        'EMPRESA DE TESTE LTDA', 'SIÉ JOY (dev)', '4781400', '{4763602,4782201,4782202,4772500,4789099,4642701,7319002,8230001}', 1, 1,
+        'EMPRESA DE TESTE LTDA', 'Loja Demo (dev)', '4781400', '{4763602,4782201,4782202,4772500,4789099,4642701,7319002,8230001}', 1, 1,
         '{"city": "Florianópolis", "uf": "SC"}')
 on conflict (id) do nothing;
 
@@ -21,14 +21,14 @@ on conflict (id) do nothing;
 
 insert into core.stores (id, org_id, legal_entity_id, code, name, format, status, opened_at, business_hours)
 values ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000e1',
-        'JOY', 'Boutique JOY (dev)', 'SHOP_IN_SHOP', 'ACTIVE', '2026-10-01',
+        'PILOTO', 'Boutique Piloto (dev)', 'SHOP_IN_SHOP', 'ACTIVE', '2026-10-01',
         '{"mon-fri": ["07:00", "21:00"], "sat": ["08:00", "14:00"]}')
 on conflict (id) do nothing;
 
 insert into core.cost_centers (id, org_id, parent_id, code, name, kind, legal_entity_id, store_id, channel) values
-  ('00000000-0000-4000-8000-0000000000c2', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c1', 'LOJA-JOY', 'Loja JOY', 'STORE', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000a1', null),
-  ('00000000-0000-4000-8000-0000000000c3', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2', 'JOY-BALCAO', 'JOY — Balcão', 'CHANNEL', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000a1', 'POS'),
-  ('00000000-0000-4000-8000-0000000000c4', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2', 'JOY-DIGITAL', 'JOY — Digital', 'CHANNEL', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000a1', 'DIGITAL')
+  ('00000000-0000-4000-8000-0000000000c2', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c1', 'LOJA-PILOTO', 'Loja Piloto', 'STORE', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000a1', null),
+  ('00000000-0000-4000-8000-0000000000c3', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2', 'PILOTO-BALCAO', 'Piloto — Balcão', 'CHANNEL', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000a1', 'POS'),
+  ('00000000-0000-4000-8000-0000000000c4', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2', 'PILOTO-DIGITAL', 'Piloto — Digital', 'CHANNEL', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000a1', 'DIGITAL')
 on conflict (id) do nothing;
 update core.stores set cost_center_id = '00000000-0000-4000-8000-0000000000c3' where id = '00000000-0000-4000-8000-0000000000a1';
 
@@ -41,22 +41,22 @@ insert into sales.cash_registers (id, org_id, store_id, name)
 values ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000a1', 'Caixa 1')
 on conflict (id) do nothing;
 
--- Usuários de teste (só local). Senha: sie-dev-2026
+-- Usuários de teste (só local). Senha: centralops-dev-2026
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
                         raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
                         confirmation_token, recovery_token, email_change, email_change_token_new)
 select '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
-       extensions.crypt('sie-dev-2026', extensions.gen_salt('bf')), now(),
+       extensions.crypt('centralops-dev-2026', extensions.gen_salt('bf')), now(),
        '{"provider": "email", "providers": ["email"]}', jsonb_build_object('name', u.name), now(), now(), '', '', '', ''
 from (values
-  ('00000000-0000-4000-8000-0000000000f1'::uuid, 'socio@sie.test', 'Sócio (teste)'),
-  ('00000000-0000-4000-8000-0000000000f2'::uuid, 'vendedora@sie.test', 'Vendedora (teste)')
+  ('00000000-0000-4000-8000-0000000000f1'::uuid, 'socio@centralops.test', 'Sócio (teste)'),
+  ('00000000-0000-4000-8000-0000000000f2'::uuid, 'vendedora@centralops.test', 'Vendedora (teste)')
 ) as u(id, email, name)
 on conflict (id) do nothing;
 
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 select gen_random_uuid(), u.id, u.id::text, jsonb_build_object('sub', u.id::text, 'email', u.email), 'email', now(), now(), now()
-from auth.users u where u.email in ('socio@sie.test', 'vendedora@sie.test')
+from auth.users u where u.email in ('socio@centralops.test', 'vendedora@centralops.test')
   and not exists (select 1 from auth.identities i where i.user_id = u.id);
 
 insert into core.members (id, org_id, user_id, display_name, default_store_id) values
@@ -132,7 +132,7 @@ values ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000
 on conflict do nothing;
 
 insert into omni.channel_accounts (id, org_id, channel, provider_account_id, display_name, store_id)
-values ('00000000-0000-4000-8000-000000000601', '00000000-0000-4000-8000-000000000001', 'WHATSAPP', 'dev-phone-number-id', 'WhatsApp SIÉ (dev)', '00000000-0000-4000-8000-0000000000a1')
+values ('00000000-0000-4000-8000-000000000601', '00000000-0000-4000-8000-000000000001', 'WHATSAPP', 'dev-phone-number-id', 'WhatsApp Loja Demo (dev)', '00000000-0000-4000-8000-0000000000a1')
 on conflict (id) do nothing;
 insert into omni.channel_identities (id, org_id, channel_account_id, external_id, party_id)
 values ('00000000-0000-4000-8000-000000000611', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000601', '5548999990001', '00000000-0000-4000-8000-000000000501')

@@ -1,8 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { templateParts, templatePlaceholders, type TemplateComponent } from "@sie/domain";
-import type { Json } from "@sie/db";
+import { templateParts, templatePlaceholders, type TemplateComponent } from "@centralops/domain";
+import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 
 const friendly = (m: string) => m.replace(/^ERROR:\s*/, "");

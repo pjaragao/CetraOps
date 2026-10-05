@@ -56,7 +56,7 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
   },
   META_ADS: {
     label: "Meta Anúncios (resultados)", capability: "ADS",
-    description: "Traz todo dia o gasto, o alcance, os cliques e as conversas de cada anúncio. O SIÉ cruza com quem realmente chegou pelo anúncio e comprou, para mostrar o retorno de verdade.",
+    description: "Traz todo dia o gasto, o alcance, os cliques e as conversas de cada anúncio. O CentralOps cruza com quem realmente chegou pelo anúncio e comprou, para mostrar o retorno de verdade.",
     secret: [{ key: "token", label: "Token de acesso (permissão ads_read)", hint: "Usuário do sistema no Gerenciador de Negócios, com acesso à conta de anúncios", required: true }],
     config: [{ key: "ad_account_id", label: "ID da conta de anúncios", hint: "Gerenciador de Anúncios › Configurações da conta (só números; o act_ é opcional)", required: true }],
     help: "Só leitura: o sistema nunca cria nem altera anúncios.",

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ArrowLeft, Bot, CheckCircle2, FileText, PauseCircle, PlayCircle, Send, Sparkles, StickyNote, Undo2, UserRound } from "lucide-react";
-import { canSend, firstName, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@sie/domain";
+import { canSend, firstName, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@centralops/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
 import { addNote, assignConversation, closeConversation, discardDraft, markRead, pauseAi, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
 

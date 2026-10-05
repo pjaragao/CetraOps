@@ -1,4 +1,4 @@
-import { formatBRL } from "@sie/domain";
+import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
@@ -24,19 +24,19 @@ export default async function ContratosPage({ searchParams }: { searchParams: SP
 
       {(contracts ?? []).length === 0 ? (
         can(session, "fin.write") ? (
-          <Card title="Cadastrar contrato de patrocínio (valores do contrato JOY pré-preenchidos — confira)">
+          <Card title="Cadastrar contrato de patrocínio e licença de espaço">
             <form action={createContract} className="grid gap-2 sm:grid-cols-3">
-              <input name="partner_name" required defaultValue="JOY Wellness Club Empreendimentos Esportivos Ltda." className={`${inputClass} sm:col-span-2`} aria-label="Parceiro" />
+              <input name="partner_name" required placeholder="Razão social do parceiro (ex.: a academia onde a loja funciona)" className={`${inputClass} sm:col-span-2`} aria-label="Parceiro" />
               <input name="partner_cnpj" required placeholder="CNPJ do parceiro" className={inputClass} aria-label="CNPJ do parceiro" />
-              <input name="title" required defaultValue="Patrocínio e licença de espaço — JOY" className={`${inputClass} sm:col-span-2`} aria-label="Título" />
-              <label className="text-xs text-muted">Início<input name="start_date" type="date" required defaultValue="2026-10-01" className={inputClass} /></label>
-              <label className="text-xs text-muted">Meses<input name="months" type="number" required defaultValue={15} className={inputClass} /></label>
-              <label className="text-xs text-muted">Meses pagos em peças<input name="in_kind_months" type="number" required defaultValue={3} className={inputClass} /></label>
-              <label className="text-xs text-muted">Parcela (R$)<input name="installment_amount" required defaultValue="6000" className={inputClass} /></label>
+              <input name="title" required placeholder="Título (ex.: Patrocínio e licença de espaço — Academia Centro)" className={`${inputClass} sm:col-span-2`} aria-label="Título" />
+              <label className="text-xs text-muted">Início<input name="start_date" type="date" required className={inputClass} /></label>
+              <label className="text-xs text-muted">Meses<input name="months" type="number" required min={1} className={inputClass} /></label>
+              <label className="text-xs text-muted">Meses pagos em peças<input name="in_kind_months" type="number" required min={0} defaultValue={0} className={inputClass} /></label>
+              <label className="text-xs text-muted">Parcela (R$)<input name="installment_amount" required inputMode="decimal" className={inputClass} /></label>
               <label className="text-xs text-muted">Dia de vencimento<input name="due_day" type="number" required defaultValue={10} className={inputClass} /></label>
               <label className="text-xs text-muted">Multa atraso (%)<input name="late_fee_pct" required defaultValue="2" className={inputClass} /></label>
               <label className="text-xs text-muted">Juros ao mês (%)<input name="monthly_interest_pct" required defaultValue="1" className={inputClass} /></label>
-              <label className="text-xs text-muted">Multa de saída (% das parcelas restantes)<input name="exit_penalty_pct" required defaultValue="20" className={inputClass} /></label>
+              <label className="text-xs text-muted">Multa de saída (% das parcelas restantes)<input name="exit_penalty_pct" required defaultValue="0" className={inputClass} /></label>
               <Button className="sm:col-span-3 sm:w-fit">Cadastrar e gerar cronograma</Button>
             </form>
           </Card>

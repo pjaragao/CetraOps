@@ -9,10 +9,10 @@ import httpx
 import pytest
 import respx
 
-from sie_worker import queues
-from sie_worker.db import fetch_one
-from sie_worker.handlers import integrations
-from sie_worker.runner import RetryLater
+from centralops_worker import queues
+from centralops_worker.db import fetch_one
+from centralops_worker.handlers import integrations
+from centralops_worker.runner import RetryLater
 
 from .conftest import ORG
 
@@ -45,12 +45,12 @@ async def state(pool: Any, conn_id: str) -> dict[str, Any]:
 async def test_whatsapp_ok_records_number_details(pool: Any, deps: Any) -> None:
     cid = await make_connection(pool, "META_WA", {"phone_number_id": "PN42"}, {"token": "WA-T"})
     route = respx.get("https://graph.test/v21.0/PN42").mock(return_value=httpx.Response(200, json={
-        "id": "PN42", "display_phone_number": "+55 48 99999-0000", "verified_name": "SIÉ Wear", "quality_rating": "GREEN", "name_status": "APPROVED", "extra": "ignorado"}))
+        "id": "PN42", "display_phone_number": "+55 48 99999-0000", "verified_name": "Loja Demo", "quality_rating": "GREEN", "name_status": "APPROVED", "extra": "ignorado"}))
     await integrations.handle(deps, job(cid))
     assert route.calls[0].request.headers["authorization"] == "Bearer WA-T" and "verified_name" in route.calls[0].request.url.params["fields"]
     st = await state(pool, cid)
     assert st["status"] == "ACTIVE" and st["last_error"] is None and st["last_sync_at"] is not None
-    assert st["health"]["ok"] is True and st["health"]["detail"]["verified_name"] == "SIÉ Wear" and "extra" not in st["health"]["detail"]
+    assert st["health"]["ok"] is True and st["health"]["detail"]["verified_name"] == "Loja Demo" and "extra" not in st["health"]["detail"]
 
 
 @respx.mock
@@ -85,16 +85,16 @@ async def test_transient_failure_retries_then_records_after_three_attempts(pool:
 @respx.mock
 async def test_instagram_uses_its_own_api_host(pool: Any, deps: Any) -> None:
     cid = await make_connection(pool, "META_IG", {}, {"access_token": "IG-T"})
-    respx.get("https://ig.test/v21.0/me").mock(return_value=httpx.Response(200, json={"user_id": "1784", "username": "sie.wear", "account_type": "BUSINESS"}))
+    respx.get("https://ig.test/v21.0/me").mock(return_value=httpx.Response(200, json={"user_id": "1784", "username": "loja.demo", "account_type": "BUSINESS"}))
     await integrations.handle(deps, job(cid))
     st = await state(pool, cid)
-    assert st["status"] == "ACTIVE" and st["health"]["detail"]["username"] == "sie.wear"
+    assert st["status"] == "ACTIVE" and st["health"]["detail"]["username"] == "loja.demo"
 
 
 @respx.mock
 async def test_telegram_check_and_webhook_registration(pool: Any, deps: Any) -> None:
     cid = await make_connection(pool, "TELEGRAM", {}, {"token": "123:ABC"})
-    respx.post("https://tg.test/bot123:ABC/getMe").mock(return_value=httpx.Response(200, json={"ok": True, "result": {"id": 987654, "username": "sie_bot"}}))
+    respx.post("https://tg.test/bot123:ABC/getMe").mock(return_value=httpx.Response(200, json={"ok": True, "result": {"id": 987654, "username": "centralops_bot"}}))
     info = respx.post("https://tg.test/bot123:ABC/getWebhookInfo").mock(return_value=httpx.Response(200, json={"ok": True, "result": {"url": "", "pending_update_count": 0}}))
     await integrations.handle(deps, job(cid))                                         # bot válido, mas sem webhook: não está "no ar"
     st = await state(pool, cid)
@@ -106,7 +106,7 @@ async def test_telegram_check_and_webhook_registration(pool: Any, deps: Any) -> 
     body = json.loads(setter.calls[0].request.content)
     assert body["url"] == "https://storage.test/functions/v1/webhooks-telegram/987654" and body["secret_token"] == "tg-secret-test" and body["allowed_updates"] == ["message", "edited_message"]
     st = await state(pool, cid)
-    assert st["status"] == "ACTIVE" and st["health"]["detail"] == {"bot_id": "987654", "username": "sie_bot", "webhook_url": "https://storage.test/functions/v1/webhooks-telegram/987654",
+    assert st["status"] == "ACTIVE" and st["health"]["detail"] == {"bot_id": "987654", "username": "centralops_bot", "webhook_url": "https://storage.test/functions/v1/webhooks-telegram/987654",
                                                                    "pending_update_count": 2, "last_error_message": None}
 
 
@@ -118,7 +118,7 @@ async def test_telegram_webhook_registration_requires_the_shared_secret(pool: An
     respx.post("https://tg.test/bot123:ABC/getMe").mock(return_value=httpx.Response(200, json={"ok": True, "result": {"id": 1}}))
     setter = respx.post("https://tg.test/bot123:ABC/setWebhook").mock(return_value=httpx.Response(200, json={"ok": True, "result": True}))
     await integrations.handle(d, job(cid, "TELEGRAM_WEBHOOK"))
-    assert not setter.called and "SIE_TELEGRAM_WEBHOOK_SECRET" in (await state(pool, cid))["last_error"]
+    assert not setter.called and "CENTRALOPS_TELEGRAM_WEBHOOK_SECRET" in (await state(pool, cid))["last_error"]
 
 
 @respx.mock

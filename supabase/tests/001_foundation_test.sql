@@ -19,7 +19,7 @@ select has_table('core', 'orgs', 'core.orgs existe');
 select has_table('inv', 'movements', 'livro-razão de estoque existe');
 select has_function('sales', 'create_pos_order', array['jsonb'], 'RPC do PDV existe');
 select is((select count(*)::int from fin.chart_accounts where code = '7.2.01' and name like 'Patrocínio%'), 1,
-          'JOY classificada como patrocínio, não aluguel');
+          'licença de espaço do parceiro classificada como patrocínio, não aluguel');
 select is(fiscal.simples_effective_rate('I', 180000), 4.0000, 'Simples Anexo I faixa 1 = 4%');
 select is(fiscal.simples_effective_rate('I', 500000), round(((500000 * 0.095) - 13860) / 500000 * 100, 4), 'Simples faixa 3 com dedução');
 

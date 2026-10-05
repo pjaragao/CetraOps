@@ -10,10 +10,10 @@ import httpx
 import pytest
 import respx
 
-from sie_worker import queues
-from sie_worker.ai.llm import LLM
-from sie_worker.db import fetch_one
-from sie_worker.handlers import ai_tasks
+from centralops_worker import queues
+from centralops_worker.ai.llm import LLM
+from centralops_worker.db import fetch_one
+from centralops_worker.handlers import ai_tasks
 
 from .conftest import ORG
 

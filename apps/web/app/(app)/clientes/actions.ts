@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { Json } from "@sie/db";
+import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 
 const friendly = (m: string) => m.replace(/^ERROR:\s*/, "");
@@ -20,7 +20,7 @@ export async function updateProfileAction(formData: FormData) {
     display_name: str(formData.get("display_name")), birth_date: str(formData.get("birth_date")), city: str(formData.get("city")), uf: str(formData.get("uf")),
     profession: str(formData.get("profession")), instagram_handle: str(formData.get("instagram_handle")), email: str(formData.get("email")),
     sizes: { top: str(formData.get("size_top")), bottom: str(formData.get("size_bottom")), bra: str(formData.get("size_bra")), shoe: str(formData.get("size_shoe")) },
-    activities: list("activities"), notes: str(formData.get("notes")), joy_member_status: str(formData.get("joy_member_status")) || "UNKNOWN",
+    activities: list("activities"), notes: str(formData.get("notes")), host_member_status: str(formData.get("host_member_status")) || "UNKNOWN",
     relationship_owner_member_id: str(formData.get("owner")), home_store_id: str(formData.get("home_store")), tags: list("tags"),
   };
   const tier = str(formData.get("tier"));

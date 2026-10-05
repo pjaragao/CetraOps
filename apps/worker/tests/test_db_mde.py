@@ -7,10 +7,10 @@ import httpx
 import pytest
 import respx
 
-from sie_worker.adapters.focus import normalize_received
-from sie_worker.db import fetch_all, fetch_one
-from sie_worker.handlers import fiscal
-from sie_worker.queues import QueueMessage
+from centralops_worker.adapters.focus import normalize_received
+from centralops_worker.db import fetch_all, fetch_one
+from centralops_worker.handlers import fiscal
+from centralops_worker.queues import QueueMessage
 
 from .conftest import ORG
 

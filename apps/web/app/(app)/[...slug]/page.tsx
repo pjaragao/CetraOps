@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { NAV } from "@sie/domain";
+import { NAV } from "@centralops/domain";
 import { Empty, LinkButton, PageHeader } from "@/components/ui";
 
 /** Telas previstas no plano mas ainda não construídas: aviso honesto em vez de tela falsa. */

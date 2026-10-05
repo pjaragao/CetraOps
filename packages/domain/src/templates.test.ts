@@ -39,10 +39,10 @@ describe("templates do WhatsApp", () => {
     const comps = [
       { type: "HEADER", format: "TEXT", text: "Seu pedido" },
       { type: "BODY", text: "Oi {{1}}!", example: { body_text: [["Ana"]] } },
-      { type: "FOOTER", text: "SIÉ Wear" },
+      { type: "FOOTER", text: "Loja Demo" },
       { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Retirar hoje" }] },
     ];
-    expect(templateParts(comps)).toEqual({ header: "Seu pedido", body: "Oi {{1}}!", footer: "SIÉ Wear", buttons: ["Retirar hoje"] });
+    expect(templateParts(comps)).toEqual({ header: "Seu pedido", body: "Oi {{1}}!", footer: "Loja Demo", buttons: ["Retirar hoje"] });
     expect(templateExamples(comps)).toEqual(["Ana"]);
     expect(templateParts(null)).toEqual({ header: null, body: "", footer: null, buttons: [] });
     expect(templateExamples(undefined)).toEqual([]);

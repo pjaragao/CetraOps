@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { acquirerCsvTemplate } from "@sie/domain";
+import { acquirerCsvTemplate } from "@centralops/domain";
 import { getSession } from "@/lib/session";
 
 /** Planilha-modelo do layout padrão de recebíveis da adquirente. */

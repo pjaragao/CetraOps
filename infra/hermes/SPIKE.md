@@ -30,8 +30,8 @@ docker exec hermes hermes profile create concierge
 
 ## Decisão
 
-- **GO**: todos os itens ✔ → `SIE_HERMES_BASE=http://hermes:8642/p/concierge/v1` (ou `/v1`, conforme o item de roteamento por perfil) e `SIE_HERMES_KEY` no worker.
-- **NO-GO**: deixe `SIE_HERMES_KEY` vazio e configure `SIE_OPENROUTER_KEY` — o worker usa automaticamente o Plano B, com o mesmo contrato de ferramentas
+- **GO**: todos os itens ✔ → `CENTRALOPS_HERMES_BASE=http://hermes:8642/p/concierge/v1` (ou `/v1`, conforme o item de roteamento por perfil) e `CENTRALOPS_HERMES_KEY` no worker.
+- **NO-GO**: deixe `CENTRALOPS_HERMES_KEY` vazio e configure `CENTRALOPS_OPENROUTER_KEY` — o worker usa automaticamente o Plano B, com o mesmo contrato de ferramentas
   (`agent.call_tool`), os mesmos guardrails e o mesmo registro em `ai.tool_calls`.
 
 > Se o Hermes falhar em produção (timeouts/5xx), o roteador cai para rascunho/humano (circuit breaker por execução); trocar para o Plano B é só trocar as variáveis.

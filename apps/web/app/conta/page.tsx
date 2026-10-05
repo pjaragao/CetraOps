@@ -14,7 +14,7 @@ export default async function ContaPage({ searchParams }: { searchParams: Promis
   return (
     <main className="grid min-h-dvh place-items-center px-4">
       <form action={changePasswordAction} className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <p className="text-xs tracking-[0.3em] text-accent uppercase">SIÉ JOY</p>
+        <p className="text-xs tracking-[0.3em] text-accent uppercase">CentralOps</p>
         <h1 className="mt-1 text-2xl font-semibold">{first ? "Crie sua senha" : "Trocar a senha"}</h1>
         <p className="mt-1 text-sm text-muted">
           {first ? `Olá, ${session.name.split(" ")[0]}! Você entrou com uma senha provisória. Escolha a sua para continuar.` : `Conta de ${session.name}.`}

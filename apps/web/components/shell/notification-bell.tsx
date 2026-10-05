@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell } from "lucide-react";
-import { describeNotification, timeAgo } from "@sie/domain";
+import { describeNotification, timeAgo } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/client";
 import { markAllNotificationsRead } from "@/app/(app)/notificacoes/actions";
 

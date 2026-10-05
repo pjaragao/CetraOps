@@ -15,7 +15,7 @@ test.describe("links rastreados", () => {
     const code = `e2e-${Date.now() % 100000}`;
     await page.locator("input[name=name]").fill("QR E2E");
     await page.locator("input[name=code]").fill(code);
-    await page.locator("input[name=prefill_text]").fill("Oi, SIÉ! Vim pelo QR de teste.");
+    await page.locator("input[name=prefill_text]").fill("Oi! Vim pelo QR de teste.");
     await page.getByRole("button", { name: "Criar link" }).click();
     await expect(page.getByText("Link criado")).toBeVisible({ timeout: 20_000 });
     const row = page.getByRole("row").filter({ hasText: code });

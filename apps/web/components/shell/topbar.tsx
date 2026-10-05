@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { LogOut, Plus, Search } from "lucide-react";
-import { PERIODS } from "@sie/domain";
+import { PERIODS } from "@centralops/domain";
 import { setStoreContext } from "@/app/(app)/actions";
 import { signOut } from "@/app/login/actions";
 import { NotificationBell } from "./notification-bell";
@@ -54,7 +54,7 @@ export function Topbar({ name, memberId, unreadNotifications, stores, storeId, c
       </select>
 
       <button
-        onClick={() => window.dispatchEvent(new CustomEvent("sie:palette"))}
+        onClick={() => window.dispatchEvent(new CustomEvent("centralops:palette"))}
         className="ml-auto flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-muted hover:text-text"
       >
         <Search size={15} /> <span className="hidden sm:inline">Buscar ou executar…</span>

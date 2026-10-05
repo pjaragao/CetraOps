@@ -1,4 +1,4 @@
-# IA integrada à operação: plano do Assistente SIÉ
+# IA integrada à operação: plano da Central, o assistente do CentralOps
 
 > Versão 1.0 · 05/10/2026 · Escopo: levar a IA para dentro do trabalho de todas as áreas (vender, cadastrar, estoque, financeiro, fiscal, equipe, marketing e gestão). O caminho é um assistente com chat, voz, câmera e documentos, mais recursos de IA embutidos nas telas e avisos proativos. Somente planejamento; nada foi implementado.
 > O retrato do que existe hoje vale para a branch `claude/kind-shannon-y9qvfj`, commit `1523112`.
@@ -34,7 +34,7 @@ O sistema já cobre quase toda a operação: mais de 80 telas no menu, em 12 ár
 - **Gestão:** os sócios querem respostas ("quanto vence hoje?", "quanto lucrei em setembro?") e precisam abrir três telas e somar.
 
 ### A proposta
-Um **Assistente SIÉ**: uma conversa disponível em todas as telas e no celular que entende **texto, áudio, foto, PDF/XML e código de barras**. Ele **opera o sistema pelas mesmas portas das telas** (as mesmas funções do banco), sempre:
+A **Central**, assistente de IA do CentralOps: uma conversa disponível em todas as telas e no celular que entende **texto, áudio, foto, PDF/XML e código de barras**. Ela **opera o sistema pelas mesmas portas das telas** (as mesmas funções do banco), sempre:
 - com as **permissões de quem está usando**;
 - com **confirmação antes de gravar** qualquer coisa.
 
@@ -49,9 +49,9 @@ São três camadas:
 ### O que já existe e será reaproveitado
 O sistema já tem boa parte da base técnica, feita para o atendimento às clientes:
 - **Rotas de modelo por tarefa** (`ai.model_routes`): modelo principal, reservas, parâmetros e **orçamento diário**. A troca é feita na tela *Inteligência › Modelos & custos*, sem deploy. Cada chamada vira uma linha em `ai.runs`, com o custo.
-- **Saída estruturada** (`apps/worker/sie_worker/ai/llm.py`, `complete_json`): JSON com schema, já usada para resumo de conversa e abordagem de prospecção.
-- **Transcrição de áudio** (Whisper via Groq, `apps/worker/sie_worker/handlers/media.py`), hoje só para áudios do WhatsApp.
-- **Validador de números** (`apps/worker/sie_worker/ai/guardrails.py`): a resposta só sai se cada preço e estoque citado vier de uma ferramenta chamada naquela execução.
+- **Saída estruturada** (`apps/worker/centralops_worker/ai/llm.py`, `complete_json`): JSON com schema, já usada para resumo de conversa e abordagem de prospecção.
+- **Transcrição de áudio** (Whisper via Groq, `apps/worker/centralops_worker/handlers/media.py`), hoje só para áudios do WhatsApp.
+- **Validador de números** (`apps/worker/centralops_worker/ai/guardrails.py`): a resposta só sai se cada preço e estoque citado vier de uma ferramenta chamada naquela execução.
 - **Embeddings e busca semântica** (`ai.knowledge_chunks`, pgvector) da base de conhecimento.
 - **Central de sugestões** (`ai.suggestions`, `private.open_suggestion`), com detectores noturnos e notificações (`core.notify`).
 - **Avaliações da IA** (worker `evals` + tela *Avaliações da IA*), para comparar modelos com casos fixos.
@@ -145,7 +145,7 @@ Toda escrita passa por ele:
 │ Total (calculado pelo sistema) ......... R$ 350,10 │
 │ Pagamento: Pix                                    │
 │ NFC-e: emitir com CPF ***.***.**9-01               │
-│ Caixa: Loja JOY · aberto por Bia às 09:02         │
+│ Caixa: Loja Centro · aberto por Bia às 09:02      │
 │                                                    │
 │  [ Confirmar venda ]   [ Editar ]   [ Cancelar ]  │
 └────────────────────────────────────────────────────┘
@@ -450,7 +450,7 @@ Worker (Python) — tarefas assíncronas: briefing, lotes de extração (fatura 
 |---|---|---|
 | Latência | Resposta em streaming: o texto começa a aparecer logo | Fila + debounce: segundos a mais em cada turno |
 | Identidade | Já tem o JWT do usuário: RLS e permissões valem naturalmente | Precisaria repassar e revalidar o JWT do usuário |
-| Ferramentas | As mesmas funções que as telas chamam, em TypeScript, tipadas com os tipos gerados (`@sie/db`) | Reimplementar em Python |
+| Ferramentas | As mesmas funções que as telas chamam, em TypeScript, tipadas com os tipos gerados (`@centralops/db`) | Reimplementar em Python |
 | Segredos | A chave do modelo passa a existir também no servidor web (nunca no navegador: sem `NEXT_PUBLIC_`) | Só no worker (como hoje) |
 
 **O que fica no worker:**

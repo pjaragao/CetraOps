@@ -2,8 +2,8 @@
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseAcquirerCsv } from "@sie/domain";
-import type { Json } from "@sie/db";
+import { parseAcquirerCsv } from "@centralops/domain";
+import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;

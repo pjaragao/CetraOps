@@ -4,7 +4,7 @@
     {
       "name": "web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "pnpm@10.34.6", "--filter", "@sie/web", "dev"],
+      "runtimeArgs": ["--yes", "pnpm@10.34.6", "--filter", "@centralops/web", "dev"],
       "port": 3000
     }
   ]

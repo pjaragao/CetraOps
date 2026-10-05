@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL, SEGMENTS, STAGE_LABEL } from "@sie/domain";
+import { formatBRL, SEGMENTS, STAGE_LABEL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { periodBounds, str, type SP } from "@/lib/context";
@@ -109,7 +109,7 @@ export default async function CicloDeVidaPage({ searchParams }: { searchParams: 
         <form action={saveTierBenefitsAction} className="space-y-3">
           <div className="grid gap-3 lg:grid-cols-3">
             {(["STANDARD", "VIP", "VIP_BLACK"] as const).map((k) => (
-              <Field key={k} label={k === "STANDARD" ? "SIÉ (cliente)" : k === "VIP" ? "VIP" : "VIP Black"} hint="Um por linha (até 8)">
+              <Field key={k} label={k === "STANDARD" ? "Cliente" : k === "VIP" ? "VIP" : "VIP Black"} hint="Um por linha (até 8)">
                 <textarea name={k} rows={5} defaultValue={(benefits[k] ?? []).join("\n")} disabled={!can(session, "core.admin")} className={inputClass} />
               </Field>
             ))}

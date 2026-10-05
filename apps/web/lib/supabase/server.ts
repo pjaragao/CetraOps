@@ -1,7 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "@sie/db";
+import type { Database } from "@centralops/db";
 
 /** Cliente Supabase do lado do servidor com o JWT do usuário: toda leitura passa pelo RLS. */
 export async function createClient() {

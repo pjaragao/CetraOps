@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL, LINK_KINDS, trackingMessage, trackingUrl } from "@sie/domain";
+import { formatBRL, LINK_KINDS, trackingMessage, trackingUrl } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { isoFromNow, periodBounds, str, type SP } from "@/lib/context";
@@ -36,7 +36,7 @@ export default async function LinksPage({ searchParams }: { searchParams: SP }) 
 
   return (
     <>
-      <PageHeader title="Links rastreados" description="Um link (ou QR) para cada lugar: recepção e vestiário da JOY, bio, stories, trainers, eventos. Quando a cliente manda a primeira mensagem, o sistema reconhece o código e registra de onde ela veio — e o que ela comprou depois."
+      <PageHeader title="Links rastreados" description="Um link (ou QR) para cada lugar: recepção e vestiário da academia parceira, bio, stories, trainers, eventos. Quando a cliente manda a primeira mensagem, o sistema reconhece o código e registra de onde ela veio — e o que ela comprou depois."
         actions={<span className="text-xs text-muted">Período: {b.from.split("-").reverse().join("/")} a {b.to.split("-").reverse().join("/")}</span>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
@@ -46,14 +46,14 @@ export default async function LinksPage({ searchParams }: { searchParams: SP }) 
           {isAdmin ? missing.map((c) => (
             <form key={c.id} action={setChannelAddressAction} className="mb-2 flex flex-wrap items-end gap-2">
               <input type="hidden" name="id" value={c.id} />
-              <Field label={c.display_name}><input name="address" required className={inputClass} placeholder={c.channel === "WHATSAPP" ? "55 48 99999-0000" : "@siejoybot"} /></Field>
+              <Field label={c.display_name}><input name="address" required className={inputClass} placeholder={c.channel === "WHATSAPP" ? "55 48 99999-0000" : "@minhalojabot"} /></Field>
               <Button variant="secondary">Salvar</Button>
             </form>
           )) : <p className="text-sm">Peça a um sócio para cadastrar.</p>}
         </Card>
       )}
 
-      {(links ?? []).length === 0 ? <Empty title="Nenhum link ainda">Crie o primeiro abaixo, por exemplo o QR da recepção da JOY.</Empty> : (
+      {(links ?? []).length === 0 ? <Empty title="Nenhum link ainda">Crie o primeiro abaixo, por exemplo o QR da recepção da academia.</Empty> : (
         <Table head={["Link", "Tipo", "Endereço", "Conversas", "Leads novas", "Compraram", "Receita", ""]}>
           {(links ?? []).map((l) => {
             const c = ch.get(l.channel_account_id);
@@ -97,13 +97,13 @@ export default async function LinksPage({ searchParams }: { searchParams: SP }) 
             <form key={editing?.id ?? "novo"} action={saveLinkAction} className="space-y-3">
               {editing && <input type="hidden" name="id" value={editing.id} />}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Nome"><input name="name" required minLength={3} maxLength={80} defaultValue={editing?.name} className={inputClass} placeholder="QR da recepção da JOY" /></Field>
+                <Field label="Nome"><input name="name" required minLength={3} maxLength={80} defaultValue={editing?.name} className={inputClass} placeholder="QR da recepção da academia" /></Field>
                 <Field label="Código" hint="3 a 23 letras minúsculas, números ou hífen"><input name="code" required pattern="[a-z0-9][a-z0-9\-]{2,22}" defaultValue={editing?.code} className={`${inputClass} font-mono`} placeholder="qr-recepcao" /></Field>
                 <Field label="Tipo"><select name="kind" defaultValue={editing?.kind ?? "QR"} className={inputClass}>{Object.entries(LINK_KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
                 <Field label="Canal"><select name="channel_account_id" required defaultValue={editing?.channel_account_id ?? channels?.[0]?.id} className={inputClass}>{(channels ?? []).map((c) => <option key={c.id} value={c.id}>{c.display_name}</option>)}</select></Field>
               </div>
-              <Field label="Texto pronto (WhatsApp)" hint={`A mensagem sai assim: “${trackingMessage("codigo", editing?.prefill_text ?? "Oi, SIÉ! Vim pelo QR da recepção.")}”. Se a cliente apagar o código, a origem não é registrada.`}>
-                <input name="prefill_text" maxLength={200} defaultValue={editing?.prefill_text ?? ""} className={inputClass} placeholder="Oi, SIÉ! Vim pelo QR da recepção." />
+              <Field label="Texto pronto (WhatsApp)" hint={`A mensagem sai assim: “${trackingMessage("codigo", editing?.prefill_text ?? "Oi! Vim pelo QR da recepção.")}”. Se a cliente apagar o código, a origem não é registrada.`}>
+                <input name="prefill_text" maxLength={200} defaultValue={editing?.prefill_text ?? ""} className={inputClass} placeholder="Oi! Vim pelo QR da recepção." />
               </Field>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Trainer (opcional)" hint="A cliente ganha a etiqueta 'indicacao' e pontos no score">

@@ -12,13 +12,13 @@ import pytest_asyncio
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from sie_agent_contract import CONCIERGE_CAPS, sign_ctx
-from sie_mcp.config import Settings
-from sie_mcp.db import AgentDb
+from centralops_agent_contract import CONCIERGE_CAPS, sign_ctx
+from centralops_mcp.config import Settings
+from centralops_mcp.db import AgentDb
 
 ORG = "00000000-0000-4000-8000-000000000001"
 STORE = "00000000-0000-4000-8000-0000000000a1"
-DB_URL = os.environ.get("SIE_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:55322/postgres")
+DB_URL = os.environ.get("CENTRALOPS_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:55322/postgres")
 CTX_SECRET = "mcp-test-ctx-secret-with-32-bytes!!"
 MCP_KEY = "mcp-test-key-0123456789abcdef"
 

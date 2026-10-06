@@ -89,6 +89,31 @@ export function LinkButton({ href, children, variant = "secondary" }: { href: st
   );
 }
 
+/** Paginação de lista: "1–100 de 507" e anterior/próxima, mantendo os filtros da URL (a página vai em ?p=). */
+export function Pager({ path, params, page, pageSize, total }: { path: string; params: Record<string, string | undefined>; page: number; pageSize: number; total: number }) {
+  if (total <= 0) return null;
+  const pages = Math.ceil(total / pageSize);
+  const href = (p: number) => {
+    const q = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => Boolean(e[1])));
+    if (p > 1) q.set("p", String(p));
+    const s = q.toString();
+    return s ? `${path}?${s}` : path;
+  };
+  const step = "rounded-lg border border-border px-3 py-1.5";
+  return (
+    <nav className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm" aria-label="Paginação">
+      <span className="text-muted">{(page - 1) * pageSize + 1}–{Math.min(total, page * pageSize)} de {total}</span>
+      {pages > 1 && (
+        <span className="flex items-center gap-1">
+          {page > 1 ? <Link href={href(page - 1)} className={cn(step, "hover:bg-surface-2")}>← Anterior</Link> : <span className={cn(step, "opacity-40")}>← Anterior</span>}
+          <span className="px-2 text-muted">{page} de {pages}</span>
+          {page < pages ? <Link href={href(page + 1)} className={cn(step, "hover:bg-surface-2")}>Próxima →</Link> : <span className={cn(step, "opacity-40")}>Próxima →</span>}
+        </span>
+      )}
+    </nav>
+  );
+}
+
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="rounded-xl border border-dashed border-border p-8 text-center">

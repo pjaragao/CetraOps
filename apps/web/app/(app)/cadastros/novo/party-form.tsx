@@ -18,7 +18,7 @@ const digits = (s: string) => s.replace(/\D/g, "");
  */
 export function PartyForm({ company, canReadDocs = false }: { company: boolean; canReadDocs?: boolean }) {
   const { state, pending, formProps } = useKeptForm(createPartyAction);
-  const [f, setF] = useState({ name: "", legal: "", cnpj: "", cpf: "", birth: "", gender: "", ig: "", phone: "", phone2: "", email: "", tags: "", notes: "" });
+  const [f, setF] = useState({ name: "", legal: "", cnpj: "", ie: "", cpf: "", birth: "", gender: "", ig: "", phone: "", phone2: "", email: "", tags: "", notes: "" });
   const [docMsg, setDocMsg] = useState<string | null>(null);
   const docInput = useRef<HTMLInputElement>(null);
   const [roles, setRoles] = useState<string[]>([company ? "SUPPLIER" : "CUSTOMER"]);
@@ -37,6 +37,9 @@ export function PartyForm({ company, canReadDocs = false }: { company: boolean; 
       if (!r.ok) { setCnpjMsg(String(j.error ?? "Não achei esse CNPJ")); return; }
       setF((p) => ({ ...p, legal: j.legal_name || p.legal, name: p.name || j.trade_name || j.legal_name || "", phone: p.phone || (j.phone ? String(j.phone) : ""), phone2: p.phone2 || (j.phone2 ? String(j.phone2) : ""), email: p.email || j.email || "" }));
       setRegistry((j.data as CnpjData) ?? null);
+      const regs = ((j.data as CnpjData | undefined)?.state_registrations ?? []).filter((r) => r.active);   // IE ativa, da UF do endereço primeiro
+      const ie = (regs.find((r) => r.uf === j.uf) ?? regs[0])?.ie;
+      if (ie) setF((p) => ({ ...p, ie: p.ie || ie }));
       setAddr((a) => ({ cep: j.cep ? String(j.cep).replace(/^(\d{5})(\d{3})$/, "$1-$2") : a.cep, street: j.street || a.street, number: j.number || a.number, complement: j.complement || a.complement, district: j.district || a.district, city: j.city || a.city, uf: j.uf || a.uf }));
       const d = j.data as CnpjData | undefined;
       const alerta = d && d.situation && d.situation.toLowerCase() !== "ativa" ? ` ATENÇÃO: situação ${d.situation} na Receita.` : "";
@@ -76,6 +79,7 @@ export function PartyForm({ company, canReadDocs = false }: { company: boolean; 
     tags: f.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean), notes: f.notes || undefined, address: Object.fromEntries(Object.entries(addr).filter(([, v]) => v)),
     registry: company && registry && digits(f.cnpj) === registry.cnpj ? registry : undefined,
     cpf: !company && digits(f.cpf).length === 11 ? digits(f.cpf) : undefined,
+    ie: company && f.ie.trim() ? f.ie.trim() : undefined,
   }), [f, roles, addr, company, registry]);
   const ok = f.name.trim().length > 1 && (!company || digits(f.cnpj).length === 14) && roles.length > 0 && !cpfBad;
 
@@ -96,7 +100,10 @@ export function PartyForm({ company, canReadDocs = false }: { company: boolean; 
             <input className={inputClass} value={f.cnpj} inputMode="numeric" placeholder="00.000.000/0000-00" maxLength={18} onChange={(e) => { set("cnpj", e.target.value); if (digits(e.target.value).length === 14) void lookupCnpj(e.target.value); }} />
           </Field>}
           <Field label={company ? "Nome fantasia" : "Nome completo"} className={company ? "sm:col-span-4" : "sm:col-span-3"}><input className={inputClass} value={f.name} onChange={(e) => set("name", e.target.value)} maxLength={120} /></Field>
-          {company && <Field label="Razão social" className="sm:col-span-6"><input className={inputClass} value={f.legal} onChange={(e) => set("legal", e.target.value)} maxLength={160} /></Field>}
+          {company && <>
+            <Field label="Razão social" className="sm:col-span-4"><input className={inputClass} value={f.legal} onChange={(e) => set("legal", e.target.value)} maxLength={160} /></Field>
+            <Field label="Inscrição estadual" className="sm:col-span-2" hint="Só números, ou ISENTO"><input className={inputClass} value={f.ie} onChange={(e) => set("ie", e.target.value)} maxLength={20} /></Field>
+          </>}
           {!company && <>
             <Field label="CPF" className="sm:col-span-2" hint={cpfBad ? "CPF inválido: confira os dígitos" : "Opcional. Fica criptografado; aparece só o final"}>
               <input className={inputClass} value={f.cpf} inputMode="numeric" placeholder="000.000.000-00" maxLength={14} onChange={(e) => set("cpf", e.target.value)} aria-invalid={cpfBad} />

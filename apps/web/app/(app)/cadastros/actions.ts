@@ -24,7 +24,7 @@ const partySchema = z.object({
   birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), gender: z.enum(["F", "M", "O"]).optional(), instagram_handle: z.string().max(31).optional(),
   phones: z.array(z.string().max(25)).max(5), emails: z.array(z.string().max(120)).max(5), roles: z.array(z.string()).max(8), tags: z.array(z.string()).max(10), notes: z.string().max(500).optional(),
   address: z.record(z.string(), z.string()).optional(),
-  cpf: z.string().regex(/^\d{11}$/).optional(),
+  cpf: z.string().regex(/^\d{11}$/).optional(), ie: z.string().max(20).optional(),
 });
 
 /** Novo cadastro (pessoa ou empresa). */
@@ -60,11 +60,26 @@ export async function updateIdentityAction(formData: FormData) {
   const p: Record<string, string> = { display_name: str(formData.get("display_name")) };
   if (formData.has("legal_name")) p.legal_name = str(formData.get("legal_name"));
   if (formData.has("cnpj")) p.cnpj = str(formData.get("cnpj"));
+  if (formData.has("ie")) p.ie = str(formData.get("ie"));
   if (formData.has("birth_date")) p.birth_date = str(formData.get("birth_date"));
   if (formData.has("gender")) p.gender = str(formData.get("gender"));
   const supabase = await createClient();
   const { error } = await supabase.schema("crm").rpc("update_party_identity", { p_party: id, p: p as Json });
+  const cpf = str(formData.get("cpf")).replace(/\D/g, "");   // em branco = mantém o CPF atual
+  if (!error && cpf) {
+    const { error: e } = await supabase.schema("crm").rpc("set_cpf", { p_party: id, p_cpf: cpf });
+    go(`/cadastros/${id}`, e, "Identidade e CPF atualizados");
+  }
   go(`/cadastros/${id}`, error, "Identidade atualizada");
+}
+
+/** CPF completo, só com a permissão de dados sensíveis; o banco registra a consulta em audit.log. */
+export async function revealCpfAction(_prev: State, formData: FormData): Promise<State> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("crm").rpc("reveal_cpf", { p_party: str(formData.get("id")) });
+  if (error) return { ok: false, error: friendly(error.message) };
+  if (!data) return { ok: false, error: "Este cadastro não tem CPF" };
+  return { ok: true, message: data.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") };
 }
 
 export async function addContactAction(formData: FormData) {

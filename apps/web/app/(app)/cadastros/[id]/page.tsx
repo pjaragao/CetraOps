@@ -10,6 +10,7 @@ import { addContactAction, addRelationAction, deleteAddressAction, mergePartiesA
 import { AddressForm } from "./address-form";
 import { RegistryCard } from "./registry-card";
 import { PayeeCard } from "./payee-card";
+import { CpfReveal } from "./cpf-reveal";
 import type { CnpjData } from "@centralops/domain";
 
 export const metadata = { title: "Cadastro" };
@@ -25,6 +26,7 @@ export default async function CadastroPage({ params, searchParams }: { params: P
   const sp = await searchParams;
   const session = await requirePerm("crm.read");
   const canWrite = can(session, "crm.write");
+  const canSensitive = can(session, "crm.sensitive");
   const isAdmin = can(session, "core.admin");
   const supabase = await createClient();
   const { data: p } = await supabase.schema("crm").from("parties").select("*").eq("id", id).maybeSingle();
@@ -32,12 +34,13 @@ export default async function CadastroPage({ params, searchParams }: { params: P
   if (p.merged_into_id) return (<><PageHeader title={p.display_name} /><Empty title="Este cadastro foi mesclado">Tudo dele agora está no cadastro principal. <Link className="text-brand" href={`/cadastros/${p.merged_into_id}`}>Abrir o principal</Link></Empty></>);
 
   const company = p.kind === "COMPANY";
-  const [{ data: contacts }, { data: addresses }, { data: roles }, { data: relatives }, { data: dups }] = await Promise.all([
+  const [{ data: contacts }, { data: addresses }, { data: roles }, { data: relatives }, { data: dups }, { data: cpfMasked }] = await Promise.all([
     supabase.schema("crm").from("party_contact_points").select("id, type, value_display, is_primary").eq("party_id", id).order("type").order("created_at"),
     supabase.schema("crm").from("party_addresses").select("*").eq("party_id", id).order("is_default", { ascending: false }).order("created_at"),
     supabase.schema("crm").from("party_roles").select("role").eq("party_id", id),
     company ? Promise.resolve({ data: [] as never[] }) : supabase.schema("crm").rpc("relatives_of", { p_party: id }),
     supabase.schema("crm").rpc("duplicate_candidates", { p_party: id }),
+    company ? Promise.resolve({ data: null }) : supabase.schema("crm").rpc("party_cpf_masked", { p_party: id }),   // só o final; o completo exige crm.sensitive
   ]);
   const { data: accounts } = company ? await supabase.schema("fin").from("chart_accounts").select("id, code, name").eq("kind", "ANALYTIC").is("archived_at", null).order("code") : { data: [] as { id: string; code: string; name: string }[] };
   const access = isAdmin && !company ? ((await supabase.schema("core").rpc("party_access", { p_party: id })).data as unknown as Access | null) : null;
@@ -56,16 +59,25 @@ export default async function CadastroPage({ params, searchParams }: { params: P
           accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))} canWrite={canWrite} />}
 
         <Card title="Identidade">
+          {!company && cpfMasked && (canSensitive ? <CpfReveal id={id} masked={cpfMasked} /> : <p className="mb-3 text-sm"><span className="text-xs text-muted">CPF</span> <span className="font-mono">{cpfMasked}</span></p>)}
           <form action={updateIdentityAction} className="space-y-3">
             <input type="hidden" name="id" value={id} />
             <Field label={company ? "Nome fantasia" : "Nome"}><input name="display_name" required minLength={2} maxLength={120} defaultValue={p.display_name} disabled={!canWrite} className={inputClass} /></Field>
             {company ? (
               <>
                 <Field label="Razão social"><input name="legal_name" maxLength={160} defaultValue={p.legal_name ?? ""} disabled={!canWrite} className={inputClass} /></Field>
-                <Field label="CNPJ"><input name="cnpj" defaultValue={p.cnpj ? fmtCnpj(p.cnpj) : ""} disabled={!canWrite} className={inputClass} /></Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="CNPJ"><input name="cnpj" defaultValue={p.cnpj ? fmtCnpj(p.cnpj) : ""} disabled={!canWrite} className={inputClass} /></Field>
+                  <Field label="Inscrição estadual" hint="Só números, ou ISENTO"><input name="ie" defaultValue={p.ie ?? ""} maxLength={20} disabled={!canWrite} className={inputClass} /></Field>
+                </div>
               </>
             ) : (
               <div className="grid grid-cols-2 gap-3">
+                <Field label={cpfMasked ? "Trocar CPF" : "CPF"} className="col-span-2" hint={cpfMasked
+                  ? (canSensitive ? "Deixe em branco para manter o atual" : "Trocar um CPF já cadastrado exige a permissão de dados sensíveis")
+                  : "Opcional. Fica criptografado; depois de salvo aparece só o final"}>
+                  <input name="cpf" inputMode="numeric" maxLength={14} placeholder="000.000.000-00" autoComplete="off" disabled={!canWrite || (Boolean(cpfMasked) && !canSensitive)} className={inputClass} />
+                </Field>
                 <Field label="Nascimento"><input type="date" name="birth_date" defaultValue={p.birth_date ?? ""} disabled={!canWrite} className={inputClass} /></Field>
                 <Field label="Gênero"><select name="gender" defaultValue={p.gender ?? ""} disabled={!canWrite} className={inputClass}><option value="">—</option><option value="F">Feminino</option><option value="M">Masculino</option><option value="O">Outro</option></select></Field>
               </div>

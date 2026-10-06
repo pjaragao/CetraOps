@@ -3,11 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { SEGMENTS, STAGE_LABEL, TIER_LABEL } from "@centralops/domain";
-import { Badge, Empty, inputClass, PageHeader, Table } from "@/components/ui";
+import { Badge, Empty, inputClass, PageHeader, Pager, Table } from "@/components/ui";
 
 export const metadata = { title: "Clientes" };
 
 const STAGES = ["LEAD", "PROSPECT", "CUSTOMER", "VIP", "INACTIVE", "LOST"] as const;
+const PAGE = 100;
 
 export default async function ClientesPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
@@ -18,6 +19,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
   const papel = str(sp.papel) ?? "clientes";
   const segmento = str(sp.segmento);
   const risco = str(sp.risco) === "1";
+  const page = Math.max(1, Number(str(sp.p)) || 1);
   // clientes e leads: fora quem só é colaborador, fornecedor ou prestador (cadastro único, mas cada tela mostra o seu público)
   const { data: internal } = papel === "clientes"
     ? await supabase.schema("crm").from("party_roles").select("party_id").in("role", ["EMPLOYEE", "SUPPLIER", "SERVICE_PROVIDER", "CARRIER", "ACQUIRER", "BANK"])
@@ -27,9 +29,9 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
     : { data: null };
 
   let query = supabase.schema("crm").from("parties")
-    .select("id, display_name, city, lifecycle_stage, tier, lead_score, last_purchase_at, tags, party_roles(role)")
+    .select("id, display_name, city, lifecycle_stage, tier, lead_score, last_purchase_at, tags, party_roles(role)", { count: "exact" })
     .is("merged_into_id", null).is("anonymized_at", null)
-    .order("lead_score", { ascending: false }).order("display_name").limit(200);
+    .order("lead_score", { ascending: false }).order("display_name").order("id").range((page - 1) * PAGE, page * PAGE - 1);
   if (q) query = query.ilike("display_name", `%${q}%`);
   if (stage && (STAGES as readonly string[]).includes(stage)) query = query.eq("lifecycle_stage", stage as (typeof STAGES)[number]);
   const hide = [...new Set((internal ?? []).map((r) => r.party_id))];
@@ -42,7 +44,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
     const { data: ms } = await mq;
     query = query.in("id", (ms ?? []).length ? (ms ?? []).map((m) => m.party_id) : ["00000000-0000-0000-0000-000000000000"]);
   }
-  const { data: parties } = await query;
+  const { data: parties, count } = await query;
 
   return (
     <>
@@ -77,6 +79,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
           ))}
         </Table>
       )}
+      <Pager path="/clientes" params={{ q: q || undefined, estagio: stage, papel: papel === "clientes" ? undefined : papel, segmento, risco: risco ? "1" : undefined }} page={page} pageSize={PAGE} total={count ?? 0} />
     </>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Loader2, Mic, ScanBarcode, SendHorizontal, Sparkles, Square } from "lucide-react";
-import { ASSISTANT_NAME } from "@centralops/domain";
+import { Loader2, Mic, Paperclip, ScanBarcode, SendHorizontal, Sparkles, Square } from "lucide-react";
+import { ASSISTANT_NAME, classifyCode, parseNfeKey } from "@centralops/domain";
 import { Button, cn } from "@/components/ui";
 import { loadCentralThread } from "@/app/(app)/central/actions";
 import type { Card, CentralEvent } from "@/lib/central/cards";
+import { documentFromCode, type ReadDocument } from "@/lib/central/codes";
 import { CentralCard } from "./central-cards";
 import { BarcodeScanner, summarizeCodes, type ScannedCode } from "./barcode-scanner";
 import { useRecorder } from "./use-recorder";
@@ -70,7 +71,7 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages]);
 
-  const send = useCallback(async (raw: string) => {
+  const send = useCallback(async (raw: string, document?: ReadDocument) => {
     const text = raw.trim();
     if (!text || busy) return;
     setInput("");
@@ -80,7 +81,7 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
     setMessages((m) => [...m, { id: localId(), role: "user", text, cards: [] }, reply]);
     const patch = (fn: (m: UiMessage) => UiMessage) => setMessages((all) => all.map((m) => (m.id === reply.id ? fn(m) : m)));
     try {
-      const resp = await fetch("/api/central", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ threadId, message: text, path: pathname }) });
+      const resp = await fetch("/api/central", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ threadId, message: text, path: pathname, document: document ?? null }) });
       if (!resp.ok || !resp.body) {
         const err = (await resp.json().catch(() => ({}))) as { error?: string };
         patch((m) => ({ ...m, pending: false, status: null, text: err.error ?? "A Central não respondeu." }));
@@ -137,9 +138,33 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
     else setNotice(data.error ?? "Não consegui transcrever o áudio.");
   };
 
+  // Cada código lido diz o que é: boleto e Pix viram conta a pagar, chave de NF-e vai para o recebimento, o resto é peça
   const onScanned = (codes: ScannedCode[]) => {
     setScanning(false);
-    if (codes.length) void send(`Códigos bipados: ${summarizeCodes(codes)}`);
+    if (!codes.length) return;
+    const kinds = codes.map((c) => ({ ...c, kind: classifyCode(c.value) }));
+    const pay = kinds.find((c) => c.kind === "BOLETO" || c.kind === "PIX");
+    if (pay) {
+      const doc = documentFromCode(pay.kind === "BOLETO" ? "boleto" : "pix", pay.value);
+      if (doc) { void send(`📷 ${doc.label}`, doc); return; }
+    }
+    const nfe = kinds.find((c) => c.kind === "NFE_KEY");
+    if (nfe) { void send(`Chave de NF-e bipada: ${parseNfeKey(nfe.value)?.key ?? nfe.value}. Quero receber essa nota.`); return; }
+    void send(`Códigos bipados: ${summarizeCodes(codes)}`);
+  };
+
+  const fileInput = useRef<HTMLInputElement>(null);
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    setNotice("Lendo o documento…");
+    const form = new FormData();
+    form.set("file", file);
+    const r = await fetch("/api/central/ler", { method: "POST", body: form }).catch(() => null);
+    const data = r ? ((await r.json().catch(() => ({}))) as { document?: ReadDocument; error?: string }) : { error: "Sem conexão com o servidor." };
+    setNotice(null);
+    if (fileInput.current) fileInput.current.value = "";
+    if (data.document) await send(`📎 ${data.document.label}`, data.document);
+    else setNotice(data.error ?? "Não consegui ler o documento.");
   };
 
   return (
@@ -148,7 +173,7 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
         {messages.length === 0 && (
           <div className="space-y-3 pt-6 text-center">
             <Sparkles className="mx-auto text-brand" />
-            <p className="text-sm text-muted">Fale, escreva ou bipe. A {ASSISTANT_NAME} consulta o sistema e prepara vendas, cadastros e contas para você confirmar.</p>
+            <p className="text-sm text-muted">Fale, escreva, bipe ou mande uma foto (RG, CNH, boleto, Pix, nota). A {ASSISTANT_NAME} consulta o sistema e prepara vendas, cadastros e contas para você confirmar.</p>
             <div className="flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)} className="rounded-full border border-border bg-surface px-3 py-1 text-xs hover:bg-surface-2">{s}</button>)}
             </div>
@@ -173,9 +198,14 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
 
       {(notice || recorder.error) && <p className="px-3 pb-1 text-xs text-warning">{notice ?? recorder.error}</p>}
       <form onSubmit={(e) => { e.preventDefault(); void send(input); }} className="flex items-end gap-1.5 border-t border-border p-2">
-        <button type="button" onClick={() => setScanning(true)} disabled={busy} className="rounded-lg p-2 text-muted hover:bg-surface-2 disabled:opacity-50" aria-label="Bipar com a câmera" title="Bipar com a câmera">
+        <button type="button" onClick={() => setScanning(true)} disabled={busy} className="rounded-lg p-2 text-muted hover:bg-surface-2 disabled:opacity-50" aria-label="Bipar com a câmera" title="Bipar: etiqueta, boleto, Pix ou DANFE">
           <ScanBarcode size={18} />
         </button>
+        <button type="button" onClick={() => fileInput.current?.click()} disabled={busy} className="rounded-lg p-2 text-muted hover:bg-surface-2 disabled:opacity-50"
+                aria-label="Enviar foto ou documento" title="Foto ou PDF: RG/CNH, boleto, Pix, nota, recibo, etiqueta">
+          <Paperclip size={18} />
+        </button>
+        <input ref={fileInput} type="file" accept="image/*,application/pdf,.xml,text/xml,application/xml" className="hidden" onChange={(e) => void onFile(e.target.files?.[0])} aria-label="Arquivo para a Central" />
         {recorder.supported && (
           <button type="button" onClick={toggleMic} disabled={busy && !recorder.recording}
                   className={cn("rounded-lg p-2 hover:bg-surface-2 disabled:opacity-50", recorder.recording ? "animate-pulse text-danger" : "text-muted")}

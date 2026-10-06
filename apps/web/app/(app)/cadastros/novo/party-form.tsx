@@ -1,7 +1,9 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import type { CnpjData } from "@centralops/domain";
-import { EDITABLE_ROLES, PARTY_ROLE_LABEL } from "@centralops/domain";
+import { EDITABLE_ROLES, PARTY_ROLE_LABEL, validCpf } from "@centralops/domain";
+import type { ReadDocument } from "@/lib/central/codes";
 import { useKeptForm } from "@/components/use-kept-form";
 import { AddressFields, EMPTY_ADDRESS, type Address } from "@/components/address-fields";
 import { Button, Card, inputClass } from "@/components/ui";
@@ -10,10 +12,15 @@ import { createPartyAction } from "../actions";
 
 const digits = (s: string) => s.replace(/\D/g, "");
 
-/** Novo cadastro de pessoa ou empresa. CNPJ completo preenche razão social e endereço; CEP preenche o endereço. */
-export function PartyForm({ company }: { company: boolean }) {
+/**
+ * Novo cadastro de pessoa ou empresa. CNPJ completo preenche razão social e endereço; CEP preenche o endereço;
+ * a foto do RG/CNH/CIN (ou do comprovante de endereço) preenche nome, CPF, nascimento e endereço pela leitura da Central — a pessoa confere antes de salvar.
+ */
+export function PartyForm({ company, canReadDocs = false }: { company: boolean; canReadDocs?: boolean }) {
   const { state, pending, formProps } = useKeptForm(createPartyAction);
-  const [f, setF] = useState({ name: "", legal: "", cnpj: "", birth: "", gender: "", ig: "", phone: "", phone2: "", email: "", tags: "", notes: "" });
+  const [f, setF] = useState({ name: "", legal: "", cnpj: "", cpf: "", birth: "", gender: "", ig: "", phone: "", phone2: "", email: "", tags: "", notes: "" });
+  const [docMsg, setDocMsg] = useState<string | null>(null);
+  const docInput = useRef<HTMLInputElement>(null);
   const [roles, setRoles] = useState<string[]>([company ? "SUPPLIER" : "CUSTOMER"]);
   const [addr, setAddr] = useState<Address>(EMPTY_ADDRESS);
   const [cnpjMsg, setCnpjMsg] = useState<string | null>(null);
@@ -37,18 +44,53 @@ export function PartyForm({ company }: { company: boolean }) {
     } catch { setCnpjMsg("Consulta indisponível: preencha à mão"); }
   }
 
+  async function readDocument(file: File | undefined) {
+    if (!file) return;
+    setDocMsg("Lendo o documento…");
+    const form = new FormData();
+    form.set("file", file);
+    try {
+      const r = await fetch("/api/central/ler", { method: "POST", body: form });
+      const j = (await r.json()) as { document?: ReadDocument; error?: string };
+      const d = j.document;
+      if (!d) { setDocMsg(j.error ?? "Não consegui ler o documento."); return; }
+      const v = (k: string) => (typeof d.fields[k] === "string" ? (d.fields[k] as string) : "");
+      if (d.kind === "identidade") {
+        setF((p) => ({ ...p, name: v("nome") || p.name, cpf: v("cpf") ? v("cpf").replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : p.cpf, birth: v("data_nascimento") || p.birth }));
+        setDocMsg(`Preenchido pela leitura do ${v("documento_tipo") || "documento"}. Confira antes de salvar.${d.checks.length ? ` ${d.checks.join(" ")}` : ""}`);
+      } else if (d.kind === "comprovante_endereco") {
+        setAddr((a) => ({ cep: v("cep") ? v("cep").replace(/^(\d{5})(\d{3})$/, "$1-$2") : a.cep, street: v("logradouro") || a.street, number: v("numero") || a.number, complement: v("complemento") || a.complement,
+                          district: v("bairro") || a.district, city: v("cidade") || a.city, uf: v("uf") || a.uf }));
+        setDocMsg("Endereço preenchido pelo comprovante. Confira antes de salvar.");
+      } else setDocMsg("Isto não parece um documento de identidade nem um comprovante de endereço.");
+    } catch { setDocMsg("Leitura indisponível: preencha à mão."); }
+    finally { if (docInput.current) docInput.current.value = ""; }
+  }
+
+  const cpfDigits = digits(f.cpf);
+  const cpfBad = !company && cpfDigits.length > 0 && !validCpf(cpfDigits);
+
   const payload = useMemo(() => ({
     kind: company ? "COMPANY" : "PERSON", display_name: f.name, legal_name: f.legal || undefined, cnpj: company ? f.cnpj : undefined, birth_date: !company && f.birth ? f.birth : undefined,
     gender: !company && f.gender ? f.gender : undefined, instagram_handle: f.ig || undefined, phones: [f.phone, f.phone2].filter(Boolean), emails: f.email ? [f.email] : [], roles,
     tags: f.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean), notes: f.notes || undefined, address: Object.fromEntries(Object.entries(addr).filter(([, v]) => v)),
     registry: company && registry && digits(f.cnpj) === registry.cnpj ? registry : undefined,
+    cpf: !company && digits(f.cpf).length === 11 ? digits(f.cpf) : undefined,
   }), [f, roles, addr, company, registry]);
-  const ok = f.name.trim().length > 1 && (!company || digits(f.cnpj).length === 14) && roles.length > 0;
+  const ok = f.name.trim().length > 1 && (!company || digits(f.cnpj).length === 14) && roles.length > 0 && !cpfBad;
 
   return (
     <form {...formProps} className="space-y-4">
       <input type="hidden" name="payload" value={JSON.stringify(payload)} />
-      <Card title={company ? "Empresa" : "Pessoa"}>
+      <Card title={company ? "Empresa" : "Pessoa"} action={!company && canReadDocs ? (
+        <>
+          <Button type="button" variant="secondary" onClick={() => docInput.current?.click()} title="Foto ou PDF do RG, CNH, CIN ou comprovante de endereço">
+            <Camera size={15} /> Preencher com foto do documento
+          </Button>
+          <input ref={docInput} type="file" accept="image/*,application/pdf" className="hidden" aria-label="Foto do documento" onChange={(e) => void readDocument(e.target.files?.[0])} />
+        </>
+      ) : undefined}>
+        {docMsg && <p className="mb-3 rounded-lg bg-info/10 px-3 py-2 text-xs text-info" role="status">{docMsg} A imagem não é guardada.</p>}
         <div className="grid gap-3 sm:grid-cols-6">
           {company && <Field label="CNPJ" className="sm:col-span-2" hint={cnpjMsg ?? "Digite o CNPJ completo para preencher o resto"}>
             <input className={inputClass} value={f.cnpj} inputMode="numeric" placeholder="00.000.000/0000-00" maxLength={18} onChange={(e) => { set("cnpj", e.target.value); if (digits(e.target.value).length === 14) void lookupCnpj(e.target.value); }} />
@@ -56,6 +98,9 @@ export function PartyForm({ company }: { company: boolean }) {
           <Field label={company ? "Nome fantasia" : "Nome completo"} className={company ? "sm:col-span-4" : "sm:col-span-3"}><input className={inputClass} value={f.name} onChange={(e) => set("name", e.target.value)} maxLength={120} /></Field>
           {company && <Field label="Razão social" className="sm:col-span-6"><input className={inputClass} value={f.legal} onChange={(e) => set("legal", e.target.value)} maxLength={160} /></Field>}
           {!company && <>
+            <Field label="CPF" className="sm:col-span-2" hint={cpfBad ? "CPF inválido: confira os dígitos" : "Opcional. Fica criptografado; aparece só o final"}>
+              <input className={inputClass} value={f.cpf} inputMode="numeric" placeholder="000.000.000-00" maxLength={14} onChange={(e) => set("cpf", e.target.value)} aria-invalid={cpfBad} />
+            </Field>
             <Field label="Nascimento" className="sm:col-span-1"><input type="date" className={inputClass} value={f.birth} onChange={(e) => set("birth", e.target.value)} /></Field>
             <Field label="Gênero" className="sm:col-span-1"><select className={inputClass} value={f.gender} onChange={(e) => set("gender", e.target.value)}><option value="">—</option><option value="F">Feminino</option><option value="M">Masculino</option><option value="O">Outro</option></select></Field>
             <Field label="Instagram" className="sm:col-span-1"><input className={inputClass} value={f.ig} onChange={(e) => set("ig", e.target.value)} placeholder="@usuario" /></Field>

@@ -311,9 +311,9 @@ begin
     if v_list is null then raise exception 'Variante % sem preço vigente', r.sku using errcode = 'P0007'; end if;
     select coalesce(sum(sl.available), 0) into v_avail from inv.stock_levels sl join inv.locations l on l.id = sl.location_id and l.is_sellable and l.store_id = v_store.id
     where sl.variant_id = r.id;
-    if v_avail < v_qty then v_warnings := v_warnings || format('%s %s %s: só %s disponível na loja', r.name, coalesce(r.color, ''), r.size, v_avail); end if;
+    if v_avail < v_qty then v_warnings := v_warnings || format('%s %s %s: só %s disponível na loja', r.name, coalesce(r.color, ''), r.size, trim_scale(v_avail)); end if;
     v_lines := v_lines || jsonb_build_object('variant_id', r.id, 'sku', r.sku, 'name', r.name, 'reference', r.reference_code, 'color', r.color, 'size', r.size,
-                                            'qty', v_qty, 'unit_price', v_list, 'total', round(v_list * v_qty, 2), 'available', v_avail);
+                                            'qty', v_qty, 'unit_price', v_list, 'total', round(v_list * v_qty, 2), 'available', trim_scale(v_avail));
     v_subtotal := v_subtotal + v_list * v_qty;
   end loop;
   if coalesce(p ->> 'coupon_code', '') <> '' then

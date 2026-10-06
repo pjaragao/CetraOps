@@ -82,7 +82,7 @@ select is((select o.total from sales.orders o where o.id = (select (v -> 'result
 select is((select o.cpf_on_invoice from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r1')), '52998224725', 'CPF da cliente na NFC-e sem passar pela IA');
 select is((select o.attribution ->> 'assisted_by' from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r1')), 'CENTRAL', 'venda marcada como feita pela Central');
 select is((ai.assistant_execute((select v from ids where k = 'a1')) ->> 'already'), 'true', 'clicar de novo não duplica a venda');
-select is((select count(*)::int from sales.orders where attribution ->> 'assisted_by' = 'CENTRAL'), 1, 'um único pedido');
+select is((select count(*)::int from sales.orders where idempotency_key = (select idempotency_key::text from ai.assistant_actions where id = (select v from ids where k = 'a1'))), 1, 'um único pedido');
 
 -- ---------- Venda para cliente nova com CPF ----------
 insert into kv select 'q2', sales.quote_order(jsonb_build_object('store_id', '00000000-0000-4000-8000-0000000000a1', 'items', jsonb_build_array(

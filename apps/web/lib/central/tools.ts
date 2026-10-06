@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@centralops/db";
-import { PAYMENT_METHODS, dueRange, formatBRL, normalizeSize, visibleNav, type DuePeriod, type PaymentKey } from "@centralops/domain";
+import { PAYMENT_METHODS, dueRange, formatBRL, maskCpf, normalizeSize, visibleNav, type DuePeriod, type PaymentKey } from "@centralops/domain";
 import type { Session } from "@/lib/session";
 import type { ActionCardData, ActionLine, Card, PersonHit, ProductHit, TitleRow } from "./cards";
 
@@ -57,7 +57,6 @@ function dbError(error: { message: string } | null) {
 }
 
 const fmtDate = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
-const maskCpf = (cpf: string) => `***.***.*${cpf.slice(-4, -2)}-${cpf.slice(-2)}`;
 
 async function storeOf(ctx: ToolCtx) {
   const s = ctx.session.stores.find((x) => x.id === ctx.storeId) ?? (ctx.storeId ? null : ctx.session.stores[0]);
@@ -350,8 +349,10 @@ const proporVenda = tool({
       p: { store_id: store.id, coupon_code: a.cupom ?? null, items: a.itens.map((i) => ({ variant_id: i.variant_id, qty: i.qtd })) } as never,
     });
     dbError(error);
-    const q = quote as unknown as { items: { variant_id: string; name: string; color: string | null; size: string; qty: number; unit_price: number; total: number }[]; subtotal: number; total: number;
-                                     coupon: { code: string; discount: number } | null; warnings: string[] };
+    const q = quote as unknown as { items: { variant_id: string; name: string; color: string | null; size: string; qty: number; unit_price: number; total: number; available: number }[];
+                                     subtotal: number; total: number; coupon: { code: string; discount: number } | null; warnings: string[] };
+    const short = q.items.filter((i) => Number(i.available) < Number(i.qty));
+    if (short.length) fail(`Sem estoque suficiente na loja: ${short.map((i) => `${i.name} ${i.color ?? ""} ${i.size} (disponível ${Number(i.available)})`).join("; ")}. Ofereça outro tamanho/cor ou o avise-me.`);
     warnings.push(...q.warnings);
     const coupon = q.coupon ? a.cupom : null;
     const pay = PAYMENT_METHODS[a.pagamento.forma];
@@ -381,15 +382,33 @@ const proporVenda = tool({
 
 const proporCadastro = tool({
   name: "propor_cadastro",
-  description: "Prepara o cadastro de uma pessoa (cliente) com os dados que a pessoa disse ou que vieram de um documento, para confirmar no cartão.",
+  description: "Prepara o cadastro de uma pessoa (cliente) com os dados que a pessoa disse ou que vieram de um documento, para confirmar no cartão. Para acrescentar dados a um cartão de cadastro ainda não confirmado (ex.: o WhatsApp depois da foto da CNH), passe complementar_acao_id e só os campos novos.",
   perms: ["crm.write"],
   status: "Preparando o cadastro…",
   input: novaCliente.extend({
+    nome: z.string().min(2).optional(),
     nascimento: date.optional(),
     genero: z.enum(["F", "M", "O"]).optional(),
     observacoes: z.string().max(300).optional(),
+    complementar_acao_id: id.optional().describe("acao_id de um cartão de cadastro aguardando confirmação"),
   }),
-  async run(a, ctx) {
+  async run(input, ctx) {
+    const a = { ...input };
+    if (a.complementar_acao_id) {
+      const { data: prev } = await ctx.supabase.schema("ai").from("assistant_actions").select("args, status, tool").eq("id", a.complementar_acao_id).maybeSingle();
+      if (!prev || prev.tool !== "cadastrar_pessoa" || prev.status !== "PROPOSED") fail("Esse cartão de cadastro não está mais aberto: peça o cadastro de novo.");
+      const g = prev!.args as Record<string, string | boolean | null>;
+      a.nome ??= (g.display_name as string) ?? undefined;
+      a.cpf ??= (g.cpf as string) ?? undefined;
+      a.telefone ??= (g.phone as string) ?? undefined;
+      a.email ??= (g.email as string) ?? undefined;
+      a.nascimento ??= (g.birth_date as string) ?? undefined;
+      a.genero ??= (g.gender as "F" | "M" | "O") ?? undefined;
+      a.observacoes ??= (g.notes as string) ?? undefined;
+      if (a.aceita_marketing === undefined && typeof g.marketing_whatsapp === "boolean") a.aceita_marketing = g.marketing_whatsapp;
+      ctx.proposals.set("cadastrar_pessoa", a.complementar_acao_id);                  // o cartão antigo é cancelado pelo novo
+    }
+    if (!a.nome) fail("Falta o nome da pessoa.");
     const cpf = (a.cpf ?? "").replace(/\D/g, "");
     const warnings: string[] = [];
     if (cpf) {
@@ -401,19 +420,20 @@ const proporCadastro = tool({
         return { ja_cadastrada: true, party_id: found.party_id, nome: found.display_name };
       }
     }
-    const { data: similar } = await ctx.supabase.schema("crm").rpc("search_people", { p_query: a.telefone?.replace(/\D/g, "").slice(-8) || a.nome, p_limit: 3 });
+    const { data: similar } = await ctx.supabase.schema("crm").rpc("search_people", { p_query: a.telefone?.replace(/\D/g, "").slice(-8) || a.nome!, p_limit: 3 });
     const dup = ((similar as unknown as PersonHit[]) ?? []);
     if (dup.length) warnings.push(`Parecidas no cadastro: ${dup.map((d) => d.name).join(", ")}. Confira antes de criar outra.`);
     const lines: ActionLine[] = [
-      { label: "Nome", value: a.nome },
+      { label: "Nome", value: a.nome! },
       ...(a.telefone ? [{ label: "WhatsApp", value: a.telefone }] : []),
       ...(cpf ? [{ label: "CPF", value: maskCpf(cpf) }] : []),
       ...(a.email ? [{ label: "E-mail", value: a.email }] : []),
       ...(a.nascimento ? [{ label: "Nascimento", value: fmtDate(a.nascimento) }] : []),
       ...(a.aceita_marketing !== undefined ? [{ label: "Novidades pelo WhatsApp", value: a.aceita_marketing ? "aceitou" : "não quer" }] : []),
     ];
-    const args = { display_name: a.nome.trim(), phone: a.telefone || null, cpf: cpf || null, email: a.email || null, birth_date: a.nascimento || null, gender: a.genero || null,
+    const args = { display_name: a.nome!.trim(), phone: a.telefone || null, cpf: cpf || null, email: a.email || null, birth_date: a.nascimento || null, gender: a.genero || null,
                    notes: a.observacoes || null, ...(a.aceita_marketing === undefined ? {} : { marketing_whatsapp: a.aceita_marketing }) };
+    if (!a.telefone) warnings.push("Sem WhatsApp: diga o número para completar o cartão.");
     const r = await propose(ctx, "cadastrar_pessoa", args, { similar: dup.map((d) => d.party_id) }, { title: `Cadastrar ${a.nome}`, lines, warnings });
     return { ...r, parecidas: dup.map((d) => ({ party_id: d.party_id, nome: d.name })) };
   },

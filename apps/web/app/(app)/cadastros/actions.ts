@@ -24,6 +24,7 @@ const partySchema = z.object({
   birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), gender: z.enum(["F", "M", "O"]).optional(), instagram_handle: z.string().max(31).optional(),
   phones: z.array(z.string().max(25)).max(5), emails: z.array(z.string().max(120)).max(5), roles: z.array(z.string()).max(8), tags: z.array(z.string()).max(10), notes: z.string().max(500).optional(),
   address: z.record(z.string(), z.string()).optional(),
+  cpf: z.string().regex(/^\d{11}$/).optional(),
 });
 
 /** Novo cadastro (pessoa ou empresa). */
@@ -33,8 +34,19 @@ export async function createPartyAction(_prev: State, formData: FormData): Promi
   const parsed = partySchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: `Confira o cadastro: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
   const supabase = await createClient();
-  const { data, error } = await supabase.schema("crm").rpc("create_party", { p: parsed.data as unknown as Json });
+  const { cpf, ...party } = parsed.data;
+  if (cpf) {   // o CPF não pode estar em dois cadastros: confere antes de criar
+    const { data: found, error: e } = await supabase.schema("crm").rpc("find_by_cpf", { p_cpf: cpf });
+    if (e) return { ok: false, error: friendly(e.message) };
+    const f = found as unknown as { found: boolean; display_name?: string };
+    if (f.found) return { ok: false, error: `Este CPF já está no cadastro de ${f.display_name}` };
+  }
+  const { data, error } = await supabase.schema("crm").rpc("create_party", { p: party as unknown as Json });
   if (error) return { ok: false, error: friendly(error.message) };
+  if (cpf) {
+    const { error: e } = await supabase.schema("crm").rpc("set_cpf", { p_party: (data as unknown as { id: string }).id, p_cpf: cpf });
+    if (e) return redirect(`/cadastros/${(data as unknown as { id: string }).id}?erro=${encodeURIComponent(`Cadastro criado, mas o CPF não foi gravado: ${friendly(e.message)}`)}`);
+  }
   const registry = (raw as { registry?: unknown }).registry;
   if (registry && typeof registry === "object") {   // retrato da Receita da consulta de CNPJ (falha aqui não desfaz o cadastro)
     await supabase.schema("crm").rpc("save_registry", { p_party: (data as unknown as { id: string }).id, p_data: registry as Json });

@@ -1,84 +1,18 @@
 import "server-only";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@centralops/db";
 import { PAYMENT_METHODS, dueRange, formatBRL, maskCpf, normalizeSize, visibleNav, type DuePeriod, type PaymentKey } from "@centralops/domain";
 import type { Session } from "@/lib/session";
-import type { ActionCardData, ActionLine, Card, PersonHit, ProductHit, TitleRow } from "./cards";
+import type { ActionLine, PersonHit, ProductHit, TitleRow } from "./cards";
+import { GESTAO_TOOLS } from "./tools-gestao";
+import { checkPicked, date, dbError, fail, fmtDate, id, openSession, propose, storeOf, tool, ToolError, type ToolCtx, type ToolDef } from "./tool-kit";
+
+export type { ToolCtx, ToolDef } from "./tool-kit";
 
 /**
  * Ferramentas da Central. Cada uma declara a permissão que a tela exige: a lista enviada ao modelo já sai filtrada, e o banco confere de novo
  * (as consultas usam o JWT de quem está usando, com RLS). As de ESCRITA só propõem: gravam a ação em ai.assistant_actions e devolvem um cartão;
  * quem executa é o clique da pessoa (ai.assistant_execute).
  */
-
-export interface ToolCtx {
-  supabase: SupabaseClient<Database>;
-  session: Session;
-  storeId: string | null;
-  threadId: string;
-  addCard(card: Card): void;
-  /** Propostas feitas nesta resposta, por ferramenta: uma nova proposta da mesma ferramenta cancela a anterior. */
-  proposals: Map<string, string>;
-  /** Mensagem da pessoa nesta rodada (para saber se ela mesma escolheu a cliente: "[party_id=…]"). */
-  userMessage: string;
-  /** Pessoas que apareceram em buscas com mais de um resultado nesta rodada. */
-  ambiguousPeople: Set<string>;
-}
-
-/** A IA escolheu entre homônimas sem a pessoa escolher? O cartão avisa (a confirmação continua sendo da pessoa). */
-function checkPicked(ctx: ToolCtx, partyId: string | null | undefined, warnings: string[]) {
-  if (partyId && ctx.ambiguousPeople.has(partyId) && !ctx.userMessage.includes(`[party_id=${partyId}]`)) {
-    warnings.push("Confira a cliente: a busca trouxe mais de uma pessoa com nome parecido.");
-  }
-}
-
-export interface ToolDef {
-  name: string;
-  description: string;
-  /** Qualquer uma basta (o superusuário tem todas). */
-  perms: string[];
-  status: string;
-  input: z.ZodType;
-  run(args: never, ctx: ToolCtx): Promise<unknown>;
-}
-
-function tool<S extends z.ZodType>(d: { name: string; description: string; perms: string[]; status: string; input: S; run(args: z.output<S>, ctx: ToolCtx): Promise<unknown> }): ToolDef {
-  return d as unknown as ToolDef;
-}
-
-const id = z.string().regex(/^[0-9a-fA-F-]{36}$/, "UUID").describe("UUID (vem de outra ferramenta ou da escolha da pessoa)");
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("data AAAA-MM-DD");
-
-class ToolError extends Error {}
-const fail = (message: string): never => { throw new ToolError(message); };
-function dbError(error: { message: string } | null) {
-  if (error) fail(error.message.replace(/^ERROR:\s*/, ""));
-}
-
-const fmtDate = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
-
-async function storeOf(ctx: ToolCtx) {
-  const s = ctx.session.stores.find((x) => x.id === ctx.storeId) ?? (ctx.storeId ? null : ctx.session.stores[0]);
-  if (!s) fail("Escolha uma loja no topo da tela antes (a venda precisa de uma loja).");
-  return s!;
-}
-
-async function openSession(ctx: ToolCtx, storeId: string) {
-  const { data } = await ctx.supabase.schema("sales").from("cash_sessions").select("id, register_id, opened_at, opening_float").eq("store_id", storeId).eq("status", "OPEN").order("opened_at", { ascending: false }).limit(1);
-  return data?.[0] ?? null;
-}
-
-async function propose(ctx: ToolCtx, tool: string, args: Record<string, unknown>, preview: Record<string, unknown>, card: Omit<ActionCardData, "id" | "status" | "expires_at" | "tool">) {
-  const previous = ctx.proposals.get(tool);
-  if (previous) await ctx.supabase.schema("ai").rpc("assistant_cancel", { p_action: previous });
-  const { data, error } = await ctx.supabase.schema("ai").rpc("assistant_propose", { p: { thread_id: ctx.threadId, tool, args, preview, summary: card.title } as never });
-  dbError(error);
-  const a = data as unknown as { id: string; expires_at: string };
-  ctx.proposals.set(tool, a.id);
-  ctx.addCard({ kind: "acao", action: { ...card, id: a.id, tool, status: "PROPOSED", expires_at: a.expires_at } });
-  return { acao_id: a.id, situacao: "cartão pronto: aguardando a pessoa confirmar", avisos: card.warnings };
-}
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Leitura
@@ -618,6 +552,7 @@ const proporFecharCaixa = tool({
 export const TOOLS: ToolDef[] = [
   buscarCliente, fichaCliente, buscarProduto, contas, saldos, vendas, caixa, listaDoDia, navegar,
   proporVenda, proporCadastro, proporReserva, proporAviseMe, proporTarefa, proporContaPagar, proporBaixa, proporAbrirCaixa, proporFecharCaixa,
+  ...GESTAO_TOOLS,
 ];
 
 export function allowedTools(session: Session): ToolDef[] {

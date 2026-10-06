@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { computeCommission, DEFAULT_COMMISSION_PLAN, formatBRL, type Channel } from "@centralops/domain";
+import { computeCommission, DEFAULT_COMMISSION_PLAN, formatBRL, type BriefingItem, type Channel } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, getSession } from "@/lib/session";
 import { periodBounds, str, type SP } from "@/lib/context";
 import { Badge, Card, Empty, PageHeader, Stat } from "@/components/ui";
 import { Flash } from "@/components/form";
+import { BriefingCard } from "@/components/central/briefing-card";
 import { DailyList, type DailyAction } from "./daily-list";
 
 export const metadata = { title: "Início" };
@@ -24,7 +25,7 @@ export default async function Inicio({ searchParams }: { searchParams: SP }) {
     .gte("created_at", period.fromTs).lte("created_at", period.toTs);
   if (session.storeId) ordersQ = ordersQ.eq("store_id", session.storeId);
 
-  const [orders, waiting, openConvs, critical, obligations, daily] = await Promise.all([
+  const [orders, waiting, openConvs, critical, obligations, daily, briefing] = await Promise.all([
     can(session, "sales.read") ? ordersQ : Promise.resolve({ data: [] as never[] }),
     can(session, "omni.read")
       ? supabase.schema("omni").from("conversations").select("id", { count: "exact", head: true }).eq("mode", "WAITING_HUMAN").neq("status", "CLOSED")
@@ -39,7 +40,9 @@ export default async function Inicio({ searchParams }: { searchParams: SP }) {
       ? supabase.schema("fin").from("contract_obligations").select("id, description, due_date").eq("status", "PENDING").order("due_date").limit(5)
       : Promise.resolve({ data: [] as never[] }),
     can(session, "crm.read") ? supabase.schema("crm").rpc("daily_actions", { p_limit: 10 }) : Promise.resolve({ data: [] as never[] }),
+    supabase.schema("ai").rpc("daily_briefing"),
   ]);
+  const briefingItems = ((briefing.data as unknown as { items?: BriefingItem[] } | null)?.items ?? []).map((i) => ({ ...i, amount: i.amount === undefined ? undefined : Number(i.amount), compare_amount: i.compare_amount === undefined ? undefined : Number(i.compare_amount) }));
 
   const list = orders.data ?? [];
   const revenue = list.reduce((a, o) => a + Number(o.total), 0);
@@ -56,6 +59,8 @@ export default async function Inicio({ searchParams }: { searchParams: SP }) {
       <PageHeader title={`Olá, ${session.name.split(" ")[0]}`} description={`${period.from.split("-").reverse().join("/")} a ${period.to.split("-").reverse().join("/")}`} />
       {erro === "sem-permissao" && <p className="mb-4 rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning">Você não tem permissão para aquela tela.</p>}
       <Flash ok={str(sp.ok)} erro={erro && erro !== "sem-permissao" ? erro : undefined} />
+
+      {!briefing.error && <div className="mb-4"><BriefingCard items={briefingItems} central={can(session, "ai.assistant")} /></div>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Vendas no período" value={formatBRL(revenue)} hint={`${list.length} pedidos`} />

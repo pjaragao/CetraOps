@@ -63,6 +63,11 @@ function script(messages: Msg[]): { content?: string; tool_calls?: ReturnType<ty
     }
     return { content: "Completei o cartão: confira e confirme." };
   }
+  if (/^ferramenta /.test(user)) {
+    const [, name, args] = user.match(/^ferramenta (\w+)\s*(.*)$/) ?? [];
+    if (!called.length) return { tool_calls: [call(name, args ? JSON.parse(args) : {})] };
+    return { content: results[0]?.erro ? `ERRO: ${results[0].erro}` : `ok ${name}` };
+  }
   if (/inventa/i.test(user)) return { content: "Você vai economizar R$ 77,77 com isso." };
   return { content: "Não entendi." };
 }
@@ -221,5 +226,31 @@ test("Nova pessoa: a foto da CNH preenche nome, CPF e nascimento; o mesmo CPF n�
     await page.getByRole("button", { name: "Cadastrar pessoa" }).click();
     if (attempt === 1) await expect(page.getByText("Cadastro criado")).toBeVisible({ timeout: 15_000 });
     else await expect(page.getByText(`Este CPF já está no cadastro de ${nome}`)).toBeVisible({ timeout: 15_000 });
+  }
+});
+
+test("perguntas de gestão: cada ferramenta consulta o banco e mostra o cartão", async ({ page }) => {
+  await login(page, "socio");
+  await expect(page.getByText("Resumo do dia")).toBeVisible();                 // o resumo do dia no Início, sem IA
+  await expect(page.getByText(/^Ontem: \d+ venda/)).toBeVisible();
+  await page.getByRole("button", { name: /Abrir a Central/ }).first().click();
+  const casos: [string, string, RegExp][] = [
+    ["resumo_do_dia", "{}", /^Resumo do dia$/],
+    ["dre", '{"periodo":"mes"}', /DRE — mês atual/],
+    ["fluxo_caixa", '{"dias":30}', /Fluxo de caixa — próximos 30 dias/],
+    ["fechamento_mes", "{}", /Fechamento de/],
+    ["simples_das", "{}", /Simples Nacional —/],
+    ["obrigacoes_fiscais", '{"dias":30}', /Obrigações até/],
+    ["reposicao", "{}", /Repor em/],
+    ["curva_abc", '{"periodo":"ano","por":"tamanho"}', /Curva ABC por tamanho/],
+    ["escala", '{"dia":"hoje"}', /Escala de/],
+    ["ferias", "{}", /^Férias$/],
+    ["conversas_aguardando", "{}", /conversa\(s\) esperando a equipe/],
+    ["sugestoes_abertas", "{}", /alerta\(s\) aberto\(s\)/],
+  ];
+  for (const [name, args, title] of casos) {
+    await ask(page, `ferramenta ${name} ${args}`);
+    await expect(page.getByText(`ok ${name}`)).toBeVisible();
+    await expect(page.getByText(title).last()).toBeVisible();
   }
 });

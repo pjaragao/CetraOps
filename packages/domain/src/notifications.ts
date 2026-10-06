@@ -42,6 +42,7 @@ const KINDS: Record<string, (p: Payload) => NotificationView> = {
   REIMBURSEMENT_REJECTED: (p) => ({ label: "Reembolso recusado", tone: "danger", href: `/financeiro/reembolsos/${str(p.reimbursement_id)}` }),
   CUSTOMER_AT_RISK: (p) => ({ label: "Cliente em risco", tone: "warning", href: str(p.party_id) ? `/clientes/${str(p.party_id)}` : "/clientes/ciclo-de-vida" }),
   PAYMENT_LINK_REQUESTED: (p) => ({ label: "Link de pagamento", tone: "info", href: str(p.order_id) ? `/vender/pedidos/${str(p.order_id)}` : "/vender/pedidos" }),
+  BRIEFING: () => ({ label: "Resumo do dia", tone: "info", href: "/inicio" }),
 };
 
 export function describeNotification(kind: string, payload: Payload | null | undefined): NotificationView {

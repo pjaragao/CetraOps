@@ -683,6 +683,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"daily_briefing":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "decide_suggestion":
 { Args: { "p_id": string,"p_note"?: string,"p_status": string }; Returns: {
               "confidence": number | null,

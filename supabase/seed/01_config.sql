@@ -264,7 +264,7 @@ on conflict (org_id, key) do nothing;
 
 insert into core.settings (org_id, key, value) values
   ('00000000-0000-4000-8000-000000000001', 'revenue_attribution', '{"pos": "STORE_COUNTER", "remote": "HOME_STORE_DIGITAL", "fallback": "CORP-DIGITAL", "fulfillment_fee_pct": 0}'),
-  ('00000000-0000-4000-8000-000000000001', 'assistant_policies', '{"action_ttl_minutes": 15, "max_settle_amount": 5000, "max_messages_per_day": 300, "keep_threads_days": 90}'),
+  ('00000000-0000-4000-8000-000000000001', 'assistant_policies', '{"action_ttl_minutes": 15, "max_settle_amount": 5000, "max_messages_per_day": 300, "keep_threads_days": 90, "daily_briefing_notify": true}'),
   ('00000000-0000-4000-8000-000000000001', 'ai_policies', '{"max_discount_pct": 0, "handoff_cart_value": 1500, "reservation_max_hours": 48, "max_ai_reserved_items": 3, "sla_minutes": {"VIP": 5, "STANDARD": 15}}'),
   ('00000000-0000-4000-8000-000000000001', 'commission_plan_default', '{"base": "STORE_REVENUE", "rates_by_channel": {"POS": 3, "WHATSAPP": 3, "INSTAGRAM": 3}, "tiers": [{"from": 35000, "to": 60000, "bonus": 200}, {"from": 60000, "pct_over": 1}]}')
 on conflict (org_id, key) do nothing;

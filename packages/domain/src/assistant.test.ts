@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueRange, moneyMentions, normalizeSize, unverifiedAmounts } from "./assistant";
+import { briefingLine, dueRange, moneyMentions, normalizeSize, unverifiedAmounts } from "./assistant";
 
 describe("Central: conferência de números", () => {
   it("lê valores em reais no formato brasileiro", () => {
@@ -27,5 +27,15 @@ describe("Central: períodos e tamanhos", () => {
     expect(normalizeSize("gêgê")).toBe("GG");
     expect(normalizeSize("m")).toBe("M");
     expect(normalizeSize("")).toBeNull();
+  });
+});
+
+describe("Central: resumo do dia", () => {
+  it("frases com singular e plural e a comparação com a semana passada", () => {
+    expect(briefingLine({ key: "pagar_hoje", count: 3, amount: 1240, tone: "warning", href: "/financeiro/pagar" })).toBe("3 contas vencem hoje: R$ 1.240,00.");
+    expect(briefingLine({ key: "pagar_hoje", count: 1, amount: 320, tone: "warning", href: "/financeiro/pagar" })).toBe("1 conta vence hoje: R$ 320,00.");
+    expect(briefingLine({ key: "vendas_ontem", count: 4, amount: 1200, compare_amount: 1500, tone: "warning", href: "/" }))
+      .toBe("Ontem: 4 vendas, R$ 1.200,00 (abaixo do mesmo dia da semana passada: R$ 1.500,00).");
+    expect(briefingLine({ key: "vendas_ontem", count: 0, amount: 0, compare_amount: 0, tone: "neutral", href: "/" })).toBe("Ontem: 0 vendas, R$ 0,00.");
   });
 });

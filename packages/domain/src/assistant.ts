@@ -2,6 +2,7 @@
  * Regras puras da Central (a assistente de IA do CentralOps), usadas no servidor e na tela.
  * Nada aqui chama a IA: são as conferências que impedem a IA de inventar número e os mapeamentos fixos.
  */
+import { formatBRL } from "./money";
 import { todaySP } from "./period";
 
 export const ASSISTANT_NAME = "Central";
@@ -87,3 +88,41 @@ export const ACTION_LABELS: Record<string, string> = {
   abrir_caixa: "Abrir caixa",
   fechar_caixa: "Fechar caixa",
 };
+
+/** Item do resumo do dia (ai.daily_briefing): números do banco; o texto é montado aqui, igual no Início e na Central. */
+export interface BriefingItem {
+  key: string;
+  count?: number;
+  amount?: number;
+  compare_amount?: number;
+  tone: "neutral" | "warning" | "danger";
+  href: string;
+}
+
+const brl = (v: number | undefined) => formatBRL(v ?? 0);
+const plural = (n: number | undefined, one: string, many: string) => `${n ?? 0} ${(n ?? 0) === 1 ? one : many}`;
+
+/** Frase de cada item do resumo do dia (ex.: "3 contas vencem hoje: R$ 1.240,00"). */
+export function briefingLine(i: BriefingItem): string {
+  switch (i.key) {
+    case "vendas_ontem": {
+      const diff = (i.amount ?? 0) - (i.compare_amount ?? 0);
+      const cmp = i.compare_amount ? ` (${diff >= 0 ? "acima" : "abaixo"} do mesmo dia da semana passada: ${brl(i.compare_amount)})` : "";
+      return `Ontem: ${plural(i.count, "venda", "vendas")}, ${brl(i.amount)}${cmp}.`;
+    }
+    case "caixa_diferenca": return `O último caixa fechou com diferença de ${brl(i.amount)}.`;
+    case "pagar_hoje": return `${plural(i.count, "conta vence", "contas vencem")} hoje: ${brl(i.amount)}.`;
+    case "pagar_vencidas": return `${plural(i.count, "conta vencida", "contas vencidas")}: ${brl(i.amount)}.`;
+    case "sem_aprovacao": return `${plural(i.count, "conta a pagar", "contas a pagar")} sem aprovação vence(m) em até 3 dias.`;
+    case "receber_hoje": return `Entram hoje (previsto): ${brl(i.amount)} em ${plural(i.count, "recebimento", "recebimentos")}.`;
+    case "obrigacoes": return `${plural(i.count, "obrigação fiscal", "obrigações fiscais")} na semana: ${brl(i.amount)}.`;
+    case "estoque_critico": return `${plural(i.count, "peça vendida no último mês está", "peças vendidas no último mês estão")} com 1 ou nenhuma unidade.`;
+    case "conversas_aguardando": return `${plural(i.count, "conversa espera", "conversas esperam")} alguém da equipe.`;
+    case "contatar_hoje": return `${plural(i.count, "cliente para contatar", "clientes para contatar")} hoje.`;
+    case "tarefas_atrasadas": return `Você tem ${plural(i.count, "tarefa atrasada", "tarefas atrasadas")}.`;
+    case "aniversariantes": return `${plural(i.count, "cliente faz", "clientes fazem")} aniversário hoje.`;
+    case "eventos_semana": return `${plural(i.count, "evento", "eventos")} nos próximos 7 dias.`;
+    case "alertas": return `${plural(i.count, "alerta importante", "alertas importantes")} na Central de sugestões.`;
+    default: return i.key;
+  }
+}

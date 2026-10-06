@@ -25,12 +25,12 @@ select ok(not private.valid_nf_key('4226107318452900018665001000000123112345670'
 -- ---------- Pedir ----------
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');   -- vendedora (fin.reimburse)
 select throws_ok($$ select fin.save_reimbursement(jsonb_build_object('purpose', 'Almoço', 'items', jsonb_build_array(jsonb_build_object(
-  'spent_on', current_date + 2, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 50)))) $$, 'P0450', null, 'despesa no futuro é recusada');
+  'spent_on', (now() at time zone 'America/Sao_Paulo')::date + 2, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 50)))) $$, 'P0450', null, 'despesa no futuro é recusada');
 select throws_ok($$ select fin.save_reimbursement(jsonb_build_object('purpose', 'Almoço', 'items', jsonb_build_array(jsonb_build_object(
-  'spent_on', current_date, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 50, 'access_key', '4226107318452900018665001000000123112345679')))) $$, 'P0450', null, 'chave de nota inválida é recusada');
+  'spent_on', (now() at time zone 'America/Sao_Paulo')::date, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 50, 'access_key', '4226107318452900018665001000000123112345679')))) $$, 'P0450', null, 'chave de nota inválida é recusada');
 select lives_ok($$ insert into ids select 'r', (fin.save_reimbursement(jsonb_build_object('purpose', 'Almoço com fornecedor e material da loja', 'items', jsonb_build_array(
-  jsonb_build_object('spent_on', current_date - 1, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 82.5, 'access_key', (select v from kv where k = 'key'), 'supplier_name', 'Restaurante X'),
-  jsonb_build_object('spent_on', current_date, 'description', 'Fita adesiva', 'document_kind', 'RECIBO', 'amount', 17.5, 'chart_account_id', (select v from kv where k = 'acc')))))).id $$, 'cria o reembolso com duas despesas');
+  jsonb_build_object('spent_on', (now() at time zone 'America/Sao_Paulo')::date - 1, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 82.5, 'access_key', (select v from kv where k = 'key'), 'supplier_name', 'Restaurante X'),
+  jsonb_build_object('spent_on', (now() at time zone 'America/Sao_Paulo')::date, 'description', 'Fita adesiva', 'document_kind', 'RECIBO', 'amount', 17.5, 'chart_account_id', (select v from kv where k = 'acc')))))).id $$, 'cria o reembolso com duas despesas');
 select is((select status || '/' || total from fin.reimbursements where id = (select v from ids where k = 'r')), 'DRAFT/100.00', 'rascunho com o total');
 select is((select supplier_doc from fin.reimbursement_items where reimbursement_id = (select v from ids where k = 'r') and access_key is not null), '73184529000186', 'CNPJ do fornecedor tirado da chave da nota');
 select ok((select number from fin.reimbursements where id = (select v from ids where k = 'r')) like 'REE-%', 'número legível');
@@ -55,7 +55,7 @@ select throws_ok($$ select fin.decide_reimbursement((select v from ids where k =
 -- ---------- Decidir ----------
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');   -- sócio
 select throws_ok($$ select fin.decide_reimbursement((select v from ids where k = 'r'), false, 'x') $$, 'P0450', null, 'recusa precisa de motivo');
-select lives_ok($$ select fin.decide_reimbursement((select v from ids where k = 'r'), true, null, current_date + 3) $$, 'aprova');
+select lives_ok($$ select fin.decide_reimbursement((select v from ids where k = 'r'), true, null, (now() at time zone 'America/Sao_Paulo')::date + 3) $$, 'aprova');
 select is((select status from fin.reimbursements where id = (select v from ids where k = 'r')), 'APPROVED', 'reembolso aprovado');
 select is((select direction::text || '/' || approval_status || '/' || origin_type || '/' || total_amount from fin.titles where id = (select title_id from fin.reimbursements where id = (select v from ids where k = 'r'))),
   'PAYABLE/APPROVED/REIMBURSEMENT/100.00', 'vira conta a pagar aprovada');
@@ -65,7 +65,7 @@ select ok((select accrual_entry_id is not null from fin.titles where id = (selec
 -- mesma nota em outro reembolso
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');
 select throws_ok($$ select fin.save_reimbursement(jsonb_build_object('purpose', 'De novo', 'items', jsonb_build_array(jsonb_build_object(
-  'spent_on', current_date, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 82.5, 'access_key', (select v from kv where k = 'key'))))) $$, 'P0451', null, 'a mesma nota não entra duas vezes');
+  'spent_on', (now() at time zone 'America/Sao_Paulo')::date, 'description', 'Almoço', 'document_kind', 'NFCE', 'amount', 82.5, 'access_key', (select v from kv where k = 'key'))))) $$, 'P0451', null, 'a mesma nota não entra duas vezes');
 
 -- pago quando a conta é baixada
 reset role;

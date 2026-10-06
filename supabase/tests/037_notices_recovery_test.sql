@@ -92,10 +92,10 @@ select ok(exists (select 1 from crm.timeline_events where kind = 'RECOVERY' and 
 
 -- venda depois da retomada conta como recuperada
 insert into ids select 'o6', pg_temp.order_for((select v from ids where k = 'paula'), 'NTC-6', 'PAID');
-update sales.orders set created_at = now() + interval '1 hour' where id = (select v from ids where k = 'o6');   -- no teste tudo acontece no mesmo instante
+update sales.orders set created_at = now() + interval '1 hour' where id = (select v from ids where k = 'o6');   -- no teste tudo acontece no mesmo instante (o relatório vai até amanhã: às 23h, +1 h já é outro dia em São Paulo)
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
-select is((select recovered from sales.report_recovered(current_date, current_date) where kind = 'ORDER_EXPIRED'), 1, 'relatório de vendas recuperadas');
-select ok((select attempts from sales.report_recovered(current_date, current_date) where kind = 'LOCKER_RETURNED') = 1, 'tentativas por tipo');
+select is((select recovered from sales.report_recovered((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date + 1) where kind = 'ORDER_EXPIRED'), 1, 'relatório de vendas recuperadas');
+select ok((select attempts from sales.report_recovered((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date + 1) where kind = 'LOCKER_RETURNED') = 1, 'tentativas por tipo');
 reset role;
 select lives_ok($$ select private.sweep_notices() $$, 'varredura de 15 em 15 min roda');
 

@@ -60,8 +60,8 @@ insert into sales.orders (org_id, legal_entity_id, store_id, location_id, number
 values ('00000000-0000-4000-8000-000000000001', (select id from core.legal_entities limit 1), '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000b1',
         'LNK-1', 'POS', 'PAID', (select v from ids where k = 'lia'), 450, 0, 450, 180, 'lnk-1');
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
-select is((select new_leads || '/' || buyers || '/' || revenue from mkt.tracking_link_stats(current_date, current_date) where code = 'qr-recepcao'), '1/1/450.00', 'resultado do link: lead nova, compradora e receita');
-select ok(exists (select 1 from crm.lead_sources(current_date, current_date) where source = 'LINK:qr-recepcao'), 'origem das leads novas');
+select is((select new_leads || '/' || buyers || '/' || revenue from mkt.tracking_link_stats((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date) where code = 'qr-recepcao'), '1/1/450.00', 'resultado do link: lead nova, compradora e receita');
+select ok(exists (select 1 from crm.lead_sources((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date) where source = 'LINK:qr-recepcao'), 'origem das leads novas');
 
 select * from finish();
 rollback;

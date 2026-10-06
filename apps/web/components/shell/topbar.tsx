@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { LogOut, Plus, Search } from "lucide-react";
-import { PERIODS } from "@centralops/domain";
+import { LogOut, Plus, Search, Sparkles } from "lucide-react";
+import { ASSISTANT_NAME, PERIODS } from "@centralops/domain";
 import { setStoreContext } from "@/app/(app)/actions";
 import { signOut } from "@/app/login/actions";
 import { NotificationBell } from "./notification-bell";
@@ -15,9 +15,10 @@ interface Props {
   stores: { id: string; name: string }[];
   storeId: string | null;
   canAllStores: boolean;
+  central?: boolean;
 }
 
-export function Topbar({ name, memberId, unreadNotifications, stores, storeId, canAllStores }: Props) {
+export function Topbar({ name, memberId, unreadNotifications, stores, storeId, canAllStores, central = false }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -60,6 +61,16 @@ export function Topbar({ name, memberId, unreadNotifications, stores, storeId, c
         <Search size={15} /> <span className="hidden sm:inline">Buscar ou executar…</span>
         <kbd className="hidden rounded border border-border px-1 text-[10px] sm:inline">Ctrl K</kbd>
       </button>
+      {central && !pathname.startsWith("/central") && (
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("centralops:central"))}
+          className="flex items-center gap-1 rounded-lg border border-brand/40 bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-2"
+          aria-label={`Abrir a ${ASSISTANT_NAME} (Ctrl+/)`}
+          title={`${ASSISTANT_NAME} — Ctrl+/`}
+        >
+          <Sparkles size={15} /> <span className="hidden sm:inline">{ASSISTANT_NAME}</span>
+        </button>
+      )}
       <button
         onClick={() => router.push("/vender/pdv")}
         className="flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-brand-contrast"

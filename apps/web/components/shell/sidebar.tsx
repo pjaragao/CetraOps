@@ -3,13 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import {
-  BadgeCheck, BarChart3, ChevronDown, Contact, FileText, Landmark, LayoutDashboard, Megaphone, Menu, MessagesSquare, PanelLeftClose, PanelLeftOpen, Settings, Shirt,
+  BadgeCheck, BarChart3, Bot, ChevronDown, Contact, FileText, Landmark, LayoutDashboard, Megaphone, Menu, MessagesSquare, PanelLeftClose, PanelLeftOpen, Settings, Shirt,
   ShoppingBag, Sparkles, Users, X,
 } from "lucide-react";
 import type { NavArea } from "@centralops/domain";
 import { cn } from "@/components/ui";
 
-const ICONS = { BadgeCheck, BarChart3, Contact, FileText, Landmark, LayoutDashboard, Megaphone, MessagesSquare, Settings, Shirt, ShoppingBag, Sparkles, Users };
+const ICONS = { BadgeCheck, BarChart3, Bot, Contact, FileText, Landmark, LayoutDashboard, Megaphone, MessagesSquare, Settings, Shirt, ShoppingBag, Sparkles, Users };
 const KEY = "centralops:sidebar-collapsed";
 
 /** A escolha de recolher a barra fica no navegador (por pessoa); sem armazenamento disponível, a barra abre expandida. */

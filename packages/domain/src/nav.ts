@@ -20,6 +20,7 @@ export interface NavArea {
 
 export const NAV: NavArea[] = [
   { key: "inicio", label: "Início", href: "/inicio", icon: "LayoutDashboard", items: [] },
+  { key: "central", label: "Central (IA)", href: "/central", icon: "Bot", permission: "ai.assistant", items: [] },
   {
     key: "cadastros", label: "Cadastros", href: "/cadastros/pessoas", icon: "Contact", permission: "crm.read",
     items: [

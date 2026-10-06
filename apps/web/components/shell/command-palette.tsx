@@ -5,8 +5,8 @@ import { useEffect, useState, useTransition } from "react";
 import type { NavArea } from "@centralops/domain";
 import { globalSearch, type SearchHit } from "@/app/(app)/actions";
 
-/** Ctrl+K: navegação, ações rápidas e busca de clientes, produtos (SKU/EAN) e pedidos. */
-export function CommandPalette({ nav }: { nav: NavArea[] }) {
+/** Ctrl+K: navegação, ações rápidas, busca de clientes, produtos (SKU/EAN) e pedidos, e pergunta direta à Central. */
+export function CommandPalette({ nav, central = false }: { nav: NavArea[]; central?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -59,6 +59,12 @@ export function CommandPalette({ nav }: { nav: NavArea[] }) {
             </Command.Group>
           )}
           <Command.Group heading="Ações" className="mt-2 text-xs text-muted">
+            {central && (
+              <Command.Item onSelect={() => { setOpen(false); setQ(""); window.dispatchEvent(new CustomEvent("centralops:central", { detail: { text: q.trim() } })); }}
+                            className="cursor-pointer rounded-lg px-3 py-2 text-sm text-text aria-selected:bg-surface-2">
+                {q.trim() ? `Perguntar à Central: “${q.trim()}”` : "Abrir a Central (Ctrl+/)"}
+              </Command.Item>
+            )}
             <Command.Item onSelect={() => go("/vender/pdv")} className="cursor-pointer rounded-lg px-3 py-2 text-sm text-text aria-selected:bg-surface-2">Nova venda no PDV</Command.Item>
             <Command.Item onSelect={() => go("/atendimento?filtro=aguardando")} className="cursor-pointer rounded-lg px-3 py-2 text-sm text-text aria-selected:bg-surface-2">Conversas aguardando humano</Command.Item>
           </Command.Group>

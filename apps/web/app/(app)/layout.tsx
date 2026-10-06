@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { visibleNav } from "@centralops/domain";
-import { getSession } from "@/lib/session";
+import { can, getSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { CommandPalette } from "@/components/shell/command-palette";
+import { CentralLauncher } from "@/components/central/central-launcher";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -26,11 +27,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             stores={session.stores.map((s) => ({ id: s.id, name: s.name }))}
             storeId={session.storeId}
             canAllStores={session.isSuperuser}
+            central={can(session, "ai.assistant")}
           />
         </Suspense>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">{children}</main>
       </div>
-      <CommandPalette nav={nav} />
+      <CommandPalette nav={nav} central={can(session, "ai.assistant")} />
+      {can(session, "ai.assistant") && <CentralLauncher />}
     </div>
   );
 }

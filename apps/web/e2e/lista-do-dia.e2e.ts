@@ -35,7 +35,7 @@ test.describe("lista do dia e avise-me", () => {
     await page.getByLabel("Tamanho", { exact: true }).fill("g");
     const note = `E2E cor preta ${Date.now() % 100000}`;
     await page.getByLabel("Observação", { exact: true }).fill(note);
-    await page.getByRole("button", { name: "Registrar" }).click();
+    await page.getByLabel("Observação", { exact: true }).locator("xpath=ancestor::form").getByRole("button", { name: "Registrar" }).click();   // a ficha também tem o "Registrar" do NPS
     await expect(page.getByText("Avise-me registrado")).toBeVisible({ timeout: 15_000 });
     const row = page.getByRole("listitem").filter({ hasText: note });
     await expect(row).toContainText("aguardando");

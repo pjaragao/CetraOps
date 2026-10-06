@@ -14,3 +14,4 @@ export * from "./tracking";
 export * from "./schedule";
 export * from "./people";
 export * from "./cnpj";
+export * from "./assistant";

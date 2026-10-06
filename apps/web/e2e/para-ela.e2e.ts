@@ -10,6 +10,6 @@ test.describe("para ela agora e benefícios", () => {
 
     await page.goto("/clientes/ciclo-de-vida");
     await expect(page.getByText("Benefícios por nível")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByLabel("VIP", { exact: true })).toHaveValue(/Pré-venda/);
+    await expect(page.getByRole("textbox", { name: /^VIP Um por linha/ })).toHaveValue(/Pré-venda/);   // o rótulo inclui a dica do campo
   });
 });

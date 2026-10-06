@@ -1,8 +1,9 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
-import { Minus, Plus, Trash2, UserRound } from "lucide-react";
+import { Minus, Plus, ScanBarcode, Trash2, UserRound } from "lucide-react";
 import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
+import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
 import { finalizeSale, identifyCustomer, type SaleInput } from "./actions";
 
 export interface PosVariant { id: string; sku: string; size: string; gtin: string | null; price: number; available: number }
@@ -29,6 +30,7 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
   const [coupon, setCoupon] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [idem, setIdem] = useState(() => crypto.randomUUID());
+  const [scanning, setScanning] = useState(false);
   const [pending, start] = useTransition();
 
   const filtered = useMemo(() => {
@@ -62,6 +64,19 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
     }
   };
 
+  // Câmera do celular/notebook como leitor: cada leitura (EAN ou SKU exato) vira uma peça no carrinho
+  const onScanned = (codes: ScannedCode[]) => {
+    setScanning(false);
+    const missing: string[] = [];
+    for (const c of codes) {
+      const t = c.value.trim();
+      const p = products.find((x) => x.variants.some((v) => v.gtin === t || v.sku.toLowerCase() === t.toLowerCase()));
+      const v = p?.variants.find((x) => x.gtin === t || x.sku.toLowerCase() === t.toLowerCase());
+      if (p && v) add(p, v); else missing.push(t);
+    }
+    if (missing.length) setMessage({ tone: "danger", text: `Código não encontrado no catálogo: ${[...new Set(missing)].join(", ")}` });
+  };
+
   const identify = () => start(async () => {
     const r = await identifyCustomer(phone, custName, marketing);
     if (!r.ok) setMessage({ tone: "danger", text: r.error });
@@ -89,11 +104,17 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
       <div className="space-y-3">
-        <input
-          autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onSearchKey}
-          placeholder="Buscar produto, referência, SKU ou bipar EAN…" className={cn(inputClass, "py-3 text-base")}
-          aria-label="Buscar produto"
-        />
+        <div className="flex gap-2">
+          <input
+            autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onSearchKey}
+            placeholder="Buscar produto, referência, SKU ou bipar EAN…" className={cn(inputClass, "py-3 text-base")}
+            aria-label="Buscar produto"
+          />
+          <Button type="button" variant="secondary" onClick={() => setScanning(true)} title="Bipar com a câmera do celular ou notebook" aria-label="Bipar com a câmera">
+            <ScanBarcode size={18} /> <span className="hidden sm:inline">Câmera</span>
+          </Button>
+        </div>
+        {scanning && <BarcodeScanner onDone={onScanned} onClose={() => setScanning(false)} title="Bipar peças para a venda" />}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((p) => (
             <Card key={p.key} className="p-3">

@@ -22,5 +22,7 @@ export default defineConfig({
     url: `${process.env.E2E_BASE_URL ?? "http://localhost:3000"}/login`,
     reuseExistingServer: true,
     timeout: 120_000,
+    // a Central conversa com o modelo falso do teste central.e2e.ts (servidor local compatível com o OpenRouter)
+    env: { CENTRALOPS_OPENROUTER_BASE: "http://127.0.0.1:4010", CENTRALOPS_OPENROUTER_KEY: "e2e-modelo-falso" },
   },
 });

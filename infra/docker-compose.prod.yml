@@ -44,6 +44,9 @@ services:
     tmpfs: ["/tmp", "/app/apps/web/.next/cache"]
     environment:
       NODE_ENV: production
+      # Central (assistente de IA da equipe): o laço roda no servidor web com o JWT de quem usa; as chaves nunca vão ao navegador
+      CENTRALOPS_OPENROUTER_KEY: ${CENTRALOPS_OPENROUTER_KEY:-}
+      CENTRALOPS_GROQ_KEY: ${CENTRALOPS_GROQ_KEY:-}
     networks: [edge, centralops]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

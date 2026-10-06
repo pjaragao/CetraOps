@@ -1,11 +1,25 @@
 # IA integrada à operação: plano da Central, o assistente do CentralOps
 
-> Versão 1.0 · 05/10/2026 · Escopo: levar a IA para dentro do trabalho de todas as áreas (vender, cadastrar, estoque, financeiro, fiscal, equipe, marketing e gestão). O caminho é um assistente com chat, voz, câmera e documentos, mais recursos de IA embutidos nas telas e avisos proativos. Somente planejamento; nada foi implementado.
+> Versão 1.0 · 05/10/2026 · Escopo: levar a IA para dentro do trabalho de todas as áreas (vender, cadastrar, estoque, financeiro, fiscal, equipe, marketing e gestão). O caminho é um assistente com chat, voz, câmera e documentos, mais recursos de IA embutidos nas telas e avisos proativos. Etapas 0 a 3 implementadas em 06/10/2026 (veja **Situação** logo abaixo); a etapa 4 continua planejada.
 > O retrato do que existe hoje vale para a branch `claude/kind-shannon-y9qvfj`, commit `1523112`.
 >
 > **Para quem:**
 > - sócios: Resumo, seções 1, 3, 4, 11 e 12;
 > - quem desenvolve: seções 5 a 10 e anexos.
+
+## Situação (06/10/2026)
+
+O produto passou a se chamar **CentralOps** e a assistente, **Central**. A decisão de arquitetura está no [ADR-0008](adr/0008-central-assistente-com-identidade-do-usuario.md).
+
+| Etapa | Entregue | Ficou para depois |
+|---|---|---|
+| **0. Fundação** | Tabelas `ai.assistant_*`, propor → confirmar → executar no banco (uma vez, com validade e idempotência), rotas `assistant` e `vision_extract` com orçamento, custo por pessoa, permissão `ai.assistant`, chave liga/desliga; CPF da cliente criptografado com busca por HMAC; `sales.quote_order`; painel em todas as telas (barra do topo, Ctrl+/, Ctrl+K) e página `/central` com histórico; modo busca sem IA | Apelidos por pessoa (`ai.member_aliases`) |
+| **1. Vender falando e bipando** | Voz (gravação + Whisper com o vocabulário da loja); câmera como leitor (BarcodeDetector e WebAssembly) na Central e no PDV; venda no PDV com cliente nova e CPF na nota; cadastro; reserva; avise-me; tarefa; conta a pagar; baixa com teto; abrir e fechar caixa; aviso de homônimas; venda sem estoque não vira cartão | Carrinho compartilhado com o PDV (`sales.cart_drafts`); pedido remoto com link de pagamento pelo chat |
+| **2. Documentos** | Leitores sem IA (boleto bancário e convênio, chave de NF-e/NFC-e, Pix, CPF, EAN); foto/PDF/XML → campos conferidos, arquivo não guardado; CNH/RG/CIN → cartão de cadastro sem o CPF passar pelo modelo da conversa; boleto e Pix (foto ou câmera) → conta a pagar; "Preencher com foto do documento" e campo CPF em Cadastros › Nova pessoa | Recibo → reembolso; contrato em PDF → parcelas; recebimento de NF-e com conferência bipando (hoje a chave bipada leva à tela de recebimento); troca e caso com foto pelo chat |
+| **3. Gestão e proatividade** | DRE, fluxo de caixa, fechamento, DAS, obrigações, reposição, curva ABC, escala, férias, conversas esperando, alertas da Central de sugestões; resumo do dia no Início (sem IA) com aviso às 08:00 e ferramenta `resumo_do_dia` | Ajuda do sistema por busca semântica; mensagem para cliente pelo chat; resumo de fim de turno |
+| **4. Expansão** | — | Tudo o que está na seção 10 |
+
+Nomes das ferramentas no código (em português, como a equipe fala): `buscar_cliente`, `ficha_cliente`, `buscar_produto`, `contas`, `saldos_bancarios`, `vendas`, `caixa`, `lista_do_dia`, `navegar`, `propor_venda`, `propor_cadastro`, `propor_reserva`, `propor_avise_me`, `propor_tarefa`, `propor_conta_pagar`, `propor_baixa`, `propor_abrir_caixa`, `propor_fechar_caixa`, `resumo_do_dia`, `dre`, `fluxo_caixa`, `fechamento_mes`, `simples_das`, `obrigacoes_fiscais`, `reposicao`, `curva_abc`, `escala`, `ferias`, `conversas_aguardando`, `sugestoes_abertas`.
 
 **Conteúdo**
 - Resumo

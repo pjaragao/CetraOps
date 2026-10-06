@@ -12,6 +12,7 @@ São duas frentes sobre uma fundação comum:
 
 ```text
 apps/web            Next.js 16 (App Router) + TypeScript + Tailwind — Server Components com o JWT do usuário (RLS), Server Actions → RPCs SQL
+  lib/central/       Central (assistente de IA da equipe): laço de ferramentas no servidor com o JWT de quem usa, cartões de confirmação, leitura de documentos
 apps/worker         Python (psycopg 3 async): consome as filas pgmq — normalizador, roteador de conversas, envio, fiscal, mídia, notificações
 apps/agent/
   contract/         contrato do agente: token de contexto (JWT), perfis de ferramentas, esquemas — compartilhado pelo worker e pelo MCP
@@ -22,7 +23,7 @@ supabase/
   seed/ · tests/    seeds de configuração/desenvolvimento e testes pgTAP
 packages/db         tipos TypeScript gerados do banco   ·   packages/domain  regras compartilhadas (dinheiro, comissão, rateio, menu)
 infra/              compose de produção (Coolify/Traefik), hardening da VPS, backups, runbook
-legacy/             sistema antigo (congelado)   ·   primeira_unidade_joy/ e plano_de_expansao/  plano de negócios e expansão
+legacy/             sistema antigo (congelado)   ·   primeira_unidade_joy/ e plano_de_expansao/  documentos de negócio de terceiros (fora do produto)
 ```
 
 Princípios: **o Postgres é o sistema de registro e o barramento** (invariantes em funções SQL transacionais; efeitos externos por outbox/pgmq); o **agente não é sistema de registro** (chamado sem estado; histórico, memória e pedidos vivem no banco); tudo é **idempotente** (webhooks, envios, pedidos, notas); a política de **janela das plataformas** é aplicada no servidor.
@@ -40,13 +41,13 @@ pnpm --filter @centralops/web dev        # http://localhost:3000  (usuários de 
 pnpm worker                       # worker (consome as filas)
 ```
 
-Sem as chaves da IA o sistema funciona: conversas em modo IA caem para atendimento humano (o rascunho exige `CENTRALOPS_OPENROUTER_KEY` ou `CENTRALOPS_HERMES_KEY`).
+Sem as chaves da IA o sistema funciona: conversas em modo IA caem para atendimento humano (o rascunho exige `CENTRALOPS_OPENROUTER_KEY` ou `CENTRALOPS_HERMES_KEY`) e a Central responde em modo busca. Para a Central conversar, o servidor web precisa de `CENTRALOPS_OPENROUTER_KEY` (e de `CENTRALOPS_GROQ_KEY` para o microfone).
 
 ## Testes e qualidade
 
 | Comando | O que roda |
 |---|---|
-| `npx supabase test db` | pgTAP — ~500 testes: RLS, ledger, estoque, RH, fiscal, pipeline de mensagens, agente, privilégios, cron |
+| `npx supabase test db` | pgTAP — ~1.700 testes: RLS, ledger, estoque, RH, fiscal, pipeline de mensagens, agente, privilégios, cron |
 | `pnpm test:py` | contrato do agente + worker + servidor MCP (contra o Postgres local; cada teste roda numa transação revertida) |
 | `pnpm test:edge` | funções de webhook (HMAC, chaves de idempotência) — Node 22 executa o mesmo TypeScript do Deno |
 | `pnpm exec turbo run typecheck lint test` | TypeScript: tipos, ESLint e Vitest |
@@ -68,6 +69,7 @@ Menu por tarefa, protegido por permissões (RBAC + RLS em todas as tabelas):
 | **Configurações** — **integrações** (credenciais no Vault, teste pelo worker, canais de atendimento), contas bancárias, plano de contas, rateios, taxas de cartão | pronto |
 | **Equipe (RH)** — admissão, escalas, ponto, férias, folha, rescisão, comissões, acessos — integrados ao financeiro, contábil e fiscal | pronto |
 | **Atendimento** — inbox, rascunhos da IA, modos Piloto/Copiloto/Humano, janela de envio | núcleo pronto (automações, templates e desempenho: em construção) |
+| **Central (IA da equipe)** — conversa em todas as telas (barra do topo, Ctrl+/, Ctrl+K) com texto, voz, câmera (código de barras, boleto, Pix, DANFE) e foto/PDF (RG, CNH, CIN, boleto, nota). Consulta clientes, produtos, estoque, contas, caixa, DRE, fluxo de caixa, DAS, reposição, escala e alertas; prepara venda (com cliente nova e CPF na nota), cadastro, reserva, avise-me, tarefa, conta a pagar, baixa e caixa em cartões que a pessoa confirma; resumo do dia no Início. Ver [plano](docs/plano-ia-integrada.md) e [ADR-0008](docs/adr/0008-central-assistente-com-identidade-do-usuario.md) | pronto (etapas 0 a 3; a etapa 4 está no plano) |
 | **Inteligência** — rotas de modelos por tarefa, custos | parcial (personas, base de conhecimento, sugestões: em construção) |
 | **Clientes / Marketing** — ficha 360°, cupons | parcial (funis, tarefas, campanhas, eventos: em construção) |
 

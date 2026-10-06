@@ -12,3 +12,4 @@ Cada decisão relevante fica registrada com contexto, escolha e consequências. 
 | [0005](0005-seguranca-do-agente-de-ia.md) | Segurança do agente de IA: ferramentas pelo banco, token de contexto, guardrails | Aceita |
 | [0006](0006-privilegios-de-funcoes.md) | Privilégios de funções: nada executável por PUBLIC | Aceita |
 | [0007](0007-entrega-e-infraestrutura.md) | CI/CD, imagens e infraestrutura (VPS + Coolify, banco no Supabase) | Aceita |
+| [0008](0008-central-assistente-com-identidade-do-usuario.md) | Central: a assistente da equipe roda com a identidade de quem usa; gravar só com confirmação | Aceita |

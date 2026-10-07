@@ -6,7 +6,7 @@ import { Badge, Button, Card, inputClass, PageHeader, Table } from "@/components
 import { Field, Flash } from "@/components/form";
 import { AccessFields } from "./access-fields";
 import { createUserAction } from "./actions";
-import { loadAdminData, when } from "./data";
+import { loadAdminData, ROLE_LABEL, searchPeople, when } from "./data";
 
 export const metadata = { title: "Usuários & permissões" };
 
@@ -30,6 +30,10 @@ export default async function UsuariosPage({ searchParams }: { searchParams: SP 
     ]);
     if (p) person = { id: p.id, name: p.display_name, email: email?.value_display ?? "", shareholder: Boolean(sh) };
   }
+
+  const buscar = str(sp.buscar) ?? "";
+  const hits = person ? [] : await searchPeople(buscar);
+  const taken = new Set(users.flatMap((u) => (u.party ? [u.party.id] : [])));
 
   return (
     <>
@@ -58,9 +62,25 @@ export default async function UsuariosPage({ searchParams }: { searchParams: SP 
         <p className="mb-3 text-sm text-muted">
           {person
             ? `O usuário fica ligado ao cadastro de ${person.name}.${person.shareholder ? " Ela é sócia da empresa no cadastro, então o perfil de acesso total já vem marcado: desmarque se ela não deve administrar o sistema." : ""}`
-            : "Para ligar a uma pessoa que já está no Cadastro, abra a ficha dela e use “Dar acesso ao sistema”. Daqui, o sistema procura a pessoa pelo e-mail e, se não achar, cria o cadastro."}
+            : "Busque primeiro a pessoa no Cadastro (abaixo): o usuário fica ligado a ela, sem duplicar. Só se ela não existir o sistema cria o cadastro."}
           {" "}Você define uma senha provisória e passa à pessoa junto com o e-mail; no primeiro acesso ela cria a própria senha.
         </p>
+        {!person && (
+          <div className="mb-4 rounded-lg border border-border p-3">
+            <form className="flex flex-wrap items-end gap-2">
+              <Field label="Pessoa do Cadastro"><input name="buscar" defaultValue={buscar} placeholder="Nome (ex.: Luisa)" className={`${inputClass} w-64`} /></Field>
+              <Button variant="secondary">Buscar</Button>
+            </form>
+            {buscar.trim().length >= 2 && (hits.length === 0 ? <p className="mt-2 text-sm text-muted">Ninguém com esse nome no Cadastro: preencha abaixo para criar a pessoa junto com o usuário.</p> : (
+              <ul className="mt-2 space-y-1 text-sm">{hits.map((h) => (
+                <li key={h.id} className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{h.name}</span><span className="text-xs text-muted">{[h.city, ...h.roles.map((r) => ROLE_LABEL[r]).filter(Boolean)].filter(Boolean).join(" · ")}</span>
+                  {taken.has(h.id) ? <Badge tone="neutral">já tem usuário</Badge> : <Link href={`/configuracoes/usuarios?pessoa=${h.id}#novo`} className="text-brand">Dar acesso a esta pessoa</Link>}
+                </li>
+              ))}</ul>
+            ))}
+          </div>
+        )}
         <form action={createUserAction} className="grid gap-3 sm:grid-cols-2">
           {person && <input type="hidden" name="party_id" value={person.id} />}
           <Field label="Nome"><input name="display_name" required minLength={2} defaultValue={person?.name ?? ""} className={inputClass} placeholder="Luisa" /></Field>

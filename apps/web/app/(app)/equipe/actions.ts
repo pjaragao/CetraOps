@@ -34,7 +34,7 @@ async function call(schema: "hr" | "comm" | "fin", fn: string, args: Record<stri
 // Admissão
 // ---------------------------------------------------------------------
 const employeeSchema = z.object({
-  legal_entity_id: uuid, store_id: z.string().uuid().optional(), name: z.string().min(3).max(120), cpf: z.string().min(11).max(14),
+  legal_entity_id: uuid, store_id: z.string().uuid().optional(), party_id: z.string().uuid().optional(), name: z.string().min(3).max(120), cpf: z.string().min(11).max(14),
   birth_date: date.optional(), phone: z.string().max(20).optional(), email: z.string().email().optional(),
   contract_type: z.enum(["CLT", "ESTAGIO", "APRENDIZ", "INTERMITENTE", "TEMPORARIO", "PRO_LABORE", "AUTONOMO"]),
   job_title: z.string().min(2).max(80), cbo: z.string().max(10).optional(), department: z.string().max(60).optional(),

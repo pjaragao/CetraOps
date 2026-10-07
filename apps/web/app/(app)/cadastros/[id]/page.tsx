@@ -94,6 +94,7 @@ export default async function CadastroPage({ params, searchParams }: { params: P
             </div>
             {myRoles.has("SHAREHOLDER") && <p className="text-xs text-muted">Sócio(a) da empresa é o vínculo societário (pró-labore, distribuição de lucros). Não dá acesso ao sistema: o acesso fica no quadro “Acesso ao sistema”.</p>}
             {myRoles.has("EMPLOYEE") && <p className="text-xs text-muted"><Badge tone="info">Colaboradora (RH)</Badge> vem da admissão e não se altera aqui.</p>}
+            {!company && !myRoles.has("EMPLOYEE") && can(session, "hr.write") && <p className="text-xs"><Link href={`/equipe/novo?pessoa=${id}`} className="text-brand">Admitir como colaborador(a)</Link> <span className="text-muted">— usa este mesmo cadastro, sem criar outro.</span></p>}
             {canWrite && <Button variant="secondary">Salvar papéis</Button>}
           </form>
         </Card>

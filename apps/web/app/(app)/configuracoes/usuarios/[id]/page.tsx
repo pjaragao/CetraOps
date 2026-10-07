@@ -5,8 +5,8 @@ import { str, type SP } from "@/lib/context";
 import { Badge, Button, Card, inputClass, PageHeader } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
 import { AccessFields } from "../access-fields";
-import { resetPasswordAction, setUserStatusAction, updateUserAction } from "../actions";
-import { loadAdminData, when } from "../data";
+import { linkUserPartyAction, resetPasswordAction, setUserStatusAction, updateUserAction } from "../actions";
+import { loadAdminData, ROLE_LABEL, searchPeople, when } from "../data";
 
 export const metadata = { title: "Usuário" };
 
@@ -18,6 +18,9 @@ export default async function UsuarioPage({ params, searchParams }: { params: Pr
   const u = users.find((x) => x.id === id);
   if (!u) notFound();
   const self = u.id === session.memberId;
+  const buscar = str(sp.buscar) ?? "";
+  const hits = await searchPeople(buscar);
+  const taken = new Set(users.flatMap((x) => (x.party ? [x.party.id] : [])));
 
   return (
     <>
@@ -39,6 +42,27 @@ export default async function UsuarioPage({ params, searchParams }: { params: Pr
           <AccessFields roles={roles} stores={stores} value={u} />
           <div className="sm:col-span-2"><Button>Salvar acessos</Button></div>
         </form>
+      </Card>
+
+      <Card className="mt-4" title="Pessoa no Cadastro">
+        <p className="mb-3 text-sm text-muted">
+          {u.party ? `Este usuário está ligado a ${u.party.name}.` : "Este usuário ainda não está ligado a uma pessoa."} Se a pessoa já existe no Cadastro com outro registro (por exemplo, como sócia), busque e ligue aqui:
+          o cadastro criado automaticamente com o usuário é mesclado nele, e ela passa a ser uma só.
+        </p>
+        <form className="flex flex-wrap items-end gap-2">
+          <Field label="Buscar no Cadastro"><input name="buscar" defaultValue={buscar} placeholder="Nome" className={`${inputClass} w-64`} /></Field>
+          <Button variant="secondary">Buscar</Button>
+        </form>
+        {buscar.trim().length >= 2 && (hits.length === 0 ? <p className="mt-2 text-sm text-muted">Ninguém com esse nome no Cadastro.</p> : (
+          <ul className="mt-2 space-y-2 text-sm">{hits.map((h) => (
+            <li key={h.id} className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{h.name}</span><span className="text-xs text-muted">{[h.city, ...h.roles.map((r) => ROLE_LABEL[r]).filter(Boolean)].filter(Boolean).join(" · ")}</span>
+              {h.id === u.party?.id ? <Badge tone="info">pessoa atual</Badge> : taken.has(h.id) ? <Badge tone="neutral">já tem usuário</Badge> : (
+                <form action={linkUserPartyAction}><input type="hidden" name="id" value={u.id} /><input type="hidden" name="party_id" value={h.id} /><Button variant="secondary" className="px-2 py-1 text-xs">Ligar a esta pessoa</Button></form>
+              )}
+            </li>
+          ))}</ul>
+        ))}
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

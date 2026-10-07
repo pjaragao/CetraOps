@@ -32,12 +32,12 @@ select is((select ie from crm.parties where id = (select v from ids where k = 'e
 -- CPF na ficha
 insert into ids select 'pes', (crm.create_party('{"display_name":"Pessoa CPF Ficha"}')).id;
 select is(crm.party_cpf_masked((select v from ids where k = 'pes')), null, 'sem CPF, nada a mostrar');
-select crm.set_cpf((select v from ids where k = 'pes'), '529.982.247-25');
-select is(crm.party_cpf_masked((select v from ids where k = 'pes')), '***.***.*47-25', 'quem lê o cadastro vê só o final');
+select crm.set_cpf((select v from ids where k = 'pes'), '390.533.447-05');
+select is(crm.party_cpf_masked((select v from ids where k = 'pes')), '***.***.*47-05', 'quem lê o cadastro vê só o final');
 select throws_ok($$ select crm.reveal_cpf((select v from ids where k = 'pes')) $$, '42501', null, 'CPF completo exige crm.sensitive');
 
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');   -- sócio: acesso total
-select is(crm.reveal_cpf((select v from ids where k = 'pes')), '52998224725', 'com crm.sensitive o CPF completo aparece');
+select is(crm.reveal_cpf((select v from ids where k = 'pes')), '39053344705', 'com crm.sensitive o CPF completo aparece');
 reset role;
 select ok(exists (select 1 from audit.log where action = 'CPF_VIEWED' and record_id = (select v from ids where k = 'pes')::text), 'e a consulta fica registrada');
 

@@ -28,25 +28,25 @@ select ok(exists (select 1 from vault.secrets where name = 'crm_cpf_key'), 'chav
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');   -- vendedora: crm.write, sem crm.sensitive
 insert into ids select 'ana', crm.quick_customer('48988887777', 'Ana Paula Souza (teste)', false);
 insert into ids select 'ana2', crm.quick_customer('48911112222', 'Ana Beatriz Lima (teste)', false);
-select throws_ok($$ select crm.set_cpf((select v from ids where k = 'ana'), '529.982.247-24') $$, 'P0470', null, 'CPF com dígito errado é recusado');
+select throws_ok($$ select crm.set_cpf((select v from ids where k = 'ana'), '390.533.447-04') $$, 'P0470', null, 'CPF com dígito errado é recusado');
 select throws_ok($$ select crm.set_cpf((select v from ids where k = 'ana'), '111.111.111-11') $$, 'P0470', null, 'CPF de dígitos repetidos é recusado');
-select is(crm.set_cpf((select v from ids where k = 'ana'), '529.982.247-25') ->> 'cpf_last4', '4725', 'grava o CPF e devolve só o final');
-select is((crm.find_by_cpf('52998224725') ->> 'party_id')::uuid, (select v from ids where k = 'ana'), 'acha a cliente pelo CPF');
-select is(crm.find_by_cpf('12345678909') ->> 'found', 'false', 'CPF que não está no cadastro');
-select throws_ok($$ select crm.set_cpf((select v from ids where k = 'ana2'), '52998224725') $$, 'P0471', null, 'o mesmo CPF não vai para outra pessoa');
-select throws_ok($$ select crm.set_cpf((select v from ids where k = 'ana'), '12345678909') $$, '42501', null, 'trocar um CPF já gravado exige dados sensíveis');
+select is(crm.set_cpf((select v from ids where k = 'ana'), '390.533.447-05') ->> 'cpf_last4', '4705', 'grava o CPF e devolve só o final');
+select is((crm.find_by_cpf('39053344705') ->> 'party_id')::uuid, (select v from ids where k = 'ana'), 'acha a cliente pelo CPF');
+select is(crm.find_by_cpf('16899535009') ->> 'found', 'false', 'CPF que não está no cadastro');
+select throws_ok($$ select crm.set_cpf((select v from ids where k = 'ana2'), '39053344705') $$, 'P0471', null, 'o mesmo CPF não vai para outra pessoa');
+select throws_ok($$ select crm.set_cpf((select v from ids where k = 'ana'), '16899535009') $$, '42501', null, 'trocar um CPF já gravado exige dados sensíveis');
 reset role;
-select ok((select cpf_encrypted is not null and position('52998224725' in encode(cpf_encrypted, 'escape')) = 0 and cpf_hmac !~ '52998224725'
+select ok((select cpf_encrypted is not null and position('39053344705' in encode(cpf_encrypted, 'escape')) = 0 and cpf_hmac !~ '39053344705'
            from crm.party_sensitive where party_id = (select v from ids where k = 'ana')), 'CPF guardado criptografado (nem o texto nem o HMAC trazem o número)');
-select is(private.party_cpf((select v from ids where k = 'ana')), '52998224725', 'a nota fiscal consegue o CPF completo');
+select is(private.party_cpf((select v from ids where k = 'ana')), '39053344705', 'a nota fiscal consegue o CPF completo');
 select ok(exists (select 1 from audit.log where table_name = 'crm.party_sensitive' and record_id = (select v from ids where k = 'ana')::text and action = 'CPF_SET'
-                  and after ->> 'cpf_last4' = '4725' and after::text !~ '529982'), 'auditoria registra só o final do CPF');
+                  and after ->> 'cpf_last4' = '4705' and after::text !~ '390533'), 'auditoria registra só o final do CPF');
 
 -- ---------- Buscas ----------
 select pg_temp.login('00000000-0000-4000-8000-0000000000f2');
 select is(jsonb_array_length(crm.search_people('ana souza')), 1, 'busca por nome sem acento e em minúsculas');
 select ok(jsonb_array_length(crm.search_people('Ana')) >= 2, 'homônimas aparecem para a pessoa escolher');
-select is(crm.search_people('529.982.247-25') -> 0 ->> 'party_id', (select v from ids where k = 'ana')::text, 'busca pelo CPF');
+select is(crm.search_people('390.533.447-05') -> 0 ->> 'party_id', (select v from ids where k = 'ana')::text, 'busca pelo CPF');
 select is(crm.search_people('7777') -> 0 ->> 'party_id', (select v from ids where k = 'ana')::text, 'busca pelo final do telefone');
 select is(crm.search_people('7777') -> 0 ->> 'phone_last4', '7777', 'mostra o final do telefone para diferenciar');
 select ok((crm.search_people('7777') -> 0) ? 'cpf_last4', 'mostra o final do CPF, nunca o número');
@@ -79,7 +79,7 @@ select is((select count(*)::int from sales.orders where idempotency_key = (selec
 insert into kv select 'r1', ai.assistant_execute((select v from ids where k = 'a1'));
 select is((select v ->> 'ok' from kv where k = 'r1'), 'true', 'a pessoa confirma e a venda acontece');
 select is((select o.total from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r1')), 834.30, 'total do pedido = total do cartão');
-select is((select o.cpf_on_invoice from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r1')), '52998224725', 'CPF da cliente na NFC-e sem passar pela IA');
+select is((select o.cpf_on_invoice from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r1')), '39053344705', 'CPF da cliente na NFC-e sem passar pela IA');
 select is((select o.attribution ->> 'assisted_by' from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r1')), 'CENTRAL', 'venda marcada como feita pela Central');
 select is((ai.assistant_execute((select v from ids where k = 'a1')) ->> 'already'), 'true', 'clicar de novo não duplica a venda');
 select is((select count(*)::int from sales.orders where idempotency_key = (select idempotency_key::text from ai.assistant_actions where id = (select v from ids where k = 'a1'))), 1, 'um único pedido');
@@ -89,12 +89,12 @@ insert into kv select 'q2', sales.quote_order(jsonb_build_object('store_id', '00
   jsonb_build_object('variant_id', (select id from catalog.variants where sku = 'DEMO-TEE01-OFW-P'), 'qty', 1))));
 insert into ids select 'a2', (ai.assistant_propose(jsonb_build_object('tool', 'venda_pdv', 'preview', (select v from kv where k = 'q2'), 'args', jsonb_build_object(
   'store_id', '00000000-0000-4000-8000-0000000000a1', 'cpf_on_invoice', true,
-  'new_party', jsonb_build_object('display_name', 'Juliana Costa (teste)', 'phone', '48 99876-4321', 'cpf', '123.456.789-09', 'marketing_whatsapp', true),
+  'new_party', jsonb_build_object('display_name', 'Juliana Costa (teste)', 'phone', '48 99876-4321', 'cpf', '168.995.350-09', 'marketing_whatsapp', true),
   'items', (select v -> 'items' from kv where k = 'q2'), 'payments', jsonb_build_array(jsonb_build_object('method', 'DEBIT', 'amount', 249, 'acquirer', 'STONE')))))).id;
 insert into kv select 'r2', ai.assistant_execute((select v from ids where k = 'a2'));
 select is((select v ->> 'ok' from kv where k = 'r2'), 'true', 'cadastro + venda numa transação só');
-select is((crm.find_by_cpf('12345678909') ->> 'display_name'), 'Juliana Costa (teste)', 'cliente nova encontrada pelo CPF depois');
-select is((select o.cpf_on_invoice from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r2')), '12345678909', 'CPF da cliente nova na nota');
+select is((crm.find_by_cpf('16899535009') ->> 'display_name'), 'Juliana Costa (teste)', 'cliente nova encontrada pelo CPF depois');
+select is((select o.cpf_on_invoice from sales.orders o where o.id = (select (v -> 'result' ->> 'target_id')::uuid from kv where k = 'r2')), '16899535009', 'CPF da cliente nova na nota');
 select ok(exists (select 1 from crm.v_current_consents c where c.party_id = (select (v -> 'result' ->> 'party_id')::uuid from kv where k = 'r2')
                   and c.purpose = 'MARKETING_WHATSAPP' and c.granted), 'aceite de marketing registrado como ela respondeu');
 

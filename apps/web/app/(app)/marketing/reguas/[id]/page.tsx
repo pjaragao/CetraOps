@@ -29,7 +29,7 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
   if (!isNew && !j) notFound();
   const { data: rep } = j ? await supabase.schema("mkt").rpc("journey_report", { p_journey: j.id, p_days: 30 }) : { data: null };
   const r = rep as unknown as Report | null;
-  const cfg = (j?.trigger_config ?? {}) as { days?: number; days_before?: number; after_days?: number; reasons?: string[]; occasion?: string; roles?: string[] };
+  const cfg = (j?.trigger_config ?? {}) as { days?: number; days_before?: number; after_days?: number; reasons?: string[]; occasion?: string; roles?: string[]; coupon?: { enabled?: boolean; percent?: number; valid_days?: number; min_order?: number } };
   const editStep = (steps ?? []).find((s) => s.id === str(sp.passo));
   const nextPos = Math.min(10, ((steps ?? []).at(-1)?.position ?? 0) + 1);
   const t = r?.groups.TREATMENT, h = r?.groups.HOLDOUT;
@@ -92,7 +92,7 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
                   <Field label="Prazo da tarefa (h)"><input name="due_hours" type="number" min={1} max={720} defaultValue={editStep?.due_hours ?? 24} className={inputClass} /></Field>
                 </div>
                 <Field label="Título (tarefa)" hint="Use {nome}"><input name="title" required minLength={3} maxLength={140} defaultValue={editStep?.title ?? ""} className={inputClass} placeholder="Convidar {nome} para provar" /></Field>
-                <Field label="Mensagem" hint="Use {nome}, {tamanho}, {ultima_peca}, {data_limite}, {loja}; nas réguas de família também {parente}, {nome_parente}, {data_parente}"><textarea name="message" rows={3} maxLength={1000} defaultValue={editStep?.message ?? ""} className={inputClass} /></Field>
+                <Field label="Mensagem" hint="Use {nome}, {tamanho}, {ultima_peca}, {data_limite}, {loja}, {cupom}, {desconto}, {validade_cupom}; nas réguas de família também {parente}, {nome_parente}, {data_parente}"><textarea name="message" rows={3} maxLength={1000} defaultValue={editStep?.message ?? ""} className={inputClass} /></Field>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Template de marketing (só para 'Template de marketing')"><select name="template_id" defaultValue={editStep?.template_id ?? ""} className={inputClass}><option value="">—</option>{(templates ?? []).map((tp) => <option key={tp.id} value={tp.id}>{tp.name}{tp.status !== "APPROVED" ? " (não aprovado)" : ""}</option>)}</select></Field>
                   <Field label="Variáveis do template, em ordem" hint="FIRST_NAME, SIZE, DEADLINE"><input name="template_vars" defaultValue={((editStep?.template_vars ?? []) as string[]).join(", ")} className={`${inputClass} font-mono text-xs`} /></Field>
@@ -120,6 +120,11 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
               <Field label="Aniversário: dias antes"><input name="days_before" type="number" min={0} max={30} defaultValue={cfg.days_before ?? ""} className={inputClass} placeholder="3" /></Field>
               <Field label="Perdida: dias depois"><input name="after_days" type="number" min={1} max={90} defaultValue={cfg.after_days ?? ""} className={inputClass} placeholder="7" /></Field>
               <Field label="Perdida: motivos" hint="Separados por vírgula"><input name="reasons" defaultValue={(cfg.reasons ?? []).join(", ")} className={inputClass} placeholder="sem retorno, tamanho" /></Field>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Cupom pessoal: desconto (%)" hint="Gera um cupom por cliente (vale só para ela, 1 uso). Vazio = sem cupom. Use {cupom}, {desconto} e {validade_cupom} no texto."><input name="coupon_percent" inputMode="decimal" defaultValue={cfg.coupon?.enabled === false ? "" : String(cfg.coupon?.percent ?? "").replace(".", ",")} className={inputClass} placeholder="5" /></Field>
+              <Field label="Cupom: validade (dias)"><input name="coupon_valid_days" type="number" min={1} max={365} defaultValue={cfg.coupon?.valid_days ?? 30} className={inputClass} /></Field>
+              <Field label="Cupom: pedido mínimo (R$)" hint="Opcional"><input name="coupon_min_order" inputMode="decimal" defaultValue={String(cfg.coupon?.min_order ?? "").replace(".", ",")} className={inputClass} /></Field>
             </div>
             <div className="grid gap-3 sm:grid-cols-[14rem_1fr]">
               <Field label="Data comemorativa" hint="Só para o gatilho “Data comemorativa”">

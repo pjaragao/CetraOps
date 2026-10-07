@@ -21,10 +21,12 @@ const CONTRACT_INFO: Record<string, { tone: "clt" | "other"; text: string }> = {
 const toNum = (s: string) => Number(String(s).replace(/\./g, "").replace(",", ".")) || 0;
 
 /** Admissão: dados pessoais (sensíveis ficam separados), contrato, remuneração, pagamento, dependentes e benefícios iniciais. */
-export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; stores: (Opt & { legal_entity_id: string })[]; today: string }) {
+export interface KnownPerson { id: string; name: string; birth: string; phone: string; email: string; cpfMasked: string | null }
+
+export function AdmissionForm({ entities, stores, today, person }: { entities: Opt[]; stores: (Opt & { legal_entity_id: string })[]; today: string; person?: KnownPerson | null }) {
   const { state, pending, formProps } = useKeptForm(createEmployeeAction);
   const [f, setF] = useState({
-    entity: entities[0]?.id ?? "", store: stores[0]?.id ?? "", name: "", cpf: "", birth: "", phone: "", email: "", pis: "", ctps: "", rg: "", mother: "", marital: "",
+    entity: entities[0]?.id ?? "", store: stores[0]?.id ?? "", name: person?.name ?? "", cpf: "", birth: person?.birth ?? "", phone: person?.phone ?? "", email: person?.email ?? "", pis: "", ctps: "", rg: "", mother: "", marital: "",
     contract: "CLT", job: "", cbo: "", dept: "", hire: today, exp: "45+45", salary: "", unit: "MONTH", regime: "6X1", weekly: "44",
     commissioned: false, trackTime: false, timeBank: false, fgts: true,
     bank: "", agency: "", account: "", pix: "", vt: "", vr: "",
@@ -35,7 +37,7 @@ export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; st
   const entityStores = stores.filter((s) => s.legal_entity_id === f.entity);
 
   const payload = useMemo(() => ({
-    legal_entity_id: f.entity, store_id: f.store || undefined, name: f.name, cpf: f.cpf, birth_date: f.birth || undefined, phone: f.phone || undefined, email: f.email || undefined,
+    legal_entity_id: f.entity, store_id: f.store || undefined, party_id: person?.id, name: f.name, cpf: f.cpf, birth_date: f.birth || undefined, phone: f.phone || undefined, email: f.email || undefined,
     contract_type: f.contract, job_title: f.job, cbo: f.cbo || undefined, department: f.dept || undefined, hire_date: f.hire,
     salary: toNum(f.salary), salary_unit: f.unit, weekly_hours: toNum(f.weekly) || 44, work_regime: f.regime,
     experience_days: f.exp === "45+45" ? [45, 45] : f.exp === "30+60" ? [30, 60] : f.exp === "90" ? [90] : undefined,
@@ -55,8 +57,8 @@ export function AdmissionForm({ entities, stores, today }: { entities: Opt[]; st
 
       <Card title="Dados pessoais">
         <div className="grid gap-3 sm:grid-cols-6">
-          <Field label="Nome completo" className="sm:col-span-3"><input className={inputClass} value={f.name} onChange={(e) => set("name", e.target.value)} maxLength={120} /></Field>
-          <Field label="CPF" className="sm:col-span-1"><input className={inputClass} value={f.cpf} onChange={(e) => set("cpf", e.target.value)} inputMode="numeric" placeholder="000.000.000-00" /></Field>
+          <Field label="Nome completo" className="sm:col-span-3" hint={person ? "Pessoa já cadastrada: o nome é o do Cadastro" : undefined}><input className={inputClass} value={f.name} onChange={(e) => set("name", e.target.value)} maxLength={120} readOnly={!!person} /></Field>
+          <Field label="CPF" className="sm:col-span-1" hint={person?.cpfMasked ? `No Cadastro: ${person.cpfMasked}` : undefined}><input className={inputClass} value={f.cpf} onChange={(e) => set("cpf", e.target.value)} inputMode="numeric" placeholder="000.000.000-00" /></Field>
           <Field label="Nascimento" className="sm:col-span-1"><input type="date" className={inputClass} value={f.birth} onChange={(e) => set("birth", e.target.value)} /></Field>
           <Field label="Estado civil" className="sm:col-span-1">
             <select className={inputClass} value={f.marital} onChange={(e) => set("marital", e.target.value)}><option value="">—</option><option>Solteiro(a)</option><option>Casado(a)</option><option>União estável</option><option>Divorciado(a)</option><option>Viúvo(a)</option></select>

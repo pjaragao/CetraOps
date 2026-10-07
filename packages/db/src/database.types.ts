@@ -1625,6 +1625,9 @@ isOneToOne: false
 "change_my_password":
 { Args: { "p_current": string,"p_new": string }; Returns: undefined
                            },
+"link_user_party":
+{ Args: { "p_member": string,"p_party": string }; Returns: Json
+                           },
 "create_user":
 { Args: { "p": Json }; Returns: string
                            },
@@ -2323,6 +2326,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"birthday_party_ids":
+{ Args: { "p_scope"?: string }; Returns: string[]
+                           },
 "daily_actions":
 { Args: { "p_limit"?: number }; Returns: {
               "at_risk": boolean,"due_at": string,"overdue": boolean,"party_id": string,"party_name": string,"priority": number,"reason": string,"revenue_12m": number,"suggested_message": string,"task_id": string,"tier": string,"title": string,"type": string
@@ -5906,13 +5912,13 @@ isOneToOne: false
                   ]
                 },"journey_enrollments": {
                   Row: {
-                    "converted_at": string | null,"converted_order_id": string | null,"enrolled_at": string,"exit_reason": string | null,"finished_at": string | null,"grp": string,"id": string,"journey_id": string,"next_run_at": string | null,"next_step": number,"org_id": string,"party_id": string,"source_key": string,"status": string
+                    "converted_at": string | null,"coupon_id": string | null,"converted_order_id": string | null,"enrolled_at": string,"exit_reason": string | null,"finished_at": string | null,"grp": string,"id": string,"journey_id": string,"next_run_at": string | null,"next_step": number,"org_id": string,"party_id": string,"source_key": string,"status": string
                   }
                   Insert: {
-                    "converted_at"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp": string,"id"?: string,"journey_id": string,"next_run_at"?: string | null,"next_step"?: number,"org_id": string,"party_id": string,"source_key": string,"status"?: string
+                    "converted_at"?: string | null,"coupon_id"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp": string,"id"?: string,"journey_id": string,"next_run_at"?: string | null,"next_step"?: number,"org_id": string,"party_id": string,"source_key": string,"status"?: string
                   }
                   Update: {
-                    "converted_at"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp"?: string,"id"?: string,"journey_id"?: string,"next_run_at"?: string | null,"next_step"?: number,"org_id"?: string,"party_id"?: string,"source_key"?: string,"status"?: string
+                    "converted_at"?: string | null,"coupon_id"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp"?: string,"id"?: string,"journey_id"?: string,"next_run_at"?: string | null,"next_step"?: number,"org_id"?: string,"party_id"?: string,"source_key"?: string,"status"?: string
                   }
                   Relationships: [
                     {
@@ -7792,13 +7798,13 @@ isOneToOne: false
                   ]
                 },"coupons": {
                   Row: {
-                    "active": boolean,"affiliate_party_id": string | null,"code": string,"created_at": string,"id": string,"kind": string,"max_uses": number | null,"min_order": number | null,"org_id": string,"per_customer_limit": number | null,"valid_from": string,"valid_to": string | null,"value": number
+                    "active": boolean,"affiliate_party_id": string | null,"code": string,"created_at": string,"id": string,"kind": string,"max_uses": number | null,"min_order": number | null,"org_id": string,"party_id": string | null,"per_customer_limit": number | null,"valid_from": string,"valid_to": string | null,"value": number
                   }
                   Insert: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": string,"max_uses"?: number | null,"min_order"?: number | null,"org_id": string,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value": number
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": string,"max_uses"?: number | null,"min_order"?: number | null,"org_id": string,"party_id"?: string | null,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value": number
                   }
                   Update: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: string,"max_uses"?: number | null,"min_order"?: number | null,"org_id"?: string,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value"?: number
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: string,"max_uses"?: number | null,"min_order"?: number | null,"org_id"?: string,"party_id"?: string | null,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value"?: number
                   }
                   Relationships: [
                     

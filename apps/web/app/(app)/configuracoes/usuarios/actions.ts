@@ -32,6 +32,14 @@ export async function createUserAction(formData: FormData) {
   go(`${USERS}/${data as unknown as string}`, { ok: `Usuário criado. Passe à pessoa o e-mail ${email} e a senha provisória: no primeiro acesso ela cria a própria senha.` });
 }
 
+export async function linkUserPartyAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("core").rpc("link_user_party", { p_member: id, p_party: str(formData.get("party_id")) });
+  const merged = (data as unknown as { merged?: boolean } | null)?.merged;
+  go(`${USERS}/${id}`, error ? { erro: friendly(error.message) } : { ok: merged ? "Usuário ligado à pessoa do cadastro. O cadastro duplicado criado junto com o usuário foi mesclado." : "Usuário ligado à pessoa do cadastro." });
+}
+
 export async function updateUserAction(formData: FormData) {
   const id = str(formData.get("id"));
   const supabase = await createClient();

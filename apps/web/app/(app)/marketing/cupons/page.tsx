@@ -18,7 +18,7 @@ export default async function CuponsPage({ searchParams }: { searchParams: SP })
     supabase.schema("sales").from("coupon_redemptions").select("coupon_id, amount"),
     supabase.schema("crm").from("party_roles").select("party_id").eq("role", "AFFILIATE_TRAINER"),
   ]);
-  const ids = (roles ?? []).map((r) => r.party_id);
+  const ids = [...new Set([...(roles ?? []).map((r) => r.party_id), ...(coupons ?? []).flatMap((c) => (c.party_id ? [c.party_id] : []))])];
   const { data: parties } = ids.length ? await supabase.schema("crm").from("parties").select("id, display_name").in("id", ids) : { data: [] as { id: string; display_name: string }[] };
   const aff = new Map((parties ?? []).map((p) => [p.id, p.display_name]));
   const stat = new Map<string, { n: number; total: number }>();
@@ -35,7 +35,7 @@ export default async function CuponsPage({ searchParams }: { searchParams: SP })
             const s = stat.get(c.id) ?? { n: 0, total: 0 };
             return (
               <tr key={c.id} className={c.active ? "" : "opacity-60"}>
-                <td className="px-3 py-2 font-mono font-medium">{c.code}{c.affiliate_party_id && <span className="ml-2 font-sans text-xs text-muted">{aff.get(c.affiliate_party_id) ?? "afiliada"}</span>}</td>
+                <td className="px-3 py-2 font-mono font-medium">{c.code}{c.affiliate_party_id && <span className="ml-2 font-sans text-xs text-muted">{aff.get(c.affiliate_party_id) ?? "afiliada"}</span>}{c.party_id && <span className="ml-2 font-sans text-xs text-muted">pessoal · {aff.get(c.party_id) ?? "cliente"}</span>}</td>
                 <td className="px-3 py-2">{c.kind === "PERCENT" ? `${String(c.value).replace(".", ",")}%` : formatBRL(c.value)}</td>
                 <td className="px-3 py-2 text-xs text-muted">{[c.min_order ? `mín. ${formatBRL(c.min_order)}` : "", c.per_customer_limit ? `${c.per_customer_limit}/cliente` : ""].filter(Boolean).join(" · ") || "—"}</td>
                 <td className="px-3 py-2">{s.n}{c.max_uses ? ` / ${c.max_uses}` : ""}</td><td className="px-3 py-2">{formatBRL(s.total)}</td>

@@ -12,6 +12,7 @@ import { ACTIONS, EXIT_LABEL, RESULT_LABEL, TRIGGERS } from "../labels";
 export const metadata = { title: "Régua" };
 
 interface Group { enrolled: number; converted: number; revenue: number; matured: number; rate: number | null }
+interface CouponReport { issued: number; redeemed: number; open: number; expired: number; discount: number; revenue: number }
 interface Report { groups: Record<string, Group>; active: number; exits: Record<string, number>; steps: { position: number; result: string; n: number; done: number }[]; window_days: number }
 
 export default async function ReguaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SP }) {
@@ -29,7 +30,9 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
   if (!isNew && !j) notFound();
   const { data: rep } = j ? await supabase.schema("mkt").rpc("journey_report", { p_journey: j.id, p_days: 30 }) : { data: null };
   const r = rep as unknown as Report | null;
-  const cfg = (j?.trigger_config ?? {}) as { days?: number; days_before?: number; after_days?: number; reasons?: string[]; occasion?: string; roles?: string[]; coupon?: { enabled?: boolean; percent?: number; valid_days?: number; min_order?: number } };
+  const { data: cr } = j && (j.trigger_config as { coupon?: unknown } | null)?.coupon ? await supabase.schema("mkt").rpc("journey_coupon_report", { p_journey: j.id }) : { data: null };
+  const cp = cr as unknown as CouponReport | null;
+  const cfg = (j?.trigger_config ?? {}) as { days?: number; days_before?: number; after_days?: number; reasons?: string[]; occasion?: string; roles?: string[]; coupon?: { enabled?: boolean; percent?: number; days_after?: number; min_order?: number } };
   const editStep = (steps ?? []).find((s) => s.id === str(sp.passo));
   const nextPos = Math.min(10, ((steps ?? []).at(-1)?.position ?? 0) + 1);
   const t = r?.groups.TREATMENT, h = r?.groups.HOLDOUT;
@@ -51,6 +54,17 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
             <Stat label="Compraram em 30 dias (controle)" value={h ? `${h.converted} de ${h.enrolled}` : "—"} hint={h?.rate != null ? `${h.rate}% sem receber nada` : "ninguém no controle ainda"} />
             <Stat label="Efeito da régua" value={lift != null ? `${lift > 0 ? "+" : ""}${lift} p.p.` : "—"} tone={lift != null && lift > 0 ? "success" : undefined} hint="Diferença tratamento − controle. Com base pequena, olhe a tendência ao longo dos meses." />
           </div>
+          {cp && (
+            <div className="mb-4">
+              <h2 className="mb-2 text-sm font-semibold">Eficácia do cupom</h2>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <Stat label="Cupons emitidos" value={cp.issued} hint={`${cp.open} ainda valendo · ${cp.expired} vencidos sem uso`} />
+                <Stat label="Cupons usados" value={cp.redeemed} tone={cp.redeemed > 0 ? "success" : undefined} hint={cp.issued > 0 ? `${Math.round((cp.redeemed / cp.issued) * 1000) / 10}% dos emitidos` : undefined} />
+                <Stat label="Vendas com o cupom" value={formatBRL(Number(cp.revenue))} hint="Total dos pedidos que usaram o cupom" />
+                <Stat label="Desconto dado" value={formatBRL(Number(cp.discount))} />
+              </div>
+            </div>
+          )}
           {(r.steps.length > 0 || Object.keys(r.exits).length > 0) && (
             <Card className="mb-4" title="O que aconteceu">
               <div className="grid gap-4 sm:grid-cols-2 text-sm">
@@ -117,13 +131,13 @@ export default async function ReguaPage({ params, searchParams }: { params: Prom
             <Field label="Descrição"><input name="description" maxLength={200} defaultValue={j?.description ?? ""} className={inputClass} /></Field>
             <div className="grid gap-3 sm:grid-cols-4">
               <Field label="Sem 2ª compra: dias"><input name="days" type="number" min={7} max={180} defaultValue={cfg.days ?? ""} className={inputClass} placeholder="30" /></Field>
-              <Field label="Aniversário: dias antes"><input name="days_before" type="number" min={0} max={30} defaultValue={cfg.days_before ?? ""} className={inputClass} placeholder="3" /></Field>
+              <Field label="Aniversário: dias antes" hint="Quando a cliente entra e o cupom começa a valer. Deixe a espera do 1º passo igual a este número para o contato sair no dia"><input name="days_before" type="number" min={0} max={30} defaultValue={cfg.days_before ?? ""} className={inputClass} placeholder="10" /></Field>
               <Field label="Perdida: dias depois"><input name="after_days" type="number" min={1} max={90} defaultValue={cfg.after_days ?? ""} className={inputClass} placeholder="7" /></Field>
               <Field label="Perdida: motivos" hint="Separados por vírgula"><input name="reasons" defaultValue={(cfg.reasons ?? []).join(", ")} className={inputClass} placeholder="sem retorno, tamanho" /></Field>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label="Cupom pessoal: desconto (%)" hint="Gera um cupom por cliente (vale só para ela, 1 uso). Vazio = sem cupom. Use {cupom}, {desconto} e {validade_cupom} no texto."><input name="coupon_percent" inputMode="decimal" defaultValue={cfg.coupon?.enabled === false ? "" : String(cfg.coupon?.percent ?? "").replace(".", ",")} className={inputClass} placeholder="5" /></Field>
-              <Field label="Cupom: validade (dias)"><input name="coupon_valid_days" type="number" min={1} max={365} defaultValue={cfg.coupon?.valid_days ?? 30} className={inputClass} /></Field>
+              <Field label="Cupom vale até (dias depois)" hint="Começa quando a cliente entra na régua (dias antes do aniversário) e vai até este tanto depois dele"><input name="coupon_days_after" type="number" min={0} max={365} defaultValue={cfg.coupon?.days_after ?? 20} className={inputClass} /></Field>
               <Field label="Cupom: pedido mínimo (R$)" hint="Opcional"><input name="coupon_min_order" inputMode="decimal" defaultValue={String(cfg.coupon?.min_order ?? "").replace(".", ",")} className={inputClass} /></Field>
             </div>
             <div className="grid gap-3 sm:grid-cols-[14rem_1fr]">

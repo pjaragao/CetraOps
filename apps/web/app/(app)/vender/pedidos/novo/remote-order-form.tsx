@@ -5,6 +5,7 @@ import { useKeptForm } from "@/components/use-kept-form";
 import { Button, Card, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";
 import { createRemoteOrderAction } from "../../actions";
+import { autoCouponFor } from "../../pdv/actions";
 import { PartyPicker, SellablePicker, type PartyHit } from "../../pickers";
 
 interface Line { variant_id: string; sku: string; label: string; price: number; qty: number; available: number }
@@ -20,6 +21,12 @@ export function RemoteOrderForm({ storeId, storeName, locationId, idempotencyKey
   const [hold, setHold] = useState(24);
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
+
+  const pickParty = async (p: PartyHit) => {
+    setParty(p);
+    const c = await autoCouponFor(p.id);   // cupom pessoal vigente (ex.: aniversário) entra sozinho
+    if (c) setCoupon((cur) => cur || c.code);
+  };
 
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
   const ship = Number(shipping.replace(/\./g, "").replace(",", ".")) || 0;
@@ -39,7 +46,7 @@ export function RemoteOrderForm({ storeId, storeName, locationId, idempotencyKey
             {party ? (
               <p className="mt-1 flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"><b>{party.name}</b><span className="text-muted">{party.phone}</span>
                 <button type="button" className="ml-auto text-xs text-brand" onClick={() => setParty(null)}>trocar</button></p>
-            ) : <div className="mt-1"><PartyPicker onPick={setParty} /></div>}
+            ) : <div className="mt-1"><PartyPicker onPick={pickParty} /></div>}
           </div>
           <Field label="Loja de origem"><input value={storeName} disabled className={inputClass} /></Field>
           <Field label="Canal"><select value={channel} onChange={(e) => setChannel(e.target.value)} className={inputClass}>

@@ -65,3 +65,11 @@ export async function identifyCustomer(phone: string, name: string, marketing: b
   const { data: party } = await supabase.schema("crm").from("parties").select("id, display_name, sizes, tier").eq("id", data).single();
   return { ok: true as const, party };
 }
+
+/** Cupom pessoal vigente da cliente (ex.: aniversário): entra sozinho no carrinho quando ela é identificada. */
+export async function autoCouponFor(partyId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.schema("sales").rpc("party_auto_coupon", { p_party: partyId });
+  const c = data as unknown as { code: string; kind: string; value: number; valid_to: string | null } | null;
+  return c ? { code: c.code, kind: c.kind, value: Number(c.value), validTo: c.valid_to } : null;
+}

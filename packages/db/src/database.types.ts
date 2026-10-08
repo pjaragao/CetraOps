@@ -6089,6 +6089,9 @@ isOneToOne: false
 "invite_vips":
 { Args: { "p_event": string }; Returns: number
                            },
+"journey_coupon_report":
+{ Args: { "p_journey": string }; Returns: Json
+                           },
 "journey_report":
 { Args: { "p_days"?: number,"p_journey": string }; Returns: Json
                            },
@@ -8461,6 +8464,9 @@ isOneToOne: false
                            },
 "store_credit_balance":
 { Args: { "p_party": string }; Returns: number
+                           },
+"party_auto_coupon":
+{ Args: { "p_party": string }; Returns: Json
                            },
 "validate_coupon":
 { Args: { "p_code": string,"p_party"?: string,"p_subtotal": number }; Returns: Json

@@ -4,7 +4,7 @@ import { Minus, Plus, ScanBarcode, Trash2, UserRound } from "lucide-react";
 import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
-import { finalizeSale, identifyCustomer, type SaleInput } from "./actions";
+import { autoCouponFor, finalizeSale, identifyCustomer, type SaleInput } from "./actions";
 
 export interface PosVariant { id: string; sku: string; size: string; gtin: string | null; price: number; available: number }
 export interface PosProduct { key: string; name: string; reference: string; gender: string; color: string; variants: PosVariant[] }
@@ -80,7 +80,14 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
   const identify = () => start(async () => {
     const r = await identifyCustomer(phone, custName, marketing);
     if (!r.ok) setMessage({ tone: "danger", text: r.error });
-    else if (r.party) setCustomer({ id: r.party.id, name: r.party.display_name });
+    else if (r.party) {
+      setCustomer({ id: r.party.id, name: r.party.display_name });
+      const c = await autoCouponFor(r.party.id);   // cupom pessoal vigente (ex.: aniversário) entra sozinho
+      if (c && !coupon.trim()) {
+        setCoupon(c.code);
+        setMessage({ tone: "success", text: `Cupom ${c.code} aplicado: ${c.kind === "PERCENT" ? `${String(c.value).replace(".", ",")}%` : formatBRL(c.value)} de desconto para ${r.party.display_name}.` });
+      }
+    }
   });
 
   const finalize = () => start(async () => {

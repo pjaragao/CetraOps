@@ -18,10 +18,12 @@ export default async function TarefasPage({ searchParams }: { searchParams: SP }
   const sp = await searchParams;
   const canWrite = can(session, "crm.write");
   const ver = VIEWS.some((v) => v.key === str(sp.ver)) ? str(sp.ver)! : "minhas";
+  const tipo = Object.keys(TYPE).includes(str(sp.tipo) ?? "") ? str(sp.tipo)! : "";
   const supabase = await createClient();
   let q = supabase.schema("crm").from("tasks").select("id, title, type, body, suggested_message, due_at, status, created_by_ai, party_id, assignee_member_id, completed_at, parties(display_name), deals(title)").limit(300);
   q = ver === "feitas" ? q.eq("status", "DONE").order("completed_at", { ascending: false }) : q.eq("status", "OPEN").order("due_at", { ascending: true, nullsFirst: false });
   if (ver === "minhas") q = q.eq("assignee_member_id", session.memberId);
+  if (tipo) q = q.eq("type", tipo);
   const { data: rows } = await q;
   const { data: members } = await supabase.schema("core").from("members").select("id, display_name").order("display_name");
   const who = new Map((members ?? []).map((m) => [m.id, m.display_name]));
@@ -41,7 +43,8 @@ export default async function TarefasPage({ searchParams }: { searchParams: SP }
       <PageHeader title="Tarefas & próximas ações" description="O que fazer com cada cliente e quando. A IA também sugere tarefas, já com a mensagem pronta." />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
       <div className="mb-3 flex flex-wrap gap-1.5">
-        {VIEWS.map((v) => <Link key={v.key} href={`/clientes/tarefas?ver=${v.key}`} className={cn("rounded-full border px-3 py-1 text-sm", ver === v.key ? "border-brand bg-brand/10 text-brand" : "border-border hover:bg-surface-2")}>{v.label}</Link>)}
+        {tipo && <Link href={`/clientes/tarefas?ver=${ver}`} className="rounded-full border border-brand bg-brand/10 px-3 py-1 text-sm text-brand">Só {TYPE[tipo].toLowerCase()} ✕</Link>}
+        {VIEWS.map((v) => <Link key={v.key} href={`/clientes/tarefas?ver=${v.key}${tipo ? `&tipo=${tipo}` : ""}`} className={cn("rounded-full border px-3 py-1 text-sm", ver === v.key ? "border-brand bg-brand/10 text-brand" : "border-border hover:bg-surface-2")}>{v.label}</Link>)}
       </div>
 
       {canWrite && (

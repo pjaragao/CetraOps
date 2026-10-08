@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(15);
 
 create or replace function pg_temp.login(p_user uuid) returns void language plpgsql as $$
 declare m record;
@@ -26,7 +26,7 @@ insert into crm.party_roles (party_id, org_id, role) select p.id, p.org_id, 'CUS
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 select ok((select (select v from ids where k = 'aniv') = any (array(select crm.birthday_party_ids('today')))), 'aniversariante de hoje entra na lista');
 select ok((select (select v from ids where k = 'outra') <> all (array(select crm.birthday_party_ids('month')))), 'quem não faz aniversário fica de fora');
-select ok((select x ->> 'href' = '/clientes?aniversario=hoje' from jsonb_array_elements(ai.daily_briefing() -> 'items') x where x ->> 'key' = 'aniversariantes'), 'o resumo do dia leva para a lista filtrada');
+select ok((select x ->> 'href' = '/clientes/tarefas?ver=todas&tipo=BIRTHDAY' from jsonb_array_elements(ai.daily_briefing() -> 'items') x where x ->> 'key' = 'aniversariantes'), 'o resumo do dia leva para as tarefas de aniversário');
 
 -- régua de aniversário: cupom padrão de 5%, ligada e sem grupo de controle
 reset role;
@@ -45,6 +45,12 @@ select is((select count(*)::int from sales.coupons where party_id = (select v fr
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 select is((sales.validate_coupon((select code from sales.coupons where party_id = (select v from ids where k = 'aniv')), 1000, (select v from ids where k = 'outra'))) ->> 'valid', 'false', 'prévia recusa o cupom pessoal para outra cliente');
 select is((sales.validate_coupon((select code from sales.coupons where party_id = (select v from ids where k = 'aniv')), 1000, (select v from ids where k = 'aniv'))) ->> 'discount', '50.00', 'prévia dá 5% para a aniversariante');
+
+-- campanha: começa 10 dias antes do aniversário e vai até 20 depois; entra sozinha no carrinho; eficácia medida
+select is((select (trigger_config ->> 'days_before')::int from mkt.journeys where org_id = '00000000-0000-4000-8000-000000000001' and key = 'aniversario'), 10, 'a cliente entra 10 dias antes do aniversário');
+select ok((select c.valid_to > now() + interval '28 days' and c.valid_to < now() + interval '32 days' from sales.coupons c where c.party_id = (select v from ids where k = 'aniv')), 'o cupom vale até 20 dias depois do aniversário');
+select is((sales.party_auto_coupon((select v from ids where k = 'aniv'))) ->> 'code', (select code from sales.coupons where party_id = (select v from ids where k = 'aniv')), 'o cupom vigente da cliente entra sozinho no carrinho');
+select ok((mkt.journey_coupon_report((select id from mkt.journeys where org_id = '00000000-0000-4000-8000-000000000001' and key = 'aniversario')) ->> 'issued')::int >= 1, 'relatório de eficácia conta os cupons emitidos');
 
 select * from finish();
 rollback;

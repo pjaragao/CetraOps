@@ -37,41 +37,46 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
     .order("lead_score", { ascending: false }).order("display_name").order("id").range((page - 1) * PAGE, page * PAGE - 1);
   if (q) query = query.ilike("display_name", `%${q}%`);
   if (stage && (STAGES as readonly string[]).includes(stage)) query = query.eq("lifecycle_stage", stage as (typeof STAGES)[number]);
-  const hide = [...new Set((internal ?? []).map((r) => r.party_id))];
-  if (hide.length) query = query.not("id", "in", `(${hide.join(",")})`);
-  if (aniversario) query = query.in("id", birthdayIds?.length ? birthdayIds : ["00000000-0000-0000-0000-000000000000"]);
-  if (byRole) query = query.in("id", byRole.length ? byRole.map((r) => r.party_id) : ["00000000-0000-0000-0000-000000000000"]);
+  // Um único filtro por id: quem vale (aniversário, papel, segmento, risco) menos quem é só colaborador/fornecedor/etc.
+  const hide = new Set((internal ?? []).map((r) => r.party_id));
+  let allow: string[] | null = null;
+  const narrow = (ids: string[]) => { allow = allow ? allow.filter((x) => ids.includes(x)) : [...new Set(ids)]; };
+  if (aniversario) narrow(birthdayIds ?? []);
+  if (byRole) narrow(byRole.map((r) => r.party_id));
   if ((segmento && SEGMENTS[segmento]) || risco) {
     let mq = supabase.schema("crm").from("customer_metrics").select("party_id").limit(5000);
     if (segmento && SEGMENTS[segmento]) mq = mq.eq("rfm_segment", segmento);
     if (risco) mq = mq.eq("at_risk", true);
     const { data: ms } = await mq;
-    query = query.in("id", (ms ?? []).length ? (ms ?? []).map((m) => m.party_id) : ["00000000-0000-0000-0000-000000000000"]);
+    narrow((ms ?? []).map((m) => m.party_id));
   }
-  const { data: parties, count } = await query;
+  if (allow) query = query.in("id", (allow as string[]).filter((x) => !hide.has(x)).concat(["00000000-0000-0000-0000-000000000000"]));
+  else if (hide.size) query = query.not("id", "in", `(${[...hide].join(",")})`);
+  const { data: parties, count, error } = await query;
 
   return (
     <>
       <PageHeader title="Clientes & Leads" description="Cadastro único: a mesma pessoa é lead, cliente, fornecedora ou afiliada — sem duplicidade." />
-      <form className="mb-4 flex flex-wrap gap-2">
-        <input name="q" defaultValue={q} placeholder="Buscar por nome" className={`${inputClass} max-w-xs`} aria-label="Buscar" />
-        <select name="estagio" defaultValue={stage ?? ""} className={`${inputClass} max-w-[180px]`} aria-label="Estágio">
+      <form className="mb-4 flex flex-wrap items-center gap-2">
+        <input name="q" defaultValue={q} placeholder="Buscar por nome" className={`${inputClass} max-w-[11rem]`} aria-label="Buscar" />
+        <select name="estagio" defaultValue={stage ?? ""} className={`${inputClass} max-w-[150px]`} aria-label="Estágio">
           <option value="">Todos os estágios</option>
           {STAGES.map((s) => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
         </select>
-        <select name="papel" defaultValue={papel} className={`${inputClass} max-w-[180px]`} aria-label="Público">
+        <select name="papel" defaultValue={papel} className={`${inputClass} max-w-[150px]`} aria-label="Público">
           <option value="clientes">Clientes e leads</option><option value="fornecedores">Fornecedores</option><option value="colaboradores">Colaboradores</option><option value="afiliadas">Afiliadas / trainers</option><option value="todos">Todos</option>
         </select>
-        <select name="segmento" defaultValue={segmento ?? ""} className={`${inputClass} max-w-[200px]`} aria-label="Segmento">
+        <select name="segmento" defaultValue={segmento ?? ""} className={`${inputClass} max-w-[160px]`} aria-label="Segmento">
           <option value="">Todos os segmentos</option>
           {Object.entries(SEGMENTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select name="aniversario" defaultValue={aniversario} className={`${inputClass} max-w-[200px]`} aria-label="Aniversário">
+        <select name="aniversario" defaultValue={aniversario} className={`${inputClass} max-w-[165px]`} aria-label="Aniversário">
           <option value="">Qualquer aniversário</option><option value="hoje">Aniversário hoje</option><option value="mes">Aniversário no mês</option>
         </select>
-        <label className="flex items-center gap-1 text-sm"><input type="checkbox" name="risco" value="1" defaultChecked={risco} /> Só em risco</label>
-        <button className="rounded-lg border border-border px-3 text-sm">Filtrar</button>
+        <label className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm"><input type="checkbox" name="risco" value="1" defaultChecked={risco} /> Só em risco</label>
+        <button className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm">Filtrar</button>
       </form>
+      {error && <p className="mb-3 text-sm text-danger">Não foi possível carregar a lista: {error.message}</p>}
       {(parties ?? []).length === 0 ? <Empty title="Nenhuma pessoa encontrada">Clientes entram pelo PDV, pela inbox ou por importação.</Empty> : (
         <Table head={["Nome", "Estágio", "Score", "Cidade", "Aniversário", "Última compra", "Papéis"]}>
           {(parties ?? []).map((p) => (

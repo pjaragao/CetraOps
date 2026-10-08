@@ -23,7 +23,7 @@ export async function saveJourneyAction(formData: FormData) {
   if (formData.getAll("roles").length) cfg.roles = formData.getAll("roles").map(String);
   if (formData.has("coupon_percent")) {   // cupom pessoal (réguas de aniversário): vazio = sem cupom
     const percent = str(formData.get("coupon_percent"));
-    if (percent) cfg.coupon = { enabled: true, percent: Number(percent.replace(",", ".")), valid_days: Number(formData.get("coupon_valid_days") || 30), ...(str(formData.get("coupon_min_order")) ? { min_order: Number(str(formData.get("coupon_min_order")).replace(",", ".")) } : {}) };
+    if (percent) cfg.coupon = { enabled: true, percent: Number(percent.replace(",", ".")), days_after: str(formData.get("coupon_days_after")) === "" ? 20 : Number(formData.get("coupon_days_after")), ...(str(formData.get("coupon_min_order")) ? { min_order: Number(str(formData.get("coupon_min_order")).replace(",", ".")) } : {}) };
   }
   if (formData.has("reasons")) cfg.reasons = str(formData.get("reasons")).split(",").map((x) => x.trim()).filter(Boolean);
   const supabase = await createClient();

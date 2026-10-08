@@ -16,3 +16,4 @@ export * from "./people";
 export * from "./cnpj";
 export * from "./assistant";
 export * from "./readers";
+export * from "./campaigns";

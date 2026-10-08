@@ -26,7 +26,9 @@ def sha256(value: str) -> str:
 
 def build_event(d: dict[str, Any], cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
     """(evento, motivo para não enviar). Não faz rede."""
-    custom = {"currency": d.get("currency") or "BRL", "value": float(d["total"])}
+    custom: dict[str, Any] = {"currency": d.get("currency") or "BRL", "value": float(d["total"])}
+    if d.get("campaign"):
+        custom["campaign"] = str(d["campaign"])                      # código da campanha (não é dado pessoal)
     base = {"event_name": "Purchase", "event_time": int(d["event_time"]), "event_id": str(d["order_id"]), "custom_data": custom}
     ctwa = d.get("ctwa_clid") or d.get("ctwa_clid_alt")
     if ctwa and cfg.get("waba_id"):

@@ -5827,7 +5827,38 @@ isOneToOne: false
           }
         },"mkt": {
           Tables: {
-            "ad_insights_daily": {
+            "ad_audiences": {
+                  Row: {
+                    "ad_account": string | null,"auto_sync": boolean,"campaign_id": string | null,"created_at": string,"created_by": string | null,"definition": Json | null,"id": string,"kind": string,"last_error": string | null,"last_sync_at": string | null,"lookalike_ratio": number | null,"matched_estimate": number | null,"meta_audience_id": string | null,"name": string,"org_id": string,"segment_id": string | null,"source_audience_id": string | null,"status": string,"updated_at": string,"uploaded": number | null
+                  }
+                  Insert: {
+                    "ad_account"?: string | null,"auto_sync"?: boolean,"campaign_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"definition"?: Json | null,"id"?: string,"kind"?: string,"last_error"?: string | null,"last_sync_at"?: string | null,"lookalike_ratio"?: number | null,"matched_estimate"?: number | null,"meta_audience_id"?: string | null,"name": string,"org_id": string,"segment_id"?: string | null,"source_audience_id"?: string | null,"status"?: string,"updated_at"?: string,"uploaded"?: number | null
+                  }
+                  Update: {
+                    "ad_account"?: string | null,"auto_sync"?: boolean,"campaign_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"definition"?: Json | null,"id"?: string,"kind"?: string,"last_error"?: string | null,"last_sync_at"?: string | null,"lookalike_ratio"?: number | null,"matched_estimate"?: number | null,"meta_audience_id"?: string | null,"name"?: string,"org_id"?: string,"segment_id"?: string | null,"source_audience_id"?: string | null,"status"?: string,"updated_at"?: string,"uploaded"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ad_audiences_campaign_id_fkey"
+      columns: ["campaign_id"]
+isOneToOne: false
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ad_audiences_segment_id_fkey"
+      columns: ["segment_id"]
+isOneToOne: false
+      referencedRelation: "segments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ad_audiences_source_audience_id_fkey"
+      columns: ["source_audience_id"]
+isOneToOne: false
+      referencedRelation: "ad_audiences"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ad_insights_daily": {
                   Row: {
                     "ad_account": string,"ad_id": string,"ad_name": string | null,"adset_name": string | null,"campaign_id": string | null,"campaign_name": string | null,"clicks": number,"conversations": number,"day": string,"id": string,"impressions": number,"leads": number,"org_id": string,"purchase_value": number,"purchases": number,"reach": number,"spend": number,"updated_at": string
                   }
@@ -5838,6 +5869,7 @@ isOneToOne: false
                     "ad_account"?: string,"ad_id"?: string,"ad_name"?: string | null,"adset_name"?: string | null,"campaign_id"?: string | null,"campaign_name"?: string | null,"clicks"?: number,"conversations"?: number,"day"?: string,"id"?: string,"impressions"?: number,"leads"?: number,"org_id"?: string,"purchase_value"?: number,"purchases"?: number,"reach"?: number,"spend"?: number,"updated_at"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"ad_sync_state": {
@@ -5851,6 +5883,7 @@ isOneToOne: false
                     "ad_account"?: string,"last_day"?: string | null,"last_error"?: string | null,"last_rows"?: number,"last_run_at"?: string | null,"org_id"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"attribution_touches": {
@@ -5872,15 +5905,91 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"campaign_recipients": {
+                },"campaign_ad_links": {
                   Row: {
-                    "campaign_id": string,"created_at": string,"id": string,"message_id": string | null,"org_id": string,"party_id": string,"sent_at": string | null,"seq": number,"skip_reason": string | null,"status": string
+                    "campaign_id": string,"created_at": string,"meta_campaign_id": string,"meta_campaign_name": string | null,"org_id": string,"source": string
                   }
                   Insert: {
-                    "campaign_id": string,"created_at"?: string,"id"?: string,"message_id"?: string | null,"org_id": string,"party_id": string,"sent_at"?: string | null,"seq"?: never,"skip_reason"?: string | null,"status"?: string
+                    "campaign_id": string,"created_at"?: string,"meta_campaign_id": string,"meta_campaign_name"?: string | null,"org_id": string,"source"?: string
                   }
                   Update: {
-                    "campaign_id"?: string,"created_at"?: string,"id"?: string,"message_id"?: string | null,"org_id"?: string,"party_id"?: string,"sent_at"?: string | null,"seq"?: never,"skip_reason"?: string | null,"status"?: string
+                    "campaign_id"?: string,"created_at"?: string,"meta_campaign_id"?: string,"meta_campaign_name"?: string | null,"org_id"?: string,"source"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaign_ad_links_campaign_id_fkey"
+      columns: ["campaign_id"]
+isOneToOne: false
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"campaign_dispatches": {
+                  Row: {
+                    "campaign_id": string,"channel_account_id": string,"created_at": string,"daily_limit": number,"filter": string,"finished_at": string | null,"frequency_cap_days": number,"id": string,"label": string | null,"org_id": string,"scheduled_at": string | null,"seq": number,"started_at": string | null,"status": string,"template_id": string,"updated_at": string,"variables": NonNullable<Json>
+                  }
+                  Insert: {
+                    "campaign_id": string,"channel_account_id": string,"created_at"?: string,"daily_limit"?: number,"filter"?: string,"finished_at"?: string | null,"frequency_cap_days"?: number,"id"?: string,"label"?: string | null,"org_id": string,"scheduled_at"?: string | null,"seq"?: number,"started_at"?: string | null,"status"?: string,"template_id": string,"updated_at"?: string,"variables"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "campaign_id"?: string,"channel_account_id"?: string,"created_at"?: string,"daily_limit"?: number,"filter"?: string,"finished_at"?: string | null,"frequency_cap_days"?: number,"id"?: string,"label"?: string | null,"org_id"?: string,"scheduled_at"?: string | null,"seq"?: number,"started_at"?: string | null,"status"?: string,"template_id"?: string,"updated_at"?: string,"variables"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaign_dispatches_campaign_id_fkey"
+      columns: ["campaign_id"]
+isOneToOne: false
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"campaign_members": {
+                  Row: {
+                    "campaign_id": string,"coupon_id": string | null,"grp": string,"joined_at": string,"org_id": string,"party_id": string
+                  }
+                  Insert: {
+                    "campaign_id": string,"coupon_id"?: string | null,"grp"?: string,"joined_at"?: string,"org_id": string,"party_id": string
+                  }
+                  Update: {
+                    "campaign_id"?: string,"coupon_id"?: string | null,"grp"?: string,"joined_at"?: string,"org_id"?: string,"party_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaign_members_campaign_id_fkey"
+      columns: ["campaign_id"]
+isOneToOne: false
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"campaign_offers": {
+                  Row: {
+                    "campaign_id": string,"code": string | null,"code_prefix": string | null,"kind": string | null,"max_uses": number | null,"min_order": number | null,"mode": string,"org_id": string,"per_customer_limit": number | null,"updated_at": string,"valid_days": number | null,"valid_to": string | null,"value": number | null
+                  }
+                  Insert: {
+                    "campaign_id": string,"code"?: string | null,"code_prefix"?: string | null,"kind"?: string | null,"max_uses"?: number | null,"min_order"?: number | null,"mode"?: string,"org_id": string,"per_customer_limit"?: number | null,"updated_at"?: string,"valid_days"?: number | null,"valid_to"?: string | null,"value"?: number | null
+                  }
+                  Update: {
+                    "campaign_id"?: string,"code"?: string | null,"code_prefix"?: string | null,"kind"?: string | null,"max_uses"?: number | null,"min_order"?: number | null,"mode"?: string,"org_id"?: string,"per_customer_limit"?: number | null,"updated_at"?: string,"valid_days"?: number | null,"valid_to"?: string | null,"value"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaign_offers_campaign_id_fkey"
+      columns: ["campaign_id"]
+isOneToOne: true
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"campaign_recipients": {
+                  Row: {
+                    "campaign_id": string,"created_at": string,"dispatch_id": string,"id": string,"message_id": string | null,"org_id": string,"party_id": string,"sent_at": string | null,"seq": number,"skip_reason": string | null,"status": string
+                  }
+                  Insert: {
+                    "campaign_id": string,"created_at"?: string,"dispatch_id": string,"id"?: string,"message_id"?: string | null,"org_id": string,"party_id": string,"sent_at"?: string | null,"seq"?: never,"skip_reason"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "campaign_id"?: string,"created_at"?: string,"dispatch_id"?: string,"id"?: string,"message_id"?: string | null,"org_id"?: string,"party_id"?: string,"sent_at"?: string | null,"seq"?: never,"skip_reason"?: string | null,"status"?: string
                   }
                   Relationships: [
                     {
@@ -5889,20 +5998,32 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "campaigns"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "campaign_recipients_dispatch_id_fkey"
+      columns: ["dispatch_id"]
+isOneToOne: false
+      referencedRelation: "campaign_dispatches"
+      referencedColumns: ["id"]
     }
                   ]
                 },"campaigns": {
                   Row: {
-                    "audience": NonNullable<Json>,"channel_account_id": string,"created_at": string,"created_by": string | null,"daily_limit": number,"finished_at": string | null,"frequency_cap_days": number,"id": string,"name": string,"org_id": string,"scheduled_at": string | null,"started_at": string | null,"status": string,"template_id": string,"updated_at": string,"variables": NonNullable<Json>
+                    "attribution_days": number,"audience": NonNullable<Json>,"audience_scope": string,"budget": number | null,"channel_account_id": string | null,"code": string | null,"created_at": string,"created_by": string | null,"daily_limit": number,"description": string | null,"ends_at": string | null,"finished_at": string | null,"frequency_cap_days": number,"holdout_pct": number,"id": string,"landing_url": string | null,"name": string,"objective": string,"org_id": string,"scheduled_at": string | null,"segment_id": string | null,"started_at": string | null,"starts_at": string | null,"status": string,"template_id": string | null,"updated_at": string,"variables": NonNullable<Json>
                   }
                   Insert: {
-                    "audience"?: NonNullable<Json>,"channel_account_id": string,"created_at"?: string,"created_by"?: string | null,"daily_limit"?: number,"finished_at"?: string | null,"frequency_cap_days"?: number,"id"?: string,"name": string,"org_id": string,"scheduled_at"?: string | null,"started_at"?: string | null,"status"?: string,"template_id": string,"updated_at"?: string,"variables"?: NonNullable<Json>
+                    "attribution_days"?: number,"audience"?: NonNullable<Json>,"audience_scope"?: string,"budget"?: number | null,"channel_account_id"?: string | null,"code"?: string | null,"created_at"?: string,"created_by"?: string | null,"daily_limit"?: number,"description"?: string | null,"ends_at"?: string | null,"finished_at"?: string | null,"frequency_cap_days"?: number,"holdout_pct"?: number,"id"?: string,"landing_url"?: string | null,"name": string,"objective"?: string,"org_id": string,"scheduled_at"?: string | null,"segment_id"?: string | null,"started_at"?: string | null,"starts_at"?: string | null,"status"?: string,"template_id"?: string | null,"updated_at"?: string,"variables"?: NonNullable<Json>
                   }
                   Update: {
-                    "audience"?: NonNullable<Json>,"channel_account_id"?: string,"created_at"?: string,"created_by"?: string | null,"daily_limit"?: number,"finished_at"?: string | null,"frequency_cap_days"?: number,"id"?: string,"name"?: string,"org_id"?: string,"scheduled_at"?: string | null,"started_at"?: string | null,"status"?: string,"template_id"?: string,"updated_at"?: string,"variables"?: NonNullable<Json>
+                    "attribution_days"?: number,"audience"?: NonNullable<Json>,"audience_scope"?: string,"budget"?: number | null,"channel_account_id"?: string | null,"code"?: string | null,"created_at"?: string,"created_by"?: string | null,"daily_limit"?: number,"description"?: string | null,"ends_at"?: string | null,"finished_at"?: string | null,"frequency_cap_days"?: number,"holdout_pct"?: number,"id"?: string,"landing_url"?: string | null,"name"?: string,"objective"?: string,"org_id"?: string,"scheduled_at"?: string | null,"segment_id"?: string | null,"started_at"?: string | null,"starts_at"?: string | null,"status"?: string,"template_id"?: string | null,"updated_at"?: string,"variables"?: NonNullable<Json>
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "campaigns_segment_id_fkey"
+      columns: ["segment_id"]
+isOneToOne: false
+      referencedRelation: "segments"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"capi_events": {
                   Row: {
@@ -5915,6 +6036,7 @@ isOneToOne: false
                     "attempted_at"?: string,"event_name"?: string,"order_id"?: string,"org_id"?: string,"reason"?: string | null,"response"?: Json | null,"status"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"event_budget_lines": {
@@ -5967,16 +6089,17 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"journey_enrollments": {
                   Row: {
-                    "converted_at": string | null,"coupon_id": string | null,"converted_order_id": string | null,"enrolled_at": string,"exit_reason": string | null,"finished_at": string | null,"grp": string,"id": string,"journey_id": string,"next_run_at": string | null,"next_step": number,"org_id": string,"party_id": string,"source_key": string,"status": string
+                    "converted_at": string | null,"converted_order_id": string | null,"coupon_id": string | null,"enrolled_at": string,"exit_reason": string | null,"finished_at": string | null,"grp": string,"id": string,"journey_id": string,"next_run_at": string | null,"next_step": number,"org_id": string,"party_id": string,"source_key": string,"status": string
                   }
                   Insert: {
-                    "converted_at"?: string | null,"coupon_id"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp": string,"id"?: string,"journey_id": string,"next_run_at"?: string | null,"next_step"?: number,"org_id": string,"party_id": string,"source_key": string,"status"?: string
+                    "converted_at"?: string | null,"converted_order_id"?: string | null,"coupon_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp": string,"id"?: string,"journey_id": string,"next_run_at"?: string | null,"next_step"?: number,"org_id": string,"party_id": string,"source_key": string,"status"?: string
                   }
                   Update: {
-                    "converted_at"?: string | null,"coupon_id"?: string | null,"converted_order_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp"?: string,"id"?: string,"journey_id"?: string,"next_run_at"?: string | null,"next_step"?: number,"org_id"?: string,"party_id"?: string,"source_key"?: string,"status"?: string
+                    "converted_at"?: string | null,"converted_order_id"?: string | null,"coupon_id"?: string | null,"enrolled_at"?: string,"exit_reason"?: string | null,"finished_at"?: string | null,"grp"?: string,"id"?: string,"journey_id"?: string,"next_run_at"?: string | null,"next_step"?: number,"org_id"?: string,"party_id"?: string,"source_key"?: string,"status"?: string
                   }
                   Relationships: [
                     {
@@ -6037,19 +6160,78 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
-                },"tracking_links": {
+                },"link_clicks": {
                   Row: {
-                    "active": boolean,"affiliate_party_id": string | null,"channel_account_id": string,"code": string,"created_at": string,"created_by": string | null,"event_id": string | null,"id": string,"kind": string,"name": string,"org_id": string,"prefill_text": string | null,"referrer_party_id": string | null,"updated_at": string
+                    "clicked_at": string,"device": string | null,"from_ad": boolean,"id": number,"org_id": string,"referrer_host": string | null,"tracking_link_id": string,"utm": NonNullable<Json>
                   }
                   Insert: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id": string,"code": string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name": string,"org_id": string,"prefill_text"?: string | null,"referrer_party_id"?: string | null,"updated_at"?: string
+                    "clicked_at"?: string,"device"?: string | null,"from_ad"?: boolean,"id"?: never,"org_id": string,"referrer_host"?: string | null,"tracking_link_id": string,"utm"?: NonNullable<Json>
                   }
                   Update: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"channel_account_id"?: string,"code"?: string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string,"prefill_text"?: string | null,"referrer_party_id"?: string | null,"updated_at"?: string
+                    "clicked_at"?: string,"device"?: string | null,"from_ad"?: boolean,"id"?: never,"org_id"?: string,"referrer_host"?: string | null,"tracking_link_id"?: string,"utm"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
+      foreignKeyName: "link_clicks_tracking_link_id_fkey"
+      columns: ["tracking_link_id"]
+isOneToOne: false
+      referencedRelation: "tracking_links"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"segment_members": {
+                  Row: {
+                    "org_id": string,"party_id": string,"segment_id": string
+                  }
+                  Insert: {
+                    "org_id": string,"party_id": string,"segment_id": string
+                  }
+                  Update: {
+                    "org_id"?: string,"party_id"?: string,"segment_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "segment_members_segment_id_fkey"
+      columns: ["segment_id"]
+isOneToOne: false
+      referencedRelation: "segments"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"segments": {
+                  Row: {
+                    "cached_at": string | null,"cached_count": number | null,"created_at": string,"created_by": string | null,"definition": NonNullable<Json>,"description": string | null,"id": string,"kind": string,"name": string,"org_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "cached_at"?: string | null,"cached_count"?: number | null,"created_at"?: string,"created_by"?: string | null,"definition"?: NonNullable<Json>,"description"?: string | null,"id"?: string,"kind"?: string,"name": string,"org_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "cached_at"?: string | null,"cached_count"?: number | null,"created_at"?: string,"created_by"?: string | null,"definition"?: NonNullable<Json>,"description"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                    
+                  ]
+                },"tracking_links": {
+                  Row: {
+                    "active": boolean,"affiliate_party_id": string | null,"campaign_id": string | null,"channel_account_id": string | null,"code": string,"created_at": string,"created_by": string | null,"event_id": string | null,"id": string,"kind": string,"name": string,"org_id": string,"prefill_text": string | null,"referrer_party_id": string | null,"target": string,"target_url": string | null,"updated_at": string,"utm": NonNullable<Json>
+                  }
+                  Insert: {
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"campaign_id"?: string | null,"channel_account_id"?: string | null,"code": string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name": string,"org_id": string,"prefill_text"?: string | null,"referrer_party_id"?: string | null,"target"?: string,"target_url"?: string | null,"updated_at"?: string,"utm"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"campaign_id"?: string | null,"channel_account_id"?: string | null,"code"?: string,"created_at"?: string,"created_by"?: string | null,"event_id"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"org_id"?: string,"prefill_text"?: string | null,"referrer_party_id"?: string | null,"target"?: string,"target_url"?: string | null,"updated_at"?: string,"utm"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tracking_links_campaign_fk"
+      columns: ["campaign_id"]
+isOneToOne: false
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "tracking_links_event_id_fkey"
       columns: ["event_id"]
 isOneToOne: false
@@ -6063,37 +6245,20 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "ad_insights_upsert":
-{ Args: { "p_account": string,"p_org": string,"p_rows": Json }; Returns: number
-                           },
-"ad_sync_set":
-{ Args: { "p_account": string,"p_error"?: string,"p_last_day": string,"p_org": string,"p_rows": number }; Returns: undefined
-                           },
-"ads_overview":
-{ Args: { "p_from": string,"p_to": string }; Returns: Json
-                           },
-"campaign_preview":
-{ Args: { "p_id": string }; Returns: Json
-                           },
-"campaign_results":
-{ Args: { "p_id": string }; Returns: Json
-                           },
-"campaign_send_batch":
-{ Args: { "p_campaign": string,"p_limit"?: number }; Returns: Json
-                           },
-"cancel_campaign":
+            "activate_dispatch":
 { Args: { "p_id": string }; Returns: {
-              "audience": NonNullable<Json>,
+              "campaign_id": string,
 "channel_account_id": string,
 "created_at": string,
-"created_by": string | null,
 "daily_limit": number,
+"filter": string,
 "finished_at": string | null,
 "frequency_cap_days": number,
 "id": string,
-"name": string,
+"label": string | null,
 "org_id": string,
 "scheduled_at": string | null,
+"seq": number,
 "started_at": string | null,
 "status": string,
 "template_id": string,
@@ -6102,7 +6267,103 @@ isOneToOne: false
             }
                           SetofOptions: {
         from: "*"
+        to: "campaign_dispatches"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"ad_audience_set":
+{ Args: { "p_account"?: string,"p_audience": string,"p_error"?: string,"p_matched"?: number,"p_meta_id"?: string,"p_status": string,"p_uploaded"?: number }; Returns: undefined
+                           },
+"ad_campaigns":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "last_day": string,"linked_to": string,"meta_campaign_id": string,"meta_campaign_name": string,"spend": number
+            }[]
+                           },
+"ad_insights_upsert":
+{ Args: { "p_account": string,"p_org": string,"p_rows": Json }; Returns: number
+                           },
+"ad_sync_set":
+{ Args: { "p_account": string,"p_error"?: string,"p_last_day": string,"p_org": string,"p_rows": number }; Returns: undefined
+                           },
+"ads_overview":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"audience_upload_rows":
+{ Args: { "p_audience": string }; Returns: Json
+                           },
+"campaign_checklist":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"campaign_preview":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"campaign_progress":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "campaign_id": string,"dispatches": number,"members": number,"pending": number,"sent": number,"skipped": number,"total": number
+            }[]
+                           },
+"campaign_results":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"cancel_campaign":
+{ Args: { "p_id": string }; Returns: {
+              "attribution_days": number,
+"audience": NonNullable<Json>,
+"audience_scope": string,
+"budget": number | null,
+"channel_account_id": string | null,
+"code": string | null,
+"created_at": string,
+"created_by": string | null,
+"daily_limit": number,
+"description": string | null,
+"ends_at": string | null,
+"finished_at": string | null,
+"frequency_cap_days": number,
+"holdout_pct": number,
+"id": string,
+"landing_url": string | null,
+"name": string,
+"objective": string,
+"org_id": string,
+"scheduled_at": string | null,
+"segment_id": string | null,
+"started_at": string | null,
+"starts_at": string | null,
+"status": string,
+"template_id": string | null,
+"updated_at": string,
+"variables": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
         to: "campaigns"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"cancel_dispatch":
+{ Args: { "p_id": string }; Returns: {
+              "campaign_id": string,
+"channel_account_id": string,
+"created_at": string,
+"daily_limit": number,
+"filter": string,
+"finished_at": string | null,
+"frequency_cap_days": number,
+"id": string,
+"label": string | null,
+"org_id": string,
+"scheduled_at": string | null,
+"seq": number,
+"started_at": string | null,
+"status": string,
+"template_id": string,
+"updated_at": string,
+"variables": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campaign_dispatches"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -6118,14 +6379,65 @@ isOneToOne: false
 "checkin_walkin":
 { Args: { "p": Json }; Returns: Json
                            },
+"delete_ad_audience":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "delete_budget_line":
 { Args: { "p_id": string }; Returns: undefined
                            },
 "delete_campaign":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"delete_dispatch":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "delete_journey_step":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"delete_segment":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"dispatch_send_batch":
+{ Args: { "p_dispatch": string,"p_limit"?: number }; Returns: Json
+                           },
+"end_campaign":
+{ Args: { "p_id": string }; Returns: {
+              "attribution_days": number,
+"audience": NonNullable<Json>,
+"audience_scope": string,
+"budget": number | null,
+"channel_account_id": string | null,
+"code": string | null,
+"created_at": string,
+"created_by": string | null,
+"daily_limit": number,
+"description": string | null,
+"ends_at": string | null,
+"finished_at": string | null,
+"frequency_cap_days": number,
+"holdout_pct": number,
+"id": string,
+"landing_url": string | null,
+"name": string,
+"objective": string,
+"org_id": string,
+"scheduled_at": string | null,
+"segment_id": string | null,
+"started_at": string | null,
+"starts_at": string | null,
+"status": string,
+"template_id": string | null,
+"updated_at": string,
+"variables": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campaigns"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"ensure_affiliate_links":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "event_guest_sales":
 { Args: { "p_event": string }; Returns: {
@@ -6155,26 +6467,70 @@ isOneToOne: false
                            },
 "launch_campaign":
 { Args: { "p_id": string }; Returns: {
-              "audience": NonNullable<Json>,
-"channel_account_id": string,
+              "attribution_days": number,
+"audience": NonNullable<Json>,
+"audience_scope": string,
+"budget": number | null,
+"channel_account_id": string | null,
+"code": string | null,
 "created_at": string,
 "created_by": string | null,
 "daily_limit": number,
+"description": string | null,
+"ends_at": string | null,
 "finished_at": string | null,
 "frequency_cap_days": number,
+"holdout_pct": number,
 "id": string,
+"landing_url": string | null,
 "name": string,
+"objective": string,
 "org_id": string,
 "scheduled_at": string | null,
+"segment_id": string | null,
 "started_at": string | null,
+"starts_at": string | null,
 "status": string,
-"template_id": string,
+"template_id": string | null,
 "updated_at": string,
 "variables": NonNullable<Json>
             }
                           SetofOptions: {
         from: "*"
         to: "campaigns"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"link_campaign_ads":
+{ Args: { "p_campaign": string,"p_meta_ids": (string)[] }; Returns: number
+                           },
+"link_click_stats":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "clicks": number,"clicks_ad": number,"last_click": string,"link_id": string
+            }[]
+                           },
+"party_campaigns":
+{ Args: { "p_party": string }; Returns: {
+              "bought": boolean,"campaign_id": string,"coupon_code": string,"coupon_used": boolean,"grp": string,"name": string,"received_at": string,"status": string
+            }[]
+                           },
+"refresh_segment":
+{ Args: { "p_id": string }; Returns: {
+              "cached_at": string | null,
+"cached_count": number | null,
+"created_at": string,
+"created_by": string | null,
+"definition": NonNullable<Json>,
+"description": string | null,
+"id": string,
+"kind": string,
+"name": string,
+"org_id": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "segments"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -6189,6 +6545,64 @@ isOneToOne: false
 "request_ads_sync":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"request_audience_sync":
+{ Args: { "p": Json }; Returns: {
+              "ad_account": string | null,
+"auto_sync": boolean,
+"campaign_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"definition": Json | null,
+"id": string,
+"kind": string,
+"last_error": string | null,
+"last_sync_at": string | null,
+"lookalike_ratio": number | null,
+"matched_estimate": number | null,
+"meta_audience_id": string | null,
+"name": string,
+"org_id": string,
+"segment_id": string | null,
+"source_audience_id": string | null,
+"status": string,
+"updated_at": string,
+"uploaded": number | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "ad_audiences"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"request_lookalike":
+{ Args: { "p_audience": string,"p_ratio"?: number }; Returns: {
+              "ad_account": string | null,
+"auto_sync": boolean,
+"campaign_id": string | null,
+"created_at": string,
+"created_by": string | null,
+"definition": Json | null,
+"id": string,
+"kind": string,
+"last_error": string | null,
+"last_sync_at": string | null,
+"lookalike_ratio": number | null,
+"matched_estimate": number | null,
+"meta_audience_id": string | null,
+"name": string,
+"org_id": string,
+"segment_id": string | null,
+"source_audience_id": string | null,
+"status": string,
+"updated_at": string,
+"uploaded": number | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "ad_audiences"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_budget_line":
 { Args: { "p": Json }; Returns: {
               "category": string,
@@ -6207,20 +6621,31 @@ isOneToOne: false
       } },
 "save_campaign":
 { Args: { "p": Json }; Returns: {
-              "audience": NonNullable<Json>,
-"channel_account_id": string,
+              "attribution_days": number,
+"audience": NonNullable<Json>,
+"audience_scope": string,
+"budget": number | null,
+"channel_account_id": string | null,
+"code": string | null,
 "created_at": string,
 "created_by": string | null,
 "daily_limit": number,
+"description": string | null,
+"ends_at": string | null,
 "finished_at": string | null,
 "frequency_cap_days": number,
+"holdout_pct": number,
 "id": string,
+"landing_url": string | null,
 "name": string,
+"objective": string,
 "org_id": string,
 "scheduled_at": string | null,
+"segment_id": string | null,
 "started_at": string | null,
+"starts_at": string | null,
 "status": string,
-"template_id": string,
+"template_id": string | null,
 "updated_at": string,
 "variables": NonNullable<Json>
             }
@@ -6230,9 +6655,57 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_campaign_offer":
+{ Args: { "p": Json }; Returns: {
+              "campaign_id": string,
+"code": string | null,
+"code_prefix": string | null,
+"kind": string | null,
+"max_uses": number | null,
+"min_order": number | null,
+"mode": string,
+"org_id": string,
+"per_customer_limit": number | null,
+"updated_at": string,
+"valid_days": number | null,
+"valid_to": string | null,
+"value": number | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campaign_offers"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_contact_policy":
 { Args: { "p": Json }; Returns: Json
                            },
+"save_dispatch":
+{ Args: { "p": Json }; Returns: {
+              "campaign_id": string,
+"channel_account_id": string,
+"created_at": string,
+"daily_limit": number,
+"filter": string,
+"finished_at": string | null,
+"frequency_cap_days": number,
+"id": string,
+"label": string | null,
+"org_id": string,
+"scheduled_at": string | null,
+"seq": number,
+"started_at": string | null,
+"status": string,
+"template_id": string,
+"updated_at": string,
+"variables": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campaign_dispatches"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_event":
 { Args: { "p": Json }; Returns: {
               "capacity": number | null,
@@ -6302,11 +6775,32 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_segment":
+{ Args: { "p": Json }; Returns: {
+              "cached_at": string | null,
+"cached_count": number | null,
+"created_at": string,
+"created_by": string | null,
+"definition": NonNullable<Json>,
+"description": string | null,
+"id": string,
+"kind": string,
+"name": string,
+"org_id": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "segments"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_tracking_link":
 { Args: { "p": Json }; Returns: {
               "active": boolean,
 "affiliate_party_id": string | null,
-"channel_account_id": string,
+"campaign_id": string | null,
+"channel_account_id": string | null,
 "code": string,
 "created_at": string,
 "created_by": string | null,
@@ -6317,7 +6811,10 @@ isOneToOne: false
 "org_id": string,
 "prefill_text": string | null,
 "referrer_party_id": string | null,
-"updated_at": string
+"target": string,
+"target_url": string | null,
+"updated_at": string,
+"utm": NonNullable<Json>
             }
                           SetofOptions: {
         from: "*"
@@ -6325,6 +6822,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"segment_preview":
+{ Args: { "p_def": Json }; Returns: Json
+                           },
+"set_campaign_costs":
+{ Args: { "p_template_cost": number }; Returns: number
+                           },
 "set_event_presale":
 { Args: { "p_event": string,"p_presale": string,"p_public": string }; Returns: {
               "capacity": number | null,
@@ -6402,6 +6905,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_public_url":
+{ Args: { "p_base": string }; Returns: string
+                           },
 "set_rsvp":
 { Args: { "p_guest": string,"p_plus_ones"?: number,"p_status": string }; Returns: {
               "checked_in_at": string | null,
@@ -7859,15 +8365,16 @@ isOneToOne: false
                   ]
                 },"coupons": {
                   Row: {
-                    "active": boolean,"affiliate_party_id": string | null,"code": string,"created_at": string,"id": string,"kind": string,"max_uses": number | null,"min_order": number | null,"org_id": string,"party_id": string | null,"per_customer_limit": number | null,"valid_from": string,"valid_to": string | null,"value": number
+                    "active": boolean,"affiliate_party_id": string | null,"campaign_id": string | null,"code": string,"created_at": string,"id": string,"kind": string,"max_uses": number | null,"min_order": number | null,"org_id": string,"party_id": string | null,"per_customer_limit": number | null,"source": string,"updated_at": string,"valid_from": string,"valid_to": string | null,"value": number
                   }
                   Insert: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": string,"max_uses"?: number | null,"min_order"?: number | null,"org_id": string,"party_id"?: string | null,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value": number
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"campaign_id"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": string,"max_uses"?: number | null,"min_order"?: number | null,"org_id": string,"party_id"?: string | null,"per_customer_limit"?: number | null,"source"?: string,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null,"value": number
                   }
                   Update: {
-                    "active"?: boolean,"affiliate_party_id"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: string,"max_uses"?: number | null,"min_order"?: number | null,"org_id"?: string,"party_id"?: string | null,"per_customer_limit"?: number | null,"valid_from"?: string,"valid_to"?: string | null,"value"?: number
+                    "active"?: boolean,"affiliate_party_id"?: string | null,"campaign_id"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: string,"max_uses"?: number | null,"min_order"?: number | null,"org_id"?: string,"party_id"?: string | null,"per_customer_limit"?: number | null,"source"?: string,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null,"value"?: number
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"locker_drops": {
@@ -8078,7 +8585,36 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "cancel_order":
+            "party_auto_coupon":
+{ Args: { "p_party": string }; Returns: Json
+                           },
+"save_coupon":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"affiliate_party_id": string | null,
+"campaign_id": string | null,
+"code": string,
+"created_at": string,
+"id": string,
+"kind": string,
+"max_uses": number | null,
+"min_order": number | null,
+"org_id": string,
+"party_id": string | null,
+"per_customer_limit": number | null,
+"source": string,
+"updated_at": string,
+"valid_from": string,
+"valid_to": string | null,
+"value": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "coupons"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"cancel_order":
 { Args: { "p_order": string,"p_reason": string }; Returns: {
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,
@@ -8523,9 +9059,6 @@ isOneToOne: false
 "store_credit_balance":
 { Args: { "p_party": string }; Returns: number
                            },
-"party_auto_coupon":
-{ Args: { "p_party": string }; Returns: Json
-                           },
 "validate_coupon":
 { Args: { "p_code": string,"p_party"?: string,"p_subtotal": number }; Returns: Json
                            }
@@ -8667,7 +9200,7 @@ export const Constants = {
           }
         },"crm": {
           Enums: {
-            "consent_purpose": ["TRANSACTIONAL", "MARKETING_WHATSAPP", "MARKETING_EMAIL", "MARKETING_IG", "AI_PROFILING", "ENRICHMENT", "IMAGE_USE"],"contact_type": ["PHONE", "EMAIL", "WHATSAPP", "INSTAGRAM", "TELEGRAM", "TIKTOK"],"legal_basis": ["CONSENT", "LEGITIMATE_INTEREST", "CONTRACT", "LEGAL_OBLIGATION"],"lifecycle_stage": ["LEAD", "PROSPECT", "CUSTOMER", "VIP", "INACTIVE", "LOST"],"party_kind": ["PERSON", "COMPANY"],"party_role": ["CUSTOMER", "SUPPLIER", "EMPLOYEE", "AFFILIATE_TRAINER", "PARTNER_GYM", "INFLUENCER", "CARRIER", "SERVICE_PROVIDER", "SHAREHOLDER", "ACQUIRER", "BANK"],"tier": ["STANDARD", "VIP", "VIP_BLACK"]
+            "consent_purpose": ["TRANSACTIONAL", "MARKETING_WHATSAPP", "MARKETING_EMAIL", "MARKETING_IG", "AI_PROFILING", "ENRICHMENT", "IMAGE_USE", "MARKETING_ADS"],"contact_type": ["PHONE", "EMAIL", "WHATSAPP", "INSTAGRAM", "TELEGRAM", "TIKTOK"],"legal_basis": ["CONSENT", "LEGITIMATE_INTEREST", "CONTRACT", "LEGAL_OBLIGATION"],"lifecycle_stage": ["LEAD", "PROSPECT", "CUSTOMER", "VIP", "INACTIVE", "LOST"],"party_kind": ["PERSON", "COMPANY"],"party_role": ["CUSTOMER", "SUPPLIER", "EMPLOYEE", "AFFILIATE_TRAINER", "PARTNER_GYM", "INFLUENCER", "CARRIER", "SERVICE_PROVIDER", "SHAREHOLDER", "ACQUIRER", "BANK"],"tier": ["STANDARD", "VIP", "VIP_BLACK"]
           }
         },"fin": {
           Enums: {

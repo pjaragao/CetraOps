@@ -1,7 +1,9 @@
 """Cliente da Graph API da Meta: WhatsApp Cloud API e Instagram Messaging. Só HTTP; regra de janela fica no banco."""
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -50,6 +52,21 @@ def normalize_insight(item: dict[str, Any]) -> dict[str, Any] | None:
             "day": day, "spend": float(item.get("spend") or 0), "impressions": int(float(item.get("impressions") or 0)), "reach": int(float(item.get("reach") or 0)),
             "clicks": int(float(item.get("clicks") or 0)), "leads": count(LEAD_ACTIONS), "conversations": count(CONVERSATION_ACTIONS), "purchases": count(PURCHASE_ACTIONS),
             "purchase_value": value(PURCHASE_ACTIONS)}
+
+
+def _hash(value: str) -> str:
+    return hashlib.sha256(value.strip().lower().encode()).hexdigest()
+
+
+def audience_row(contact: dict[str, Any]) -> list[str]:
+    """Uma pessoa → linha do público personalizado, no esquema [telefone, e-mail, primeiro nome]. A Meta só recebe o hash SHA-256 (campo vazio fica vazio)."""
+    phone = re.sub(r"\D", "", str(contact.get("phone") or ""))
+    email = str(contact.get("email") or "").strip().lower()
+    first = str(contact.get("first_name") or "").strip().lower()
+    return [_hash(phone) if len(phone) >= 10 else "", _hash(email) if "@" in email else "", _hash(first) if first else ""]
+
+
+AUDIENCE_SCHEMA = ["PHONE", "EMAIL", "FN"]
 
 
 class MetaClient:
@@ -170,6 +187,43 @@ class MetaClient:
             if not (page.get("paging") or {}).get("next") or not after:
                 return
             params = {**params, "after": after}
+
+    async def _delete(self, path: str) -> dict[str, Any]:
+        try:
+            resp = await self._http.delete(f"{self._base}/{path}", headers=self._headers(), timeout=20)
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            raise TransientError(f"rede: {e}") from e
+        _raise_for(resp)
+        return resp.json()
+
+    # ---------------- Marketing API (públicos personalizados) ----------------
+    async def create_custom_audience(self, ad_account: str, name: str, description: str = "") -> str:
+        out = await self._post(f"{ad_account}/customaudiences", {"name": name, "subtype": "CUSTOM", "description": description[:100], "customer_file_source": "USER_PROVIDED_ONLY"})
+        return str(out["id"])
+
+    async def replace_audience_users(self, audience_id: str, contacts: list[dict[str, Any]], batch_size: int = 10_000) -> int:
+        """Troca a lista inteira do público (sessão de substituição em lotes). Devolve quantas linhas foram enviadas."""
+        rows = [audience_row(c) for c in contacts]
+        rows = [r for r in rows if r[0] or r[1]]
+        if not rows:
+            return 0
+        session_id = int.from_bytes(hashlib.sha256(f"{audience_id}:{len(rows)}".encode()).digest()[:6], "big")
+        batches = [rows[i:i + batch_size] for i in range(0, len(rows), batch_size)]
+        for n, batch in enumerate(batches, start=1):
+            await self._post(f"{audience_id}/usersreplace", {"session": {"session_id": session_id, "batch_seq": n, "last_batch_flag": n == len(batches), "estimated_num_total": len(rows)},
+                                                           "payload": {"schema": AUDIENCE_SCHEMA, "data": batch}})
+        return len(rows)
+
+    async def audience_info(self, audience_id: str) -> dict[str, Any]:
+        return await self._get(audience_id, {"fields": "name,approximate_count_lower_bound,approximate_count_upper_bound,operation_status"})
+
+    async def create_lookalike(self, ad_account: str, name: str, origin_audience_id: str, ratio: float, country: str = "BR") -> str:
+        spec = {"type": "similarity", "country": country, "ratio": round(ratio / 100, 4)}
+        out = await self._post(f"{ad_account}/customaudiences", {"name": name, "subtype": "LOOKALIKE", "origin_audience_id": origin_audience_id, "lookalike_spec": json.dumps(spec)})
+        return str(out["id"])
+
+    async def delete_audience(self, audience_id: str) -> None:
+        await self._delete(audience_id)
 
     # ---------------- Conversions API ----------------
     async def send_capi_events(self, dataset_id: str, events: list[dict[str, Any]], extra: dict[str, Any] | None = None) -> dict[str, Any]:

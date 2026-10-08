@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
-import { str, type SP } from "@/lib/context";
+import { str, todayIsoSP, type SP } from "@/lib/context";
 import { SEGMENTS, STAGE_LABEL, TIER_LABEL } from "@centralops/domain";
 import { Badge, Empty, inputClass, PageHeader, Pager, Table } from "@/components/ui";
 
@@ -9,6 +9,10 @@ export const metadata = { title: "Clientes" };
 
 const STAGES = ["LEAD", "PROSPECT", "CUSTOMER", "VIP", "INACTIVE", "LOST"] as const;
 const PAGE = 100;
+const ROLE_FILTER: Record<string, string> = { fornecedores: "SUPPLIER", colaboradores: "EMPLOYEE", afiliadas: "AFFILIATE_TRAINER" };
+// coluna da tela → coluna da visão (aniversário ordena por mês-dia)
+const SORTS = { nome: "display_name", estagio: "lifecycle_stage", score: "lead_score", cidade: "city", aniversario: "birth_md", compra: "last_purchase_at" } as const;
+type SortKey = keyof typeof SORTS;
 
 export default async function ClientesPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
@@ -20,79 +24,84 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
   const segmento = str(sp.segmento);
   const risco = str(sp.risco) === "1";
   const aniversario = str(sp.aniversario) === "hoje" ? "hoje" : str(sp.aniversario) === "mes" ? "mes" : "";
+  const ordem: SortKey = (str(sp.ordem) ?? "") in SORTS ? (str(sp.ordem) as SortKey) : "aniversario";
+  const dir = str(sp.dir) === "desc" ? "desc" : "asc";
   const page = Math.max(1, Number(str(sp.p)) || 1);
-  // clientes e leads: fora quem só é colaborador, fornecedor ou prestador (cadastro único, mas cada tela mostra o seu público)
-  const { data: internal } = papel === "clientes"
-    ? await supabase.schema("crm").from("party_roles").select("party_id").in("role", ["EMPLOYEE", "SUPPLIER", "SERVICE_PROVIDER", "CARRIER", "ACQUIRER", "BANK"])
-    : { data: [] as { party_id: string }[] };
-  const { data: byRole } = papel !== "clientes" && papel !== "todos"
-    ? await supabase.schema("crm").from("party_roles").select("party_id").eq("role", papel === "fornecedores" ? "SUPPLIER" : papel === "colaboradores" ? "EMPLOYEE" : "AFFILIATE_TRAINER")
-    : { data: null };
+  const today = todayIsoSP();
 
-  // aniversariantes: mesma regra do resumo do dia (cliente com aniversário hoje ou neste mês)
-  const { data: birthdayIds } = aniversario ? await supabase.schema("crm").rpc("birthday_party_ids", { p_scope: aniversario === "hoje" ? "today" : "month" }) : { data: null };
-  let query = supabase.schema("crm").from("parties")
-    .select("id, display_name, city, birth_date, lifecycle_stage, tier, lead_score, last_purchase_at, tags, party_roles(role)", { count: "exact" })
-    .is("merged_into_id", null).is("anonymized_at", null)
-    .order("lead_score", { ascending: false }).order("display_name").order("id").range((page - 1) * PAGE, page * PAGE - 1);
+  // Filtros por coluna da visão (sem listas de ids na URL)
+  let query = supabase.schema("crm").from("v_people_list")
+    .select("id, display_name, city, birth_date, lifecycle_stage, tier, lead_score, last_purchase_at, roles", { count: "exact" })
+    .order(SORTS[ordem], { ascending: dir === "asc", nullsFirst: false });
+  if (ordem !== "nome") query = query.order("display_name");
+  query = query.order("id").range((page - 1) * PAGE, page * PAGE - 1);
   if (q) query = query.ilike("display_name", `%${q}%`);
   if (stage && (STAGES as readonly string[]).includes(stage)) query = query.eq("lifecycle_stage", stage as (typeof STAGES)[number]);
-  // Um único filtro por id: quem vale (aniversário, papel, segmento, risco) menos quem é só colaborador/fornecedor/etc.
-  const hide = new Set((internal ?? []).map((r) => r.party_id));
-  let allow: string[] | null = null;
-  const narrow = (ids: string[]) => { allow = allow ? allow.filter((x) => ids.includes(x)) : [...new Set(ids)]; };
-  if (aniversario) narrow(birthdayIds ?? []);
-  if (byRole) narrow(byRole.map((r) => r.party_id));
-  if ((segmento && SEGMENTS[segmento]) || risco) {
-    let mq = supabase.schema("crm").from("customer_metrics").select("party_id").limit(5000);
-    if (segmento && SEGMENTS[segmento]) mq = mq.eq("rfm_segment", segmento);
-    if (risco) mq = mq.eq("at_risk", true);
-    const { data: ms } = await mq;
-    narrow((ms ?? []).map((m) => m.party_id));
+  // clientes e leads: fora quem é colaborador, fornecedor ou prestador (cadastro único, mas cada tela mostra o seu público)
+  if (papel === "clientes") query = query.eq("is_internal", false);
+  else if (ROLE_FILTER[papel]) query = query.contains("roles", [ROLE_FILTER[papel]]);
+  if (segmento && SEGMENTS[segmento]) query = query.eq("rfm_segment", segmento);
+  if (risco) query = query.eq("at_risk", true);
+  // aniversariantes: mesma regra do resumo do dia (quem é cliente, aniversário hoje ou neste mês)
+  if (aniversario) {
+    query = query.contains("roles", ["CUSTOMER"]).eq("is_internal", false);
+    query = aniversario === "hoje" ? query.eq("birth_md", today.slice(5)) : query.like("birth_md", `${today.slice(5, 7)}-%`);
   }
-  if (allow) query = query.in("id", (allow as string[]).filter((x) => !hide.has(x)).concat(["00000000-0000-0000-0000-000000000000"]));
-  else if (hide.size) query = query.not("id", "in", `(${[...hide].join(",")})`);
   const { data: parties, count, error } = await query;
+
+  const params = { q: q || undefined, estagio: stage, papel: papel === "clientes" ? undefined : papel, segmento, risco: risco ? "1" : undefined, aniversario: aniversario || undefined };
+  const sortHref = (k: SortKey) => {
+    const u = new URLSearchParams(Object.entries({ ...params, ordem: k, dir: ordem === k && dir === "asc" ? "desc" : "asc" }).filter((e): e is [string, string] => Boolean(e[1])));
+    return `/clientes?${u.toString()}`;
+  };
+  const th = (k: SortKey, label: string) => (
+    <Link href={sortHref(k)} className="inline-flex items-center gap-1 hover:text-text" aria-sort={ordem === k ? (dir === "asc" ? "ascending" : "descending") : undefined}>
+      {label}<span aria-hidden className={ordem === k ? "text-brand" : "opacity-30"}>{ordem === k && dir === "desc" ? "↓" : "↑"}</span>
+    </Link>
+  );
+  const control = `${inputClass.replace("w-full", "")} min-w-[9rem] flex-1 basis-0`;   // ocupa a linha toda, dividindo o espaço
 
   return (
     <>
       <PageHeader title="Clientes & Leads" description="Cadastro único: a mesma pessoa é lead, cliente, fornecedora ou afiliada — sem duplicidade." />
       <form className="mb-4 flex flex-wrap items-center gap-2">
-        <input name="q" defaultValue={q} placeholder="Buscar por nome" className={`${inputClass} max-w-[11rem]`} aria-label="Buscar" />
-        <select name="estagio" defaultValue={stage ?? ""} className={`${inputClass} max-w-[150px]`} aria-label="Estágio">
+        {ordem !== "aniversario" && <input type="hidden" name="ordem" value={ordem} />}
+        {dir !== "asc" && <input type="hidden" name="dir" value={dir} />}
+        <input name="q" defaultValue={q} placeholder="Buscar por nome" className={`${control} min-w-[12rem] flex-[2]`} aria-label="Buscar" />
+        <select name="estagio" defaultValue={stage ?? ""} className={control} aria-label="Estágio">
           <option value="">Todos os estágios</option>
           {STAGES.map((s) => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
         </select>
-        <select name="papel" defaultValue={papel} className={`${inputClass} max-w-[150px]`} aria-label="Público">
+        <select name="papel" defaultValue={papel} className={control} aria-label="Público">
           <option value="clientes">Clientes e leads</option><option value="fornecedores">Fornecedores</option><option value="colaboradores">Colaboradores</option><option value="afiliadas">Afiliadas / trainers</option><option value="todos">Todos</option>
         </select>
-        <select name="segmento" defaultValue={segmento ?? ""} className={`${inputClass} max-w-[160px]`} aria-label="Segmento">
+        <select name="segmento" defaultValue={segmento ?? ""} className={control} aria-label="Segmento">
           <option value="">Todos os segmentos</option>
           {Object.entries(SEGMENTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select name="aniversario" defaultValue={aniversario} className={`${inputClass} max-w-[165px]`} aria-label="Aniversário">
+        <select name="aniversario" defaultValue={aniversario} className={control} aria-label="Aniversário">
           <option value="">Qualquer aniversário</option><option value="hoje">Aniversário hoje</option><option value="mes">Aniversário no mês</option>
         </select>
         <label className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm"><input type="checkbox" name="risco" value="1" defaultChecked={risco} /> Só em risco</label>
         <button className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm">Filtrar</button>
       </form>
-      {error && <p className="mb-3 text-sm text-danger">Não foi possível carregar a lista: {error.message}</p>}
+      {error && <p className="mb-3 text-sm text-danger">Não foi possível carregar a lista. Tente de novo; se continuar, avise o suporte.</p>}
       {(parties ?? []).length === 0 ? <Empty title="Nenhuma pessoa encontrada">Clientes entram pelo PDV, pela inbox ou por importação.</Empty> : (
-        <Table head={["Nome", "Estágio", "Score", "Cidade", "Aniversário", "Última compra", "Papéis"]}>
+        <Table head={[th("nome", "Nome"), th("estagio", "Estágio"), th("score", "Score"), th("cidade", "Cidade"), th("aniversario", "Aniversário"), th("compra", "Última compra"), "Papéis"]}>
           {(parties ?? []).map((p) => (
             <tr key={p.id} className="hover:bg-surface-2">
-              <td className="px-3 py-2"><Link href={`/clientes/${p.id}`} className="font-medium text-brand">{p.display_name}</Link>{p.tier !== "STANDARD" && <span className="ml-2"><Badge tone="warning">{TIER_LABEL[p.tier]}</Badge></span>}</td>
-              <td className="px-3 py-2"><Badge tone="brand">{STAGE_LABEL[p.lifecycle_stage]}</Badge></td>
+              <td className="px-3 py-2"><Link href={`/clientes/${p.id}`} className="font-medium text-brand">{p.display_name}</Link>{p.tier && p.tier !== "STANDARD" && <span className="ml-2"><Badge tone="warning">{TIER_LABEL[p.tier]}</Badge></span>}</td>
+              <td className="px-3 py-2">{p.lifecycle_stage && <Badge tone="brand">{STAGE_LABEL[p.lifecycle_stage]}</Badge>}</td>
               <td className="px-3 py-2">{p.lead_score}</td>
               <td className="px-3 py-2">{p.city ?? "—"}</td>
               <td className="px-3 py-2">{p.birth_date ? p.birth_date.slice(5).split("-").reverse().join("/") : "—"}</td>
               <td className="px-3 py-2">{p.last_purchase_at ? new Date(p.last_purchase_at).toLocaleDateString("pt-BR") : "—"}</td>
-              <td className="px-3 py-2 text-xs text-muted">{(p.party_roles ?? []).map((r) => r.role).join(", ")}</td>
+              <td className="px-3 py-2 text-xs text-muted">{(p.roles ?? []).join(", ")}</td>
             </tr>
           ))}
         </Table>
       )}
-      <Pager path="/clientes" params={{ q: q || undefined, estagio: stage, papel: papel === "clientes" ? undefined : papel, segmento, risco: risco ? "1" : undefined, aniversario: aniversario || undefined }} page={page} pageSize={PAGE} total={count ?? 0} />
+      <Pager path="/clientes" params={{ ...params, ordem: ordem !== "aniversario" ? ordem : undefined, dir: dir !== "asc" ? dir : undefined }} page={page} pageSize={PAGE} total={count ?? 0} />
     </>
   );
 }

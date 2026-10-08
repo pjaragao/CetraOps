@@ -1625,6 +1625,9 @@ isOneToOne: false
 "change_my_password":
 { Args: { "p_current": string,"p_new": string }; Returns: undefined
                            },
+"update_store":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "save_cost_center":
 { Args: { "p": Json }; Returns: Json
                            },
@@ -2162,6 +2165,14 @@ isOneToOne: false
                 }
           }
           Views: {
+            "v_people_list": {
+                  Row: {
+                    "at_risk": boolean | null,"birth_date": string | null,"birth_md": string | null,"city": string | null,"display_name": string | null,"id": string | null,"is_internal": boolean | null,"last_purchase_at": string | null,"lead_score": number | null,"lifecycle_stage": Database["crm"]['Enums']["lifecycle_stage"] | null,"org_id": string | null,"rfm_segment": string | null,"roles": string[] | null,"tags": string[] | null,"tier": Database["crm"]['Enums']["tier"] | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },
             "v_current_consents": {
                   Row: {
                     "created_at": string | null,"evidence": Json | null,"granted": boolean | null,"legal_basis": Database["crm"]['Enums']["legal_basis"] | null,"org_id": string | null,"party_id": string | null,"purpose": Database["crm"]['Enums']["consent_purpose"] | null
@@ -2699,6 +2710,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"update_task":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "save_task":
 { Args: { "p": Json }; Returns: {
               "assignee_member_id": string | null,
@@ -3414,6 +3428,19 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"loans": {
+                  Row: {
+                    "bank_account_id": string,"cash_transaction_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"description": string,"first_due": string,"id": string,"installment_amount": number,"installments": number,"legal_entity_id": string,"monthly_rate": number,"notes": string | null,"org_id": string,"party_id": string | null,"principal": number,"received_on": string,"status": string
+                  }
+                  Insert: {
+                    "bank_account_id": string,"cash_transaction_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description": string,"first_due": string,"id"?: string,"installment_amount": number,"installments": number,"legal_entity_id": string,"monthly_rate"?: number,"notes"?: string | null,"org_id": string,"party_id"?: string | null,"principal": number,"received_on": string,"status"?: string
+                  }
+                  Update: {
+                    "bank_account_id"?: string,"cash_transaction_id"?: string | null,"cost_center_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string,"first_due"?: string,"id"?: string,"installment_amount"?: number,"installments"?: number,"legal_entity_id"?: string,"monthly_rate"?: number,"notes"?: string | null,"org_id"?: string,"party_id"?: string | null,"principal"?: number,"received_on"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"recurring_templates": {
                   Row: {
                     "active": boolean,"allocation_template_id": string | null,"amount": number,"auto_approve": boolean,"chart_account_id": string | null,"cost_center_id": string | null,"created_at": string,"created_by": string | null,"day_of_month": number,"description": string,"direction": Database["fin"]['Enums']["title_direction"],"document_kind": string,"end_date": string | null,"id": string,"legal_entity_id": string,"next_run": string,"notes": string | null,"org_id": string,"party_id": string | null,"start_date": string,"store_id": string | null
@@ -3735,6 +3762,13 @@ isOneToOne: false
       referencedColumns: ["installment_id"]
     }
                   ]
+                },"v_installments": {
+                  Row: {
+                    "amount": number | null,"amount_settled": number | null,"approval_status": string | null,"balance": number | null,"competence_date": string | null,"cost_center_id": string | null,"days_overdue": number | null,"description": string | null,"direction": Database["fin"]['Enums']["title_direction"] | null,"document_kind": string | null,"document_number": string | null,"due_date": string | null,"fee_expected": number | null,"installment_id": string | null,"legal_entity_id": string | null,"n": number | null,"org_id": string | null,"origin_type": string | null,"party_id": string | null,"party_name": string | null,"receiver_name": string | null,"receiver_party_id": string | null,"search": string | null,"settled_on": string | null,"status": Database["fin"]['Enums']["title_status"] | null,"store_id": string | null,"title_id": string | null,"title_number": string | null,"title_status": Database["fin"]['Enums']["title_status"] | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"v_open_installments": {
                   Row: {
                     "amount": number | null,"amount_settled": number | null,"approval_status": string | null,"balance": number | null,"cost_center_id": string | null,"days_overdue": number | null,"description": string | null,"direction": Database["fin"]['Enums']["title_direction"] | null,"document_kind": string | null,"document_number": string | null,"due_date": string | null,"expected_date": string | null,"fee_anticipation_expected": number | null,"fee_expected": number | null,"installment_id": string | null,"legal_entity_id": string | null,"n": number | null,"org_id": string | null,"origin_type": string | null,"party_id": string | null,"party_name": string | null,"receiver_name": string | null,"receiver_party_id": string | null,"status": Database["fin"]['Enums']["title_status"] | null,"store_id": string | null,"title_id": string | null,"title_number": string | null
@@ -3791,6 +3825,18 @@ isOneToOne: false
 { Args: { "p_competence": string,"p_entity": string }; Returns: {
               "detail": string,"href": string,"key": string,"label": string,"n": number,"status": string
             }[]
+                           },
+"update_title":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"set_recurring_active":
+{ Args: { "p_active": boolean,"p_id": string }; Returns: undefined
+                           },
+"create_loan":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"update_bank_account":
+{ Args: { "p": Json }; Returns: Json
                            },
 "save_chart_account":
 { Args: { "p": Json }; Returns: Json

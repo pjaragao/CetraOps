@@ -8,9 +8,14 @@ test("conta a pagar: favorecido padrão sugere a categoria e o recebedor diferen
   await page.goto("/financeiro/pagar");
   await page.getByText("+ Novo lançamento").click();
   const form = page.locator("form").filter({ has: page.getByText("Recebedor do pagamento (se diferente)") });
-  await form.locator("select").nth(1).selectOption({ label: "CELESC — energia" });
+  const pick = async (campo: string, label: string) => {
+    await form.getByRole("button", { name: campo, exact: true }).click();
+    await page.getByPlaceholder("Digite para buscar…").fill(label);
+    await page.getByRole("option", { name: label }).first().click();
+  };
+  await pick("Fornecedor", "CELESC — energia");
   await expect(form.getByText(/usa a categoria padrão: 7\.2\.07/)).toBeVisible();
-  await form.locator("select").nth(2).selectOption({ label: "Caixa — FGTS" });
+  await pick("Recebedor", "Caixa — FGTS");
   await form.getByPlaceholder("Ex.: Honorários contábeis out/26").fill(desc);
   await form.locator("input[inputmode=decimal]").first().fill("350,00");
   await form.getByRole("button", { name: /Lançar|Salvar|Criar/ }).click();

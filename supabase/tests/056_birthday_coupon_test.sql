@@ -28,7 +28,7 @@ insert into crm.party_roles (party_id, org_id, role) select p.id, p.org_id, 'CUS
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 select ok((select (select v from ids where k = 'aniv') = any (array(select crm.birthday_party_ids('today')))), 'aniversariante de hoje entra na lista');
 select ok((select (select v from ids where k = 'outra') <> all (array(select crm.birthday_party_ids('month')))), 'quem não faz aniversário fica de fora');
-select ok((select x ->> 'href' = '/clientes/tarefas?ver=todas&tipo=BIRTHDAY' from jsonb_array_elements(ai.daily_briefing() -> 'items') x where x ->> 'key' = 'aniversariantes'), 'o resumo do dia leva para as tarefas de aniversário');
+select ok((select x ->> 'href' = '/clientes?aniversario=hoje' from jsonb_array_elements(ai.daily_briefing() -> 'items') x where x ->> 'key' = 'aniversariantes'), 'sem tarefa de aniversário, o resumo leva para quem faz aniversário hoje');
 
 -- régua de aniversário: cupom padrão de 5%, ligada e sem grupo de controle
 reset role;

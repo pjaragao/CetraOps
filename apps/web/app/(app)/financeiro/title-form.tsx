@@ -4,6 +4,8 @@ import { useKeptForm } from "@/components/use-kept-form";
 import { Plus, Trash2 } from "lucide-react";
 import { formatBRL, splitInstallments } from "@centralops/domain";
 import { Button, inputClass } from "@/components/ui";
+import { SearchSelect } from "@/components/search-select";
+import { AiReadButton, type FinanceRead } from "@/components/ai-read-button";
 import { createTitleAction } from "./actions";
 
 interface Opt { id: string; label: string; hint?: string }
@@ -42,6 +44,19 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
   const [account, setAccount] = useState("");
   const [cc, setCc] = useState("");
   const [template, setTemplate] = useState("");
+  const [extra, setExtra] = useState<Opt[]>([]);   // favorecido achado pela leitura que não está na lista
+  const partyOpts = useMemo(() => [...extra.filter((e) => !parties.some((p) => p.id === e.id)), ...parties], [extra, parties]);
+  const fromAi = (d: FinanceRead) => {
+    const f = d.fields;
+    if (f.description) setDescription(String(f.description).slice(0, 200));
+    if (typeof f.amount === "number") setAmount(f.amount.toFixed(2).replace(".", ","));
+    if (f.due_date) setFirst(String(f.due_date));
+    if (f.competence) setCompetence(String(f.competence));
+    if (f.barcode) setBarcode(String(f.barcode));
+    if (f.document_kind) setDocKind(String(f.document_kind));
+    if (f.document_number) setDocNumber(String(f.document_number));
+    if (d.party) { setExtra((x) => [...x, d.party!]); setPartyId(d.party.id); }
+  };
   const [rows, setRows] = useState<{ account: string; cc: string; amount: string }[]>([{ account: "", cc: "", amount: "" }, { account: "", cc: "", amount: "" }]);
 
   const total = toNum(amount);
@@ -66,28 +81,23 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
   };
 
   const manualOk = mode !== "manual" || Math.abs(rowsTotal - total) < 0.005;
-  const partyDefault = parties.find((p) => p.id === partyId)?.hint;   // categoria padrão do favorecido (o banco usa quando a conta fica vazia)
+  const partyDefault = partyOpts.find((p) => p.id === partyId)?.hint;   // categoria padrão do favorecido (o banco usa quando a conta fica vazia)
   const canSubmit = !pending && description.trim().length > 1 && total > 0 && !!store && manualOk
     && (mode === "manual" || !!account || (mode === "single" && !!partyDefault)) && (mode !== "template" || !!template);
 
   return (
     <form {...formProps} className="mt-3 grid gap-3 sm:grid-cols-6">
       <input type="hidden" name="payload" value={JSON.stringify(payload)} />
+      <div className="sm:col-span-6"><AiReadButton purpose="titulo" onRead={fromAi} label="Ler boleto, nota ou Pix com IA" /></div>
       <label className="sm:col-span-2 text-xs text-muted">Empresa / loja
         <select className={inputClass} value={storeId} onChange={(e) => setStoreId(e.target.value)}>{stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
       </label>
       <label className="sm:col-span-2 text-xs text-muted">{direction === "PAYABLE" ? "Fornecedor / favorecido" : "Cliente / pagador"}
-        <select className={inputClass} value={partyId} onChange={(e) => setPartyId(e.target.value)}>
-          <option value="">— não informar —</option>
-          {parties.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-        {(() => { const h = parties.find((p) => p.id === partyId)?.hint; return h && !account ? <span className="mt-0.5 block text-[11px]">Sem conta escolhida, usa a categoria padrão: {h}</span> : null; })()}
+        <SearchSelect options={partyOpts} value={partyId} onChange={setPartyId} emptyLabel="— não informar —" ariaLabel="Fornecedor" />
+        {(() => { const h = partyOpts.find((p) => p.id === partyId)?.hint; return h && !account ? <span className="mt-0.5 block text-[11px]">Sem conta escolhida, usa a categoria padrão: {h}</span> : null; })()}
       </label>
       <label className="sm:col-span-2 text-xs text-muted">{direction === "PAYABLE" ? "Recebedor do pagamento (se diferente)" : "Quem paga de fato (se diferente)"}
-        <select className={inputClass} value={receiverId} onChange={(e) => setReceiverId(e.target.value)}>
-          <option value="">— o mesmo —</option>
-          {parties.filter((p) => p.id !== partyId).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
+        <SearchSelect options={partyOpts.filter((p) => p.id !== partyId)} value={receiverId} onChange={setReceiverId} emptyLabel="— o mesmo —" ariaLabel="Recebedor" />
         <span className="mt-0.5 block text-[11px]">{direction === "PAYABLE" ? "Ex.: boleto de um restaurante emitido por um banco ou intermediador: o fornecedor é o restaurante, o recebedor é quem aparece no boleto/extrato." : "Ex.: o cliente é a empresa, mas o dinheiro vem de outra conta."}</span>
       </label>
       <label className="sm:col-span-2 text-xs text-muted">Competência (mês da despesa/receita)
@@ -129,17 +139,11 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
         </div>
         {mode !== "manual" && (
           <div className="grid gap-2 sm:grid-cols-2">
-            <select className={inputClass} value={account} onChange={(e) => setAccount(e.target.value)} aria-label="Conta do plano">
-              <option value="">Conta do plano…</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
-            </select>
+            <SearchSelect options={accounts} value={account} onChange={setAccount} placeholder="Conta do plano…" emptyLabel="Conta do plano…" ariaLabel="Conta do plano" />
             {mode === "single" ? (
-              <select className={inputClass} value={cc} onChange={(e) => setCc(e.target.value)} aria-label="Centro de custo">
-                <option value="">Centro de custo (opcional)…</option>{costCenters.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
+              <SearchSelect options={costCenters} value={cc} onChange={setCc} placeholder="Centro de custo (opcional)…" emptyLabel="Sem centro de custo" ariaLabel="Centro de custo" />
             ) : (
-              <select className={inputClass} value={template} onChange={(e) => setTemplate(e.target.value)} aria-label="Modelo de rateio">
-                <option value="">Modelo de rateio…</option>{templates.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-              </select>
+              <SearchSelect options={templates} value={template} onChange={setTemplate} placeholder="Modelo de rateio…" ariaLabel="Modelo de rateio" />
             )}
           </div>
         )}
@@ -147,12 +151,8 @@ export function TitleForm({ direction, stores, parties, accounts, costCenters, t
           <div className="space-y-2">
             {rows.map((r, i) => (
               <div key={i} className="grid grid-cols-[1fr_1fr_7rem_2rem] gap-2">
-                <select className={inputClass} value={r.account} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, account: e.target.value } : x)))} aria-label="Conta">
-                  <option value="">Conta…</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
-                </select>
-                <select className={inputClass} value={r.cc} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, cc: e.target.value } : x)))} aria-label="Centro de custo">
-                  <option value="">Centro de custo…</option>{costCenters.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
+                <SearchSelect options={accounts} value={r.account} onChange={(v) => setRows(rows.map((x, j) => (j === i ? { ...x, account: v } : x)))} placeholder="Conta…" ariaLabel="Conta" />
+                <SearchSelect options={costCenters} value={r.cc} onChange={(v) => setRows(rows.map((x, j) => (j === i ? { ...x, cc: v } : x)))} placeholder="Centro de custo…" emptyLabel="Sem centro de custo" ariaLabel="Centro de custo" />
                 <input className={inputClass} inputMode="decimal" placeholder="0,00" value={r.amount} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} aria-label="Valor" />
                 <button type="button" className="rounded p-1 text-muted hover:bg-surface-2" aria-label="Remover linha" onClick={() => setRows(rows.filter((_, j) => j !== i))}><Trash2 size={16} /></button>
               </div>

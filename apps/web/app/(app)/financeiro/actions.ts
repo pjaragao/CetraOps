@@ -58,9 +58,41 @@ export async function createTitleAction(_prev: State, formData: FormData): Promi
 
 export async function approveTitle(formData: FormData) {
   const supabase = await createClient();
+  const back_ = String(formData.get("back") || "/financeiro/pagar");
   const { error } = await supabase.schema("fin").rpc("approve_title", { p_title: String(formData.get("title_id")) });
-  revalidatePath("/financeiro/pagar");
-  if (error) back("/financeiro/pagar", { erro: friendly(error.message) });
+  revalidatePath("/financeiro", "layout");
+  if (error) back(back_, { erro: friendly(error.message) });
+  if (formData.get("back")) back(back_, { ok: "Título aprovado" });
+}
+
+const updateTitleSchema = z.object({
+  id: uuid, description: z.string().min(2).max(200), document_kind: z.string().max(40).optional(), document_number: z.string().max(60).optional(),
+  party_id: z.string().optional(), competence_date: date.optional(), chart_account_id: z.string().optional(), cost_center_id: z.string().optional(),
+  installments: z.array(z.object({ due_date: date, amount: z.number().positive(), barcode: z.string().max(120).optional() })).min(1).max(60).optional(),
+});
+
+/** Edição segura do título (o banco decide o que pode mudar: com baixa ou gerado por outra rotina, só texto e vencimento). */
+export async function updateTitleAction(_prev: State, formData: FormData): Promise<State> {
+  let raw: unknown;
+  try { raw = JSON.parse(String(formData.get("payload") ?? "")); } catch { return { ok: false, error: "Dados inválidos" }; }
+  const parsed = updateTitleSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: `Confira: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("fin").rpc("update_title", { p: parsed.data as unknown as Json });
+  if (error) return { ok: false, error: friendly(error.message) };
+  revalidatePath("/financeiro", "layout");
+  return back(`/financeiro/titulos/${parsed.data.id}`, { ok: "Título salvo" });
+}
+
+/** Novo vencimento (e código de barras) de uma parcela em aberto — vale também para títulos gerados por outras rotinas. */
+export async function rescheduleAction(formData: FormData) {
+  const title = String(formData.get("title_id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("fin").rpc("reschedule_installment", {
+    p_installment: String(formData.get("installment_id")), p_due_date: String(formData.get("due_date")), p_barcode: String(formData.get("barcode") || "") || undefined,
+  });
+  revalidatePath("/financeiro", "layout");
+  back(`/financeiro/titulos/${title}`, error ? { erro: friendly(error.message) } : { ok: "Vencimento alterado" });
 }
 
 export async function cancelTitle(formData: FormData) {

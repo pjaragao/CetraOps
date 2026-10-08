@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, requirePerm } from "@/lib/session";
@@ -62,7 +63,7 @@ export default async function ConfiguracoesPage() {
         </Card>
         <Card title="Lojas">
           <Table head={["Código", "Nome", "Formato", "Status"]}>
-            {(stores ?? []).map((s) => <tr key={s.id}><td className="px-3 py-2">{s.code}</td><td className="px-3 py-2">{s.name}</td><td className="px-3 py-2">{s.format}</td><td className="px-3 py-2"><Badge tone={s.status === "ACTIVE" ? "success" : "neutral"}>{s.status}</Badge></td></tr>)}
+            {(stores ?? []).map((s) => <tr key={s.id}><td className="px-3 py-2">{s.code}</td><td className="px-3 py-2"><Link href={`/configuracoes/lojas/${s.id}`} className="text-brand hover:underline">{s.name}</Link></td><td className="px-3 py-2">{s.format}</td><td className="px-3 py-2"><Badge tone={s.status === "ACTIVE" ? "success" : "neutral"}>{s.status}</Badge></td></tr>)}
           </Table>
           <details className="mt-3"><summary className="cursor-pointer text-sm text-brand">+ Adicionar loja</summary>
             <form action={saveStore} className="mt-2 grid gap-2">

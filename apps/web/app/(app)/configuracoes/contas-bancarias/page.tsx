@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
@@ -29,7 +30,7 @@ export default async function ContasBancariasPage({ searchParams }: { searchPara
       <Table head={["Conta", "Tipo", "Banco", "Empresa", "Saldo"]}>
         {(banks ?? []).map((b) => (
           <tr key={b.bank_account_id ?? b.name}>
-            <td className="px-3 py-2 font-medium">{b.name}</td><td className="px-3 py-2"><Badge>{KIND_LABEL[b.kind ?? ""] ?? b.kind}</Badge></td>
+            <td className="px-3 py-2 font-medium">{b.bank_account_id ? <Link href={`/configuracoes/contas-bancarias/${b.bank_account_id}`} className="text-brand hover:underline">{b.name}</Link> : b.name}</td><td className="px-3 py-2"><Badge>{KIND_LABEL[b.kind ?? ""] ?? b.kind}</Badge></td>
             <td className="px-3 py-2">{b.bank_code ?? "—"}</td><td className="px-3 py-2">{ent.get(b.legal_entity_id ?? "")}</td><td className="px-3 py-2 font-medium">{formatBRL(b.balance)}</td>
           </tr>
         ))}

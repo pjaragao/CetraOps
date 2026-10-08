@@ -3,7 +3,7 @@ import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, todayIsoSP, type SP } from "@/lib/context";
-import { Badge, Button, Card, Empty, PageHeader, Stat, Table } from "@/components/ui";
+import { Badge, Button, Card, Empty, inputClass, PageHeader, Pager, Stat, Table } from "@/components/ui";
 import { reverseSettlementAction } from "../actions";
 import { MovementForm, TransferForm } from "./movement-forms";
 
@@ -19,14 +19,29 @@ export default async function MovimentacoesPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const supabase = await createClient();
   const conta = str(sp.conta);
+  const tipo = str(sp.tipo) && KIND_LABEL[str(sp.tipo)!] ? str(sp.tipo)! : "";
+  const sentido = str(sp.sentido) === "entrada" ? "entrada" : str(sp.sentido) === "saida" ? "saida" : "";
+  const conc = str(sp.conciliacao) === "pendente" ? "pendente" : str(sp.conciliacao) === "conciliado" ? "conciliado" : "";
+  const busca = (str(sp.q) ?? "").replace(/[%,()]/g, " ").trim();
+  const de = /^\d{4}-\d{2}-\d{2}$/.test(str(sp.de) ?? "") ? str(sp.de)! : "";
+  const ate = /^\d{4}-\d{2}-\d{2}$/.test(str(sp.ate) ?? "") ? str(sp.ate)! : "";
+  const page = Math.max(1, Number(str(sp.p)) || 1);
+  const PAGE = 50;
   const today = todayIsoSP();
 
   let q = supabase.schema("fin").from("cash_transactions")
-    .select("id, occurred_on, amount, kind, description, reference, reconciled, voided, settlement_id, bank_account_id, created_at")
-    .order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).limit(200);
+    .select("id, occurred_on, amount, kind, description, reference, reconciled, voided, settlement_id, bank_account_id, created_at", { count: "exact" })
+    .order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).range((page - 1) * PAGE, page * PAGE - 1);
   if (conta) q = q.eq("bank_account_id", conta);
+  if (tipo) q = q.eq("kind", tipo as never);
+  if (sentido === "entrada") q = q.gt("amount", 0); else if (sentido === "saida") q = q.lt("amount", 0);
+  if (conc === "pendente") q = q.eq("reconciled", false).eq("voided", false); else if (conc === "conciliado") q = q.eq("reconciled", true);
+  for (const w of busca.split(/\s+/).filter(Boolean).slice(0, 5)) q = q.or(`description.ilike.%${w}%,reference.ilike.%${w}%`);
+  if (de) q = q.gte("occurred_on", de);
+  if (ate) q = q.lte("occurred_on", ate);
+  const params = { conta: conta || undefined, tipo: tipo || undefined, sentido: sentido || undefined, conciliacao: conc || undefined, q: busca || undefined, de: de || undefined, ate: ate || undefined };
 
-  const [{ data: txs }, { data: balances }, { data: accounts }, { data: ccs }, { data: settlements }] = await Promise.all([
+  const [{ data: txs, count }, { data: balances }, { data: accounts }, { data: ccs }, { data: settlements }] = await Promise.all([
     q,
     supabase.schema("fin").from("v_bank_balances").select("bank_account_id, name, kind, balance, unreconciled_count").order("name"),
     supabase.schema("fin").from("chart_accounts").select("id, code, name").eq("kind", "ANALYTIC").is("archived_at", null).order("code"),
@@ -59,7 +74,7 @@ export default async function MovimentacoesPage({ searchParams }: { searchParams
       {can(session, "fin.write") && (
         <div className="mb-4 grid gap-3 lg:grid-cols-2">
           <details className="rounded-xl border border-border bg-surface p-4"><summary className="cursor-pointer text-sm font-medium">+ Transferência entre contas</summary><TransferForm banks={banks} today={today} /></details>
-          <details className="rounded-xl border border-border bg-surface p-4"><summary className="cursor-pointer text-sm font-medium">+ Tarifa, aporte, distribuição, empréstimo, ajuste</summary>
+          <details className="rounded-xl border border-border bg-surface p-4"><summary className="cursor-pointer text-sm font-medium">+ Tarifa, rendimento, aporte, distribuição, ajuste</summary>
             <MovementForm banks={banks} today={today}
               accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))} costCenters={(ccs ?? []).map((c) => ({ id: c.id, label: `${c.code} · ${c.name}` }))} />
           </details>
@@ -73,6 +88,18 @@ export default async function MovimentacoesPage({ searchParams }: { searchParams
             className={`rounded-full px-3 py-1 ${conta === b.bank_account_id ? "bg-brand text-brand-contrast" : "border border-border hover:bg-surface-2"}`}>{b.name}</Link>
         ))}
       </nav>
+
+      <form className="mb-3 flex flex-wrap items-end gap-2" action="/financeiro/movimentacoes">
+        {conta && <input type="hidden" name="conta" value={conta} />}
+        <label className="text-xs text-muted">Buscar<input name="q" defaultValue={busca} placeholder="Descrição ou referência" className={`${inputClass} w-56`} /></label>
+        <label className="text-xs text-muted">Tipo<select name="tipo" defaultValue={tipo} className={`${inputClass} w-44`}><option value="">Todos</option>{Object.entries(KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        <label className="text-xs text-muted">Sentido<select name="sentido" defaultValue={sentido} className={`${inputClass} w-32`}><option value="">Todos</option><option value="entrada">Entradas</option><option value="saida">Saídas</option></select></label>
+        <label className="text-xs text-muted">Conciliação<select name="conciliacao" defaultValue={conc} className={`${inputClass} w-36`}><option value="">Todas</option><option value="pendente">Pendentes</option><option value="conciliado">Conciliadas</option></select></label>
+        <label className="text-xs text-muted">De<input name="de" type="date" defaultValue={de} className={`${inputClass} w-40`} /></label>
+        <label className="text-xs text-muted">Até<input name="ate" type="date" defaultValue={ate} className={`${inputClass} w-40`} /></label>
+        <button className="rounded-lg border border-border px-3 py-2 text-sm">Filtrar</button>
+        {(busca || tipo || sentido || conc || de || ate) && <Link href={conta ? `/financeiro/movimentacoes?conta=${conta}` : "/financeiro/movimentacoes"} className="py-2 text-sm text-muted">Limpar</Link>}
+      </form>
 
       {(txs ?? []).length === 0 ? <Empty title="Sem movimentos" /> : (
         <Table head={["Data", "Conta", "Tipo", "Descrição", "Valor", "Conciliação", ""]}>
@@ -99,6 +126,7 @@ export default async function MovimentacoesPage({ searchParams }: { searchParams
           })}
         </Table>
       )}
+      <Pager path="/financeiro/movimentacoes" params={params} page={page} pageSize={PAGE} total={count ?? 0} />
       <Card className="mt-4"><p className="text-xs text-muted">Estornar uma baixa reabre as parcelas, devolve créditos, anula o movimento e estorna o lançamento contábil — a linha de extrato volta para pendente.</p></Card>
     </>
   );

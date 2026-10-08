@@ -60,8 +60,8 @@ select private.run_journeys();
 select is((select count(*)::int from mkt.journey_enrollments where journey_id = (select v from ids where k = 'j') and party_id = (select v from ids where k = 'ana')), 1, 'não inscreve duas vezes');
 -- passo 2 sem aceite de marketing: pulado
 update mkt.journey_enrollments set next_run_at = now() - interval '1 minute' where journey_id = (select v from ids where k = 'j') and party_id = (select v from ids where k = 'ana');
-update core.settings set value = value || '{"quiet_start":"23:59","quiet_end":"00:00","no_sunday":false}' where key = 'contact_policy';
-insert into core.settings (org_id, key, value) values ('00000000-0000-4000-8000-000000000001', 'contact_policy', '{"quiet_start":"23:59","quiet_end":"00:00","no_sunday":false}') on conflict do nothing;
+update core.settings set value = value || '{"quiet_start":"23:59:59.999999","quiet_end":"00:00","no_sunday":false}' where key = 'contact_policy';
+insert into core.settings (org_id, key, value) values ('00000000-0000-4000-8000-000000000001', 'contact_policy', '{"quiet_start":"23:59:59.999999","quiet_end":"00:00","no_sunday":false}') on conflict do nothing;
 select private.run_journeys();
 select is((select reason from mkt.journey_events ev join mkt.journey_enrollments en on en.id = ev.enrollment_id where en.party_id = (select v from ids where k = 'ana') and ev.step_position = 2), 'NO_CONSENT', 'template de marketing sem aceite é pulado');
 select is((select status from mkt.journey_enrollments where journey_id = (select v from ids where k = 'j') and party_id = (select v from ids where k = 'ana')), 'COMPLETED', 'régua termina no último passo');

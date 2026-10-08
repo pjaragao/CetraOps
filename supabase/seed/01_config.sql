@@ -133,8 +133,8 @@ begin
     ('8.1.01',   'Taxa de antecipação de recebíveis',              'ANALYTIC',  'DEBIT',  'FINANCIAL', 'RF',  null),
     ('8.1.02',   'Tarifas bancárias',                              'ANALYTIC',  'DEBIT',  'FINANCIAL', 'RF',  null),
     ('8.1.03',   'Juros e multas pagos',                           'ANALYTIC',  'DEBIT',  'FINANCIAL', 'RF',  null),
-    ('8.1.04',   'IOF e encargos sobre operações financeiras',     'ANALYTIC',  'DEBIT',  'FINANCIAL', 'RF',  null),
     ('8.1.05',   'Outras despesas financeiras',                    'ANALYTIC',  'DEBIT',  'FINANCIAL', 'RF',  null),
+    ('8.1.06',   'IOF e encargos sobre operações financeiras',     'ANALYTIC',  'DEBIT',  'FINANCIAL', 'RF',  null),
     ('8.2.01',   'Rendimentos de aplicações',                      'ANALYTIC',  'CREDIT', 'FINANCIAL', 'RF',  null)
   ) as t(code, name, kind, nature, grp, dre, acc) loop
     insert into fin.chart_accounts (org_id, parent_id, code, name, kind, nature, "group", dre_line_id, accountant_code)

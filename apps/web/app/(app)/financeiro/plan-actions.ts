@@ -22,6 +22,7 @@ const refresh = () => { revalidatePath("/financeiro", "layout"); revalidatePath(
 // Recorrências
 // ---------------------------------------------------------------------
 const recurringSchema = z.object({
+  id: z.string().uuid().optional(), active: z.boolean().optional(),
   legal_entity_id: z.string().uuid(), description: z.string().min(2).max(120), amount: z.number().positive(), day_of_month: z.number().int().min(1).max(28),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   direction: z.enum(["PAYABLE", "RECEIVABLE"]).default("PAYABLE"), party_id: z.string().uuid().optional(), chart_account_id: z.string().uuid().optional(),
@@ -31,7 +32,7 @@ const recurringSchema = z.object({
 export async function saveRecurringAction(_prev: State, formData: FormData): Promise<State> {
   const opt = (k: string) => str(formData.get(k)) || undefined;
   const parsed = recurringSchema.safeParse({
-    legal_entity_id: opt("legal_entity_id"), description: opt("description"), amount: num(formData.get("amount")), day_of_month: Number(opt("day_of_month")),
+    id: opt("id"), active: opt("active") ? opt("active") === "1" : undefined, legal_entity_id: opt("legal_entity_id"), description: opt("description"), amount: num(formData.get("amount")), day_of_month: Number(opt("day_of_month")),
     start_date: opt("start_date"), end_date: opt("end_date"), direction: opt("direction") ?? "PAYABLE", party_id: opt("party_id"), chart_account_id: opt("chart_account_id"),
     cost_center_id: opt("cost_center_id"), allocation_template_id: opt("allocation_template_id"), auto_approve: formData.get("auto_approve") === "on",
   });
@@ -40,6 +41,7 @@ export async function saveRecurringAction(_prev: State, formData: FormData): Pro
   const { error } = await supabase.schema("fin").rpc("save_recurring", { p: parsed.data as unknown as Json });
   if (error) return { ok: false, error: friendly(error.message) };
   refresh();
+  if (parsed.data.id) back("/financeiro/recorrentes", { ok: "Recorrência salva" });
   return { ok: true, message: "Recorrência criada" };
 }
 
@@ -53,9 +55,9 @@ export async function runRecurringAction(formData: FormData) {
 
 export async function toggleRecurringAction(formData: FormData) {
   const supabase = await createClient();
-  await supabase.schema("fin").from("recurring_templates").update({ active: formData.get("active") === "1" }).eq("id", str(formData.get("id")));
+  const { error } = await supabase.schema("fin").rpc("set_recurring_active", { p_id: str(formData.get("id")), p_active: formData.get("active") === "1" });
   refresh();
-  back("/financeiro/recorrentes", { ok: "Recorrência atualizada" });
+  back("/financeiro/recorrentes", error ? { erro: friendly(error.message) } : { ok: formData.get("active") === "1" ? "Recorrência retomada" : "Recorrência pausada" });
 }
 
 // ---------------------------------------------------------------------
@@ -196,4 +198,32 @@ export async function toggleAllocationRuleAction(formData: FormData) {
   await supabase.schema("fin").from("allocation_rules").update({ active: formData.get("active") === "1" }).eq("id", str(formData.get("id")));
   refresh();
   back("/configuracoes/rateios", { ok: "Regra atualizada" });
+}
+
+// ---------------------------------------------------------------------
+// Empréstimos e financiamentos
+// ---------------------------------------------------------------------
+const loanSchema = z.object({
+  bank_account_id: z.string().uuid(), party_id: z.string().uuid().optional(), description: z.string().min(3).max(120),
+  principal: z.number().positive(), installments: z.number().int().min(1).max(360), first_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  received_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), monthly_rate_pct: z.number().min(0).max(30).optional(), installment_amount: z.number().positive().optional(),
+  cost_center_id: z.string().uuid().optional(), notes: z.string().max(500).optional(),
+});
+
+/** Lança o dinheiro que entrou e gera todas as parcelas (amortização + juros) em contas a pagar. */
+export async function createLoanAction(_prev: State, formData: FormData): Promise<State> {
+  const opt = (k: string) => str(formData.get(k)) || undefined;
+  const optNum = (k: string) => (str(formData.get(k)) ? num(formData.get(k)) : undefined);
+  const parsed = loanSchema.safeParse({
+    bank_account_id: opt("bank_account_id"), party_id: opt("party_id"), description: opt("description"), principal: num(formData.get("principal")),
+    installments: Number(opt("installments")), first_due: opt("first_due"), received_on: opt("received_on"),
+    monthly_rate_pct: optNum("monthly_rate_pct"), installment_amount: optNum("installment_amount"), cost_center_id: opt("cost_center_id"), notes: opt("notes"),
+  });
+  if (!parsed.success) return { ok: false, error: `Confira: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
+  if (parsed.data.monthly_rate_pct === undefined && parsed.data.installment_amount === undefined) return { ok: false, error: "Informe a taxa de juros ao mês ou o valor da parcela" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("fin").rpc("create_loan", { p: parsed.data as unknown as Json });
+  if (error) return { ok: false, error: friendly(error.message) };
+  refresh();
+  back("/financeiro/emprestimos", { ok: "Empréstimo lançado: a entrada está na conta e as parcelas em Contas a pagar." });
 }

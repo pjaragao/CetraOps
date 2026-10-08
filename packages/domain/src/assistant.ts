@@ -120,6 +120,7 @@ export function briefingLine(i: BriefingItem): string {
     case "conversas_aguardando": return `${plural(i.count, "conversa espera", "conversas esperam")} alguém da equipe.`;
     case "contatar_hoje": return `${plural(i.count, "cliente para contatar", "clientes para contatar")} hoje.`;
     case "tarefas_atrasadas": return `Você tem ${plural(i.count, "tarefa atrasada", "tarefas atrasadas")}.`;
+    case "aniversarios_contatar": return `${plural(i.count, "contato", "contatos")} de aniversário para fazer hoje.`;
     case "aniversariantes": return `${plural(i.count, "cliente faz", "clientes fazem")} aniversário hoje.`;
     case "eventos_semana": return `${plural(i.count, "evento", "eventos")} nos próximos 7 dias.`;
     case "alertas": return `${plural(i.count, "alerta importante", "alertas importantes")} na Central de sugestões.`;

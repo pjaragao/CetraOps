@@ -48,3 +48,15 @@ export async function postponeTaskAction(formData: FormData) {
   revalidatePath(PATH);
   back(error ? { erro: friendly(error.message), ver: str(formData.get("ver")) } : { ok: `Tarefa adiada em ${days} dia(s).`, ver: str(formData.get("ver")) });
 }
+
+/** Editar a tarefa: título, responsável, prazo, tipo e mensagem pronta (vale também para as geradas pelo sistema). */
+export async function updateTaskAction(formData: FormData) {
+  const supabase = await createClient();
+  const date = str(formData.get("due_date"));
+  const { error } = await supabase.schema("crm").rpc("update_task", { p: {
+    id: str(formData.get("id")), title: str(formData.get("title")), assignee_member_id: str(formData.get("assignee")), type: str(formData.get("type")),
+    due_at: date ? dueAt(date, str(formData.get("due_time"))) : "", suggested_message: str(formData.get("suggested_message")),
+  } as Json });
+  revalidatePath(PATH);
+  back(error ? { erro: friendly(error.message), ver: str(formData.get("ver")) } : { ok: "Tarefa salva.", ver: str(formData.get("ver")) });
+}

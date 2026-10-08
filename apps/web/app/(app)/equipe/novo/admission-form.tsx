@@ -47,7 +47,7 @@ export function AdmissionForm({ entities, stores, today, person }: { entities: O
     address: Object.fromEntries(Object.entries(addr).filter(([, v]) => v)),
     dependents: deps.filter((d) => d.name.trim().length > 1).map((d) => ({ name: d.name, birth_date: d.birth || undefined, relationship: "FILHO", irrf: d.irrf, family_allowance: d.fam })),
     benefits: [{ code: "VT", value: toNum(f.vt) }, { code: "VR", value: toNum(f.vr) }].filter((b) => b.value > 0),
-  }), [f, deps, addr]);
+  }), [f, deps, addr, person?.id]);
 
   const ok = f.name.trim().length > 2 && f.cpf.replace(/\D/g, "").length === 11 && f.job.trim().length > 1 && toNum(f.salary) > 0 && !!f.hire && !!f.entity;
 

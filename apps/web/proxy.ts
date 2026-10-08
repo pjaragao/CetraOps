@@ -24,6 +24,7 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const isLogin = request.nextUrl.pathname.startsWith("/login");
+  if (request.nextUrl.pathname.startsWith("/r/")) return response; // link curto público: sem login
 
   if (!data?.claims && !isLogin) {
     const url = request.nextUrl.clone();

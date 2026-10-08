@@ -1625,6 +1625,12 @@ isOneToOne: false
 "change_my_password":
 { Args: { "p_current": string,"p_new": string }; Returns: undefined
                            },
+"save_cost_center":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"set_cost_center_archived":
+{ Args: { "p_archived": boolean,"p_id": string }; Returns: Json
+                           },
 "link_user_party":
 { Args: { "p_member": string,"p_party": string }; Returns: Json
                            },
@@ -3785,6 +3791,12 @@ isOneToOne: false
 { Args: { "p_competence": string,"p_entity": string }; Returns: {
               "detail": string,"href": string,"key": string,"label": string,"n": number,"status": string
             }[]
+                           },
+"save_chart_account":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"set_chart_account_archived":
+{ Args: { "p_archived": boolean,"p_id": string }; Returns: Json
                            },
 "create_title":
 { Args: { "p": Json }; Returns: {

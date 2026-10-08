@@ -73,7 +73,7 @@ export default async function ConfiguracoesPage() {
                 <option value="SHOP_IN_SHOP">Shop-in-shop</option><option value="CONSIGNMENT_CORNER">Corner em consignação</option>
                 <option value="POPUP">Pop-up</option><option value="DIGITAL">Digital</option><option value="B2B">B2B</option>
               </select>
-              <Button className="w-fit">Salvar (cria estoque e caixa)</Button>
+              <Button className="w-fit">Salvar (cria estoque, caixa e centro de custo)</Button>
             </form>
           </details>
         </Card>

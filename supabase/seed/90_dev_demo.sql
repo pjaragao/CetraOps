@@ -19,6 +19,8 @@ insert into core.cost_centers (id, org_id, parent_id, code, name, kind, legal_en
   ('00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c0', 'CNPJ-01', 'CNPJ de teste', 'LEGAL_ENTITY', '00000000-0000-4000-8000-0000000000e1')
 on conflict (id) do nothing;
 
+-- a loja piloto ganha a árvore de centros de custo abaixo (o gatilho de centro de custo automático fica de fora aqui)
+select set_config('centralops.skip_store_cost_center', 'on', false);
 insert into core.stores (id, org_id, legal_entity_id, code, name, format, status, opened_at, business_hours)
 values ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000e1',
         'PILOTO', 'Boutique Piloto (dev)', 'SHOP_IN_SHOP', 'ACTIVE', '2026-10-01',
@@ -31,6 +33,7 @@ insert into core.cost_centers (id, org_id, parent_id, code, name, kind, legal_en
   ('00000000-0000-4000-8000-0000000000c4', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2', 'PILOTO-DIGITAL', 'Piloto — Digital', 'CHANNEL', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000a1', 'DIGITAL')
 on conflict (id) do nothing;
 update core.stores set cost_center_id = '00000000-0000-4000-8000-0000000000c3' where id = '00000000-0000-4000-8000-0000000000a1';
+select set_config('centralops.skip_store_cost_center', 'off', false);
 
 insert into inv.locations (id, org_id, store_id, legal_entity_id, name, kind, is_sellable) values
   ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000e1', 'Salão de vendas', 'SALES_FLOOR', true),

@@ -20,7 +20,7 @@ insert into ids select 'vip', crm.resolve_identity('00000000-0000-4000-8000-0000
 update crm.parties set tier = 'VIP', tier_manual = true where id = (select v from ids where k = 'vip');
 -- tarefas da vendedora (102): uma comum para hoje, uma de retomada atrasada da VIP, uma de amanhã e uma de prospecção
 insert into crm.tasks (org_id, party_id, assignee_member_id, type, title, suggested_message, due_at) values
-  ('00000000-0000-4000-8000-000000000001', (select v from ids where k = 'ana'), '00000000-0000-4000-8000-000000000102', 'FOLLOW_UP', 'Falar com Ana', 'Oi, Ana!', now() + interval '1 hour'),
+  ('00000000-0000-4000-8000-000000000001', (select v from ids where k = 'ana'), '00000000-0000-4000-8000-000000000102', 'FOLLOW_UP', 'Falar com Ana', 'Oi, Ana!', least(now() + interval '1 hour', (private.today_sp() + time '23:59') at time zone 'America/Sao_Paulo')),   -- sempre hoje, mesmo rodando às 23h
   ('00000000-0000-4000-8000-000000000001', (select v from ids where k = 'vip'), '00000000-0000-4000-8000-000000000102', 'RECOVERY', 'Retomar com Vera', 'Oi, Vera!', now() - interval '3 hours'),
   ('00000000-0000-4000-8000-000000000001', (select v from ids where k = 'ana'), '00000000-0000-4000-8000-000000000102', 'FOLLOW_UP', 'Amanhã', null, now() + interval '3 days'),
   ('00000000-0000-4000-8000-000000000001', (select v from ids where k = 'ana'), '00000000-0000-4000-8000-000000000102', 'OUTREACH', 'Prospecção', null, now());

@@ -88,3 +88,29 @@ export async function saveTierBenefitsAction(formData: FormData) {
   revalidatePath("/clientes", "layout");
   back("/clientes/ciclo-de-vida", error ? { erro: friendly(error.message) } : { ok: "Benefícios salvos" });
 }
+
+export async function createSegmentFromClientsAction(formData: FormData) {
+  const stage = str(formData.get("estagio"));
+  const def: Record<string, unknown> = {};
+  if (stage) def.lifecycle = [stage];
+  const name = str(formData.get("name")) || (stage ? `Clientes · ${stage}` : "Clientes da lista");
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("mkt").rpc("save_segment", { p: { name, definition: def, kind: "DYNAMIC" } as unknown as Json });
+  if (error) back("/clientes", { erro: friendly(error.message) });
+  redirect(`/marketing/publicos?editar=${(data as unknown as { id: string }).id}`);
+}
+
+export async function createCampaignFromClientsAction(formData: FormData) {
+  const stage = str(formData.get("estagio"));
+  const def: Record<string, unknown> = {};
+  if (stage) def.lifecycle = [stage];
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("mkt").rpc("save_campaign", { p: {
+    name: stage ? `Campanha · ${stage}` : "Nova campanha",
+    objective: "CUSTOM",
+    audience: def,
+  } as unknown as Json });
+  if (error) back("/clientes", { erro: friendly(error.message) });
+  redirect(`/marketing/campanhas/${(data as unknown as { id: string }).id}/montar?passo=2`);
+}
+

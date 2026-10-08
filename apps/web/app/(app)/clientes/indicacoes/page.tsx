@@ -31,7 +31,7 @@ export default async function IndicacoesPage({ searchParams }: { searchParams: S
   let linkName = "";
   if (linkId) {
     const { data: l } = await supabase.schema("mkt").from("tracking_links").select("name, code, prefill_text, channel_account_id").eq("id", linkId).maybeSingle();
-    if (l) {
+    if (l && l.channel_account_id) {
       const { data: ca } = await supabase.schema("omni").from("channel_accounts").select("channel, public_address").eq("id", l.channel_account_id).maybeSingle();
       linkUrl = ca ? trackingUrl(ca.channel, ca.public_address, l.code, l.prefill_text) : null;
       linkName = l.name;

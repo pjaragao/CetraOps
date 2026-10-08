@@ -17,7 +17,10 @@ export async function saveLinkAction(formData: FormData) {
   const supabase = await createClient();
   const id = str(formData.get("id"));
   const { error } = await supabase.schema("mkt").rpc("save_tracking_link", { p: {
-    id: id || null, code: str(formData.get("code")), name: str(formData.get("name")), kind: str(formData.get("kind")), channel_account_id: str(formData.get("channel_account_id")),
+    id: id || null, code: str(formData.get("code")), name: str(formData.get("name")), kind: str(formData.get("kind")),
+    channel_account_id: str(formData.get("channel_account_id")) || null,
+    target_url: str(formData.get("target_url")) || null,
+    campaign_id: str(formData.get("campaign_id")) || null,
     prefill_text: str(formData.get("prefill_text")), affiliate_party_id: str(formData.get("affiliate_party_id")) || null, event_id: str(formData.get("event_id")) || null,
   } as Json });
   revalidatePath(PATH);
@@ -37,3 +40,11 @@ export async function setChannelAddressAction(formData: FormData) {
   revalidatePath(PATH);
   go(error ? { erro: friendly(error.message) } : { ok: "Endereço do canal salvo" });
 }
+
+export async function setPublicUrlAction(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("mkt").rpc("set_public_url", { p_base: str(formData.get("base")) });
+  revalidatePath(PATH);
+  go(error ? { erro: friendly(error.message) } : { ok: "Endereço público do sistema salvo" });
+}
+

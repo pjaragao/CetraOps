@@ -23,7 +23,7 @@ export const SEGMENTS: Record<string, SegmentInfo> = {
 
 export const CONSENT_LABEL: Record<string, string> = {
   TRANSACTIONAL: "Transacional", MARKETING_WHATSAPP: "Marketing WhatsApp", MARKETING_EMAIL: "Marketing e-mail",
-  MARKETING_IG: "Marketing Instagram", AI_PROFILING: "Perfilamento por IA", ENRICHMENT: "Enriquecimento", IMAGE_USE: "Uso de imagem",
+  MARKETING_IG: "Marketing Instagram", MARKETING_ADS: "Anúncios Meta (público personalizado)", AI_PROFILING: "Perfilamento por IA", ENRICHMENT: "Enriquecimento", IMAGE_USE: "Uso de imagem",
 };
 
 /** Faixa do score de lead (padrão do seed: quente ≥ 70, morna ≥ 40). */

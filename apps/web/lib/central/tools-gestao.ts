@@ -279,8 +279,81 @@ const resumoDoDia = tool({
     dbError(error);
     const items = ((data as unknown as { items?: BriefingItem[] } | null)?.items ?? []).map((i) => ({ ...i, amount: i.amount === undefined ? undefined : Number(i.amount), compare_amount: i.compare_amount === undefined ? undefined : Number(i.compare_amount) }));
     ctx.addCard({ kind: "lista", title: "Resumo do dia", items: items.map((i) => ({ title: briefingLine(i), href: i.href })) });
-    return { itens: items.map((i) => ({ assunto: i.key, frase: briefingLine(i), quantidade: i.count, valor: i.amount, comparacao: i.compare_amount, urgencia: i.tone })) };
+const contarPublico = tool({
+  name: "contar_publico",
+  description: "Conta quantas pessoas se encaixam em filtros (ex.: 'quantas clientes não compram há 90 dias?', 'quantas leads temos?'). Mostra total e alcançáveis no WhatsApp e Meta.",
+  perms: ["crm.read"],
+  status: "Calculando público…",
+  input: z.object({
+    dias_sem_comprar: z.number().optional().describe("dias sem compra (mínimo, ex: 60, 90, 180)"),
+    estagios: z.array(z.string()).optional().describe("etapas ex: CUSTOMER, VIP, LEAD, INACTIVE"),
+    cidade: z.string().optional().describe("cidade"),
+    nunca_comprou: z.boolean().optional().describe("só quem nunca comprou"),
+  }),
+  async run(arg, ctx) {
+    const def: Record<string, unknown> = {};
+    if (arg.dias_sem_comprar) def.inactive_days = arg.dias_sem_comprar;
+    if (arg.estagios?.length) def.lifecycle = arg.estagios;
+    if (arg.cidade) def.cities = [arg.cidade];
+    if (arg.nunca_comprou) def.never_bought = true;
+    const { data, error } = await ctx.supabase.schema("mkt").rpc("segment_preview", { p_def: def as unknown as import("@centralops/db").Json });
+    dbError(error);
+    const p = data as unknown as { total: number; whatsapp: number; ads: number; sample: string[] };
+    ctx.addCard({
+      kind: "numeros",
+      title: "Contagem de público",
+      href: "/marketing/publicos",
+      items: [
+        { label: "Total de pessoas", value: String(p?.total ?? 0) },
+        { label: "Alcançáveis no WhatsApp", value: String(p?.whatsapp ?? 0) },
+        { label: "Alcançáveis na Meta", value: String(p?.ads ?? 0) },
+      ],
+    });
+    return {
+      total: p?.total ?? 0,
+      whatsapp: p?.whatsapp ?? 0,
+      meta_ads: p?.ads ?? 0,
+      amostra: p?.sample ?? [],
+    };
   },
 });
 
-export const GESTAO_TOOLS: ToolDef[] = [resumoDoDia, dre, fluxoCaixa, fechamento, simples, obrigacoes, reposicao, curvaAbc, escala, ferias, conversas, sugestoes];
+const proporCampanha = tool({
+  name: "propor_campanha",
+  description: "Cria um rascunho de campanha segmentada (nunca lança sozinho; a pessoa revisa e lança na tela de campanhas).",
+  perms: ["crm.write"],
+  status: "Montando rascunho de campanha…",
+  input: z.object({
+    nome: z.string().min(3).describe("nome da campanha"),
+    objetivo: z.enum(["REACTIVATE", "LAUNCH", "ACQUIRE", "CONVERT", "LOYALTY", "EVENT", "CLEARANCE", "CUSTOM"]).default("REACTIVATE"),
+    dias_sem_comprar: z.number().optional().describe("dias sem compra"),
+    estagios: z.array(z.string()).optional().describe("etapas ex: CUSTOMER, VIP"),
+  }),
+  async run(arg, ctx) {
+    const aud: Record<string, unknown> = {};
+    if (arg.dias_sem_comprar) aud.inactive_days = arg.dias_sem_comprar;
+    if (arg.estagios?.length) aud.lifecycle = arg.estagios;
+    const { data, error } = await ctx.supabase.schema("mkt").rpc("save_campaign", {
+      p: { name: arg.nome, objective: arg.objetivo, audience: aud } as unknown as import("@centralops/db").Json,
+    });
+    dbError(error);
+    const c = data as unknown as { id: string; name: string };
+    ctx.addCard({
+      kind: "numeros",
+      title: "Rascunho de campanha criado",
+      href: `/marketing/campanhas/${c.id}/montar?passo=2`,
+      items: [
+        { label: "Campanha", value: c.name },
+        { label: "Objetivo", value: arg.objetivo },
+      ],
+    });
+    return {
+      campanha_id: c.id,
+      nome: c.name,
+      link: `/marketing/campanhas/${c.id}/montar?passo=2`,
+      aviso: "Rascunho criado. Para lançar, revise público, oferta e canais na tela de campanhas.",
+    };
+  },
+});
+
+export const GESTAO_TOOLS: ToolDef[] = [resumoDoDia, dre, fluxoCaixa, fechamento, simples, obrigacoes, reposicao, curvaAbc, escala, ferias, conversas, sugestoes, contarPublico, proporCampanha];

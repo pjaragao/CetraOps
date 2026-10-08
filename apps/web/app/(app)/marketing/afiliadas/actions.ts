@@ -3,12 +3,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
-import { findParty } from "../party-lookup";
+import { findParty } from "../../clientes/party-lookup";
 
 const friendly = (m: string) => m.replace(/^ERROR:\s*/, "");
 const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
 const num = (v: FormDataEntryValue | null) => str(v).replace(",", ".");
-const PATH = "/clientes/afiliados";
+const PATH = "/marketing/afiliadas";
 
 function back(params: Record<string, string | undefined> = {}): never {
   const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
@@ -61,3 +61,12 @@ export async function approveStatementAction(formData: FormData) {
   const st = data as unknown as { payout_mode?: string } | null;
   back({ mes: str(formData.get("mes")), ...(error ? { erro: friendly(error.message) } : { ok: st?.payout_mode === "PIX" ? "Aprovado: o título a pagar foi criado no Financeiro." : "Aprovado: a comissão entrou como vale-troca da afiliada." }) });
 }
+
+export async function ensureAffiliateLinksAction() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("mkt").rpc("ensure_affiliate_links");
+  revalidatePath(PATH);
+  revalidatePath("/marketing/links");
+  back(error ? { erro: friendly(error.message) } : { ok: `${data ?? 0} link(s) e QR criados.` });
+}
+

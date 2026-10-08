@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requirePerm } from "@/lib/session";
+import { can, requirePerm } from "@/lib/session";
 import { str, todayIsoSP, type SP } from "@/lib/context";
 import { SEGMENTS, STAGE_LABEL, TIER_LABEL } from "@centralops/domain";
-import { Badge, Empty, inputClass, PageHeader, Pager, Table } from "@/components/ui";
+import { Badge, Button, Empty, inputClass, PageHeader, Pager, Table } from "@/components/ui";
+import { createCampaignFromClientsAction, createSegmentFromClientsAction } from "./actions";
 
 export const metadata = { title: "Clientes" };
 
@@ -16,7 +17,8 @@ type SortKey = keyof typeof SORTS;
 
 export default async function ClientesPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  await requirePerm("crm.read");
+  const session = await requirePerm("crm.read");
+  const canWrite = can(session, "crm.write");
   const supabase = await createClient();
   const q = (str(sp.q) ?? "").replace(/[%,()]/g, " ").trim();
   const stage = str(sp.estagio);
@@ -63,7 +65,24 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
 
   return (
     <>
-      <PageHeader title="Clientes & Leads" description="Cadastro único: a mesma pessoa é lead, cliente, fornecedora ou afiliada — sem duplicidade." />
+      <PageHeader
+        title="Clientes & Leads"
+        description="Cadastro único: a mesma pessoa é lead, cliente, fornecedora ou afiliada — sem duplicidade."
+        actions={
+          canWrite ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <form action={createCampaignFromClientsAction}>
+                {stage && <input type="hidden" name="estagio" value={stage} />}
+                <Button variant="secondary" className="px-2 py-1 text-xs">Criar campanha</Button>
+              </form>
+              <form action={createSegmentFromClientsAction}>
+                {stage && <input type="hidden" name="estagio" value={stage} />}
+                <Button variant="ghost" className="px-2 py-1 text-xs">Salvar como público</Button>
+              </form>
+            </div>
+          ) : undefined
+        }
+      />
       <form className="mb-4 flex flex-wrap items-center gap-2">
         {ordem !== "aniversario" && <input type="hidden" name="ordem" value={ordem} />}
         {dir !== "asc" && <input type="hidden" name="dir" value={dir} />}

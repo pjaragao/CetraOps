@@ -28,7 +28,7 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
   const { data: p } = await supabase.schema("crm").from("parties").select("*").eq("id", id).maybeSingle();
   if (!p) notFound();
 
-  const [contacts, consents, timeline, orders, convs, credit, metrics, owner, alerts, products] = await Promise.all([
+  const [contacts, consents, timeline, orders, convs, credit, metrics, owner, alerts, products, { data: partyCamps }] = await Promise.all([
     supabase.schema("crm").from("party_contact_points").select("type, value_display, is_primary").eq("party_id", id),
     supabase.schema("crm").from("v_current_consents").select("purpose, granted, legal_basis, created_at, evidence").eq("party_id", id),
     supabase.schema("crm").from("timeline_events").select("id, occurred_at, kind, summary").eq("party_id", id).order("occurred_at", { ascending: false }).limit(30),
@@ -43,6 +43,7 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
     p.relationship_owner_member_id ? supabase.schema("core").from("members").select("display_name").eq("id", p.relationship_owner_member_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.schema("crm").from("interest_alerts").select("id, product_id, size, note, status, created_via, created_at, notified_at").eq("party_id", id).order("created_at", { ascending: false }).limit(10),
     supabase.schema("catalog").from("products").select("id, name").eq("status", "ACTIVE").order("name").limit(300),
+    supabase.schema("mkt").rpc("party_campaigns", { p_party: id }),
   ]);
   const { data: forHer } = await supabase.schema("crm").rpc("for_her_now", { p_party: id });
   const productName = new Map((products.data ?? []).map((x) => [x.id, x.name]));
@@ -131,7 +132,7 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
               <input type="hidden" name="id" value={id} />
               <p className="text-xs font-medium text-muted">Registrar o que ela respondeu</p>
               <select name="purpose" className={inputClass} aria-label="Finalidade" defaultValue="MARKETING_WHATSAPP">
-                {["MARKETING_WHATSAPP", "MARKETING_EMAIL", "MARKETING_IG", "IMAGE_USE"].map((k) => <option key={k} value={k}>{CONSENT_LABEL[k]}</option>)}
+                {["MARKETING_WHATSAPP", "MARKETING_EMAIL", "MARKETING_IG", "MARKETING_ADS", "IMAGE_USE"].map((k) => <option key={k} value={k}>{CONSENT_LABEL[k]}</option>)}
               </select>
               <select name="channel" className={inputClass} aria-label="Onde" defaultValue="BALCAO">{CHANNELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
               <div className="flex gap-2">
@@ -156,6 +157,23 @@ export default async function Cliente360({ params, searchParams }: { params: Pro
           )}
         </Card>
       </div>
+
+      {(partyCamps ?? []).length > 0 && (
+        <Card className="mt-4" title="Campanhas e cupons">
+          <ul className="divide-y divide-border text-sm">
+            {(partyCamps ?? []).map((c) => (
+              <li key={c.campaign_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div>
+                  <Link href={`/marketing/campanhas/${c.campaign_id}`} className="font-medium hover:underline">{c.name}</Link>
+                  <span className="text-xs text-muted"> · {c.grp === "HOLDOUT" ? "grupo de controle" : c.received_at ? `recebeu em ${new Date(c.received_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : "no público"}</span>
+                  {c.coupon_code && <span className="ml-2 font-mono text-xs text-brand">{c.coupon_code}{c.coupon_used ? " (usado)" : ""}</span>}
+                </div>
+                <Badge tone={c.bought ? "success" : "neutral"}>{c.bought ? "comprou" : c.status.toLowerCase()}</Badge>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {forHer && <Card className="mt-4" title="Para ela agora"><ForHerNow data={forHer as unknown as ForHerNowData} /></Card>}
 

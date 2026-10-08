@@ -42,6 +42,61 @@ export async function searchParties(q: string): Promise<{ id: string; name: stri
   return (parties ?? []).map((p) => ({ id: p.id, name: p.display_name, phone: phone.get(p.id) ?? null }));
 }
 
+/** Cadastro rápido de cliente na tela de venda: mesma regra do cadastro completo (CPF único, cifrado no banco). */
+const quickSchema = z.object({
+  name: z.string().trim().min(2).max(120), phone: z.string().max(25), cpf: z.string().regex(/^\d{11}$/).optional(),
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), email: z.string().max(120).optional(), address: z.record(z.string(), z.string()).optional(),
+});
+export async function quickCreateCustomer(input: z.input<typeof quickSchema>): Promise<{ ok: true; party: { id: string; name: string; phone: string | null } } | { ok: false; error: string }> {
+  const parsed = quickSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: `Confira o cadastro: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
+  const { cpf, phone, email, birth_date, address, name } = parsed.data;
+  if (phone.replace(/\D/g, "").length < 10) return { ok: false, error: "Celular inválido" };
+  const supabase = await createClient();
+  if (cpf) {
+    const { data: found, error: e } = await supabase.schema("crm").rpc("find_by_cpf", { p_cpf: cpf });
+    if (e) return { ok: false, error: friendly(e.message) };
+    const f = found as unknown as { found: boolean; display_name?: string };
+    if (f.found) return { ok: false, error: `Este CPF já está no cadastro de ${f.display_name}: busque pelo nome` };
+  }
+  const { data, error } = await supabase.schema("crm").rpc("create_party", { p: {
+    kind: "PERSON", display_name: name, birth_date, phones: [phone], emails: email ? [email] : [], roles: ["CUSTOMER"], tags: [],
+    address: address && Object.keys(address).length ? address : undefined,
+  } as unknown as Json });
+  if (error) return { ok: false, error: friendly(error.message) };
+  const id = (data as unknown as { id: string }).id;
+  if (cpf) {
+    const { error: e } = await supabase.schema("crm").rpc("set_cpf", { p_party: id, p_cpf: cpf });
+    if (e) return { ok: false, error: `Cliente criado, mas o CPF não foi gravado: ${friendly(e.message)}. Busque pelo nome e complete no cadastro.` };
+  }
+  revalidatePath("/cadastros", "layout");
+  revalidatePath("/clientes", "layout");
+  return { ok: true, party: { id, name, phone } };
+}
+
+export interface CustomerCoupon { code: string; label: string; reason: string }
+/** Cupons que a cliente "tem": os pessoais (aniversário, campanha), os dela como trainer e os que já usou e ainda valem. Cada um é conferido pelo banco. */
+export async function customerCoupons(partyId: string, subtotal: number): Promise<CustomerCoupon[]> {
+  if (!uuid.safeParse(partyId).success) return [];
+  const supabase = await createClient();
+  const [personal, own, used] = await Promise.all([
+    supabase.schema("sales").from("coupons").select("code, valid_to").eq("party_id", partyId).eq("active", true).limit(10),
+    supabase.schema("sales").from("coupons").select("code").eq("affiliate_party_id", partyId).eq("active", true).limit(5),
+    supabase.schema("sales").from("coupon_redemptions").select("coupons(code)").eq("party_id", partyId).order("created_at", { ascending: false }).limit(10),
+  ]);
+  const codes = new Map<string, string>();
+  for (const c of personal.data ?? []) codes.set(c.code.toUpperCase(), c.code.toUpperCase().startsWith("ANIV") ? "Aniversário" : "Exclusivo da cliente");
+  for (const c of own.data ?? []) if (!codes.has(c.code.toUpperCase())) codes.set(c.code.toUpperCase(), "Cupom da cliente (trainer)");
+  for (const r of used.data ?? []) { const c = (r.coupons as unknown as { code: string } | null)?.code; if (c && !codes.has(c.toUpperCase())) codes.set(c.toUpperCase(), "Já usado por ela"); }
+  const out: CustomerCoupon[] = [];
+  for (const [code, reason] of codes) {
+    const { data } = await supabase.schema("sales").rpc("validate_coupon", { p_code: code, p_subtotal: subtotal, p_party: partyId });
+    const v = data as unknown as { valid: boolean; kind?: string; value?: number } | null;
+    if (v?.valid) out.push({ code, reason, label: v.kind === "PERCENT" ? `${v.value}% de desconto` : `R$ ${v.value} de desconto` });
+  }
+  return out;
+}
+
 export interface SellableHit { id: string; sku: string; label: string; price: number | null; available: number }
 
 /** Variantes vendáveis (SKU, EAN ou nome) com preço vigente e saldo disponível no local. */
@@ -209,7 +264,7 @@ export async function ensureLockersAction(formData: FormData) {
 const couponSchema = z.object({
   code: z.string().min(3).max(30).regex(/^[A-Za-z0-9_-]+$/, "use letras, números, - ou _"), kind: z.enum(["PERCENT", "AMOUNT"]), value: z.number().positive(),
   max_uses: z.number().int().positive().optional(), per_customer_limit: z.number().int().positive().optional(), min_order: z.number().positive().optional(),
-  valid_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), affiliate_party_id: uuid.optional(),
+  valid_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), affiliate_party_id: uuid.optional(), party_id: uuid.optional(),
 });
 
 export async function saveCouponAction(_prev: State, formData: FormData): Promise<State> {
@@ -217,14 +272,14 @@ export async function saveCouponAction(_prev: State, formData: FormData): Promis
   const opt = (k: string) => str(formData.get(k)) || undefined;
   const optNum = (k: string) => (str(formData.get(k)) ? num(formData.get(k)) : undefined);
   const parsed = couponSchema.safeParse({ code: opt("code"), kind: opt("kind"), value: num(formData.get("value")), max_uses: optNum("max_uses"), per_customer_limit: optNum("per_customer_limit"),
-    min_order: optNum("min_order"), valid_to: opt("valid_to"), affiliate_party_id: opt("affiliate_party_id") });
+    min_order: optNum("min_order"), valid_to: opt("valid_to"), affiliate_party_id: opt("affiliate_party_id"), party_id: opt("party_id") });
   if (!parsed.success) return { ok: false, error: `Confira o cupom: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
   if (parsed.data.kind === "PERCENT" && parsed.data.value > 100) return { ok: false, error: "Percentual acima de 100%" };
   const supabase = await createClient();
   const p = parsed.data;
   const { error } = await supabase.schema("sales").from("coupons").insert({
     org_id: session.orgId, code: p.code.toUpperCase(), kind: p.kind, value: p.value, max_uses: p.max_uses ?? null, per_customer_limit: p.per_customer_limit ?? null,
-    min_order: p.min_order ?? null, valid_to: p.valid_to ? `${p.valid_to}T23:59:59-03:00` : null, affiliate_party_id: p.affiliate_party_id ?? null,
+    min_order: p.min_order ?? null, valid_to: p.valid_to ? `${p.valid_to}T23:59:59-03:00` : null, affiliate_party_id: p.affiliate_party_id ?? null, party_id: p.party_id ?? null,
   });
   if (error) return { ok: false, error: error.code === "23505" ? "Já existe um cupom com esse código" : friendly(error.message) };
   refresh();

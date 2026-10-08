@@ -5,7 +5,8 @@ import { PosTerminal, type PosProduct } from "./pos-terminal";
 
 export const metadata = { title: "PDV" };
 
-export default async function PdvPage() {
+export default async function PdvPage({ searchParams }: { searchParams: Promise<{ modo?: string }> }) {
+  const { modo } = await searchParams;
   const session = await requirePerm("sales.write");
   if (!session.storeId) {
     return (<><PageHeader title="PDV" /><Empty title="Escolha uma loja">O PDV vende numa loja específica. Selecione a loja no topo da tela.</Empty></>);
@@ -49,8 +50,8 @@ export default async function PdvPage() {
 
   return (
     <>
-      <PageHeader title="PDV" description="Venda no balcão: bipe ou busque, escolha o tamanho, receba e emita a NFC-e." />
-      <PosTerminal storeId={session.storeId} products={products} cashSessionId={session_?.id ?? null} />
+      <PageHeader title="PDV" description="Nova venda: no balcão (recebe e emite a NFC-e) ou pedido remoto (reserva o estoque até o pagamento)." />
+      <PosTerminal storeId={session.storeId} products={products} cashSessionId={session_?.id ?? null} initialMode={modo === "remoto" ? "remoto" : "balcao"} />
     </>
   );
 }

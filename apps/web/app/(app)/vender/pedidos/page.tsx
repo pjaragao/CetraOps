@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { periodBounds, str, type SP } from "@/lib/context";
 import { Badge, Empty, LinkButton, PageHeader, Table } from "@/components/ui";
-import { can } from "@/lib/session";
 
 export const metadata = { title: "Pedidos" };
 
@@ -38,7 +37,7 @@ export default async function PedidosPage({ searchParams }: { searchParams: SP }
 
   return (
     <>
-      <PageHeader title="Pedidos" description="Todos os canais: balcão, WhatsApp, Instagram, links e B2B." actions={<>{can(session, "sales.write") && <LinkButton href="/vender/pedidos/novo">Pedido remoto</LinkButton>}<LinkButton href="/vender/pdv" variant="primary">Nova venda</LinkButton></>} />
+      <PageHeader title="Pedidos" description="Todos os canais: balcão, WhatsApp, Instagram, links e B2B." actions={<LinkButton href="/vender/pdv" variant="primary">Nova venda</LinkButton>} />
       <nav className="mb-3 flex flex-wrap gap-1 text-sm" aria-label="Situação">
         {[["", "Todos"], ["AGUARDANDO", "Aguardando pagamento"], ["ENTREGA", "Em entrega/retirada"], ["DEVOLVIDOS", "Devolvidos"]].map(([v, l]) => (
           <Link key={v} href={`/vender/pedidos${v ? `?situacao=${v}` : ""}`} className={`rounded-full px-3 py-1 ${(filtro ?? "") === v ? "bg-brand text-brand-contrast" : "border border-border hover:bg-surface-2"}`}>{l}</Link>

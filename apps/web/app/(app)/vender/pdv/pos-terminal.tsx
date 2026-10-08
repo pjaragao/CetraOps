@@ -1,10 +1,13 @@
 "use client";
-import { useMemo, useState, useTransition } from "react";
-import { Minus, Plus, ScanBarcode, Trash2, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { Minus, Plus, ScanBarcode, Tag, Trash2, UserPlus, UserRound } from "lucide-react";
 import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
-import { autoCouponFor, finalizeSale, identifyCustomer, type SaleInput } from "./actions";
+import { createRemoteOrderAction, customerCoupons, type CustomerCoupon } from "../actions";
+import { autoCouponFor, finalizeSale, type SaleInput } from "./actions";
+import { PartyPicker, type PartyHit } from "../pickers";
+import { QuickCustomerDialog } from "./quick-customer-dialog";
 
 export interface PosVariant { id: string; sku: string; size: string; gtin: string | null; price: number; available: number }
 export interface PosProduct { key: string; name: string; reference: string; gender: string; color: string; variants: PosVariant[] }
@@ -18,14 +21,23 @@ const METHODS: { value: Method; label: string }[] = [
   { value: "CASH", label: "Dinheiro" }, { value: "STORE_CREDIT", label: "Vale-troca" },
 ];
 
-export function PosTerminal({ storeId, products, cashSessionId }: { storeId: string; products: PosProduct[]; cashSessionId: string | null }) {
+const CHANNELS = [["WHATSAPP", "WhatsApp"], ["INSTAGRAM", "Instagram"], ["TELEGRAM", "Telegram"], ["PAYMENT_LINK", "Link de pagamento"], ["B2B", "B2B"], ["EVENT", "Evento"]] as const;
+const FULFILLMENTS = [["MOTOBOY", "Motoboy"], ["CARRIER", "Transportadora / Correios"], ["STORE_PICKUP", "Retirada na loja"], ["LOCKER_PICKUP", "Retirada no Armário VIP"], ["TAKEAWAY", "Levou na hora"]] as const;
+
+/** Venda no balcão (paga na hora, com NFC-e) ou pedido remoto (reserva o estoque e espera o pagamento): o mesmo carrinho nos dois modos. */
+export function PosTerminal({ storeId, products, cashSessionId, initialMode = "balcao" }: { storeId: string; products: PosProduct[]; cashSessionId: string | null; initialMode?: "balcao" | "remoto" }) {
+  const [mode, setMode] = useState<"balcao" | "remoto">(initialMode);
+  const [channel, setChannel] = useState("WHATSAPP");
+  const [fulfillment, setFulfillment] = useState("MOTOBOY");
+  const [shipping, setShipping] = useState("");
+  const [holdHours, setHoldHours] = useState(24);
+  const [notes, setNotes] = useState("");
+  const [newCustomer, setNewCustomer] = useState(false);
+  const [suggested, setSuggested] = useState<CustomerCoupon[]>([]);
   const [q, setQ] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [payments, setPayments] = useState<PayLine[]>([]);
-  const [customer, setCustomer] = useState<{ id: string; name: string } | null>(null);
-  const [phone, setPhone] = useState("");
-  const [custName, setCustName] = useState("");
-  const [marketing, setMarketing] = useState(false);
+  const [customer, setCustomer] = useState<PartyHit | null>(null);
   const [cpf, setCpf] = useState("");
   const [coupon, setCoupon] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
@@ -44,6 +56,16 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
   const total = roundCents(cart.reduce((a, l) => a + l.variant.price * l.qty, 0));
   const paid = roundCents(payments.reduce((a, p) => a + (Number(p.amount.replace(",", ".")) || 0), 0));
   const remaining = roundCents(total - paid);
+  const remote = mode === "remoto";
+  const ship = Number(shipping.replace(/\./g, "").replace(",", ".")) || 0;
+
+  // Cupons que a cliente tem (dela ou já usados e ainda válidos), conferidos pelo banco com o total atual
+  useEffect(() => {
+    if (!customer) return;
+    let alive = true;
+    customerCoupons(customer.id, total).then((c) => { if (alive) setSuggested(c); }).catch(() => { if (alive) setSuggested([]); });
+    return () => { alive = false; };
+  }, [customer, total]);
 
   const add = (product: PosProduct, variant: PosVariant) => {
     setMessage(null);
@@ -77,17 +99,26 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
     if (missing.length) setMessage({ tone: "danger", text: `Código não encontrado no catálogo: ${[...new Set(missing)].join(", ")}` });
   };
 
-  const identify = () => start(async () => {
-    const r = await identifyCustomer(phone, custName, marketing);
-    if (!r.ok) setMessage({ tone: "danger", text: r.error });
-    else if (r.party) {
-      setCustomer({ id: r.party.id, name: r.party.display_name });
-      const c = await autoCouponFor(r.party.id);   // cupom pessoal vigente (ex.: aniversário) entra sozinho
-      if (c && !coupon.trim()) {
-        setCoupon(c.code);
-        setMessage({ tone: "success", text: `Cupom ${c.code} aplicado: ${c.kind === "PERCENT" ? `${String(c.value).replace(".", ",")}%` : formatBRL(c.value)} de desconto para ${r.party.display_name}.` });
-      }
-    }
+  // Ao escolher a cliente, o cupom pessoal vigente (ex.: aniversário) entra sozinho, se o campo estiver vazio
+  const pickCustomer = (p: PartyHit) => {
+    setCustomer(p);
+    void autoCouponFor(p.id).then((c) => {
+      if (!c || coupon.trim()) return;
+      setCoupon(c.code);
+      setMessage({ tone: "success", text: `Cupom ${c.code} aplicado: ${c.kind === "PERCENT" ? `${String(c.value).replace(".", ",")}%` : formatBRL(c.value)} de desconto para ${p.name}.` });
+    });
+  };
+
+  const createRemote = () => start(async () => {
+    setMessage(null);
+    if (!customer) { setMessage({ tone: "danger", text: "Pedido remoto precisa de cliente: busque ou cadastre." }); return; }
+    const fd = new FormData();
+    fd.set("payload", JSON.stringify({
+      store_id: storeId, party_id: customer.id, channel, fulfillment_type: fulfillment, shipping_total: ship, hold_hours: holdHours, idempotency_key: `web-${idem}`,
+      ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}), ...(notes ? { notes } : {}), items: cart.map((l) => ({ variant_id: l.variant.id, qty: l.qty })),
+    }));
+    const r = await createRemoteOrderAction(null, fd);   // sucesso redireciona para o pedido
+    if (r && !r.ok) setMessage({ tone: "danger", text: r.error ?? "Não foi possível criar o pedido" });
   });
 
   const finalize = () => start(async () => {
@@ -104,11 +135,18 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
     });
     if (!r.ok) { setMessage({ tone: "danger", text: r.error }); return; }
     setMessage({ tone: "success", text: `Venda ${r.number} concluída (${formatBRL(r.total)}). NFC-e enviada para emissão.` });
-    setCart([]); setPayments([]); setCustomer(null); setPhone(""); setCustName(""); setCpf(""); setCoupon(""); setMarketing(false);
+    setCart([]); setPayments([]); setCustomer(null); setCpf(""); setCoupon("");
     setIdem(crypto.randomUUID());
   });
 
   return (
+    <div className="space-y-3">
+    <div role="tablist" aria-label="Tipo de venda" className="inline-flex rounded-lg border border-border p-0.5 text-sm">
+      {([["balcao", "Venda no balcão"], ["remoto", "Pedido remoto"]] as const).map(([m, label]) => (
+        <button key={m} role="tab" aria-selected={mode === m} onClick={() => { setMode(m); setMessage(null); }}
+          className={cn("rounded-md px-3 py-1.5 font-medium", mode === m ? "bg-brand text-brand-contrast" : "text-muted hover:text-text")}>{label}</button>
+      ))}
+    </div>
     <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
       <div className="space-y-3">
         <div className="flex gap-2">
@@ -174,31 +212,51 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
           <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-lg font-semibold">
             <span>Total</span><span>{formatBRL(total)}</span>
           </div>
-          <input value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Cupom (ex.: trainer)" className={cn(inputClass, "mt-2")} aria-label="Cupom" />
+          {remote && ship > 0 && <p className="mt-1 flex justify-between text-sm text-muted"><span>Frete</span><span>{formatBRL(ship)}</span></p>}
+          <input value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} placeholder="Cupom (ex.: trainer)" className={cn(inputClass, "mt-2")} aria-label="Cupom" />
+          {customer && suggested.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Cupons da cliente">
+              {suggested.map((c) => (
+                <button key={c.code} type="button" onClick={() => setCoupon(coupon === c.code ? "" : c.code)} title={`${c.reason} · ${c.label}`}
+                  className={cn("inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs", coupon === c.code ? "border-brand bg-brand/10 text-brand" : "border-border hover:border-brand")}>
+                  <Tag size={12} /> {c.code} · {c.label}
+                </button>
+              ))}
+            </div>
+          )}
           <p className="mt-1 text-xs text-muted">Descontos manuais exigem permissão; o total final é calculado no servidor.</p>
         </Card>
 
-        <Card title="Cliente">
+        <Card title="Cliente" action={!customer && <button type="button" onClick={() => setNewCustomer(true)} className="inline-flex items-center gap-1 text-xs text-brand"><UserPlus size={14} /> Novo cliente</button>}>
           {customer ? (
             <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2"><UserRound size={16} /> {customer.name}</span>
-              <button className="text-xs text-brand" onClick={() => setCustomer(null)}>trocar</button>
+              <span className="flex items-center gap-2"><UserRound size={16} /> {customer.name}{customer.phone && <span className="text-xs text-muted">{customer.phone}</span>}</span>
+              <button className="text-xs text-brand" onClick={() => { setCustomer(null); setCoupon(""); }}>trocar</button>
             </div>
           ) : (
-            <div className="space-y-2">
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Celular (WhatsApp)" inputMode="tel" className={inputClass} aria-label="Celular" />
-              <input value={custName} onChange={(e) => setCustName(e.target.value)} placeholder="Nome (se for novo)" className={inputClass} aria-label="Nome" />
-              <label className="flex items-center gap-2 text-xs text-muted">
-                <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
-                Aceita receber novidades e lançamentos pelo WhatsApp
-              </label>
-              <Button variant="secondary" className="w-full" onClick={identify} disabled={pending || phone.replace(/\D/g, "").length < 10}>Identificar cliente</Button>
-            </div>
+            <PartyPicker onPick={pickCustomer} placeholder={remote ? "Buscar cliente por nome ou telefone (obrigatório)" : "Buscar cliente por nome ou telefone (opcional)"} />
           )}
-          <input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="CPF na nota (opcional)" inputMode="numeric" className={cn(inputClass, "mt-2")} aria-label="CPF na nota" />
+          {!remote && <input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="CPF na nota (opcional)" inputMode="numeric" className={cn(inputClass, "mt-2")} aria-label="CPF na nota" />}
         </Card>
+        {newCustomer && <QuickCustomerDialog onClose={() => setNewCustomer(false)} onCreated={(p) => { pickCustomer(p); setNewCustomer(false); }} />}
 
-        <Card title="Pagamento" action={<span className={cn("text-sm font-medium", remaining === 0 ? "text-success" : "text-warning")}>{remaining > 0 ? `falta ${formatBRL(remaining)}` : remaining < 0 ? `troco ${formatBRL(-remaining)}` : "fechado"}</span>}>
+        {remote && (
+          <Card title="Entrega e reserva">
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted">
+              <label>Canal<select value={channel} onChange={(e) => setChannel(e.target.value)} className={inputClass}>{CHANNELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label>Entrega<select value={fulfillment} onChange={(e) => setFulfillment(e.target.value)} className={inputClass}>{FULFILLMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label>Frete (R$)<input inputMode="decimal" value={shipping} onChange={(e) => setShipping(e.target.value)} placeholder="0,00" className={inputClass} /></label>
+              <label>Reservar por (h)<input type="number" min={1} max={168} value={holdHours} onChange={(e) => setHoldHours(Number(e.target.value) || 24)} className={inputClass} /></label>
+              <label className="col-span-2">Observações<input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={inputClass} /></label>
+            </div>
+            <Button className="mt-3 w-full py-3 text-base" onClick={createRemote} disabled={pending || cart.length === 0 || !customer}>
+              {pending ? "Criando…" : "Criar pedido e reservar estoque"}
+            </Button>
+            <p className="mt-2 text-xs text-muted">O estoque fica reservado até o pagamento; a nota sai quando pago. Cupom e total final são calculados ao salvar.</p>
+          </Card>
+        )}
+
+        {!remote && <Card title="Pagamento" action={<span className={cn("text-sm font-medium", remaining === 0 ? "text-success" : "text-warning")}>{remaining > 0 ? `falta ${formatBRL(remaining)}` : remaining < 0 ? `troco ${formatBRL(-remaining)}` : "fechado"}</span>}>
           <div className="flex flex-wrap gap-1.5">
             {METHODS.map((m) => (
               <button key={m.value}
@@ -244,12 +302,13 @@ export function PosTerminal({ storeId, products, cashSessionId }: { storeId: str
             {pending ? "Processando…" : "Finalizar venda"}
           </Button>
           {!cashSessionId && <p className="mt-2 text-xs text-muted">Caixa fechado: dinheiro indisponível. Abra em Vender › Caixa.</p>}
-        </Card>
+        </Card>}
 
         {message && (
           <p role="status" className={cn("rounded-lg px-3 py-2 text-sm", message.tone === "success" ? "bg-success/10 text-success" : "bg-danger/10 text-danger")}>{message.text}</p>
         )}
       </div>
+    </div>
     </div>
   );
 }

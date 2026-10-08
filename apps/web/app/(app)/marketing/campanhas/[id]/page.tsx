@@ -52,7 +52,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
   const [{ data: stats }, { data: metaCamps }, { data: audiences }] = await Promise.all([
     aba === "canais" ? supabase.schema("mkt").rpc("link_click_stats", { p_from: "2020-01-01", p_to: today }) : Promise.resolve({ data: null }),
     aba === "canais" ? supabase.schema("mkt").rpc("ad_campaigns") : Promise.resolve({ data: null }),
-    aba === "canais" && c.segment_id ? supabase.schema("mkt").from("ad_audiences").select("status, uploaded, matched, kind").eq("segment_id", c.segment_id) : Promise.resolve({ data: null }),
+    aba === "canais" && c.segment_id ? supabase.schema("mkt").from("ad_audiences").select("status, uploaded, matched_estimate, kind").eq("segment_id", c.segment_id) : Promise.resolve({ data: null }),
   ]);
   const clicks = new Map((stats ?? []).map((s) => [s.link_id, s]));
   const names = new Map<string, string>();

@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import type { Json } from "@centralops/db";
 import { briefingLine, formatBRL, todaySP, type BriefingItem } from "@centralops/domain";
 import type { ActionLine } from "./cards";
 import { dbError, fmtDate, tool, type ToolCtx, type ToolDef } from "./tool-kit";
@@ -279,6 +280,10 @@ const resumoDoDia = tool({
     dbError(error);
     const items = ((data as unknown as { items?: BriefingItem[] } | null)?.items ?? []).map((i) => ({ ...i, amount: i.amount === undefined ? undefined : Number(i.amount), compare_amount: i.compare_amount === undefined ? undefined : Number(i.compare_amount) }));
     ctx.addCard({ kind: "lista", title: "Resumo do dia", items: items.map((i) => ({ title: briefingLine(i), href: i.href })) });
+    return { itens: items.map((i) => ({ assunto: i.key, frase: briefingLine(i), quantidade: i.count, valor: i.amount, comparacao: i.compare_amount, urgencia: i.tone })) };
+  },
+});
+
 const contarPublico = tool({
   name: "contar_publico",
   description: "Conta quantas pessoas se encaixam em filtros (ex.: 'quantas clientes não compram há 90 dias?', 'quantas leads temos?'). Mostra total e alcançáveis no WhatsApp e Meta.",
@@ -296,7 +301,7 @@ const contarPublico = tool({
     if (arg.estagios?.length) def.lifecycle = arg.estagios;
     if (arg.cidade) def.cities = [arg.cidade];
     if (arg.nunca_comprou) def.never_bought = true;
-    const { data, error } = await ctx.supabase.schema("mkt").rpc("segment_preview", { p_def: def as unknown as import("@centralops/db").Json });
+    const { data, error } = await ctx.supabase.schema("mkt").rpc("segment_preview", { p_def: def as unknown as Json });
     dbError(error);
     const p = data as unknown as { total: number; whatsapp: number; ads: number; sample: string[] };
     ctx.addCard({
@@ -334,7 +339,7 @@ const proporCampanha = tool({
     if (arg.dias_sem_comprar) aud.inactive_days = arg.dias_sem_comprar;
     if (arg.estagios?.length) aud.lifecycle = arg.estagios;
     const { data, error } = await ctx.supabase.schema("mkt").rpc("save_campaign", {
-      p: { name: arg.nome, objective: arg.objetivo, audience: aud } as unknown as import("@centralops/db").Json,
+      p: { name: arg.nome, objective: arg.objetivo, audience: aud } as unknown as Json,
     });
     dbError(error);
     const c = data as unknown as { id: string; name: string };

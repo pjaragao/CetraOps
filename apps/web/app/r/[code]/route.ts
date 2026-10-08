@@ -14,7 +14,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   try { host = referrer ? new URL(referrer).hostname : null; } catch { host = null; }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("resolve_link", {
+  const { data, error } = await (supabase as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  }).rpc("resolve_link", {
     p_code: code,
     p_meta: { device: ua === "BOT" ? "OTHER" : ua, referrer_host: host, from_ad: sp.has("fbclid"), utm },
   });

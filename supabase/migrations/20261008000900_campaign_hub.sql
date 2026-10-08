@@ -712,6 +712,7 @@ begin
       returning * into v_msg;
       perform private.enqueue('outbound_messages', jsonb_build_object('message_id', v_msg.id, 'org_id', c.org_id));
       update mkt.campaign_recipients set status = 'QUEUED', message_id = v_msg.id, sent_at = now() where id = r.id;
+      perform private.timeline(c.org_id, r.party_id, 'CAMPAIGN', 'mkt.campaigns', c.id, format('Recebeu a campanha "%s"%s', c.name, case when cp.id is not null then ' com o cupom ' || cp.code else '' end));
       v_sent := v_sent + 1;
     end loop;
   end if;

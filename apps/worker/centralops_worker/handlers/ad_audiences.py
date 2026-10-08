@@ -6,7 +6,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .. import queues
 from ..adapters.errors import PermanentError as ProviderPermanent
 from ..adapters.errors import TransientError
 from ..adapters.meta import MetaClient

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { requirePerm } from "@/lib/session";
+import { can, requirePerm } from "@/lib/session";
 import { Empty, PageHeader } from "@/components/ui";
 import { PosTerminal, type PosProduct } from "./pos-terminal";
 
@@ -51,7 +51,14 @@ export default async function PdvPage({ searchParams }: { searchParams: Promise<
   return (
     <>
       <PageHeader title="PDV" description="Nova venda: no balcão (recebe e emite a NFC-e) ou pedido remoto (reserva o estoque até o pagamento)." />
-      <PosTerminal storeId={session.storeId} products={products} cashSessionId={session_?.id ?? null} initialMode={modo === "remoto" ? "remoto" : "balcao"} />
+      <PosTerminal
+        storeId={session.storeId}
+        products={products}
+        cashSessionId={session_?.id ?? null}
+        initialMode={modo === "remoto" ? "remoto" : "balcao"}
+        canDiscount={can(session, "sales.discount")}
+        canCustomItem={can(session, "sales.custom_item") || can(session, "sales.write")}
+      />
     </>
   );
 }

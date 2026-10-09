@@ -30,14 +30,14 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   const { data: o } = await supabase.schema("sales").from("orders").select("*").eq("id", id).maybeSingle();
   if (!o) notFound();
   const [{ data: items }, { data: pays }, { data: links }, { data: ships }, { data: returns }, { data: party }] = await Promise.all([
-    supabase.schema("sales").from("order_items").select("id, variant_id, qty, list_price, unit_price, discount_amount, total, returned_qty").eq("order_id", id).order("line_no"),
+    supabase.schema("sales").from("order_items").select("id, variant_id, description, qty, list_price, unit_price, discount_amount, total, returned_qty").eq("order_id", id).order("line_no"),
     supabase.schema("sales").from("payments").select("id, method, amount, installments, acquirer, nsu, status, created_at").eq("order_id", id).order("created_at"),
     supabase.schema("sales").from("payment_links").select("id, provider, url, amount, max_installments, status, expires_at").eq("order_id", id).order("created_at", { ascending: false }),
     supabase.schema("sales").from("shipments").select("id, carrier, tracking, cost, charged, status, shipped_at, delivered_at").eq("order_id", id).order("created_at"),
     supabase.schema("sales").from("returns").select("id, number, type, amount, refund_method, created_at").eq("order_id", id).order("created_at"),
     o.party_id ? supabase.schema("crm").from("parties").select("id, display_name").eq("id", o.party_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
-  const labels = await resolveItems((items ?? []).map((i) => ({ variant_id: i.variant_id, qty: 0, unit_cost: 0 })));
+  const labels = await resolveItems((items ?? []).flatMap((i) => i.variant_id ? [{ variant_id: i.variant_id, qty: 0, unit_cost: 0 }] : []));
   const lmap = new Map(labels.map((l) => [l.variant_id, l]));
   const st = STATUS[o.status] ?? { label: o.status, tone: "neutral" as const };
   const canWrite = can(session, "sales.write");
@@ -61,7 +61,18 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
       <Table head={["Peça", "Qtd", "Devolvida", "Preço", "Desconto", "Total"]}>
         {(items ?? []).map((i) => (
           <tr key={i.id}>
-            <td className="px-3 py-2"><span className="font-mono text-xs text-muted">{lmap.get(i.variant_id)?.sku}</span> {lmap.get(i.variant_id)?.label}</td>
+            <td className="px-3 py-2">
+              {i.variant_id ? (
+                <>
+                  <span className="font-mono text-xs text-muted">{lmap.get(i.variant_id)?.sku}</span> {lmap.get(i.variant_id)?.label}
+                </>
+              ) : (
+                <>
+                  <span className="mr-1.5 inline-flex"><Badge tone="neutral">Avulso</Badge></span>
+                  <span className="font-medium">{i.description || "Item avulso"}</span>
+                </>
+              )}
+            </td>
             <td className="px-3 py-2">{Number(i.qty)}</td><td className="px-3 py-2">{Number(i.returned_qty) || "—"}</td>
             <td className="px-3 py-2">{formatBRL(i.list_price)}</td><td className="px-3 py-2">{Number(i.discount_amount) > 0 ? formatBRL(i.discount_amount) : "—"}</td>
             <td className="px-3 py-2 font-medium">{formatBRL(i.total)}</td>

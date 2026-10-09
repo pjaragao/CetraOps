@@ -34,14 +34,21 @@ export default async function NovaTrocaPage({ searchParams }: { searchParams: SP
           )
         ) : await (async () => {
           const [{ data: items }, { data: locs }, { data: cash }, { data: party }] = await Promise.all([
-            supabase.schema("sales").from("order_items").select("id, variant_id, qty, total, returned_qty").eq("order_id", order.id).order("line_no"),
+            supabase.schema("sales").from("order_items").select("id, variant_id, description, qty, total, returned_qty").eq("order_id", order.id).order("line_no"),
             supabase.schema("inv").from("locations").select("id, name, kind").eq("store_id", order.store_id),
             supabase.schema("sales").from("cash_sessions").select("id").eq("status", "OPEN").limit(1).maybeSingle(),
             order.party_id ? supabase.schema("crm").from("parties").select("display_name").eq("id", order.party_id).maybeSingle() : Promise.resolve({ data: null }),
           ]);
-          const labels = await resolveItems((items ?? []).map((i) => ({ variant_id: i.variant_id, qty: 0, unit_cost: 0 })));
+          const labels = await resolveItems((items ?? []).flatMap((i) => i.variant_id ? [{ variant_id: i.variant_id, qty: 0, unit_cost: 0 }] : []));
           const lmap = new Map(labels.map((l) => [l.variant_id, l]));
-          const lines: ReturnLine[] = (items ?? []).map((i) => ({ id: i.id, sku: lmap.get(i.variant_id)?.sku ?? "", label: lmap.get(i.variant_id)?.label ?? "", qty: Number(i.qty), returned: Number(i.returned_qty), total: Number(i.total) }));
+          const lines: ReturnLine[] = (items ?? []).map((i) => ({
+            id: i.id,
+            sku: (i.variant_id && lmap.get(i.variant_id)?.sku) || "AVULSO",
+            label: (i.variant_id && lmap.get(i.variant_id)?.label) || i.description || "Item avulso",
+            qty: Number(i.qty),
+            returned: Number(i.returned_qty),
+            total: Number(i.total),
+          }));
           const itemsSum = lines.reduce((s, l) => s + l.total, 0);
           const { data: cup } = await supabase.schema("sales").from("coupon_redemptions").select("amount").eq("order_id", order.id);
           const coupon = (cup ?? []).reduce((s, c) => s + Number(c.amount), 0);

@@ -10,7 +10,15 @@ const saleSchema = z.object({
   cashSessionId: z.string().uuid().nullable(),
   cpfOnInvoice: z.string().regex(/^\d{11}$/).nullable(),
   couponCode: z.string().max(40).nullable(),
-  items: z.array(z.object({ variantId: z.string().uuid(), qty: z.number().int().positive() })).min(1),
+  items: z.array(z.object({
+    variantId: z.string().uuid().nullable().optional(),
+    description: z.string().min(1).max(200).nullable().optional(),
+    unitPrice: z.number().min(0).optional(),
+    listPrice: z.number().min(0).optional(),
+    qty: z.number().int().positive(),
+    discountAmount: z.number().min(0).optional(),
+    discountReason: z.string().max(200).nullable().optional(),
+  })).min(1),
   payments: z.array(z.object({
     method: z.enum(["PIX", "DEBIT", "CREDIT", "CASH", "STORE_CREDIT"]),
     amount: z.number().positive(),
@@ -37,7 +45,15 @@ export async function finalizeSale(input: SaleInput): Promise<SaleResult> {
       cash_session_id: s.cashSessionId,
       cpf_on_invoice: s.cpfOnInvoice,
       coupon_code: s.couponCode,
-      items: s.items.map((i) => ({ variant_id: i.variantId, qty: i.qty })),
+      items: s.items.map((i) => ({
+        variant_id: i.variantId || null,
+        description: i.description || null,
+        unit_price: i.unitPrice ?? undefined,
+        list_price: i.listPrice ?? undefined,
+        qty: i.qty,
+        discount_amount: i.discountAmount ?? 0,
+        discount_reason: i.discountReason || null,
+      })),
       payments: s.payments.map((p) => ({
         method: p.method,
         amount: p.amount,

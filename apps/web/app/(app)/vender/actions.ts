@@ -133,7 +133,15 @@ export async function searchSellable(q: string, locationId?: string): Promise<Se
 const remoteSchema = z.object({
   store_id: uuid, party_id: uuid, channel: z.enum(["WHATSAPP", "INSTAGRAM", "TELEGRAM", "PAYMENT_LINK", "B2B", "EVENT"]), fulfillment_type: z.enum(["MOTOBOY", "CARRIER", "STORE_PICKUP", "LOCKER_PICKUP", "TAKEAWAY"]),
   shipping_total: z.number().min(0).max(10000).default(0), coupon_code: z.string().max(40).optional(), hold_hours: z.number().int().min(1).max(168).default(24), notes: z.string().max(500).optional(),
-  items: z.array(z.object({ variant_id: uuid, qty: z.number().positive().max(1000) })).min(1).max(100), idempotency_key: z.string().min(8).max(80),
+  items: z.array(z.object({
+    variant_id: uuid.nullable().optional(),
+    description: z.string().min(1).max(200).nullable().optional(),
+    unit_price: z.number().min(0).optional(),
+    list_price: z.number().min(0).optional(),
+    qty: z.number().positive().max(1000),
+    discount_amount: z.number().min(0).optional(),
+    discount_reason: z.string().max(200).nullable().optional(),
+  })).min(1).max(100), idempotency_key: z.string().min(8).max(80),
 });
 
 export async function createRemoteOrderAction(_prev: State, formData: FormData): Promise<State> {

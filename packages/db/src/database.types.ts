@@ -8417,13 +8417,13 @@ isOneToOne: false
                   ]
                 },"order_items": {
                   Row: {
-                    "cfop": string | null,"commissionable": boolean,"csosn": string | null,"discount_amount": number,"discount_reason": string | null,"id": string,"line_no": number,"list_price": number,"ncm": string | null,"order_id": string,"org_id": string,"qty": number,"reservation_id": string | null,"returned_qty": number,"total": number,"unit_cost_snapshot": number | null,"unit_price": number,"variant_id": string
+                    "cfop": string | null,"commissionable": boolean,"csosn": string | null,"description": string | null,"discount_amount": number,"discount_reason": string | null,"id": string,"line_no": number,"list_price": number,"ncm": string | null,"order_id": string,"org_id": string,"qty": number,"reservation_id": string | null,"returned_qty": number,"total": number,"unit_cost_snapshot": number | null,"unit_price": number,"variant_id": string | null
                   }
                   Insert: {
-                    "cfop"?: string | null,"commissionable"?: boolean,"csosn"?: string | null,"discount_amount"?: number,"discount_reason"?: string | null,"id"?: string,"line_no"?: never,"list_price": number,"ncm"?: string | null,"order_id": string,"org_id": string,"qty": number,"reservation_id"?: string | null,"returned_qty"?: number,"total": number,"unit_cost_snapshot"?: number | null,"unit_price": number,"variant_id": string
+                    "cfop"?: string | null,"commissionable"?: boolean,"csosn"?: string | null,"description"?: string | null,"discount_amount"?: number,"discount_reason"?: string | null,"id"?: string,"line_no"?: never,"list_price": number,"ncm"?: string | null,"order_id": string,"org_id": string,"qty": number,"reservation_id"?: string | null,"returned_qty"?: number,"total": number,"unit_cost_snapshot"?: number | null,"unit_price": number,"variant_id"?: string | null
                   }
                   Update: {
-                    "cfop"?: string | null,"commissionable"?: boolean,"csosn"?: string | null,"discount_amount"?: number,"discount_reason"?: string | null,"id"?: string,"line_no"?: never,"list_price"?: number,"ncm"?: string | null,"order_id"?: string,"org_id"?: string,"qty"?: number,"reservation_id"?: string | null,"returned_qty"?: number,"total"?: number,"unit_cost_snapshot"?: number | null,"unit_price"?: number,"variant_id"?: string
+                    "cfop"?: string | null,"commissionable"?: boolean,"csosn"?: string | null,"description"?: string | null,"discount_amount"?: number,"discount_reason"?: string | null,"id"?: string,"line_no"?: never,"list_price"?: number,"ncm"?: string | null,"order_id"?: string,"org_id"?: string,"qty"?: number,"reservation_id"?: string | null,"returned_qty"?: number,"total"?: number,"unit_cost_snapshot"?: number | null,"unit_price"?: number,"variant_id"?: string | null
                   }
                   Relationships: [
                     {

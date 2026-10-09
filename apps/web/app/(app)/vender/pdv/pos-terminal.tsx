@@ -9,12 +9,29 @@ import { autoCouponFor, finalizeSale, type SaleInput } from "./actions";
 import { PartyPicker, type PartyHit } from "../pickers";
 import { QuickCustomerDialog } from "./quick-customer-dialog";
 import { StonePosDialog } from "../stone-pos-dialog";
+import { CustomItemDialog } from "./custom-item-dialog";
+import { ItemDiscountDialog } from "./item-discount-dialog";
+import { GlobalDiscountDialog } from "./global-discount-dialog";
 
 export interface PosVariant { id: string; sku: string; size: string; gtin: string | null; price: number; available: number }
 export interface PosProduct { key: string; name: string; reference: string; gender: string; color: string; variants: PosVariant[] }
 
 type Method = SaleInput["payments"][number]["method"];
-interface CartLine { variant: PosVariant; product: PosProduct; qty: number }
+
+export interface CartLine {
+  id: string;
+  isCustom?: boolean;
+  variant?: PosVariant;
+  product?: PosProduct;
+  customDescription?: string;
+  unitPrice: number;
+  qty: number;
+  discountType?: "PERCENT" | "FIXED";
+  discountValue?: number;
+  discountAmount: number;
+  discountReason?: string;
+}
+
 interface PayLine { method: Method; amount: string; installments: number; anticipation: "D1" | "NATURAL"; nsu: string }
 
 const METHODS: { value: Method; label: string }[] = [
@@ -25,8 +42,24 @@ const METHODS: { value: Method; label: string }[] = [
 const CHANNELS = [["WHATSAPP", "WhatsApp"], ["INSTAGRAM", "Instagram"], ["TELEGRAM", "Telegram"], ["PAYMENT_LINK", "Link de pagamento"], ["B2B", "B2B"], ["EVENT", "Evento"]] as const;
 const FULFILLMENTS = [["MOTOBOY", "Motoboy"], ["CARRIER", "Transportadora / Correios"], ["STORE_PICKUP", "Retirada na loja"], ["LOCKER_PICKUP", "Retirada no Armário VIP"], ["TAKEAWAY", "Levou na hora"]] as const;
 
+interface PosTerminalProps {
+  storeId: string;
+  products: PosProduct[];
+  cashSessionId: string | null;
+  initialMode?: "balcao" | "remoto";
+  canDiscount?: boolean;
+  canCustomItem?: boolean;
+}
+
 /** Venda no balcão (paga na hora, com NFC-e) ou pedido remoto (reserva o estoque e espera o pagamento): o mesmo carrinho nos dois modos. */
-export function PosTerminal({ storeId, products, cashSessionId, initialMode = "balcao" }: { storeId: string; products: PosProduct[]; cashSessionId: string | null; initialMode?: "balcao" | "remoto" }) {
+export function PosTerminal({
+  storeId,
+  products,
+  cashSessionId,
+  initialMode = "balcao",
+  canDiscount = true,
+  canCustomItem = true,
+}: PosTerminalProps) {
   const [mode, setMode] = useState<"balcao" | "remoto">(initialMode);
   const [channel, setChannel] = useState("WHATSAPP");
   const [fulfillment, setFulfillment] = useState("MOTOBOY");
@@ -46,6 +79,11 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
   const [scanning, setScanning] = useState(false);
   const [pending, start] = useTransition();
 
+  // Modais de itens avulsos e descontos
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [selectedDiscountLine, setSelectedDiscountLine] = useState<CartLine | null>(null);
+  const [globalDiscountOpen, setGlobalDiscountOpen] = useState(false);
+
   const [stoneDialog, setStoneDialog] = useState<{
     open: boolean;
     amount: number;
@@ -62,7 +100,9 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
       p.variants.some((v) => v.sku.toLowerCase() === t || v.gtin === t)).slice(0, 24);
   }, [q, products]);
 
-  const total = roundCents(cart.reduce((a, l) => a + l.variant.price * l.qty, 0));
+  const grossTotal = roundCents(cart.reduce((a, l) => a + l.unitPrice * l.qty, 0));
+  const discountTotal = roundCents(cart.reduce((a, l) => a + l.discountAmount, 0));
+  const total = roundCents(Math.max(grossTotal - discountTotal, 0));
   const paid = roundCents(payments.reduce((a, p) => a + (Number(p.amount.replace(",", ".")) || 0), 0));
   const remaining = roundCents(total - paid);
   const remote = mode === "remoto";
@@ -79,10 +119,147 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
   const add = (product: PosProduct, variant: PosVariant) => {
     setMessage(null);
     setCart((c) => {
-      const i = c.findIndex((l) => l.variant.id === variant.id);
-      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
-      return [...c, { product, variant, qty: 1 }];
+      const i = c.findIndex((l) => !l.isCustom && l.variant?.id === variant.id);
+      if (i >= 0) {
+        return c.map((l, j) => {
+          if (j !== i) return l;
+          const newQty = l.qty + 1;
+          let newDisc = l.discountAmount;
+          if (l.discountType === "PERCENT" && l.discountValue) {
+            newDisc = roundCents(l.unitPrice * newQty * (l.discountValue / 100));
+          } else if (l.discountType === "FIXED" && l.discountValue) {
+            newDisc = roundCents(Math.min(l.discountValue, l.unitPrice * newQty));
+          }
+          return { ...l, qty: newQty, discountAmount: newDisc };
+        });
+      }
+      return [
+        ...c,
+        {
+          id: variant.id,
+          isCustom: false,
+          product,
+          variant,
+          unitPrice: variant.price,
+          qty: 1,
+          discountAmount: 0,
+        },
+      ];
     });
+  };
+
+  const addCustomItem = (description: string, price: number, qty: number = 1) => {
+    setMessage(null);
+    setCart((c) => [
+      ...c,
+      {
+        id: crypto.randomUUID(),
+        isCustom: true,
+        customDescription: description.trim(),
+        unitPrice: price,
+        qty,
+        discountAmount: 0,
+      },
+    ]);
+  };
+
+  const updateLineQty = (lineId: string, newQty: number) => {
+    if (newQty <= 0) {
+      setCart((c) => c.filter((l) => l.id !== lineId));
+      return;
+    }
+    setCart((c) =>
+      c.map((l) => {
+        if (l.id !== lineId) return l;
+        let newDisc = l.discountAmount;
+        if (l.discountType === "PERCENT" && l.discountValue) {
+          newDisc = roundCents(l.unitPrice * newQty * (l.discountValue / 100));
+        } else if (l.discountType === "FIXED" && l.discountValue) {
+          newDisc = roundCents(Math.min(l.discountValue, l.unitPrice * newQty));
+        }
+        return { ...l, qty: newQty, discountAmount: newDisc };
+      }),
+    );
+  };
+
+  const removeLine = (lineId: string) => {
+    setCart((c) => c.filter((l) => l.id !== lineId));
+  };
+
+  const setItemDiscount = (lineId: string, type: "PERCENT" | "FIXED", value: number, reason?: string) => {
+    setCart((c) =>
+      c.map((l) => {
+        if (l.id !== lineId) return l;
+        const lineGross = l.unitPrice * l.qty;
+        let disc = 0;
+        if (type === "PERCENT") {
+          disc = roundCents(lineGross * (Math.min(Math.max(value, 0), 100) / 100));
+        } else {
+          disc = roundCents(Math.min(Math.max(value, 0), lineGross));
+        }
+        return {
+          ...l,
+          discountType: type,
+          discountValue: value,
+          discountAmount: disc,
+          discountReason: reason || l.discountReason,
+        };
+      }),
+    );
+  };
+
+  const removeItemDiscount = (lineId: string) => {
+    setCart((c) =>
+      c.map((l) =>
+        l.id === lineId
+          ? { ...l, discountType: undefined, discountValue: undefined, discountAmount: 0, discountReason: undefined }
+          : l,
+      ),
+    );
+  };
+
+  const applyGlobalDiscount = (type: "PERCENT" | "FIXED", value: number) => {
+    setCart((c) => {
+      const gross = roundCents(c.reduce((s, l) => s + l.unitPrice * l.qty, 0));
+      if (gross <= 0) return c;
+
+      if (type === "PERCENT") {
+        const pct = Math.min(Math.max(value, 0), 100);
+        return c.map((l) => {
+          const lGross = l.unitPrice * l.qty;
+          const disc = roundCents(lGross * (pct / 100));
+          return { ...l, discountType: "PERCENT", discountValue: pct, discountAmount: disc };
+        });
+      }
+
+      // FIXED (R$)
+      const target = roundCents(Math.min(Math.max(value, 0), gross));
+      let allocated = 0;
+      return c.map((l, idx) => {
+        const lGross = l.unitPrice * l.qty;
+        const ratio = lGross / gross;
+        const disc = idx === c.length - 1 ? roundCents(target - allocated) : roundCents(target * ratio);
+        allocated += disc;
+        return {
+          ...l,
+          discountType: "FIXED",
+          discountValue: disc,
+          discountAmount: Math.min(disc, lGross),
+        };
+      });
+    });
+  };
+
+  const removeGlobalDiscount = () => {
+    setCart((c) =>
+      c.map((l) => ({
+        ...l,
+        discountType: undefined,
+        discountValue: undefined,
+        discountAmount: 0,
+        discountReason: undefined,
+      })),
+    );
   };
 
   // Leitor de código de barras: Enter com EAN/SKU exato adiciona direto
@@ -124,9 +301,18 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
     const fd = new FormData();
     fd.set("payload", JSON.stringify({
       store_id: storeId, party_id: customer.id, channel, fulfillment_type: fulfillment, shipping_total: ship, hold_hours: holdHours, idempotency_key: `web-${idem}`,
-      ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}), ...(notes ? { notes } : {}), items: cart.map((l) => ({ variant_id: l.variant.id, qty: l.qty })),
+      ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}), ...(notes ? { notes } : {}),
+      items: cart.map((l) => ({
+        variant_id: l.isCustom ? undefined : l.variant?.id,
+        description: l.isCustom ? l.customDescription : undefined,
+        unit_price: l.unitPrice,
+        list_price: l.unitPrice,
+        qty: l.qty,
+        discount_amount: l.discountAmount,
+        discount_reason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : undefined),
+      })),
     }));
-    const r = await createRemoteOrderAction(null, fd);   // sucesso redireciona para o pedido
+    const r = await createRemoteOrderAction(null, fd);
     if (r && !r.ok) setMessage({ tone: "danger", text: r.error ?? "Não foi possível criar o pedido" });
   });
 
@@ -136,7 +322,15 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
       idempotencyKey: idem, storeId, partyId: customer?.id ?? null, cashSessionId,
       cpfOnInvoice: cpf.replace(/\D/g, "").length === 11 ? cpf.replace(/\D/g, "") : null,
       couponCode: coupon.trim() || null,
-      items: cart.map((l) => ({ variantId: l.variant.id, qty: l.qty })),
+      items: cart.map((l) => ({
+        variantId: l.isCustom ? undefined : l.variant?.id,
+        description: l.isCustom ? l.customDescription : undefined,
+        unitPrice: l.unitPrice,
+        listPrice: l.unitPrice,
+        qty: l.qty,
+        discountAmount: l.discountAmount,
+        discountReason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : undefined),
+      })),
       payments: payments.map((p) => ({
         method: p.method, amount: Number(p.amount.replace(",", ".")), installments: p.installments,
         anticipation: p.anticipation, nsu: p.nsu || undefined,
@@ -158,15 +352,26 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
     </div>
     <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
       <div className="space-y-3">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onSearchKey}
-            placeholder="Buscar produto, referência, SKU ou bipar EAN…" className={cn(inputClass, "py-3 text-base")}
+            placeholder="Buscar produto, referência, SKU ou bipar EAN…" className={cn(inputClass, "py-3 text-base flex-1 min-w-[200px]")}
             aria-label="Buscar produto"
           />
           <Button type="button" variant="secondary" onClick={() => setScanning(true)} title="Bipar com a câmera do celular ou notebook" aria-label="Bipar com a câmera">
             <ScanBarcode size={18} /> <span className="hidden sm:inline">Câmera</span>
           </Button>
+          {canCustomItem && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setCustomDialogOpen(true)}
+              title="Adicionar item ou serviço avulso fora do estoque"
+              className="text-brand hover:border-brand shrink-0"
+            >
+              <Plus size={18} /> <span>Item avulso</span>
+            </Button>
+          )}
         </div>
         {scanning && <BarcodeScanner onDone={onScanned} onClose={() => setScanning(false)} title="Bipar peças para a venda" />}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -202,26 +407,110 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
 
       <div className="space-y-3 lg:sticky lg:top-16 lg:self-start">
         <Card title="Carrinho">
-          {cart.length === 0 ? <p className="text-sm text-muted">Adicione produtos pelo tamanho.</p> : (
+          {cart.length === 0 ? <p className="text-sm text-muted">Adicione produtos pelo tamanho ou use “+ Item avulso”.</p> : (
             <ul className="divide-y divide-border">
-              {cart.map((l) => (
-                <li key={l.variant.id} className="flex items-center gap-2 py-2 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate">{l.product.name} · <b>{l.variant.size}</b></p>
-                    <p className="text-xs text-muted">{formatBRL(l.variant.price)}</p>
-                  </div>
-                  <button aria-label="Diminuir" className="rounded p-1 hover:bg-surface-2" onClick={() => setCart((c) => c.flatMap((x) => x.variant.id === l.variant.id ? (x.qty > 1 ? [{ ...x, qty: x.qty - 1 }] : []) : [x]))}><Minus size={14} /></button>
-                  <span className="w-5 text-center">{l.qty}</span>
-                  <button aria-label="Aumentar" className="rounded p-1 hover:bg-surface-2" onClick={() => add(l.product, l.variant)}><Plus size={14} /></button>
-                  <button aria-label="Remover" className="rounded p-1 text-danger hover:bg-surface-2" onClick={() => setCart((c) => c.filter((x) => x.variant.id !== l.variant.id))}><Trash2 size={14} /></button>
-                </li>
-              ))}
+              {cart.map((l) => {
+                const lineNet = Math.max(l.unitPrice * l.qty - l.discountAmount, 0);
+                return (
+                  <li key={l.id} className="flex items-center gap-2 py-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 truncate">
+                        {l.isCustom && <Badge tone="neutral" className="text-[10px] px-1 py-0">Avulso</Badge>}
+                        <p className="truncate font-medium">
+                          {l.isCustom ? l.customDescription : `${l.product?.name} · `}
+                          {!l.isCustom && <b>{l.variant?.size}</b>}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {l.discountAmount > 0 ? (
+                          <>
+                            <span className="line-through text-muted">{formatBRL(l.unitPrice)}</span>
+                            <span className="font-semibold text-brand">
+                              {formatBRL(lineNet / l.qty)}
+                            </span>
+                            <Badge tone="success" className="text-[10px] px-1 py-0">
+                              {l.discountType === "PERCENT" && l.discountValue ? `-${l.discountValue}%` : `-${formatBRL(l.discountAmount)}`}
+                            </Badge>
+                          </>
+                        ) : (
+                          <span className="text-muted">{formatBRL(l.unitPrice)}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Botão de desconto do item */}
+                    <button
+                      type="button"
+                      aria-label="Desconto no item"
+                      title={l.discountAmount > 0 ? `Desconto: -${formatBRL(l.discountAmount)} (clique para alterar)` : "Dar desconto neste item (% ou R$)"}
+                      onClick={() => setSelectedDiscountLine(l)}
+                      className={cn(
+                        "rounded p-1 transition-colors",
+                        l.discountAmount > 0
+                          ? "bg-success/15 text-success hover:bg-success/25"
+                          : "text-muted hover:bg-surface-2 hover:text-brand",
+                      )}
+                    >
+                      <Tag size={14} />
+                    </button>
+
+                    <button aria-label="Diminuir" className="rounded p-1 hover:bg-surface-2" onClick={() => updateLineQty(l.id, l.qty - 1)}><Minus size={14} /></button>
+                    <span className="w-5 text-center font-medium">{l.qty}</span>
+                    <button aria-label="Aumentar" className="rounded p-1 hover:bg-surface-2" onClick={() => updateLineQty(l.id, l.qty + 1)}><Plus size={14} /></button>
+                    <button aria-label="Remover" className="rounded p-1 text-danger hover:bg-surface-2" onClick={() => removeLine(l.id)}><Trash2 size={14} /></button>
+                  </li>
+                );
+              })}
             </ul>
           )}
-          <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-lg font-semibold">
-            <span>Total</span><span>{formatBRL(total)}</span>
+
+          {cart.length > 0 && (
+            <div className="mt-3 border-t border-border pt-2 space-y-1 text-xs">
+              <div className="flex justify-between text-muted">
+                <span>Subtotal bruto</span>
+                <span>{formatBRL(grossTotal)}</span>
+              </div>
+              {discountTotal > 0 && (
+                <div className="flex justify-between text-success font-medium">
+                  <span>Descontos</span>
+                  <span>- {formatBRL(discountTotal)}</span>
+                </div>
+              )}
+              {remote && ship > 0 && (
+                <div className="flex justify-between text-muted">
+                  <span>Frete</span>
+                  <span>{formatBRL(ship)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-lg font-semibold">
+            <span>Total</span><span>{formatBRL(total + (remote ? ship : 0))}</span>
           </div>
-          {remote && ship > 0 && <p className="mt-1 flex justify-between text-sm text-muted"><span>Frete</span><span>{formatBRL(ship)}</span></p>}
+
+          {cart.length > 0 && (
+            <div className="mt-2 flex items-center justify-between pt-1 border-t border-border/50 text-xs">
+              <button
+                type="button"
+                onClick={() => setGlobalDiscountOpen(true)}
+                className="inline-flex items-center gap-1 font-medium text-brand hover:underline"
+              >
+                <Tag size={12} />
+                {discountTotal > 0 ? "Alterar desconto da venda" : "+ Desconto geral na venda (% ou R$)"}
+              </button>
+              {discountTotal > 0 && (
+                <button
+                  type="button"
+                  onClick={removeGlobalDiscount}
+                  className="text-danger hover:underline text-[11px]"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+          )}
+
           <input value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} placeholder="Cupom (ex.: trainer)" className={cn(inputClass, "mt-2")} aria-label="Cupom" />
           {customer && suggested.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Cupons da cliente">
@@ -233,7 +522,6 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
               ))}
             </div>
           )}
-          <p className="mt-1 text-xs text-muted">Descontos manuais exigem permissão; o total final é calculado no servidor.</p>
         </Card>
 
         <Card title="Cliente" action={!customer && <button type="button" onClick={() => setNewCustomer(true)} className="inline-flex items-center gap-1 text-xs text-brand"><UserPlus size={14} /> Novo cliente</button>}>
@@ -344,6 +632,41 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
         )}
       </div>
     </div>
+
+    {/* Diálogo de Item Avulso */}
+    <CustomItemDialog
+      open={customDialogOpen}
+      onClose={() => setCustomDialogOpen(false)}
+      onAdd={addCustomItem}
+    />
+
+    {/* Diálogo de Desconto no Item Individual */}
+    {selectedDiscountLine && (
+      <ItemDiscountDialog
+        open={Boolean(selectedDiscountLine)}
+        onClose={() => setSelectedDiscountLine(null)}
+        itemName={selectedDiscountLine.isCustom ? selectedDiscountLine.customDescription || "Item avulso" : `${selectedDiscountLine.product?.name} · ${selectedDiscountLine.variant?.size}`}
+        grossAmount={selectedDiscountLine.unitPrice * selectedDiscountLine.qty}
+        currentDiscountAmount={selectedDiscountLine.discountAmount}
+        initialType={selectedDiscountLine.discountType || "PERCENT"}
+        initialValue={selectedDiscountLine.discountValue}
+        initialReason={selectedDiscountLine.discountReason}
+        canDiscount={canDiscount}
+        onApply={(type, value, reason) => setItemDiscount(selectedDiscountLine.id, type, value, reason)}
+        onRemove={() => removeItemDiscount(selectedDiscountLine.id)}
+      />
+    )}
+
+    {/* Diálogo de Desconto Geral na Venda */}
+    <GlobalDiscountDialog
+      open={globalDiscountOpen}
+      onClose={() => setGlobalDiscountOpen(false)}
+      grossTotal={grossTotal}
+      currentDiscountTotal={discountTotal}
+      canDiscount={canDiscount}
+      onApply={applyGlobalDiscount}
+      onRemove={removeGlobalDiscount}
+    />
 
     <StonePosDialog
       open={stoneDialog.open}

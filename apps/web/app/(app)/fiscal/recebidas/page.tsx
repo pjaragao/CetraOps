@@ -7,6 +7,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { Badge, Button, Card, Empty, PageHeader, Table, inputClass } from "@/components/ui";
 import { Flash, fmtDate } from "@/components/form";
 import { manifestAction, syncDfeAction } from "./actions";
+import { InboundReceiveButton } from "./receive-inbound-dialog";
 
 export const metadata = { title: "Notas recebidas" };
 
@@ -20,10 +21,12 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
   const session = await requirePerm("fiscal.read");
   const sp = await searchParams;
   const canWrite = can(session, "fiscal.write");
+  const canPurch = can(session, "purch.write");
   const supabase = await createClient();
-  const [{ data: dfe }, { data: states }] = await Promise.all([
-    supabase.schema("fiscal").from("inbound_dfe").select("id, access_key, issuer_name, issuer_cnpj, amount, issue_at, manifest_status, manifest_requested, xml_downloaded, last_error, document_id").order("issue_at", { ascending: false }).limit(100),
+  const [{ data: dfe }, { data: states }, { data: locations }] = await Promise.all([
+    supabase.schema("fiscal").from("inbound_dfe").select("id, access_key, issuer_name, issuer_cnpj, amount, issue_at, manifest_status, manifest_requested, xml_downloaded, last_error, document_id, legal_entity_id").order("issue_at", { ascending: false }).limit(100),
     supabase.schema("fiscal").from("dfe_sync_state").select("last_run_at, last_found, last_error"),
+    supabase.schema("inv").from("locations").select("id, name, legal_entity_id").in("kind", ["SALES_FLOOR", "BACKROOM"]).order("name"),
   ]);
   const waiting = (dfe ?? []).some((d) => d.manifest_requested && d.manifest_requested !== d.manifest_status && !d.last_error);
   const lastRun = (states ?? []).map((x) => x.last_run_at).filter(Boolean).sort().pop();
@@ -34,6 +37,7 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
   const rids = (docs ?? []).map((d) => d.receipt_id).filter(Boolean) as string[];
   const { data: receipts } = rids.length ? await supabase.schema("purch").from("receipts").select("id, number, status").in("id", rids) : { data: [] as { id: string; number: string; status: string }[] };
   const rmap = new Map((receipts ?? []).map((r) => [r.id, r]));
+  const docByKey = new Map((docs ?? []).map((d) => [d.access_key, d]));
   const total = (docs ?? []).reduce((s, d) => s + Number((d.totals as Record<string, number> | null)?.vNF ?? 0), 0);
 
   return (
@@ -50,10 +54,13 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
         </p>
         {syncError && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">A última busca falhou: {syncError}</p>}
         {(dfe ?? []).length === 0 ? <p className="text-sm text-muted">Nada por aqui ainda. Conecte o Focus NFe ou Brasil NFe em Configurações › Integrações e use “Buscar agora”.</p> : (
-          <Table head={["Emissão", "Fornecedor", "Valor", "Manifestação", "XML", canWrite ? "Manifestar" : ""]}>
+          <Table head={["Emissão", "Fornecedor", "Valor", "Manifestação", "Entrada no Estoque", canWrite ? "Manifestar" : ""]}>
             {(dfe ?? []).map((d) => {
               const m = MANIFEST[d.manifest_status] ?? MANIFEST.PENDING;
               const conclusive = ["CONFIRMADA", "DESCONHECIDA", "NAO_REALIZADA"].includes(d.manifest_status);
+              const matchedDoc = docByKey.get(d.access_key);
+              const matchedReceipt = matchedDoc?.receipt_id ? rmap.get(matchedDoc.receipt_id) : undefined;
+
               return (
                 <tr key={d.id}>
                   <td className="px-3 py-2 whitespace-nowrap">{d.issue_at ? fmtDate(d.issue_at.slice(0, 10)) : "—"}</td>
@@ -64,7 +71,37 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                     {d.manifest_requested && d.manifest_requested !== d.manifest_status && !d.last_error && <span className="ml-1 text-[11px] text-muted">enviando…</span>}
                     {d.last_error && <span className="block text-[11px] text-danger">{d.last_error}</span>}
                   </td>
-                  <td className="px-3 py-2">{d.xml_downloaded ? <a className="text-brand" href={`/fiscal/recebidas/xml/${d.id}`}>baixar</a> : <span className="text-xs text-muted">{d.manifest_status === "PENDING" ? "dê ciência" : "aguardando"}</span>}</td>
+                  <td className="px-3 py-2">
+                    {matchedReceipt ? (
+                      <div className="flex flex-col gap-0.5">
+                        <Badge tone="success">Importada</Badge>
+                        <Link className="text-xs font-medium text-brand hover:underline" href={`/produtos/recebimento/${matchedReceipt.id}`}>
+                          Recebimento {matchedReceipt.number}
+                        </Link>
+                      </div>
+                    ) : d.xml_downloaded ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {canPurch && (
+                          <InboundReceiveButton
+                            dfe={{
+                              id: d.id,
+                              access_key: d.access_key,
+                              issuer_name: d.issuer_name,
+                              issuer_cnpj: d.issuer_cnpj,
+                              amount: Number(d.amount ?? 0),
+                              legal_entity_id: d.legal_entity_id,
+                            }}
+                            locations={locations ?? []}
+                          />
+                        )}
+                        <a className="text-xs text-muted hover:text-brand" href={`/fiscal/recebidas/xml/${d.id}`} title="Baixar arquivo XML para arquivo/backup">
+                          baixar XML
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted">{d.manifest_status === "PENDING" ? "dê ciência" : "aguardando SEFAZ"}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2">
                     {canWrite && !conclusive && (
                       <form action={manifestAction} className="flex flex-wrap items-center gap-1">

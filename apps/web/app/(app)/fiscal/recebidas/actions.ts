@@ -12,6 +12,10 @@ function back(params: Record<string, string | undefined> = {}): never {
   redirect(q ? `${LIST}?${q}` : LIST);
 }
 
+function purchRpc(client: unknown) {
+  return (client as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> } }).schema("purch");
+}
+
 /** Pede ao worker a varredura de notas emitidas contra o CNPJ (também roda sozinha a cada 2 h). */
 export async function syncDfeAction() {
   const supabase = await createClient();
@@ -27,4 +31,30 @@ export async function manifestAction(formData: FormData) {
   const { error } = await supabase.schema("fiscal").rpc("request_manifest", { p_id: str(formData.get("id")), p_type: str(formData.get("type")), ...(reason ? { p_reason: reason } : {}) });
   revalidatePath(LIST);
   back(error ? { erro: friendly(error.message) } : { ok: "Manifestação enviada à SEFAZ. O resultado aparece em instantes.", wait: "1" });
+}
+
+/** Dá entrada no estoque diretamente a partir da NF-e com XML já baixado pela SEFAZ. */
+export async function importInboundDfeAction(formData: FormData) {
+  const dfeId = str(formData.get("dfe_id"));
+  const locationId = str(formData.get("location_id"));
+  const poId = str(formData.get("po_id")) || null;
+
+  if (!dfeId) back({ erro: "Nota fiscal não identificada" });
+  if (!locationId) back({ erro: "Escolha o local de estoque para recebimento" });
+
+  const supabase = await createClient();
+  const { data, error } = await purchRpc(supabase).rpc("import_inbound_dfe", {
+    p_dfe_id: dfeId,
+    p_location: locationId,
+    ...(poId ? { p_po: poId } : {}),
+  });
+
+  if (error) {
+    back({ erro: friendly(error.message) });
+  }
+
+  const receipt = data as { id: string; number: string };
+  revalidatePath(LIST);
+  revalidatePath("/produtos/recebimento");
+  redirect(`/produtos/recebimento/${receipt.id}?ok=${encodeURIComponent(`NF-e importada (${receipt.number}): confira a contagem dos itens para dar entrada no estoque`)}`);
 }

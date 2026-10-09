@@ -49,7 +49,7 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
           A manifestação do destinatário tem efeito legal e é sempre decidida por uma pessoa: <b>ciência</b> libera o XML; <b>confirmar</b> reconhece a compra; <b>desconhecer</b> ou <b>não realizada</b> exigem justificativa (15 a 255 caracteres).
         </p>
         {syncError && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">A última busca falhou: {syncError}</p>}
-        {(dfe ?? []).length === 0 ? <p className="text-sm text-muted">Nada por aqui ainda. Conecte o Focus NFe em Configurações › Integrações e use “Buscar agora”.</p> : (
+        {(dfe ?? []).length === 0 ? <p className="text-sm text-muted">Nada por aqui ainda. Conecte o Focus NFe ou Brasil NFe em Configurações › Integrações e use “Buscar agora”.</p> : (
           <Table head={["Emissão", "Fornecedor", "Valor", "Manifestação", "XML", canWrite ? "Manifestar" : ""]}>
             {(dfe ?? []).map((d) => {
               const m = MANIFEST[d.manifest_status] ?? MANIFEST.PENDING;

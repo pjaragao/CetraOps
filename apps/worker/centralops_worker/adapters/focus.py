@@ -19,24 +19,36 @@ STATUS_MAP = {
 
 
 # manifestação do destinatário: texto do provedor ↔ situação nossa
-MANIFEST_FROM_PROVIDER = {"ciencia": "CIENCIA", "confirmacao": "CONFIRMADA", "desconhecimento": "DESCONHECIDA", "nao_realizada": "NAO_REALIZADA"}
-MANIFEST_TO_PROVIDER = {v: k for k, v in MANIFEST_FROM_PROVIDER.items()}
+MANIFEST_FROM_PROVIDER = {
+    "ciencia": "CIENCIA",
+    "confirmacao": "CONFIRMADA",
+    "confirmada": "CONFIRMADA",
+    "desconhecimento": "DESCONHECIDA",
+    "desconhecida": "DESCONHECIDA",
+    "nao_realizada": "NAO_REALIZADA",
+}
+MANIFEST_TO_PROVIDER = {"CIENCIA": "ciencia", "CONFIRMADA": "confirmacao", "DESCONHECIDA": "desconhecimento", "NAO_REALIZADA": "nao_realizada"}
 
 
 def normalize_received(item: dict[str, Any]) -> dict[str, Any] | None:
     """Uma NF-e recebida (formato do provedor) → o que o banco guarda. Tolerante a variações de nome de campo; sem chave de 44 dígitos, descarta."""
-    key = str(item.get("chave_nfe") or item.get("chave") or "").replace("NFe", "").strip()
+    raw_key = item.get("chave_nfe") or item.get("chave") or item.get("Chave") or item.get("ChaveAcesso") or item.get("chaveAcesso") or ""
+    key = str(raw_key).replace("NFe", "").strip()
     if len(key) != 44 or not key.isdigit():
         return None
 
     def first(*names: str) -> Any:
         return next((item[n] for n in names if item.get(n) not in (None, "")), None)
 
-    amount = first("valor_total", "valor", "valor_nf")
+    amount = first("valor_total", "valor", "valor_nf", "ValorTotal", "Valor", "valorTotal")
+    raw_manifest = first("manifestacao_destinatario", "tipo_ultima_manifestacao", "ManifestacaoDestinatario", "Manifestacao", "manifestacao")
     return {
-        "access_key": key, "nsu": str(first("versao", "nsu") or "") or None, "issuer_cnpj": "".join(c for c in str(first("documento_emitente", "cnpj_emitente") or "") if c.isdigit()) or None,
-        "issuer_name": first("nome_emitente", "emitente"), "amount": float(amount) if amount is not None else None, "issue_at": first("data_emissao", "emissao"),
-        "manifest_status": MANIFEST_FROM_PROVIDER.get(str(first("manifestacao_destinatario", "tipo_ultima_manifestacao") or "").lower(), "PENDING"),
+        "access_key": key, "nsu": str(first("versao", "nsu", "Versao", "Nsu") or "") or None,
+        "issuer_cnpj": "".join(c for c in str(first("documento_emitente", "cnpj_emitente", "CnpjEmitente", "DocumentoEmitente", "cnpj", "CNPJ") or "") if c.isdigit()) or None,
+        "issuer_name": first("nome_emitente", "emitente", "NomeEmitente", "Emitente", "razao_social", "RazaoSocial"),
+        "amount": float(amount) if amount is not None else None,
+        "issue_at": first("data_emissao", "emissao", "DataEmissao", "Emissao"),
+        "manifest_status": MANIFEST_FROM_PROVIDER.get(str(raw_manifest or "").lower().strip(), "PENDING"),
     }
 
 

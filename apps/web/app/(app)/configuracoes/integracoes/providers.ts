@@ -1,5 +1,5 @@
 /** Catálogo dos provedores configuráveis na tela. Campos "secret" vão para o Vault (nunca voltam); "config" é não sensível e fica visível. */
-export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "META_CAPI" | "META_ADS";
+export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "BRASIL_NFE" | "META_CAPI" | "META_ADS";
 
 export interface ProviderField {
   key: string;
@@ -67,6 +67,19 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
     secret: [{ key: "token", label: "Token de API", required: true }],
     config: [{ key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes)" }, { value: "producao", label: "Produção" }] }],
     help: "Comece por Homologação. A troca para Produção só vale depois da bateria de NFC-e de teste e da validação da matriz fiscal com o contador.",
+  },
+  BRASIL_NFE: {
+    label: "Brasil NFe (NFC-e / NF-e)", capability: "FISCAL",
+    description: "Emite NFC-e e NF-e, cancela e captura notas recebidas de fornecedores (MDe via SEFAZ).",
+    secret: [
+      { key: "token", label: "Token da Empresa", hint: "Token gerado no painel da Brasil NFe", required: true },
+      { key: "user_token", label: "Token de Usuário (opcional)", hint: "UserToken caso utilize autenticação de usuário" },
+    ],
+    config: [
+      { key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes)" }, { value: "producao", label: "Produção" }] },
+      { key: "uf", label: "UF da Empresa (SEFAZ)", hint: "Ex: SC, SP, RJ (usado no teste de status SEFAZ)", required: false },
+    ],
+    help: "Comece em Homologação para testes. Ao migrar para Produção, certifique-se de que o certificado A1 e o CSC estão configurados no painel da Brasil NFe.",
   },
 };
 

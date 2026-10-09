@@ -26,6 +26,7 @@ function describe(provider: ProviderKey, d: Record<string, unknown>): [string, s
     case "META_ADS": return [...row("Conta de anúncios", d.name), ...row("Moeda", d.currency)];
     case "META_CAPI": return [...row("Conjunto de dados", d.name), ...row("ID", d.dataset_id)];
     case "FOCUS_NFE": return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment)];
+    case "BRASIL_NFE": return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment), ...row("Situação", d.status)];
   }
 }
 

@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # Focus NFe
     focus_api_base: str = "https://homologacao.focusnfe.com.br"
     focus_token: str = ""
+    # Brasil NFe
+    brasilnfe_api_base: str = "https://api.brasilnfe.com.br"
+    brasilnfe_token: str = ""
 
     # IA
     openrouter_base: str = "https://openrouter.ai/api/v1"

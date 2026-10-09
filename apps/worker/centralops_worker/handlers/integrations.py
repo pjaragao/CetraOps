@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from .. import queues
+from ..adapters.brasilnfe import BRASIL_NFE_PRODUCTION_BASE, BrasilNfeClient
 from ..adapters.errors import PermanentError, TransientError
 from ..adapters.focus import PRODUCTION_BASE, FocusClient
 from ..adapters.meta import MetaClient
@@ -61,6 +62,14 @@ async def _check(deps: Deps, conn: dict[str, Any], token: str, action: str) -> d
     if provider == "FOCUS_NFE":
         base = PRODUCTION_BASE if str(cfg.get("environment", "")).lower() in ("producao", "production") else s.focus_api_base
         return {**await FocusClient(deps.http, base, token).ping(), "environment": "producao" if base == PRODUCTION_BASE else "homologacao"}
+    if provider == "BRASIL_NFE":
+        base = str(cfg.get("api_base") or "").strip() or s.brasilnfe_api_base or BRASIL_NFE_PRODUCTION_BASE
+        user_token = str(cfg.get("user_token") or "").strip() or None
+        env = str(cfg.get("environment", "")).lower()
+        tp_amb = 1 if env in ("producao", "production") else 2
+        uf = str(cfg.get("uf") or "SC").strip().upper()
+        res = await BrasilNfeClient(deps.http, base, token, user_token=user_token).ping(uf=uf, tp_amb=tp_amb)
+        return {**res, "environment": "producao" if tp_amb == 1 else "homologacao"}
     raise PermanentError(f"Provedor {provider} ainda não tem verificação automática")
 
 

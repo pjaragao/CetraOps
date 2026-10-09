@@ -7,6 +7,8 @@ import pytest
 import respx
 
 from centralops_agent_contract import CONCIERGE_CAPS, COPILOT_CAPS, sign_ctx, verify_ctx
+from centralops_worker.adapters.brasilnfe import BrasilNfeClient
+from centralops_worker.adapters.brasilnfe import normalize_received as brasilnfe_normalize_received
 from centralops_worker.adapters.errors import PermanentError, TransientError
 from centralops_worker.adapters.focus import FocusClient
 from centralops_worker.adapters.meta import MetaClient
@@ -185,6 +187,113 @@ async def test_focus_results() -> None:
         respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(401, json={"codigo": "permissao_negada"}))
         with pytest.raises(PermanentError):
             await focus.emit_nfce("ref5", {})
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_brasilnfe_results() -> None:
+    async with httpx.AsyncClient() as http:
+        client = BrasilNfeClient(http, "https://api.brasilnfe.test", "TOKEN123", user_token="USERTOK456")
+
+        # Emissão NFC-e com sucesso
+        respx.post("https://api.brasilnfe.test/EnviarNotaFiscal").mock(return_value=httpx.Response(200, json={
+            "Status": "autorizado", "Numero": 99, "Serie": 2, "Chave": "42260912345678000195650010000000991000000991",
+            "Protocolo": "PROTO99", "UrlDanfe": "https://danfe.pdf", "UrlXml": "https://xml.xml"
+        }))
+        r = await client.emit_nfce("ref_nfce_1", {"items": []})
+        assert (r.status, r.number, r.series, r.access_key, r.protocol, r.danfe_path, r.xml_path) == (
+            "AUTHORIZED", 99, 2, "42260912345678000195650010000000991000000991", "PROTO99", "https://danfe.pdf", "https://xml.xml"
+        )
+        assert respx.calls.last.request.headers["Token"] == "TOKEN123"
+        assert respx.calls.last.request.headers["UserToken"] == "USERTOK456"
+        assert respx.calls.last.request.headers["Authorization"] == "Bearer TOKEN123"
+
+        # Emissão NF-e modelo 55
+        respx.post("https://api.brasilnfe.test/EnviarNotaFiscal").mock(return_value=httpx.Response(200, json={
+            "status": "autorizado", "numero": 101, "serie": 1, "chave": "42260912345678000195550010000001011000000101"
+        }))
+        rnfe = await client.emit_nfe("ref_nfe_1", {"items": []})
+        assert (rnfe.status, rnfe.number) == ("AUTHORIZED", 101)
+
+        # Consulta nota (get) em processamento
+        respx.post("https://api.brasilnfe.test/ConsultarNotaFiscal").mock(return_value=httpx.Response(200, json={
+            "status": "processando_autorizacao"
+        }))
+        assert (await client.get("65", "ref_nfce_1")).status == "PROCESSING"
+
+        # Cancelamento de nota
+        respx.post("https://api.brasilnfe.test/CancelarNotaFiscal").mock(return_value=httpx.Response(200, json={
+            "status": "cancelado", "protocolo": "PROTCANC1"
+        }))
+        rcanc = await client.cancel("65", "ref_nfce_1", "Cancelamento solicitado pelo cliente dentro do prazo")
+        assert (rcanc.status, rcanc.protocol) == ("CANCELLED", "PROTCANC1")
+
+        # Erro 422 rejeição de validação
+        respx.post("https://api.brasilnfe.test/EnviarNotaFiscal").mock(return_value=httpx.Response(422, json={
+            "codigo": "778", "mensagem": "NCM inexistente"
+        }))
+        r_rej = await client.emit_nfce("ref_fail", {})
+        assert r_rej.status == "REJECTED" and r_rej.code == "778"
+
+        # 503 transient error
+        respx.post("https://api.brasilnfe.test/EnviarNotaFiscal").mock(return_value=httpx.Response(503))
+        with pytest.raises(TransientError):
+            await client.emit_nfce("ref_trans", {})
+
+        # 401 permanent error (credencial inválida)
+        respx.post("https://api.brasilnfe.test/EnviarNotaFiscal").mock(return_value=httpx.Response(401))
+        with pytest.raises(PermanentError):
+            await client.emit_nfce("ref_perm", {})
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_brasilnfe_dfe_and_mde() -> None:
+    async with httpx.AsyncClient() as http:
+        client = BrasilNfeClient(http, "https://api.brasilnfe.test", "TOKEN123")
+
+        # Ping
+        respx.post("https://api.brasilnfe.test/ConsultarStatusSefaz").mock(return_value=httpx.Response(200, json={"status": "107"}))
+        p = await client.ping(uf="SP", tp_amb=1)
+        assert p["status"] == "online" and p["http_status"] == 200
+
+        # list_received com formato PascalCase da Brasil NFe
+        respx.post("https://api.brasilnfe.test/ObterNotasFiscais").mock(return_value=httpx.Response(200, json={
+            "Notas": [
+                {
+                    "Chave": "42260912345678000195550010000000011000000011",
+                    "Nsu": "1005",
+                    "DocumentoEmitente": "11222333000199",
+                    "NomeEmitente": "FORNECEDOR TESTE LTDA",
+                    "ValorTotal": 1250.75,
+                    "DataEmissao": "2026-10-09T10:00:00-03:00",
+                    "Manifestacao": "CONFIRMADA"
+                }
+            ]
+        }))
+        notes = await client.list_received("12345678000195", 0)
+        assert len(notes) == 1
+        assert notes[0]["access_key"] == "42260912345678000195550010000000011000000011"
+        assert notes[0]["nsu"] == "1005"
+        assert notes[0]["issuer_cnpj"] == "11222333000199"
+        assert notes[0]["amount"] == 1250.75
+        assert notes[0]["manifest_status"] == "CONFIRMADA"
+
+        # Manifest
+        respx.post("https://api.brasilnfe.test/ManifestarNotaFiscal").mock(return_value=httpx.Response(200, json={"status": "manifestado"}))
+        await client.manifest("42260912345678000195550010000000011000000011", "CIENCIA")
+
+        # Received XML (corpo direto)
+        respx.post("https://api.brasilnfe.test/ObterArquivoNotaFiscal").mock(return_value=httpx.Response(200, text="<nfeProc>xml_content</nfeProc>"))
+        xml = await client.received_xml("42260912345678000195550010000000011000000011")
+        assert xml == "<nfeProc>xml_content</nfeProc>"
+
+        # Received XML 404 (ainda indisponível)
+        respx.post("https://api.brasilnfe.test/ObterArquivoNotaFiscal").mock(return_value=httpx.Response(404))
+        assert await client.received_xml("42260912345678000195550010000000011000000011") is None
+
+        # Teste unitário de normalização de chave inválida
+        assert brasilnfe_normalize_received({"chave": "invalida"}) is None
 
 
 class _Scripted:

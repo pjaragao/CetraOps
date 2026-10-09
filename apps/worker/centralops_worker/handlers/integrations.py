@@ -10,6 +10,7 @@ from ..adapters.brasilnfe import BRASIL_NFE_PRODUCTION_BASE, BrasilNfeClient
 from ..adapters.errors import PermanentError, TransientError
 from ..adapters.focus import PRODUCTION_BASE, FocusClient
 from ..adapters.meta import MetaClient
+from ..adapters.stone import StoneClient
 from ..adapters.telegram import TelegramClient
 from ..db import call_fn, fetch_one
 from ..deps import Deps
@@ -70,6 +71,18 @@ async def _check(deps: Deps, conn: dict[str, Any], token: str, action: str) -> d
         uf = str(cfg.get("uf") or "SC").strip().upper()
         res = await BrasilNfeClient(deps.http, base, token, user_token=user_token).ping(uf=uf, tp_amb=tp_amb)
         return {**res, "environment": "producao" if tp_amb == 1 else "homologacao"}
+    if provider == "STONE":
+        client = StoneClient(deps.http, token)
+        res = await client.ping()
+        stone_code = str(cfg.get("stone_code") or "").strip()
+        serial = str(cfg.get("default_serial_number") or "").strip()
+        env = str(cfg.get("environment", "")).lower()
+        return {
+            **res,
+            "stone_code": stone_code or None,
+            "default_serial_number": serial or None,
+            "environment": "sandbox" if env in ("sandbox", "teste") else "producao",
+        }
     raise PermanentError(f"Provedor {provider} ainda não tem verificação automática")
 
 

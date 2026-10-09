@@ -1,5 +1,5 @@
 /** Catálogo dos provedores configuráveis na tela. Campos "secret" vão para o Vault (nunca voltam); "config" é não sensível e fica visível. */
-export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "BRASIL_NFE" | "META_CAPI" | "META_ADS";
+export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "BRASIL_NFE" | "STONE" | "META_CAPI" | "META_ADS";
 
 export interface ProviderField {
   key: string;
@@ -80,6 +80,19 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
       { key: "uf", label: "UF da Empresa (SEFAZ)", hint: "Ex: SC, SP, RJ (usado no teste de status SEFAZ)", required: false },
     ],
     help: "Comece em Homologação para testes. Ao migrar para Produção, certifique-se de que o certificado A1 e o CSC estão configurados no painel da Brasil NFe.",
+  },
+  STONE: {
+    label: "Stone (Maquininha Smart POS)", capability: "ACQUIRER",
+    description: "Envia o valor da venda direto para a tela da maquininha Stone (Connect 2.0) e confirma a aprovação na hora com NSU.",
+    secret: [
+      { key: "secret_key", label: "Chave Secreta (Secret Key)", hint: "sk_... gerada no Partner Hub ou na Dashboard Pagar.me da Stone", required: true },
+    ],
+    config: [
+      { key: "default_serial_number", label: "Número de Série Padrão (POS Serial)", hint: "Número de série atrás da maquininha (ex: ST-88492019 ou 123456789)", required: false },
+      { key: "stone_code", label: "Stonecode do Estabelecimento", hint: "Código do estabelecimento na Stone (ex: 84729104)", required: false },
+      { key: "environment", label: "Ambiente", options: [{ value: "producao", label: "Produção" }, { value: "sandbox", label: "Sandbox (testes)" }] },
+    ],
+    help: "Conecte sua conta Stone. Ao finalizar no PDV ou em um pedido, você pode enviar a cobrança direto para a maquininha com 1 clique.",
   },
 };
 

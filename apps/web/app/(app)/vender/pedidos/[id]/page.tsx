@@ -8,6 +8,7 @@ import { Badge, Button, Card, inputClass, LinkButton, PageHeader, Stat, Table } 
 import { Field, Flash, fmtDate } from "@/components/form";
 import { cancelOrderAction, createLinkAction, registerPaymentAction, saveShipmentAction, setOrderStatusAction } from "../../actions";
 import { resolveItems } from "../../../produtos/compras/options";
+import { StonePosOrderButton } from "./stone-pos-order-button";
 
 export const metadata = { title: "Pedido" };
 
@@ -76,16 +77,29 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
             ))}</ul>
           )}
           {pending && canWrite && (
-            <form action={registerPaymentAction} className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-4">
-              <input type="hidden" name="order_id" value={o.id} />
-              <Field label="Forma"><select name="method" className={inputClass}><option value="PIX">Pix</option><option value="CREDIT">Crédito</option><option value="DEBIT">Débito</option><option value="PAYMENT_LINK">Link pago</option><option value="CASH">Dinheiro</option></select></Field>
-              <Field label="Valor (R$)"><input name="amount" required inputMode="decimal" defaultValue={String(balance.toFixed(2)).replace(".", ",")} className={inputClass} /></Field>
-              <Field label="Parcelas"><input name="installments" type="number" min={1} max={12} defaultValue={1} className={inputClass} /></Field>
-              <Field label="Adquirente / banco"><input name="acquirer" placeholder="STONE, INTER…" className={inputClass} /></Field>
-              <Field label="NSU / e2e Pix" className="sm:col-span-2"><input name="nsu" className={inputClass} /></Field>
-              <Field label="ID externo (evita duplicar)" className="sm:col-span-2"><input name="external_id" className={inputClass} /></Field>
-              <div className="sm:col-span-4"><Button>Registrar pagamento</Button></div>
-            </form>
+            <>
+              {balance > 0 && (
+                <div className="mt-3 rounded-xl border border-brand/20 bg-brand/5 p-3">
+                  <p className="text-xs font-semibold text-brand mb-2">Cobrança presencial integrada</p>
+                  <StonePosOrderButton
+                    orderId={o.id}
+                    orderNumber={o.number}
+                    balance={balance}
+                    customerName={party?.display_name}
+                  />
+                </div>
+              )}
+              <form action={registerPaymentAction} className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-4">
+                <input type="hidden" name="order_id" value={o.id} />
+                <Field label="Forma"><select name="method" className={inputClass}><option value="PIX">Pix</option><option value="CREDIT">Crédito</option><option value="DEBIT">Débito</option><option value="PAYMENT_LINK">Link pago</option><option value="CASH">Dinheiro</option></select></Field>
+                <Field label="Valor (R$)"><input name="amount" required inputMode="decimal" defaultValue={String(balance.toFixed(2)).replace(".", ",")} className={inputClass} /></Field>
+                <Field label="Parcelas"><input name="installments" type="number" min={1} max={12} defaultValue={1} className={inputClass} /></Field>
+                <Field label="Adquirente / banco"><input name="acquirer" placeholder="STONE, INTER…" className={inputClass} /></Field>
+                <Field label="NSU / e2e Pix" className="sm:col-span-2"><input name="nsu" className={inputClass} /></Field>
+                <Field label="ID externo (evita duplicar)" className="sm:col-span-2"><input name="external_id" className={inputClass} /></Field>
+                <div className="sm:col-span-4"><Button>Registrar pagamento</Button></div>
+              </form>
+            </>
           )}
         </Card>
 

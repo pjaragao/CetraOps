@@ -27,6 +27,7 @@ function describe(provider: ProviderKey, d: Record<string, unknown>): [string, s
     case "META_CAPI": return [...row("Conjunto de dados", d.name), ...row("ID", d.dataset_id)];
     case "FOCUS_NFE": return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment)];
     case "BRASIL_NFE": return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment), ...row("Situação", d.status)];
+    case "STONE": return [...row("Ambiente", d.environment === "sandbox" ? "Sandbox (testes)" : "Produção"), ...row("Stonecode", d.stone_code), ...row("Maquininha padrão", d.default_serial_number)];
   }
 }
 

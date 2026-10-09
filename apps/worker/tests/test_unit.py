@@ -12,6 +12,7 @@ from centralops_worker.adapters.brasilnfe import normalize_received as brasilnfe
 from centralops_worker.adapters.errors import PermanentError, TransientError
 from centralops_worker.adapters.focus import FocusClient
 from centralops_worker.adapters.meta import MetaClient
+from centralops_worker.adapters.stone import StoneClient
 from centralops_worker.adapters.telegram import TelegramClient
 from centralops_worker.ai import guardrails, rules
 from centralops_worker.ai.agent import AgentInput, AgentOutput, FallbackAgent, HermesAgent, OpenRouterAgent
@@ -294,6 +295,76 @@ async def test_brasilnfe_dfe_and_mde() -> None:
 
         # Teste unitário de normalização de chave inválida
         assert brasilnfe_normalize_received({"chave": "invalida"}) is None
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_stone_pos_client() -> None:
+    async with httpx.AsyncClient() as http:
+        stone = StoneClient(http, "sk_test_1234567890abcdef")
+
+        # Ping
+        respx.get("https://api.pagar.me/core/v5/orders").mock(return_value=httpx.Response(200, json={"data": []}))
+        p = await stone.ping()
+        assert p["status"] == "online" and p["http_status"] == 200
+        assert respx.calls.last.request.headers["Authorization"].startswith("Basic ")
+
+        # Criar pedido direto para maquininha POS
+        respx.post("https://api.pagar.me/core/v5/orders").mock(return_value=httpx.Response(200, json={
+            "id": "or_test123",
+            "code": "VEN-1001",
+            "status": "pending",
+            "amount": 19900,
+            "poi_payment_settings": {
+                "visible": True,
+                "devices_serial_number": ["ST-88492019"],
+                "display_name": "Venda #VEN-1001"
+            }
+        }))
+        res = await stone.create_pos_order(
+            code="VEN-1001",
+            amount_cents=19900,
+            terminal_serial="ST-88492019",
+            display_name="Venda #VEN-1001",
+            method="credit",
+            installments=3,
+        )
+        assert res["id"] == "or_test123"
+        req_json = respx.calls.last.request.read().decode("utf-8")
+        assert "ST-88492019" in req_json
+        assert "credit" in req_json
+
+        # Consultar status do pedido
+        respx.get("https://api.pagar.me/core/v5/orders/or_test123").mock(return_value=httpx.Response(200, json={
+            "id": "or_test123",
+            "status": "paid",
+            "charges": [
+                {
+                    "id": "ch_999",
+                    "code": "NSU_STONE_456",
+                    "status": "paid",
+                    "paid_amount": 19900,
+                    "metadata": {
+                        "scheme_name": "Visa",
+                        "authorization_code": "AUT789",
+                        "terminal_serial_number": "ST-88492019"
+                    }
+                }
+            ]
+        }))
+        order = await stone.get_order("or_test123")
+        assert order["status"] == "paid"
+        assert order["charges"][0]["code"] == "NSU_STONE_456"
+
+        # Cancelar pedido na maquininha
+        respx.delete("https://api.pagar.me/core/v5/orders/or_test123/closed").mock(return_value=httpx.Response(200, json={"status": "canceled"}))
+        canc = await stone.cancel_pos_order("or_test123")
+        assert canc["status"] == "canceled"
+
+        # Erro 401 credencial recusada
+        respx.get("https://api.pagar.me/core/v5/orders").mock(return_value=httpx.Response(401))
+        with pytest.raises(PermanentError):
+            await stone.ping()
 
 
 class _Scripted:

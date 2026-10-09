@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Minus, Plus, ScanBarcode, Tag, Trash2, UserPlus, UserRound } from "lucide-react";
+import { Minus, Plus, ScanBarcode, Smartphone, Tag, Trash2, UserPlus, UserRound } from "lucide-react";
 import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
@@ -8,6 +8,7 @@ import { createRemoteOrderAction, customerCoupons, type CustomerCoupon } from ".
 import { autoCouponFor, finalizeSale, type SaleInput } from "./actions";
 import { PartyPicker, type PartyHit } from "../pickers";
 import { QuickCustomerDialog } from "./quick-customer-dialog";
+import { StonePosDialog } from "../stone-pos-dialog";
 
 export interface PosVariant { id: string; sku: string; size: string; gtin: string | null; price: number; available: number }
 export interface PosProduct { key: string; name: string; reference: string; gender: string; color: string; variants: PosVariant[] }
@@ -44,6 +45,14 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
   const [idem, setIdem] = useState(() => crypto.randomUUID());
   const [scanning, setScanning] = useState(false);
   const [pending, start] = useTransition();
+
+  const [stoneDialog, setStoneDialog] = useState<{
+    open: boolean;
+    amount: number;
+    method: "CREDIT" | "DEBIT" | "PIX";
+    installments: number;
+    paymentIndex?: number;
+  }>({ open: false, amount: 0, method: "CREDIT", installments: 1 });
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -257,7 +266,7 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
         )}
 
         {!remote && <Card title="Pagamento" action={<span className={cn("text-sm font-medium", remaining === 0 ? "text-success" : "text-warning")}>{remaining > 0 ? `falta ${formatBRL(remaining)}` : remaining < 0 ? `troco ${formatBRL(-remaining)}` : "fechado"}</span>}>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {METHODS.map((m) => (
               <button key={m.value}
                 disabled={remaining <= 0 || (m.value === "CASH" && !cashSessionId) || (m.value === "STORE_CREDIT" && !customer)}
@@ -266,6 +275,15 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
                 title={m.value === "CASH" && !cashSessionId ? "Abra o caixa para receber em dinheiro" : undefined}
               >+ {m.label}</button>
             ))}
+            <button
+              type="button"
+              disabled={remaining <= 0}
+              onClick={() => setStoneDialog({ open: true, amount: remaining > 0 ? remaining : total, method: "CREDIT", installments: 1 })}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand bg-brand/10 px-2.5 py-1.5 text-sm font-semibold text-brand hover:bg-brand/20 disabled:opacity-40"
+              title="Envia a cobrança direto para a tela da maquininha Stone"
+            >
+              <Smartphone size={14} /> Maquininha Stone
+            </button>
           </div>
           <ul className="mt-2 space-y-2">
             {payments.map((p, i) => (
@@ -289,10 +307,27 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
                     </select>
                   </div>
                 )}
-                {(p.method === "CREDIT" || p.method === "DEBIT") && (
-                  <input value={p.nsu} placeholder="NSU / código da maquininha" aria-label="NSU"
-                    onChange={(e) => setPayments((ps) => ps.map((x, j) => (j === i ? { ...x, nsu: e.target.value } : x)))}
-                    className={cn(inputClass, "mt-2 py-1")} />
+                {(p.method === "CREDIT" || p.method === "DEBIT" || p.method === "PIX") && (
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <input value={p.nsu} placeholder="NSU / código da maquininha" aria-label="NSU"
+                      onChange={(e) => setPayments((ps) => ps.map((x, j) => (j === i ? { ...x, nsu: e.target.value } : x)))}
+                      className={cn(inputClass, "py-1 flex-1")} />
+                    {p.nsu ? (
+                      <span className="text-xs text-success font-medium shrink-0">✓ Aprovado</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = Number(p.amount.replace(",", ".")) || remaining || total;
+                          const m = p.method === "DEBIT" ? "DEBIT" : p.method === "PIX" ? "PIX" : "CREDIT";
+                          setStoneDialog({ open: true, amount: val, method: m, installments: p.installments, paymentIndex: i });
+                        }}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-brand/40 bg-brand/5 px-2 py-1 text-xs font-medium text-brand hover:bg-brand/15"
+                      >
+                        <Smartphone size={12} /> Cobrar no POS
+                      </button>
+                    )}
+                  </div>
                 )}
               </li>
             ))}
@@ -309,6 +344,48 @@ export function PosTerminal({ storeId, products, cashSessionId, initialMode = "b
         )}
       </div>
     </div>
+
+    <StonePosDialog
+      open={stoneDialog.open}
+      onClose={() => setStoneDialog((s) => ({ ...s, open: false }))}
+      amount={stoneDialog.amount}
+      initialMethod={stoneDialog.method}
+      initialInstallments={stoneDialog.installments}
+      customerName={customer?.name}
+      customerDoc={cpf.replace(/\D/g, "") || undefined}
+      onPaymentConfirmed={(res) => {
+        setMessage({
+          tone: "success",
+          text: `Pagamento de ${formatBRL(res.amount)} aprovado na maquininha Stone! NSU: ${res.nsu}${res.cardBrand ? ` (${res.cardBrand})` : ""}`,
+        });
+        if (stoneDialog.paymentIndex !== undefined) {
+          setPayments((ps) =>
+            ps.map((p, idx) =>
+              idx === stoneDialog.paymentIndex
+                ? {
+                    ...p,
+                    method: res.method,
+                    amount: res.amount.toFixed(2).replace(".", ","),
+                    installments: res.installments,
+                    nsu: res.nsu,
+                  }
+                : p,
+            ),
+          );
+        } else {
+          setPayments((ps) => [
+            ...ps,
+            {
+              method: res.method,
+              amount: res.amount.toFixed(2).replace(".", ","),
+              installments: res.installments,
+              anticipation: "D1",
+              nsu: res.nsu,
+            },
+          ]);
+        }
+      }}
+    />
     </div>
   );
 }

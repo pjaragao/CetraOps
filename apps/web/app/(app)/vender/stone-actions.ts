@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
+import { requirePerm } from "@/lib/session";
 import { cancelPosOrder, getPosOrder, sendPosOrder } from "@/lib/stone";
+
+export interface StoneTerminal {
+  id: string;
+  name: string;
+  serial: string;
+  isDefault?: boolean;
+}
 
 const sendSchema = z.object({
   orderId: z.string().uuid().optional(),
@@ -13,6 +21,7 @@ const sendSchema = z.object({
   method: z.enum(["CREDIT", "DEBIT", "PIX"]).default("CREDIT"),
   installments: z.number().int().min(1).max(12).default(1),
   terminalSerial: z.string().optional(),
+  terminalName: z.string().optional(),
   customerName: z.string().optional(),
   customerDoc: z.string().optional(),
 });
@@ -29,6 +38,7 @@ async function resolveStoneConfig() {
     secret_key: string | null;
     stone_code: string | null;
     default_serial_number: string | null;
+    terminals: StoneTerminal[] | null;
     environment: string;
   } | null;
 
@@ -36,26 +46,66 @@ async function resolveStoneConfig() {
   const envSerial = process.env.CENTRALOPS_STONE_DEFAULT_SERIAL || process.env.STONE_DEFAULT_SERIAL || "";
 
   const secretKey = cfg?.secret_key || envKey || null;
-  const defaultSerial = cfg?.default_serial_number || envSerial || null;
+  let terminals = Array.isArray(cfg?.terminals) ? cfg.terminals : [];
+  let defaultSerial = cfg?.default_serial_number || envSerial || null;
+
+  if (terminals.length === 0 && defaultSerial) {
+    terminals = [{ id: "default", name: "Maquininha Padrão", serial: defaultSerial, isDefault: true }];
+  }
+  if (!defaultSerial && terminals.length > 0) {
+    const def = terminals.find((t) => t.isDefault) || terminals[0];
+    defaultSerial = def.serial;
+  }
+
   const stoneCode = cfg?.stone_code || null;
 
   return {
     hasIntegration: Boolean(secretKey),
     secretKey,
     defaultSerialNumber: defaultSerial,
+    terminals,
     stoneCode,
     environment: cfg?.environment || "producao",
   };
 }
 
-/** Verifica se a Stone está configurada e retorna a maquininha padrão da loja. */
+/** Salva ou atualiza a lista de maquininhas Stone (nome, serial e padrão). */
+export async function saveStoneTerminalsAction(terminals: StoneTerminal[]) {
+  await requirePerm("sales.write");
+  const supabase = await createClient();
+  const cleanTerminals = (terminals ?? []).map((t, idx) => ({
+    id: t.id || `term_${Date.now()}_${idx}`,
+    name: t.name.trim() || `Maquininha ${idx + 1}`,
+    serial: t.serial.trim(),
+    is_default: Boolean(t.isDefault),
+  })).filter((t) => t.serial.length > 0);
+
+  // Garante que haja exatamente um default se houver máquinas
+  const hasDefault = cleanTerminals.some((t) => t.is_default);
+  if (!hasDefault && cleanTerminals.length > 0) {
+    cleanTerminals[0].is_default = true;
+  }
+
+  const { data, error } = await salesRpc(supabase).rpc("save_stone_terminals", {
+    p_terminals: cleanTerminals as unknown as Json,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/configuracoes/integracoes");
+  revalidatePath("/vender/pdv");
+  return { ok: true, data };
+}
+
+/** Verifica se a Stone está configurada e retorna as maquininhas cadastradas. */
 export async function getStoneConfigAction() {
   const cfg = await resolveStoneConfig();
   return {
     ok: true as const,
     hasIntegration: cfg.hasIntegration,
     defaultSerialNumber: cfg.defaultSerialNumber,
+    terminals: cfg.terminals,
     stoneCode: cfg.stoneCode,
+    environment: cfg.environment,
   };
 }
 
@@ -79,6 +129,9 @@ export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
       error: "Informe o número de série da maquininha (atrás do terminal Stone).",
     };
   }
+
+  const matchingTerminal = cfg.terminals.find((t) => t.serial.trim().toLowerCase() === serial.toLowerCase());
+  const terminalName = parsed.data.terminalName || matchingTerminal?.name || null;
 
   const code = parsed.data.orderNumber
     ? `${parsed.data.orderNumber}-${Date.now().toString().slice(-4)}`
@@ -112,12 +165,14 @@ export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
       p_installments: parsed.data.installments,
       p_display_name: displayName,
       p_raw: orderRes.raw as unknown as Json,
+      p_terminal_name: terminalName,
     });
 
     return {
       ok: true as const,
       stoneOrderId: orderRes.id,
       terminalSerial: serial,
+      terminalName,
       amount: parsed.data.amount,
       method: parsed.data.method,
       installments: parsed.data.installments,

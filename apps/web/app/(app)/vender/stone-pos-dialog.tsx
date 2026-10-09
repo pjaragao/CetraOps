@@ -9,6 +9,7 @@ import {
   checkStonePosPaymentAction,
   getStoneConfigAction,
   sendToStonePosAction,
+  type StoneTerminal,
 } from "./stone-actions";
 
 interface StonePosDialogProps {
@@ -50,6 +51,9 @@ function StonePosModalInner({
   const [method, setMethod] = useState<"CREDIT" | "DEBIT" | "PIX">(initialMethod);
   const [installments, setInstallments] = useState(initialInstallments);
   const [terminalSerial, setTerminalSerial] = useState("");
+  const [terminals, setTerminals] = useState<StoneTerminal[]>([]);
+  const [selectedTerminalId, setSelectedTerminalId] = useState<string>("");
+  const [customSerialMode, setCustomSerialMode] = useState<boolean>(false);
   const [hasIntegration, setHasIntegration] = useState<boolean | null>(null);
 
   // Estados do envio
@@ -61,14 +65,20 @@ function StonePosModalInner({
   const [pending, startTransition] = useTransition();
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Carrega configuração e serial padrão ao abrir
+  // Carrega configuração e terminais ao abrir
   useEffect(() => {
     let active = true;
     getStoneConfigAction().then((cfg) => {
       if (!active) return;
       setHasIntegration(cfg.hasIntegration);
-      if (cfg.defaultSerialNumber) {
-        setTerminalSerial((prev) => prev || cfg.defaultSerialNumber || "");
+      const terms = cfg.terminals ?? [];
+      setTerminals(terms);
+      if (terms.length > 0) {
+        const def = terms.find((t) => t.isDefault) || terms[0];
+        setSelectedTerminalId(def.id);
+        setTerminalSerial(def.serial);
+      } else if (cfg.defaultSerialNumber) {
+        setTerminalSerial(cfg.defaultSerialNumber);
       }
     });
     return () => {
@@ -115,6 +125,10 @@ function StonePosModalInner({
     setErrorMsg(null);
     setStatus("SENDING");
     startTransition(async () => {
+      const activeTerminal = !customSerialMode
+        ? (terminals.find((t) => t.id === selectedTerminalId) || terminals.find((t) => t.serial === terminalSerial))
+        : undefined;
+
       const res = await sendToStonePosAction({
         orderId,
         orderNumber,
@@ -122,6 +136,7 @@ function StonePosModalInner({
         method,
         installments,
         terminalSerial,
+        terminalName: activeTerminal?.name,
         customerName,
         customerDoc,
       });
@@ -225,18 +240,93 @@ function StonePosModalInner({
               )}
 
               <div>
-                <label className="text-xs font-medium text-muted mb-1 block">
-                  Serial da maquininha (traseira do POS)
-                </label>
-                <input
-                  value={terminalSerial}
-                  onChange={(e) => setTerminalSerial(e.target.value)}
-                  placeholder="Ex: ST-88492019 ou 123456789"
-                  className={inputClass}
-                />
-                <p className="mt-1 text-[11px] text-muted">
-                  A maquininha Stone Smart POS deve estar ligada e conectada ao Wi-Fi ou 4G.
-                </p>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-muted">
+                    Maquininha Stone {terminals.length > 1 ? `(${terminals.length} cadastradas)` : ""}
+                  </label>
+                  {terminals.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !customSerialMode;
+                        setCustomSerialMode(next);
+                        if (!next) {
+                          const t = terminals.find((x) => x.id === selectedTerminalId) || terminals[0];
+                          if (t) setTerminalSerial(t.serial);
+                        }
+                      }}
+                      className="text-[11px] text-brand hover:underline font-medium"
+                    >
+                      {customSerialMode ? "← Escolher da lista" : "+ Digitar outro serial"}
+                    </button>
+                  )}
+                </div>
+
+                {!customSerialMode && terminals.length > 1 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {terminals.map((t) => {
+                      const isSelected = selectedTerminalId === t.id && terminalSerial === t.serial;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTerminalId(t.id);
+                            setTerminalSerial(t.serial);
+                          }}
+                          className={cn(
+                            "flex flex-col items-start p-2.5 rounded-xl border text-left transition-all",
+                            isSelected
+                              ? "border-brand bg-brand/10 text-brand ring-1 ring-brand font-medium shadow-sm"
+                              : "border-border hover:border-brand/40 hover:bg-surface-2",
+                          )}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className="text-xs font-semibold truncate text-text">{t.name}</span>
+                            {t.isDefault && (
+                              <Badge tone="brand" className="text-[10px] px-1 py-0">
+                                Padrão
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-mono text-muted mt-0.5">{t.serial}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {!customSerialMode && terminals.length === 1 && (
+                  <div className="rounded-xl border border-border bg-surface-2/60 p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                        <Smartphone size={16} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-text">{terminals[0].name}</p>
+                          {terminals[0].isDefault && <Badge tone="brand" className="text-[10px] px-1 py-0">Padrão</Badge>}
+                        </div>
+                        <p className="text-[11px] font-mono text-muted">Serial: {terminals[0].serial}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(customSerialMode || terminals.length === 0) && (
+                  <div>
+                    <input
+                      value={terminalSerial}
+                      onChange={(e) => setTerminalSerial(e.target.value)}
+                      placeholder="Ex: ST-88492019 ou 123456789"
+                      className={inputClass}
+                      autoFocus={customSerialMode}
+                    />
+                    <p className="mt-1 text-[11px] text-muted">
+                      Informe o número de série que fica na etiqueta traseira da maquininha Stone.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {errorMsg && (
@@ -281,8 +371,15 @@ function StonePosModalInner({
               <div>
                 <p className="text-base font-semibold text-text">Aguardando cliente no POS</p>
                 <p className="text-xs text-muted mt-1">
-                  Terminal: <b className="font-mono text-text">{terminalSerial}</b> · Valor:{" "}
-                  <b className="text-brand">{formatBRL(amount)}</b>
+                  {terminals.find((t) => t.serial === terminalSerial)?.name ? (
+                    <>
+                      Maquininha: <b className="text-text">{terminals.find((t) => t.serial === terminalSerial)?.name}</b>{" "}
+                      (<span className="font-mono text-muted">{terminalSerial}</span>) ·{" "}
+                    </>
+                  ) : (
+                    <>Terminal: <b className="font-mono text-text">{terminalSerial}</b> · </>
+                  )}
+                  Valor: <b className="text-brand">{formatBRL(amount)}</b>
                   {method === "CREDIT" && ` (${installments}x)`}
                 </p>
                 <p className="mt-2 text-xs text-muted">

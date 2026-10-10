@@ -158,12 +158,22 @@ export default async function PedidosPage({ searchParams }: { searchParams: SP }
   const orderIds = (orderRows ?? []).map((o) => o.id);
   const { data: fiscalDocsRaw } = orderIds.length
     ? await (supabase as unknown as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> } }).schema("sales").rpc("get_orders_fiscal_docs", { p_orders: orderIds })
-    : { data: [] as unknown[] };
+    : { data: null };
 
   const fiscalDocMap = new Map<string, FiscalDocInfo>();
-  for (const doc of (fiscalDocsRaw ?? []) as (FiscalDocInfo & { order_id: string })[]) {
-    if (doc?.order_id) {
-      fiscalDocMap.set(doc.order_id, doc);
+  if (fiscalDocsRaw && typeof fiscalDocsRaw === "object") {
+    if (Array.isArray(fiscalDocsRaw)) {
+      for (const doc of fiscalDocsRaw as (FiscalDocInfo & { order_id?: string })[]) {
+        if (doc?.order_id) {
+          fiscalDocMap.set(doc.order_id, doc);
+        }
+      }
+    } else {
+      for (const [orderId, doc] of Object.entries(fiscalDocsRaw as Record<string, FiscalDocInfo>)) {
+        if (orderId && doc) {
+          fiscalDocMap.set(orderId, doc);
+        }
+      }
     }
   }
 

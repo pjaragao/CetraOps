@@ -79,6 +79,11 @@ export function PosTerminal({
   const [scanning, setScanning] = useState(false);
   const [pending, start] = useTransition();
 
+  // Rascunho automático em localStorage para não perder a venda/pedido ao sair da tela
+  const DRAFT_KEY = `cetraops_pos_draft_${storeId}`;
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [isInitialLoadDone, setIsInitialLoadDone] = useState(false);
+
   // Modais de itens avulsos e descontos
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
   const [selectedDiscountLine, setSelectedDiscountLine] = useState<CartLine | null>(null);
@@ -107,6 +112,55 @@ export function PosTerminal({
   const remaining = roundCents(total - paid);
   const remote = mode === "remoto";
   const ship = Number(shipping.replace(/\./g, "").replace(",", ".")) || 0;
+
+  // Restaurar rascunho anterior salvo automaticamente no navegador
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (d.cart && Array.isArray(d.cart) && d.cart.length > 0) {
+            setCart(d.cart);
+            if (d.customer) setCustomer(d.customer);
+            if (d.cpf) setCpf(d.cpf);
+            if (d.coupon) setCoupon(d.coupon);
+            if (d.mode) setMode(d.mode);
+            if (d.channel) setChannel(d.channel);
+            if (d.fulfillment) setFulfillment(d.fulfillment);
+            if (d.shipping) setShipping(d.shipping);
+            if (d.holdHours) setHoldHours(d.holdHours);
+            if (d.notes) setNotes(d.notes);
+            if (d.payments && Array.isArray(d.payments)) setPayments(d.payments);
+            setDraftRestored(true);
+          }
+        }
+      } catch {}
+      setIsInitialLoadDone(true);
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [DRAFT_KEY]);
+
+  // Salvar rascunho a cada alteração (debounced)
+  useEffect(() => {
+    if (!isInitialLoadDone) return;
+    const timer = setTimeout(() => {
+      try {
+        if (cart.length === 0 && !customer && !notes && !shipping && payments.length === 0) {
+          localStorage.removeItem(DRAFT_KEY);
+        } else {
+          localStorage.setItem(
+            DRAFT_KEY,
+            JSON.stringify({
+              cart, customer, cpf, coupon, mode, channel, fulfillment,
+              shipping, holdHours, notes, payments, updatedAt: new Date().toISOString(),
+            }),
+          );
+        }
+      } catch {}
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [isInitialLoadDone, DRAFT_KEY, cart, customer, cpf, coupon, mode, channel, fulfillment, shipping, holdHours, notes, payments]);
 
   // Cupons que a cliente tem (dela ou já usados e ainda válidos), conferidos pelo banco com o total atual
   useEffect(() => {
@@ -295,13 +349,40 @@ export function PosTerminal({
     });
   };
 
-  const createRemote = () => start(async () => {
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
+    setCart([]);
+    setPayments([]);
+    setCustomer(null);
+    setCpf("");
+    setCoupon("");
+    setNotes("");
+    setShipping("");
+    setDraftRestored(false);
     setMessage(null);
-    if (!customer) { setMessage({ tone: "danger", text: "Pedido remoto precisa de cliente: busque ou cadastre." }); return; }
+    setIdem(crypto.randomUUID());
+  };
+
+  const createRemote = (asDraft: boolean = false) => start(async () => {
+    setMessage(null);
+    if (!asDraft && !customer) {
+      setMessage({ tone: "danger", text: "Pedido remoto precisa de cliente: busque ou cadastre." });
+      return;
+    }
     const fd = new FormData();
     fd.set("payload", JSON.stringify({
-      store_id: storeId, party_id: customer.id, channel, fulfillment_type: fulfillment, shipping_total: ship, hold_hours: holdHours, idempotency_key: `web-${idem}`,
-      ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}), ...(notes ? { notes } : {}),
+      store_id: storeId,
+      party_id: customer?.id ?? null,
+      channel,
+      fulfillment_type: fulfillment,
+      shipping_total: ship,
+      hold_hours: holdHours,
+      draft: asDraft,
+      idempotency_key: `web-${idem}`,
+      ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}),
+      ...(notes ? { notes } : {}),
       items: cart.map((l) => ({
         variant_id: l.isCustom ? undefined : l.variant?.id,
         description: l.isCustom ? l.customDescription : undefined,
@@ -312,8 +393,11 @@ export function PosTerminal({
         discount_reason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : undefined),
       })),
     }));
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
     const r = await createRemoteOrderAction(null, fd);
-    if (r && !r.ok) setMessage({ tone: "danger", text: r.error ?? "Não foi possível criar o pedido" });
+    if (r && !r.ok) setMessage({ tone: "danger", text: r.error ?? "Não foi possível salvar o pedido" });
   });
 
   const finalize = () => start(async () => {
@@ -337,8 +421,12 @@ export function PosTerminal({
       })),
     });
     if (!r.ok) { setMessage({ tone: "danger", text: r.error }); return; }
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
     setMessage({ tone: "success", text: `Venda ${r.number} concluída (${formatBRL(r.total)}). NFC-e enviada para emissão.` });
     setCart([]); setPayments([]); setCustomer(null); setCpf(""); setCoupon("");
+    setDraftRestored(false);
     setIdem(crypto.randomUUID());
   });
 
@@ -406,7 +494,33 @@ export function PosTerminal({
       </div>
 
       <div className="space-y-3 lg:sticky lg:top-16 lg:self-start">
-        <Card title="Carrinho">
+        <Card
+          title="Carrinho"
+          action={
+            cart.length > 0 ? (
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="text-xs text-muted hover:text-danger"
+                title="Limpar todos os itens e campos do carrinho"
+              >
+                Limpar
+              </button>
+            ) : undefined
+          }
+        >
+          {draftRestored && cart.length > 0 && (
+            <div className="mb-2.5 flex items-center justify-between rounded-lg border border-brand/30 bg-brand/5 px-2.5 py-1.5 text-xs text-brand">
+              <span>Rascunho recuperado automaticamente</span>
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="font-semibold underline hover:text-danger"
+              >
+                Descartar
+              </button>
+            </div>
+          )}
           {cart.length === 0 ? <p className="text-sm text-muted">Adicione produtos pelo tamanho ou use “+ Item avulso”.</p> : (
             <ul className="divide-y divide-border">
               {cart.map((l) => {
@@ -544,12 +658,16 @@ export function PosTerminal({
               <label>Entrega<select value={fulfillment} onChange={(e) => setFulfillment(e.target.value)} className={inputClass}>{FULFILLMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
               <label>Frete (R$)<input inputMode="decimal" value={shipping} onChange={(e) => setShipping(e.target.value)} placeholder="0,00" className={inputClass} /></label>
               <label>Reservar por (h)<input type="number" min={1} max={168} value={holdHours} onChange={(e) => setHoldHours(Number(e.target.value) || 24)} className={inputClass} /></label>
-              <label className="col-span-2">Observações<input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={inputClass} /></label>
             </div>
-            <Button className="mt-3 w-full py-3 text-base" onClick={createRemote} disabled={pending || cart.length === 0 || !customer}>
-              {pending ? "Criando…" : "Criar pedido e reservar estoque"}
-            </Button>
-            <p className="mt-2 text-xs text-muted">O estoque fica reservado até o pagamento; a nota sai quando pago. Cupom e total final são calculados ao salvar.</p>
+            <div className="mt-3 flex flex-col gap-2">
+              <Button className="w-full py-3 text-base" onClick={() => createRemote(false)} disabled={pending || cart.length === 0 || !customer}>
+                {pending ? "Criando…" : "Criar pedido e reservar estoque"}
+              </Button>
+              <Button type="button" variant="secondary" className="w-full py-2 text-sm" onClick={() => createRemote(true)} disabled={pending || cart.length === 0}>
+                {pending ? "Salvando…" : "Salvar como em andamento (rascunho)"}
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted">Ao salvar como em andamento, o pedido fica guardado para você continuar depois. Ao criar com reserva, a nota sai quando pago.</p>
           </Card>
         )}
 
@@ -624,6 +742,20 @@ export function PosTerminal({
             disabled={pending || cart.length === 0 || payments.length === 0 || remaining > 0 || (remaining < 0 && !payments.some((p) => p.method === "CASH"))}>
             {pending ? "Processando…" : "Finalizar venda"}
           </Button>
+          <div className="mt-2.5 flex items-center justify-between text-xs">
+            <button
+              type="button"
+              onClick={() => createRemote(true)}
+              disabled={pending || cart.length === 0}
+              className="text-muted hover:text-brand underline disabled:opacity-40"
+              title="Salva a venda atual como pedido em andamento para continuar depois"
+            >
+              Salvar como em andamento
+            </button>
+            {cart.length > 0 && (
+              <span className="text-[11px] text-muted">Salvo no navegador</span>
+            )}
+          </div>
           {!cashSessionId && <p className="mt-2 text-xs text-muted">Caixa fechado: dinheiro indisponível. Abra em Vender › Caixa.</p>}
         </Card>}
 

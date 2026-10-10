@@ -131,8 +131,9 @@ export async function searchSellable(q: string, locationId?: string): Promise<Se
 // Pedido remoto
 // ---------------------------------------------------------------------
 const remoteSchema = z.object({
-  store_id: uuid, party_id: uuid, channel: z.enum(["WHATSAPP", "INSTAGRAM", "TELEGRAM", "PAYMENT_LINK", "B2B", "EVENT"]), fulfillment_type: z.enum(["MOTOBOY", "CARRIER", "STORE_PICKUP", "LOCKER_PICKUP", "TAKEAWAY"]),
+  store_id: uuid, party_id: uuid.nullable().optional(), channel: z.enum(["WHATSAPP", "INSTAGRAM", "TELEGRAM", "PAYMENT_LINK", "B2B", "EVENT"]), fulfillment_type: z.enum(["MOTOBOY", "CARRIER", "STORE_PICKUP", "LOCKER_PICKUP", "TAKEAWAY"]),
   shipping_total: z.number().min(0).max(10000).default(0), coupon_code: z.string().max(40).optional(), hold_hours: z.number().int().min(1).max(168).default(24), notes: z.string().max(500).optional(),
+  draft: z.boolean().optional(),
   items: z.array(z.object({
     variant_id: uuid.nullable().optional(),
     description: z.string().min(1).max(200).nullable().optional(),
@@ -153,7 +154,10 @@ export async function createRemoteOrderAction(_prev: State, formData: FormData):
   const { data, error } = await supabase.schema("sales").rpc("create_remote_order", { p: parsed.data as unknown as Json });
   if (error) return { ok: false, error: friendly(error.message) };
   refresh();
-  return back(`/vender/pedidos/${(data as unknown as { id: string }).id}`, { ok: "Pedido criado: estoque reservado, aguardando pagamento" });
+  const msg = parsed.data.draft
+    ? "Pedido salvo como em andamento (rascunho)"
+    : "Pedido criado: estoque reservado, aguardando pagamento";
+  return back(`/vender/pedidos/${(data as unknown as { id: string }).id}`, { ok: msg });
 }
 
 export async function registerPaymentAction(formData: FormData) {
@@ -165,7 +169,7 @@ export async function registerPaymentAction(formData: FormData) {
     acquirer: str(formData.get("acquirer")) || (method === "PIX" ? "INTER" : undefined), nsu: str(formData.get("nsu")) || undefined, external_id: str(formData.get("external_id")) || undefined,
   } as unknown as Json });
   refresh();
-  back(`/vender/pedidos/${id}`, error ? { erro: friendly(error.message) } : { ok: "Pagamento registrado" });
+  back(`/vender/pedidos/${id}`, error ? { erro: friendly(error.message) } : { ok: "Pagamento registrado com sucesso" });
 }
 
 export async function createLinkAction(formData: FormData) {
@@ -186,10 +190,27 @@ export async function cancelOrderAction(formData: FormData) {
 
 export async function setOrderStatusAction(formData: FormData) {
   const id = str(formData.get("order_id"));
+  const status = str(formData.get("status"));
+  const notes = str(formData.get("notes")) || undefined;
+  const returnTo = str(formData.get("return_to")) || `/vender/pedidos/${id}`;
   const supabase = await createClient();
-  const { error } = await supabase.schema("sales").rpc("set_order_status", { p_order: id, p_status: str(formData.get("status")) });
+  const { error } = await supabase.schema("sales").rpc("set_order_status", {
+    p_order: id,
+    p_status: status,
+    p_notes: notes,
+  });
   refresh();
-  back(`/vender/pedidos/${id}`, error ? { erro: friendly(error.message) } : { ok: "Situação atualizada" });
+  back(returnTo, error ? { erro: friendly(error.message) } : { ok: "Situação do pedido atualizada com sucesso" });
+}
+
+export async function emitOrderInvoiceAction(formData: FormData) {
+  const id = str(formData.get("order_id"));
+  const returnTo = str(formData.get("return_to")) || `/vender/pedidos/${id}`;
+  const supabase = await createClient();
+  const sales = (supabase as unknown as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } }).schema("sales");
+  const { error } = await sales.rpc("request_order_invoice", { p_order: id });
+  refresh();
+  back(returnTo, error ? { erro: friendly(error.message) } : { ok: "Emissão de nota fiscal solicitada à SEFAZ. O retorno será atualizado em instantes." });
 }
 
 export async function saveShipmentAction(formData: FormData) {

@@ -5,7 +5,7 @@
 create or replace function sales.save_order_draft(p jsonb) returns sales.orders
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_org uuid := private.org_id();
+  v_org uuid;
   v_store core.stores;
   v_location uuid;
   v_price_list uuid;
@@ -20,18 +20,36 @@ declare
   v_discount numeric := 0;
   v_shipping numeric := coalesce((p ->> 'shipping_total')::numeric, 0);
   v_desc_text text;
+  v_coupon sales.coupons;
+  v_coupon_disc numeric := 0;
   v_channel sales.channel := coalesce((p ->> 'channel')::sales.channel, 'POS');
   v_ff sales.fulfillment_type := coalesce((p ->> 'fulfillment_type')::sales.fulfillment_type, 'TAKEAWAY');
 begin
   perform private.require_perm('sales.write');
 
-  select * into v_store from core.stores where id = (p ->> 'store_id')::uuid and org_id = v_org;
+  select * into v_store from core.stores where id = (p ->> 'store_id')::uuid;
   if v_store.id is null then raise exception 'Loja não encontrada' using errcode = '22023'; end if;
-  if coalesce(auth.role(), '') = 'authenticated' and not private.can_store(v_store.id) then
-    raise exception 'Sem acesso a esta loja' using errcode = '42501';
+  v_org := v_store.org_id;
+  if coalesce(auth.role(), '') = 'authenticated' then
+    if v_org is distinct from private.org_id() or not private.can_store(v_store.id) then
+      raise exception 'Sem acesso a esta loja' using errcode = '42501';
+    end if;
   end if;
 
-  v_location := coalesce((p ->> 'location_id')::uuid, (select l.id from inv.locations l where l.store_id = v_store.id and l.kind = 'SALES_FLOOR' order by l.created_at limit 1));
+  v_location := coalesce(
+    (p ->> 'location_id')::uuid,
+    (select l.id from inv.locations l where l.store_id = v_store.id and l.kind = 'SALES_FLOOR' order by l.created_at limit 1),
+    (select l.id from inv.locations l where l.store_id = v_store.id order by l.created_at limit 1),
+    (select l.id from inv.locations l where l.org_id = v_org and l.kind = 'SALES_FLOOR' order by l.created_at limit 1),
+    (select l.id from inv.locations l where l.org_id = v_org order by l.created_at limit 1)
+  );
+
+  if v_location is null then
+    insert into inv.locations (org_id, store_id, legal_entity_id, name, kind, is_sellable)
+    values (v_org, v_store.id, v_store.legal_entity_id, coalesce(v_store.name, 'Loja') || ' - Balcão', 'SALES_FLOOR', true)
+    returning id into v_location;
+  end if;
+
   select id into v_price_list from catalog.price_lists where org_id = v_org and is_default;
 
   -- Se foi passado order_id, verifica se o pedido existe e está em DRAFT
@@ -45,22 +63,24 @@ begin
         channel = v_channel,
         fulfillment_type = v_ff,
         shipping_total = v_shipping,
-        notes = p ->> 'notes'
+        notes = p ->> 'notes',
+        location_id = coalesce(o.location_id, v_location)
     where id = o.id
     returning * into o;
 
     delete from sales.order_items where order_id = o.id;
+    delete from sales.coupon_redemptions where order_id = o.id;
   else
     insert into sales.orders (
       org_id, legal_entity_id, store_id, location_id, number, channel, status,
       party_id, seller_member_id, profit_cost_center_id, price_list_id,
-      fulfillment_type, created_by, notes, shipping_total
+      fulfillment_type, created_by, notes, shipping_total, idempotency_key
     )
     values (
       v_org, v_store.legal_entity_id, v_store.id, v_location, core.next_number(v_org, 'VEN'),
       v_channel, 'DRAFT', (p ->> 'party_id')::uuid, private.member_id(),
       v_store.cost_center_id, v_price_list, v_ff, private.member_id(),
-      p ->> 'notes', v_shipping
+      p ->> 'notes', v_shipping, coalesce(p ->> 'idempotency_key', 'draft-' || gen_random_uuid())
     )
     returning * into o;
   end if;
@@ -105,6 +125,24 @@ begin
     end if;
   end loop;
 
+  -- Cupom no rascunho
+  if coalesce(p ->> 'coupon_code', '') <> '' then
+    select * into v_coupon from sales.coupons
+    where org_id = v_org and upper(code) = upper(p ->> 'coupon_code') and active
+      and valid_from <= now() and (valid_to is null or valid_to > now());
+    if v_coupon.id is not null then
+      v_coupon_disc := round(case when v_coupon.kind = 'PERCENT' then (v_subtotal - v_discount) * v_coupon.value / 100
+                                  else least(v_coupon.value, v_subtotal - v_discount) end, 2);
+      v_discount := v_discount + v_coupon_disc;
+      update sales.orders
+      set coupon_id = v_coupon.id,
+          attribution = attribution || jsonb_build_object('coupon', v_coupon.code, 'affiliate_party_id', v_coupon.affiliate_party_id)
+      where id = o.id;
+    end if;
+  else
+    update sales.orders set coupon_id = null where id = o.id;
+  end if;
+
   update sales.orders
   set subtotal = round(v_subtotal, 2),
       discount_total = round(v_discount, 2),
@@ -115,7 +153,29 @@ begin
   return o;
 end $$;
 
--- 2) sales.create_pos_order atualizado para reaproveitar rascunho existente (DRAFT) quando passado order_id
+-- 2) sales.discard_order_draft para excluir rascunho cancelado/limpo
+create or replace function sales.discard_order_draft(p_order_id uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  o sales.orders;
+begin
+  perform private.require_perm('sales.write');
+  select * into o from sales.orders where id = p_order_id for update;
+  if o.id is null or o.status <> 'DRAFT' then
+    return;
+  end if;
+  if coalesce(auth.role(), '') = 'authenticated' then
+    if o.org_id is distinct from private.org_id() or not private.can_store(o.store_id) then
+      raise exception 'Sem acesso a este pedido' using errcode = '42501';
+    end if;
+  end if;
+
+  delete from sales.order_items where order_id = o.id;
+  delete from sales.coupon_redemptions where order_id = o.id;
+  delete from sales.orders where id = o.id;
+end $$;
+
+-- 3) sales.create_pos_order atualizado para reaproveitar rascunho existente (DRAFT) quando passado order_id
 create or replace function sales.create_pos_order(p jsonb) returns sales.orders
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -160,9 +220,20 @@ begin
   if coalesce(p ->> 'idempotency_key', '') = '' then raise exception 'idempotency_key obrigatório'; end if;
   if jsonb_array_length(coalesce(p -> 'items', '[]')) = 0 then raise exception 'Pedido sem itens'; end if;
 
-  v_location := coalesce((p ->> 'location_id')::uuid,
-    (select l.id from inv.locations l where l.store_id = v_store.id and l.kind = 'SALES_FLOOR' order by l.created_at limit 1));
-  if v_location is null then raise exception 'Loja sem local de estoque de venda'; end if;
+  v_location := coalesce(
+    (p ->> 'location_id')::uuid,
+    (select l.id from inv.locations l where l.store_id = v_store.id and l.kind = 'SALES_FLOOR' order by l.created_at limit 1),
+    (select l.id from inv.locations l where l.store_id = v_store.id order by l.created_at limit 1),
+    (select l.id from inv.locations l where l.org_id = v_org and l.kind = 'SALES_FLOOR' order by l.created_at limit 1),
+    (select l.id from inv.locations l where l.org_id = v_org order by l.created_at limit 1)
+  );
+
+  if v_location is null then
+    insert into inv.locations (org_id, store_id, legal_entity_id, name, kind, is_sellable)
+    values (v_org, v_store.id, v_store.legal_entity_id, coalesce(v_store.name, 'Loja') || ' - Balcão', 'SALES_FLOOR', true)
+    returning id into v_location;
+  end if;
+
   select id into v_price_list from catalog.price_lists where org_id = v_org and is_default;
 
   v_can_discount := coalesce(auth.role(), '') <> 'authenticated' or private.has_perm('sales.discount');

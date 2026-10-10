@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { Minus, Plus, ScanBarcode, Smartphone, Tag, Trash2, UserPlus, UserRound } from "lucide-react";
 import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
 import { createRemoteOrderAction, customerCoupons, type CustomerCoupon } from "../actions";
-import { autoCouponFor, finalizeSale, getCustomerStoreCredit, type getOrderDraft, saveOrderDraft, type SaleInput } from "./actions";
+import { autoCouponFor, discardDraftOrder, finalizeSale, getCustomerStoreCredit, type getOrderDraft, saveOrderDraft, type SaleInput } from "./actions";
 import { PartyPicker, type PartyHit } from "../pickers";
 import { QuickCustomerDialog } from "./quick-customer-dialog";
 import { StonePosDialog } from "../stone-pos-dialog";
@@ -85,6 +86,12 @@ export function PosTerminal({
   // Pedido rascunho persistido no banco de dados (DRAFT)
   const [dbDraftOrderId, setDbDraftOrderId] = useState<string | null>(() => initialDraft?.order.id ?? null);
   const [dbDraftOrderNumber, setDbDraftOrderNumber] = useState<string | null>(() => initialDraft?.order.number ?? null);
+  const [draftSaveStatus, setDraftSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const draftOrderIdRef = useRef<string | null>(initialDraft?.order.id ?? null);
+
+  useEffect(() => {
+    draftOrderIdRef.current = dbDraftOrderId;
+  }, [dbDraftOrderId]);
 
   // Rascunho automático em localStorage para não perder a venda/pedido ao sair da tela
   const DRAFT_KEY = `cetraops_pos_draft_${storeId}`;
@@ -124,8 +131,10 @@ export function PosTerminal({
   useEffect(() => {
     const handle = setTimeout(() => {
       if (initialDraft?.order) {
+        draftOrderIdRef.current = initialDraft.order.id;
         setDbDraftOrderId(initialDraft.order.id);
         setDbDraftOrderNumber(initialDraft.order.number);
+        setDraftSaveStatus("saved");
         if (initialDraft.party) {
           setCustomer({ id: initialDraft.party.id, name: initialDraft.party.name, phone: initialDraft.party.phone });
         }
@@ -168,6 +177,14 @@ export function PosTerminal({
         const raw = localStorage.getItem(DRAFT_KEY);
         if (raw) {
           const d = JSON.parse(raw);
+          if (d.dbDraftOrderId) {
+            draftOrderIdRef.current = d.dbDraftOrderId;
+            setDbDraftOrderId(d.dbDraftOrderId);
+          }
+          if (d.dbDraftOrderNumber) {
+            setDbDraftOrderNumber(d.dbDraftOrderNumber);
+            setDraftSaveStatus("saved");
+          }
           if (d.cart && Array.isArray(d.cart) && d.cart.length > 0) {
             setCart(d.cart);
             if (d.customer) setCustomer(d.customer);
@@ -189,26 +206,85 @@ export function PosTerminal({
     return () => clearTimeout(handle);
   }, [DRAFT_KEY, initialDraft, products]);
 
-  // Salvar rascunho a cada alteração (debounced)
+  // Auto-salvar no banco de dados (sales.orders com status DRAFT) a cada alteração
   useEffect(() => {
     if (!isInitialLoadDone) return;
-    const timer = setTimeout(() => {
+
+    if (cart.length === 0) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      setDraftSaveStatus("idle");
+      return;
+    }
+
+    setDraftSaveStatus("saving");
+
+    const timer = setTimeout(async () => {
       try {
-        if (cart.length === 0 && !customer && !notes && !shipping && payments.length === 0) {
-          localStorage.removeItem(DRAFT_KEY);
+        const currentOrderId = draftOrderIdRef.current;
+        const res = await saveOrderDraft({
+          orderId: currentOrderId,
+          storeId,
+          partyId: customer?.id ?? null,
+          couponCode: coupon.trim() || null,
+          channel: (mode === "remoto" ? channel : "POS") as "POS" | "WHATSAPP" | "INSTAGRAM" | "TELEGRAM" | "PAYMENT_LINK" | "B2B" | "EVENT",
+          fulfillmentType: (mode === "remoto" ? fulfillment : "TAKEAWAY") as "MOTOBOY" | "CARRIER" | "STORE_PICKUP" | "LOCKER_PICKUP" | "TAKEAWAY",
+          shippingTotal: Number(shipping.replace(/\./g, "").replace(",", ".")) || 0,
+          notes: notes || null,
+          items: cart.map((l) => ({
+            variantId: l.isCustom ? null : l.variant?.id ?? null,
+            description: l.isCustom ? l.customDescription : null,
+            unitPrice: l.unitPrice,
+            listPrice: l.unitPrice,
+            qty: l.qty,
+            discountAmount: l.discountAmount,
+            discountReason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : null),
+          })),
+        });
+
+        if (res.ok) {
+          draftOrderIdRef.current = res.id;
+          setDbDraftOrderId(res.id);
+          setDbDraftOrderNumber(res.number);
+          setDraftSaveStatus("saved");
+
+          try {
+            localStorage.setItem(
+              DRAFT_KEY,
+              JSON.stringify({
+                dbDraftOrderId: res.id,
+                dbDraftOrderNumber: res.number,
+                cart, customer, cpf, coupon, mode, channel, fulfillment,
+                shipping, holdHours, notes, payments, updatedAt: new Date().toISOString(),
+              }),
+            );
+          } catch {}
         } else {
-          localStorage.setItem(
-            DRAFT_KEY,
-            JSON.stringify({
-              cart, customer, cpf, coupon, mode, channel, fulfillment,
-              shipping, holdHours, notes, payments, updatedAt: new Date().toISOString(),
-            }),
-          );
+          console.error("Erro no auto-save do pedido:", res.error);
+          setDraftSaveStatus("error");
         }
-      } catch {}
-    }, 400);
+      } catch (err) {
+        console.error("Falha no auto-save:", err);
+        setDraftSaveStatus("error");
+      }
+    }, 500);
+
     return () => clearTimeout(timer);
-  }, [isInitialLoadDone, DRAFT_KEY, cart, customer, cpf, coupon, mode, channel, fulfillment, shipping, holdHours, notes, payments]);
+  }, [
+    isInitialLoadDone,
+    cart,
+    customer,
+    cpf,
+    coupon,
+    mode,
+    channel,
+    fulfillment,
+    shipping,
+    holdHours,
+    notes,
+    payments,
+    storeId,
+    DRAFT_KEY,
+  ]);
 
   // Cupons que a cliente tem (dela ou já usados e ainda válidos), conferidos pelo banco com o total atual
   useEffect(() => {
@@ -401,11 +477,17 @@ export function PosTerminal({
   };
 
   const discardDraft = () => {
+    const currentOrderId = draftOrderIdRef.current;
+    if (currentOrderId) {
+      void discardDraftOrder(currentOrderId);
+    }
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
+    draftOrderIdRef.current = null;
     setDbDraftOrderId(null);
     setDbDraftOrderNumber(null);
+    setDraftSaveStatus("idle");
     setCart([]);
     setPayments([]);
     setCustomer(null);
@@ -419,49 +501,18 @@ export function PosTerminal({
     setIdem(crypto.randomUUID());
   };
 
-  const saveDraftToDatabase = () => start(async () => {
-    if (cart.length === 0) {
-      setMessage({ tone: "danger", text: "Adicione ao menos um item para salvar o pedido." });
-      return;
-    }
+  const createRemote = () => start(async () => {
     setMessage(null);
-    const res = await saveOrderDraft({
-      orderId: dbDraftOrderId,
-      storeId,
-      partyId: customer?.id ?? null,
-      channel: (remote ? channel : "POS") as "POS" | "WHATSAPP" | "INSTAGRAM" | "TELEGRAM" | "PAYMENT_LINK" | "B2B" | "EVENT",
-      fulfillmentType: (remote ? fulfillment : "TAKEAWAY") as "MOTOBOY" | "CARRIER" | "STORE_PICKUP" | "LOCKER_PICKUP" | "TAKEAWAY",
-      shippingTotal: ship,
-      notes: notes || null,
-      items: cart.map((l) => ({
-        variantId: l.isCustom ? null : l.variant?.id ?? null,
-        description: l.isCustom ? l.customDescription : null,
-        unitPrice: l.unitPrice,
-        listPrice: l.unitPrice,
-        qty: l.qty,
-        discountAmount: l.discountAmount,
-        discountReason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : null),
-      })),
-    });
-
-    if (res.ok) {
-      setDbDraftOrderId(res.id);
-      setDbDraftOrderNumber(res.number);
-      try { localStorage.removeItem(DRAFT_KEY); } catch {}
-      setMessage({
-        tone: "success",
-        text: `Pedido ${res.number} salvo com sucesso como em andamento no sistema! Já disponível na lista de pedidos.`,
-      });
-    } else {
-      setMessage({ tone: "danger", text: res.error });
-    }
-  });
-
-  const createRemote = (asDraft: boolean = false) => start(async () => {
-    setMessage(null);
-    if (!asDraft && !customer) {
+    if (!customer) {
       setMessage({ tone: "danger", text: "Pedido remoto precisa de cliente: busque ou cadastre." });
       return;
+    }
+    const currentOrderId = draftOrderIdRef.current;
+    if (currentOrderId) {
+      void discardDraftOrder(currentOrderId);
+      draftOrderIdRef.current = null;
+      setDbDraftOrderId(null);
+      setDbDraftOrderNumber(null);
     }
     const fd = new FormData();
     fd.set("payload", JSON.stringify({
@@ -471,7 +522,7 @@ export function PosTerminal({
       fulfillment_type: fulfillment,
       shipping_total: ship,
       hold_hours: holdHours,
-      draft: asDraft,
+      draft: false,
       idempotency_key: `web-${idem}`,
       ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}),
       ...(notes ? { notes } : {}),
@@ -495,7 +546,7 @@ export function PosTerminal({
   const finalize = () => start(async () => {
     setMessage(null);
     const r = await finalizeSale({
-      orderId: dbDraftOrderId,
+      orderId: draftOrderIdRef.current,
       idempotencyKey: idem, storeId, partyId: customer?.id ?? null, cashSessionId,
       cpfOnInvoice: cpf.replace(/\D/g, "").length === 11 ? cpf.replace(/\D/g, "") : null,
       couponCode: coupon.trim() || null,
@@ -517,8 +568,10 @@ export function PosTerminal({
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
+    draftOrderIdRef.current = null;
     setDbDraftOrderId(null);
     setDbDraftOrderNumber(null);
+    setDraftSaveStatus("idle");
     setMessage({ tone: "success", text: `Venda ${r.number} concluída (${formatBRL(r.total)}). NFC-e enviada para emissão.` });
     setCart([]); setPayments([]); setCustomer(null); setCpf(""); setCoupon("");
     setDraftRestored(false);
@@ -606,26 +659,18 @@ export function PosTerminal({
         >
           {draftRestored && cart.length > 0 && (
             <div className="mb-2.5 flex items-center justify-between rounded-lg border border-brand/30 bg-brand/5 px-2.5 py-1.5 text-xs text-brand">
-              <span>{dbDraftOrderNumber ? `Pedido ${dbDraftOrderNumber} em andamento` : "Rascunho recuperado"}</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={saveDraftToDatabase}
-                  disabled={pending}
-                  className="font-semibold underline hover:opacity-80"
-                  title="Salvar no banco de dados para constar na lista de pedidos"
-                >
-                  {dbDraftOrderNumber ? "Salvar alterações" : "Salvar na lista de pedidos"}
-                </button>
-                <span className="text-border">·</span>
-                <button
-                  type="button"
-                  onClick={discardDraft}
-                  className="text-muted hover:text-danger"
-                >
-                  Descartar
-                </button>
-              </div>
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="inline-block h-2 w-2 rounded-full bg-brand animate-pulse" />
+                {dbDraftOrderNumber ? `Pedido ${dbDraftOrderNumber} em andamento` : "Rascunho recuperado"}
+              </span>
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="text-muted hover:text-danger underline"
+                title="Descartar rascunho"
+              >
+                Descartar
+              </button>
             </div>
           )}
           {cart.length === 0 ? <p className="text-sm text-muted">Adicione produtos pelo tamanho ou use “+ Item avulso”.</p> : (
@@ -745,18 +790,32 @@ export function PosTerminal({
           )}
 
           {cart.length > 0 && (
-            <div className="mt-3 border-t border-border pt-3">
-              <button
-                type="button"
-                disabled={pending}
-                onClick={saveDraftToDatabase}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-text hover:border-brand hover:text-brand disabled:opacity-40 transition-colors"
-              >
-                💾 {dbDraftOrderNumber ? `Salvar alterações (${dbDraftOrderNumber})` : "Salvar na lista de pedidos (em andamento)"}
-              </button>
-              <p className="mt-1 text-[11px] text-muted text-center">
-                Salva no sistema para constar na lista de pedidos e poder retomar depois.
-              </p>
+            <div className="mt-3 border-t border-border/50 pt-2.5 flex items-center justify-between text-[11px] text-muted">
+              <span className="flex items-center gap-1.5">
+                {draftSaveStatus === "saving" ? (
+                  <>
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
+                    <span>Salvando pedido automaticamente…</span>
+                  </>
+                ) : dbDraftOrderNumber ? (
+                  <>
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                    <span className="text-success font-medium">Pedido {dbDraftOrderNumber} salvo em andamento</span>
+                  </>
+                ) : (
+                  <span>Auto-salvamento ativo</span>
+                )}
+              </span>
+              {dbDraftOrderNumber && (
+                <Link
+                  href="/vender/pedidos"
+                  target="_blank"
+                  className="text-brand hover:underline font-medium"
+                  title="Ver este pedido na lista de pedidos"
+                >
+                  Ver na lista ↗
+                </Link>
+              )}
             </div>
           )}
         </Card>
@@ -790,14 +849,11 @@ export function PosTerminal({
               <label>Reservar por (h)<input type="number" min={1} max={168} value={holdHours} onChange={(e) => setHoldHours(Number(e.target.value) || 24)} className={inputClass} /></label>
             </div>
             <div className="mt-3 flex flex-col gap-2">
-              <Button className="w-full py-3 text-base" onClick={() => createRemote(false)} disabled={pending || cart.length === 0 || !customer}>
-                {pending ? "Criando…" : "Criar pedido e reservar estoque"}
-              </Button>
-              <Button type="button" variant="secondary" className="w-full py-2 text-sm" onClick={() => createRemote(true)} disabled={pending || cart.length === 0}>
-                {pending ? "Salvando…" : "Salvar como em andamento (rascunho)"}
+              <Button className="w-full py-3 text-base" onClick={createRemote} disabled={pending || cart.length === 0 || !customer}>
+                {pending ? "Criando…" : "Confirmar pedido e reservar estoque"}
               </Button>
             </div>
-            <p className="mt-2 text-xs text-muted">Ao salvar como em andamento, o pedido fica guardado para você continuar depois. Ao criar com reserva, a nota sai quando pago.</p>
+            <p className="mt-2 text-xs text-muted">O pedido é salvo automaticamente em andamento. Ao confirmar com reserva, o estoque fica bloqueado para a cliente.</p>
           </Card>
         )}
 
@@ -882,22 +938,12 @@ export function PosTerminal({
             disabled={pending || cart.length === 0 || payments.length === 0 || remaining > 0 || (remaining < 0 && !payments.some((p) => p.method === "CASH"))}>
             {pending ? "Processando…" : "Finalizar venda"}
           </Button>
-          <div className="mt-2.5 flex items-center justify-between text-xs">
-            <button
-              type="button"
-              onClick={saveDraftToDatabase}
-              disabled={pending || cart.length === 0}
-              className="text-muted hover:text-brand underline disabled:opacity-40"
-              title="Salva a venda atual como pedido em andamento no sistema para continuar depois"
-            >
-              {dbDraftOrderNumber ? `Salvar alterações do pedido (${dbDraftOrderNumber})` : "Salvar como em andamento no sistema"}
-            </button>
-            {cart.length > 0 && (
-              <span className="text-[11px] text-muted">
-                {dbDraftOrderNumber ? `Pedido ${dbDraftOrderNumber}` : "Salvo no navegador"}
-              </span>
-            )}
-          </div>
+          {cart.length > 0 && (
+            <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted">
+              <span>{dbDraftOrderNumber ? `Pedido ${dbDraftOrderNumber} em andamento` : "Auto-salvamento ativo"}</span>
+              <span className="text-success font-medium">✓ Salvo no sistema</span>
+            </div>
+          )}
           {!cashSessionId && <p className="mt-2 text-xs text-muted">Caixa fechado: dinheiro indisponível. Abra em Vender › Caixa.</p>}
         </Card>}
 

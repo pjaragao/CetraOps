@@ -104,6 +104,7 @@ const draftSchema = z.object({
   orderId: z.string().uuid().optional().nullable(),
   storeId: z.string().uuid(),
   partyId: z.string().uuid().optional().nullable(),
+  couponCode: z.string().max(40).optional().nullable(),
   channel: z.enum(["POS", "WHATSAPP", "INSTAGRAM", "TELEGRAM", "PAYMENT_LINK", "B2B", "EVENT"]).default("POS"),
   fulfillmentType: z.enum(["MOTOBOY", "CARRIER", "STORE_PICKUP", "LOCKER_PICKUP", "TAKEAWAY"]).default("TAKEAWAY"),
   shippingTotal: z.number().min(0).default(0),
@@ -140,6 +141,7 @@ export async function saveOrderDraft(input: DraftInput): Promise<DraftResult> {
       order_id: d.orderId || null,
       store_id: d.storeId,
       party_id: d.partyId || null,
+      coupon_code: d.couponCode || null,
       channel: d.channel,
       fulfillment_type: d.fulfillmentType,
       shipping_total: d.shippingTotal,
@@ -161,6 +163,22 @@ export async function saveOrderDraft(input: DraftInput): Promise<DraftResult> {
   revalidatePath("/vender/pedidos");
   revalidatePath("/vender/pdv");
   return { ok: true, id: row.id, number: row.number, total: Number(row.total) };
+}
+
+/** Descarta rascunho de pedido do banco de dados */
+export async function discardDraftOrder(orderId: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const sales = (supabase as unknown as {
+    schema: (s: string) => {
+      rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
+    }
+  }).schema("sales");
+
+  const { error } = await sales.rpc("discard_order_draft", { p_order_id: orderId });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/vender/pedidos");
+  revalidatePath("/vender/pdv");
+  return { ok: true };
 }
 
 /** Carrega pedido em andamento (DRAFT) para ser continuado no PDV */

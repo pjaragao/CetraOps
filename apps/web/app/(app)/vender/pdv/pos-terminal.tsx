@@ -5,7 +5,7 @@ import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
 import { createRemoteOrderAction, customerCoupons, type CustomerCoupon } from "../actions";
-import { autoCouponFor, finalizeSale, getCustomerStoreCredit, type SaleInput } from "./actions";
+import { autoCouponFor, finalizeSale, getCustomerStoreCredit, type getOrderDraft, saveOrderDraft, type SaleInput } from "./actions";
 import { PartyPicker, type PartyHit } from "../pickers";
 import { QuickCustomerDialog } from "./quick-customer-dialog";
 import { StonePosDialog } from "../stone-pos-dialog";
@@ -49,6 +49,7 @@ interface PosTerminalProps {
   initialMode?: "balcao" | "remoto";
   canDiscount?: boolean;
   canCustomItem?: boolean;
+  initialDraft?: Awaited<ReturnType<typeof getOrderDraft>> | null;
 }
 
 /** Venda no balcão (paga na hora, com NFC-e) ou pedido remoto (reserva o estoque e espera o pagamento): o mesmo carrinho nos dois modos. */
@@ -59,6 +60,7 @@ export function PosTerminal({
   initialMode = "balcao",
   canDiscount = true,
   canCustomItem = true,
+  initialDraft = null,
 }: PosTerminalProps) {
   const [mode, setMode] = useState<"balcao" | "remoto">(initialMode);
   const [channel, setChannel] = useState("WHATSAPP");
@@ -79,6 +81,10 @@ export function PosTerminal({
   const [idem, setIdem] = useState(() => crypto.randomUUID());
   const [scanning, setScanning] = useState(false);
   const [pending, start] = useTransition();
+
+  // Pedido rascunho persistido no banco de dados (DRAFT)
+  const [dbDraftOrderId, setDbDraftOrderId] = useState<string | null>(() => initialDraft?.order.id ?? null);
+  const [dbDraftOrderNumber, setDbDraftOrderNumber] = useState<string | null>(() => initialDraft?.order.number ?? null);
 
   // Rascunho automático em localStorage para não perder a venda/pedido ao sair da tela
   const DRAFT_KEY = `cetraops_pos_draft_${storeId}`;
@@ -114,9 +120,50 @@ export function PosTerminal({
   const remote = mode === "remoto";
   const ship = Number(shipping.replace(/\./g, "").replace(",", ".")) || 0;
 
-  // Restaurar rascunho anterior salvo automaticamente no navegador
+  // Restaurar rascunho anterior (seja vindo de initialDraft do banco ou salvo no navegador)
   useEffect(() => {
     const handle = setTimeout(() => {
+      if (initialDraft?.order) {
+        setDbDraftOrderId(initialDraft.order.id);
+        setDbDraftOrderNumber(initialDraft.order.number);
+        if (initialDraft.party) {
+          setCustomer({ id: initialDraft.party.id, name: initialDraft.party.name, phone: initialDraft.party.phone });
+        }
+        if (initialDraft.order.notes) setNotes(initialDraft.order.notes);
+        if (initialDraft.order.shipping_total) setShipping(String(initialDraft.order.shipping_total));
+        if (initialDraft.order.channel && initialDraft.order.channel !== "POS") {
+          setMode("remoto");
+          setChannel(initialDraft.order.channel);
+        }
+        if (initialDraft.items && initialDraft.items.length > 0) {
+          const newCart: CartLine[] = initialDraft.items.map((it) => {
+            let foundProd: PosProduct | undefined;
+            let foundVar: PosVariant | undefined;
+            if (it.variant_id) {
+              for (const p of products) {
+                const v = p.variants.find((x) => x.id === it.variant_id);
+                if (v) { foundProd = p; foundVar = v; break; }
+              }
+            }
+            return {
+              id: it.id,
+              isCustom: !it.variant_id,
+              variant: foundVar,
+              product: foundProd,
+              customDescription: it.description || undefined,
+              unitPrice: Number(it.unit_price),
+              qty: Number(it.qty),
+              discountAmount: Number(it.discount_amount),
+              discountReason: it.discount_reason || undefined,
+            };
+          });
+          setCart(newCart);
+          setDraftRestored(true);
+        }
+        setIsInitialLoadDone(true);
+        return;
+      }
+
       try {
         const raw = localStorage.getItem(DRAFT_KEY);
         if (raw) {
@@ -140,7 +187,7 @@ export function PosTerminal({
       setIsInitialLoadDone(true);
     }, 0);
     return () => clearTimeout(handle);
-  }, [DRAFT_KEY]);
+  }, [DRAFT_KEY, initialDraft, products]);
 
   // Salvar rascunho a cada alteração (debounced)
   useEffect(() => {
@@ -357,6 +404,8 @@ export function PosTerminal({
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
+    setDbDraftOrderId(null);
+    setDbDraftOrderNumber(null);
     setCart([]);
     setPayments([]);
     setCustomer(null);
@@ -369,6 +418,44 @@ export function PosTerminal({
     setMessage(null);
     setIdem(crypto.randomUUID());
   };
+
+  const saveDraftToDatabase = () => start(async () => {
+    if (cart.length === 0) {
+      setMessage({ tone: "danger", text: "Adicione ao menos um item para salvar o pedido." });
+      return;
+    }
+    setMessage(null);
+    const res = await saveOrderDraft({
+      orderId: dbDraftOrderId,
+      storeId,
+      partyId: customer?.id ?? null,
+      channel: (remote ? channel : "POS") as "POS" | "WHATSAPP" | "INSTAGRAM" | "TELEGRAM" | "PAYMENT_LINK" | "B2B" | "EVENT",
+      fulfillmentType: (remote ? fulfillment : "TAKEAWAY") as "MOTOBOY" | "CARRIER" | "STORE_PICKUP" | "LOCKER_PICKUP" | "TAKEAWAY",
+      shippingTotal: ship,
+      notes: notes || null,
+      items: cart.map((l) => ({
+        variantId: l.isCustom ? null : l.variant?.id ?? null,
+        description: l.isCustom ? l.customDescription : null,
+        unitPrice: l.unitPrice,
+        listPrice: l.unitPrice,
+        qty: l.qty,
+        discountAmount: l.discountAmount,
+        discountReason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : null),
+      })),
+    });
+
+    if (res.ok) {
+      setDbDraftOrderId(res.id);
+      setDbDraftOrderNumber(res.number);
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      setMessage({
+        tone: "success",
+        text: `Pedido ${res.number} salvo com sucesso como em andamento no sistema! Já disponível na lista de pedidos.`,
+      });
+    } else {
+      setMessage({ tone: "danger", text: res.error });
+    }
+  });
 
   const createRemote = (asDraft: boolean = false) => start(async () => {
     setMessage(null);
@@ -408,6 +495,7 @@ export function PosTerminal({
   const finalize = () => start(async () => {
     setMessage(null);
     const r = await finalizeSale({
+      orderId: dbDraftOrderId,
       idempotencyKey: idem, storeId, partyId: customer?.id ?? null, cashSessionId,
       cpfOnInvoice: cpf.replace(/\D/g, "").length === 11 ? cpf.replace(/\D/g, "") : null,
       couponCode: coupon.trim() || null,
@@ -429,6 +517,8 @@ export function PosTerminal({
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
+    setDbDraftOrderId(null);
+    setDbDraftOrderNumber(null);
     setMessage({ tone: "success", text: `Venda ${r.number} concluída (${formatBRL(r.total)}). NFC-e enviada para emissão.` });
     setCart([]); setPayments([]); setCustomer(null); setCpf(""); setCoupon("");
     setDraftRestored(false);
@@ -516,14 +606,26 @@ export function PosTerminal({
         >
           {draftRestored && cart.length > 0 && (
             <div className="mb-2.5 flex items-center justify-between rounded-lg border border-brand/30 bg-brand/5 px-2.5 py-1.5 text-xs text-brand">
-              <span>Rascunho recuperado automaticamente</span>
-              <button
-                type="button"
-                onClick={discardDraft}
-                className="font-semibold underline hover:text-danger"
-              >
-                Descartar
-              </button>
+              <span>{dbDraftOrderNumber ? `Pedido ${dbDraftOrderNumber} em andamento` : "Rascunho recuperado"}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={saveDraftToDatabase}
+                  disabled={pending}
+                  className="font-semibold underline hover:opacity-80"
+                  title="Salvar no banco de dados para constar na lista de pedidos"
+                >
+                  {dbDraftOrderNumber ? "Salvar alterações" : "Salvar na lista de pedidos"}
+                </button>
+                <span className="text-border">·</span>
+                <button
+                  type="button"
+                  onClick={discardDraft}
+                  className="text-muted hover:text-danger"
+                >
+                  Descartar
+                </button>
+              </div>
             </div>
           )}
           {cart.length === 0 ? <p className="text-sm text-muted">Adicione produtos pelo tamanho ou use “+ Item avulso”.</p> : (
@@ -639,6 +741,22 @@ export function PosTerminal({
                   <Tag size={12} /> {c.code} · {c.label}
                 </button>
               ))}
+            </div>
+          )}
+
+          {cart.length > 0 && (
+            <div className="mt-3 border-t border-border pt-3">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={saveDraftToDatabase}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-text hover:border-brand hover:text-brand disabled:opacity-40 transition-colors"
+              >
+                💾 {dbDraftOrderNumber ? `Salvar alterações (${dbDraftOrderNumber})` : "Salvar na lista de pedidos (em andamento)"}
+              </button>
+              <p className="mt-1 text-[11px] text-muted text-center">
+                Salva no sistema para constar na lista de pedidos e poder retomar depois.
+              </p>
             </div>
           )}
         </Card>
@@ -767,15 +885,17 @@ export function PosTerminal({
           <div className="mt-2.5 flex items-center justify-between text-xs">
             <button
               type="button"
-              onClick={() => createRemote(true)}
+              onClick={saveDraftToDatabase}
               disabled={pending || cart.length === 0}
               className="text-muted hover:text-brand underline disabled:opacity-40"
-              title="Salva a venda atual como pedido em andamento para continuar depois"
+              title="Salva a venda atual como pedido em andamento no sistema para continuar depois"
             >
-              Salvar como em andamento
+              {dbDraftOrderNumber ? `Salvar alterações do pedido (${dbDraftOrderNumber})` : "Salvar como em andamento no sistema"}
             </button>
             {cart.length > 0 && (
-              <span className="text-[11px] text-muted">Salvo no navegador</span>
+              <span className="text-[11px] text-muted">
+                {dbDraftOrderNumber ? `Pedido ${dbDraftOrderNumber}` : "Salvo no navegador"}
+              </span>
             )}
           </div>
           {!cashSessionId && <p className="mt-2 text-xs text-muted">Caixa fechado: dinheiro indisponível. Abra em Vender › Caixa.</p>}

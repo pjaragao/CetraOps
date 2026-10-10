@@ -209,6 +209,15 @@ export function PedidosTable({ orders, canWrite, base, params, sort, dir }: Pedi
                 </td>
                 <td className="px-3 py-2.5 text-right whitespace-nowrap">
                   <div className="flex items-center justify-end gap-1.5">
+                    {o.status === "DRAFT" && (
+                      <Link
+                        href={`/vender/pdv?resume=${o.id}`}
+                        className="inline-flex items-center rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-brand-contrast hover:opacity-90 transition-opacity"
+                        title="Retomar e finalizar este pedido no PDV"
+                      >
+                        Retomar no PDV
+                      </Link>
+                    )}
                     <Link
                       href={`/vender/pedidos/${o.id}`}
                       className="inline-flex items-center rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-medium hover:bg-surface-2 transition-colors"

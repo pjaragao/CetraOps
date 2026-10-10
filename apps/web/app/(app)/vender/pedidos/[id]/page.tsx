@@ -56,8 +56,19 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   return (
     <>
       <PageHeader title={`Pedido ${o.number}`} description={`${o.channel} · ${new Date(o.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}${party ? ` · ${party.display_name}` : ""}`}
-        actions={<><Badge tone={st.tone}>{st.label}</Badge>{returnable && canWrite && <LinkButton href={`/vender/trocas/nova?n=${o.number}`}>Trocar / devolver</LinkButton>}<LinkButton href="/vender/pedidos">Voltar</LinkButton></>} />
+        actions={<><Badge tone={st.tone}>{st.label}</Badge>{o.status === "DRAFT" && canWrite && <LinkButton href={`/vender/pdv?resume=${o.id}`} variant="primary">Retomar no PDV</LinkButton>}{returnable && canWrite && <LinkButton href={`/vender/trocas/nova?n=${o.number}`}>Trocar / devolver</LinkButton>}<LinkButton href="/vender/pedidos">Voltar</LinkButton></>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+      {o.status === "DRAFT" && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/40 bg-brand/10 p-4">
+          <div>
+            <p className="font-semibold text-sm text-brand">Este pedido é um rascunho em andamento</p>
+            <p className="text-xs text-muted">Você pode continuar editando os itens e registrar o pagamento diretamente no PDV.</p>
+          </div>
+          <LinkButton href={`/vender/pdv?resume=${o.id}`} variant="primary">
+            🛒 Retomar e finalizar no PDV
+          </LinkButton>
+        </div>
+      )}
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Total" value={formatBRL(o.total)} hint={Number(o.discount_total) > 0 ? `desconto ${formatBRL(o.discount_total)}` : undefined} />
         <Stat label="Pago" value={formatBRL(o.paid_total)} tone={balance <= 0 ? "success" : undefined} />

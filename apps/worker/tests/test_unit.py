@@ -12,6 +12,7 @@ from centralops_worker.adapters.brasilnfe import normalize_received as brasilnfe
 from centralops_worker.adapters.errors import PermanentError, TransientError
 from centralops_worker.adapters.focus import FocusClient
 from centralops_worker.adapters.meta import MetaClient
+from centralops_worker.adapters.notaas import NotaasClient, _to_notaas_payload
 from centralops_worker.adapters.stone import StoneClient
 from centralops_worker.adapters.telegram import TelegramClient
 from centralops_worker.ai import guardrails, rules
@@ -475,3 +476,116 @@ def test_amounts_written_in_knowledge_text_count_as_grounded() -> None:
     kb = guardrails.ToolResult("search_knowledge", True, {"results": [{"title": "Frete", "text": "Frete grátis para compras acima de R$ 500,00 na cidade."}]})
     assert guardrails.validate(["O frete é grátis acima de R$ 500,00."], [kb]) == []
     assert [v.code for v in guardrails.validate(["O frete é grátis acima de R$ 300,00."], [kb])] == ["UNGROUNDED_PRICE"]
+
+
+def test_notaas_payload_mapping() -> None:
+    doc = {
+        "natureza_operacao": "VENDA PDV",
+        "presenca_comprador": 1,
+        "cpf_destinatario": "123.456.789-00",
+        "nome_destinatario": "Cliente Teste",
+        "itens": [
+            {
+                "codigo": "SKU1",
+                "descricao": "Camiseta Algodao",
+                "ncm": "61091000",
+                "cfop": "5102",
+                "quantidade": 2,
+                "valor_unitario": 50.0,
+                "valor_total": 100.0,
+                "unidade": "UN",
+                "csosn": "102",
+                "desconto": 10.0,
+            }
+        ],
+        "formas_pagamento": [{"tipoPagamento": "01", "valor": 90.0}],
+    }
+    payload = _to_notaas_payload(65, "ref_123", doc)
+    assert payload["modelo"] == 65
+    assert payload["naturezaOperacao"] == "VENDA PDV"
+    assert payload["presencaComprador"] == 1
+    assert payload["dest"] == {"cpf": "12345678900", "nome": "Cliente Teste"}
+    assert len(payload["items"]) == 1
+    item = payload["items"][0]
+    assert item["codigo"] == "SKU1"
+    assert item["ncm"] == "61091000"
+    assert item["valorTotal"] == 100.0
+    assert item["desconto"] == 10.0
+    assert payload["pagamentos"] == [{"tipoPagamento": "01", "valor": 90.0}]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_notaas_results() -> None:
+    async with httpx.AsyncClient() as http:
+        client = NotaasClient(http, "https://platform.notaas.com.br/api/v1", "ntaas_test_key_123")
+
+        # 1) Emissão 202 queued/processing
+        respx.post("https://platform.notaas.com.br/api/v1/nfe/emitir").mock(
+            return_value=httpx.Response(202, json={"invoiceId": "inv_abc_123", "status": "queued"})
+        )
+        r_emit = await client.emit_nfce("ref_1", {"items": []})
+        assert r_emit.status == "PROCESSING"
+        assert r_emit.provider_ref == "inv_abc_123"
+
+        # 2) Emissão autorizada direta
+        respx.post("https://platform.notaas.com.br/api/v1/nfe/emitir").mock(
+            return_value=httpx.Response(200, json={
+                "status": "issued",
+                "invoiceId": "inv_abc_123",
+                "numero": 45,
+                "serie": 1,
+                "chaveAcesso": "42260912345678000195650010000000451000000045",
+                "protocolo": "PROT45",
+                "pdfUrl": "https://danfe.pdf",
+                "xmlUrl": "https://xml.xml",
+            })
+        )
+        r_auth = await client.emit_nfce("ref_2", {"items": []})
+        assert r_auth.status == "AUTHORIZED"
+        assert r_auth.number == 45
+        assert r_auth.access_key == "42260912345678000195650010000000451000000045"
+        assert r_auth.protocol == "PROT45"
+        assert r_auth.danfe_path == "https://danfe.pdf"
+
+        # 3) Consulta status (get)
+        respx.get("https://platform.notaas.com.br/api/v1/nfe/invoices/inv_abc_123/status").mock(
+            return_value=httpx.Response(200, json={
+                "status": "issued",
+                "chaveAcesso": "42260912345678000195650010000000451000000045",
+                "protocolo": "PROT45",
+            })
+        )
+        r_get = await client.get("65", "inv_abc_123")
+        assert r_get.status == "AUTHORIZED"
+        assert r_get.access_key == "42260912345678000195650010000000451000000045"
+
+        # 4) Cancelamento de nota
+        respx.post("https://platform.notaas.com.br/api/v1/nfe/cancelar").mock(
+            return_value=httpx.Response(200, json={"status": "cancelled", "motivo": "Cancelado com sucesso"})
+        )
+        r_canc = await client.cancel("65", "inv_abc_123", "Cancelamento solicitado pelo cliente na loja")
+        assert r_canc.status == "CANCELLED"
+        assert r_canc.provider_ref == "inv_abc_123"
+
+        # 5) Ping teste de credencial
+        respx.get("https://platform.notaas.com.br/api/v1/webhooks/endpoints").mock(
+            return_value=httpx.Response(200, json={"endpoints": []})
+        )
+        ping_res = await client.ping()
+        assert ping_res["status"] == "online" and ping_res["http_status"] == 200
+
+        # 6) Erro 401 credencial recusada
+        respx.get("https://platform.notaas.com.br/api/v1/webhooks/endpoints").mock(
+            return_value=httpx.Response(401, json={"error": "Unauthorized"})
+        )
+        with pytest.raises(PermanentError):
+            await client.ping()
+
+        # 7) Erro 500 transitório
+        respx.post("https://platform.notaas.com.br/api/v1/nfe/emitir").mock(
+            return_value=httpx.Response(500)
+        )
+        with pytest.raises(TransientError):
+            await client.emit_nfce("ref_err", {})
+

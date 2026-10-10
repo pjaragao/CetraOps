@@ -34,6 +34,12 @@ function describe(provider: ProviderKey, d: Record<string, unknown>, terminals?:
       return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment)];
     case "BRASIL_NFE":
       return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment), ...row("Situação", d.status)];
+    case "NOTAAS":
+      return [
+        ...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment),
+        ...row("Modelo Padrão", d.default_model === "55" ? "NF-e (55)" : "NFC-e (65)"),
+        ...row("Status API", d.status === "online" ? "Conectado" : d.status),
+      ];
     case "STONE": {
       const count = terminals ? terminals.length : 0;
       const defT = terminals?.find((t) => t.isDefault) || terminals?.[0];

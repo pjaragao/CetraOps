@@ -1,5 +1,5 @@
 /** Catálogo dos provedores configuráveis na tela. Campos "secret" vão para o Vault (nunca voltam); "config" é não sensível e fica visível. */
-export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "BRASIL_NFE" | "STONE" | "META_CAPI" | "META_ADS";
+export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "BRASIL_NFE" | "NOTAAS" | "STONE" | "META_CAPI" | "META_ADS";
 
 export interface ProviderField {
   key: string;
@@ -79,6 +79,19 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
       { key: "uf", label: "UF da Empresa (SEFAZ)", hint: "Ex: SC, SP, RJ (usado no teste de status SEFAZ)", required: false },
     ],
     help: "Comece em Homologação para testes. Ao migrar para Produção, certifique-se de que o certificado A1 e o CSC estão configurados no painel da Brasil NFe.",
+  },
+  NOTAAS: {
+    label: "Notaas (NFC-e / NF-e)", category: "FISCAL", capability: "FISCAL",
+    description: "API de emissão fiscal para desenvolvedores (NFC-e modelo 65 e NF-e modelo 55) com webhooks em tempo real.",
+    requirements: "Conta na Notaas (notaas.com.br) com API Key (ntaas_...) e empresa configurada com certificado A1.",
+    secret: [
+      { key: "api_key", label: "Chave de API (API Key)", hint: "Chave iniciada com ntaas_ gerada no painel da Notaas", required: true },
+    ],
+    config: [
+      { key: "environment", label: "Ambiente", options: [{ value: "producao", label: "Produção" }, { value: "homologacao", label: "Homologação (testes)" }] },
+      { key: "default_model", label: "Modelo padrão", hint: "65 para NFC-e (balcão/consumidor) ou 55 para NF-e", options: [{ value: "65", label: "NFC-e (modelo 65)" }, { value: "55", label: "NF-e (modelo 55)" }] },
+    ],
+    help: "Cadastre sua API Key gerada no painel da Notaas. O sistema utiliza a API v1 para emissão e webhooks em tempo real.",
   },
   STONE: {
     label: "Stone (Maquininha Smart POS)", category: "PAYMENTS", capability: "ACQUIRER",

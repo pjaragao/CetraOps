@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Brasil NFe
     brasilnfe_api_base: str = "https://api.brasilnfe.com.br"
     brasilnfe_token: str = ""
+    # Notaas
+    notaas_api_base: str = "https://platform.notaas.com.br/api/v1"
+    notaas_token: str = ""
 
     # IA
     openrouter_base: str = "https://openrouter.ai/api/v1"

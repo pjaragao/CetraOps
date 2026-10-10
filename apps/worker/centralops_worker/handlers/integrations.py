@@ -10,6 +10,7 @@ from ..adapters.brasilnfe import BRASIL_NFE_PRODUCTION_BASE, BrasilNfeClient
 from ..adapters.errors import PermanentError, TransientError
 from ..adapters.focus import PRODUCTION_BASE, FocusClient
 from ..adapters.meta import MetaClient
+from ..adapters.notaas import NOTAAS_PRODUCTION_BASE, NotaasClient
 from ..adapters.stone import StoneClient
 from ..adapters.telegram import TelegramClient
 from ..db import call_fn, fetch_one
@@ -71,6 +72,16 @@ async def _check(deps: Deps, conn: dict[str, Any], token: str, action: str) -> d
         uf = str(cfg.get("uf") or "SC").strip().upper()
         res = await BrasilNfeClient(deps.http, base, token, user_token=user_token).ping(uf=uf, tp_amb=tp_amb)
         return {**res, "environment": "producao" if tp_amb == 1 else "homologacao"}
+    if provider == "NOTAAS":
+        base = str(cfg.get("api_base") or "").strip() or s.notaas_api_base or NOTAAS_PRODUCTION_BASE
+        env = str(cfg.get("environment", "")).lower()
+        default_model = str(cfg.get("default_model") or "65").strip()
+        res = await NotaasClient(deps.http, base, token).ping()
+        return {
+            **res,
+            "environment": "homologacao" if env in ("homologacao", "test", "teste") else "producao",
+            "default_model": default_model,
+        }
     if provider == "STONE":
         client = StoneClient(deps.http, token)
         res = await client.ping()
@@ -92,7 +103,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     if conn is None or conn["status"] == "DISABLED":
         return
     secret = await deps.secret(str(conn["id"]))
-    token = secret.get("token") or secret.get("access_token") or secret.get("api_key")
+    token = secret.get("token") or secret.get("access_token") or secret.get("api_key") or secret.get("secret_key")
     if not token:
         await _record(deps, conn["id"], False, {}, "credencial não encontrada no cofre")
         return

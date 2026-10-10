@@ -5,7 +5,7 @@ import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
 import { createRemoteOrderAction, customerCoupons, type CustomerCoupon } from "../actions";
-import { autoCouponFor, finalizeSale, type SaleInput } from "./actions";
+import { autoCouponFor, finalizeSale, getCustomerStoreCredit, type SaleInput } from "./actions";
 import { PartyPicker, type PartyHit } from "../pickers";
 import { QuickCustomerDialog } from "./quick-customer-dialog";
 import { StonePosDialog } from "../stone-pos-dialog";
@@ -72,6 +72,7 @@ export function PosTerminal({
   const [cart, setCart] = useState<CartLine[]>([]);
   const [payments, setPayments] = useState<PayLine[]>([]);
   const [customer, setCustomer] = useState<PartyHit | null>(null);
+  const [customerCredit, setCustomerCredit] = useState<number>(0);
   const [cpf, setCpf] = useState("");
   const [coupon, setCoupon] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
@@ -339,9 +340,12 @@ export function PosTerminal({
     if (missing.length) setMessage({ tone: "danger", text: `Código não encontrado no catálogo: ${[...new Set(missing)].join(", ")}` });
   };
 
-  // Ao escolher a cliente, o cupom pessoal vigente (ex.: aniversário) entra sozinho, se o campo estiver vazio
+  // Ao escolher a cliente, busca saldo de vale-troca e cupom pessoal vigente (ex.: aniversário)
   const pickCustomer = (p: PartyHit) => {
     setCustomer(p);
+    void getCustomerStoreCredit(p.id).then((credit) => {
+      setCustomerCredit(credit);
+    });
     void autoCouponFor(p.id).then((c) => {
       if (!c || coupon.trim()) return;
       setCoupon(c.code);
@@ -356,6 +360,7 @@ export function PosTerminal({
     setCart([]);
     setPayments([]);
     setCustomer(null);
+    setCustomerCredit(0);
     setCpf("");
     setCoupon("");
     setNotes("");
@@ -640,9 +645,16 @@ export function PosTerminal({
 
         <Card title="Cliente" action={!customer && <button type="button" onClick={() => setNewCustomer(true)} className="inline-flex items-center gap-1 text-xs text-brand"><UserPlus size={14} /> Novo cliente</button>}>
           {customer ? (
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2"><UserRound size={16} /> {customer.name}{customer.phone && <span className="text-xs text-muted">{customer.phone}</span>}</span>
-              <button className="text-xs text-brand" onClick={() => { setCustomer(null); setCoupon(""); }}>trocar</button>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2"><UserRound size={16} /> {customer.name}{customer.phone && <span className="text-xs text-muted">{customer.phone}</span>}</span>
+                <button className="text-xs text-brand" onClick={() => { setCustomer(null); setCustomerCredit(0); setCoupon(""); }}>trocar</button>
+              </div>
+              {customerCredit > 0 && (
+                <div className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                  <span>Vale-troca disponível: <b>{formatBRL(customerCredit)}</b></span>
+                </div>
+              )}
             </div>
           ) : (
             <PartyPicker onPick={pickCustomer} placeholder={remote ? "Buscar cliente por nome ou telefone (obrigatório)" : "Buscar cliente por nome ou telefone (opcional)"} />
@@ -673,14 +685,24 @@ export function PosTerminal({
 
         {!remote && <Card title="Pagamento" action={<span className={cn("text-sm font-medium", remaining === 0 ? "text-success" : "text-warning")}>{remaining > 0 ? `falta ${formatBRL(remaining)}` : remaining < 0 ? `troco ${formatBRL(-remaining)}` : "fechado"}</span>}>
           <div className="flex flex-wrap items-center gap-1.5">
-            {METHODS.map((m) => (
-              <button key={m.value}
-                disabled={remaining <= 0 || (m.value === "CASH" && !cashSessionId) || (m.value === "STORE_CREDIT" && !customer)}
-                onClick={() => setPayments((ps) => [...ps, { method: m.value, amount: remaining.toFixed(2).replace(".", ","), installments: 1, anticipation: "D1", nsu: "" }])}
-                className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:border-brand disabled:opacity-40"
-                title={m.value === "CASH" && !cashSessionId ? "Abra o caixa para receber em dinheiro" : undefined}
-              >+ {m.label}</button>
-            ))}
+            {METHODS.map((m) => {
+              const isCredit = m.value === "STORE_CREDIT";
+              const creditAmount = isCredit && customerCredit > 0 ? Math.min(remaining, customerCredit) : remaining;
+              const disabledCredit = isCredit && (!customer || customerCredit <= 0);
+              return (
+                <button key={m.value}
+                  disabled={remaining <= 0 || (m.value === "CASH" && !cashSessionId) || disabledCredit}
+                  onClick={() => setPayments((ps) => [...ps, { method: m.value, amount: creditAmount.toFixed(2).replace(".", ","), installments: 1, anticipation: "D1", nsu: "" }])}
+                  className={cn(
+                    "rounded-lg border px-2.5 py-1.5 text-sm hover:border-brand disabled:opacity-40",
+                    isCredit && customerCredit > 0 ? "border-success bg-success/10 text-success font-medium" : "border-border",
+                  )}
+                  title={m.value === "CASH" && !cashSessionId ? "Abra o caixa para receber em dinheiro" : isCredit && customer && customerCredit <= 0 ? "Cliente não possui saldo de vale-troca" : undefined}
+                >
+                  + {m.label}{isCredit && customerCredit > 0 ? ` (${formatBRL(customerCredit)})` : ""}
+                </button>
+              );
+            })}
             <button
               type="button"
               disabled={remaining <= 0}

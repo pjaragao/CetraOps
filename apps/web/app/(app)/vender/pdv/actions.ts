@@ -89,3 +89,11 @@ export async function autoCouponFor(partyId: string) {
   const c = data as unknown as { code: string; kind: string; value: number; valid_to: string | null } | null;
   return c ? { code: c.code, kind: c.kind, value: Number(c.value), validTo: c.valid_to } : null;
 }
+
+/** Saldo de vale-troca disponível da cliente para uso no PDV. */
+export async function getCustomerStoreCredit(partyId: string): Promise<number> {
+  const supabase = await createClient();
+  const sales = (supabase as unknown as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> } }).schema("sales");
+  const { data } = await sales.rpc("get_customer_store_credit", { p_party: partyId });
+  return Number(data) || 0;
+}

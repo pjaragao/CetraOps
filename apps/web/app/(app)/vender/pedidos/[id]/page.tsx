@@ -230,6 +230,8 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
                       <option value="READY_FOR_PICKUP">Pronto para retirar</option>
                       <option value="SHIPPED">Enviado (a caminho)</option>
                       <option value="COMPLETED">Concluído (finalizado)</option>
+                      <option value="PARTIALLY_RETURNED">Devolvido em parte</option>
+                      <option value="RETURNED">Devolvido (total)</option>
                       <option value="CANCELLED">Cancelado</option>
                     </select>
                   </Field>
@@ -266,9 +268,43 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
               <p className="mt-2 text-xs text-muted">Libera as peças reservadas. Pedido já pago se resolve por devolução.</p>
             </Card>
           )}
-          {(returns ?? []).length > 0 && (
+          {((returns ?? []).length > 0 || returnable) && (
             <Card title="Trocas e devoluções">
-              <ul className="divide-y divide-border text-sm">{(returns ?? []).map((r) => <li key={r.id} className="flex justify-between py-1.5"><Link className="text-brand" href="/vender/trocas">{r.number}</Link><span>{formatBRL(r.amount)} · {r.refund_method === "STORE_CREDIT" ? "vale-troca" : r.refund_method?.toLowerCase()}</span></li>)}</ul>
+              {(returns ?? []).length > 0 ? (
+                <div className="space-y-2">
+                  <ul className="divide-y divide-border text-sm">
+                    {(returns ?? []).map((r) => (
+                      <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <div>
+                          <Link className="font-medium text-brand hover:underline" href="/vender/trocas">
+                            {r.number}
+                          </Link>
+                          <span className="ml-2 text-xs text-muted">
+                            {r.type === "EXCHANGE" ? "Troca" : r.type === "STORE_CREDIT" ? "Vale-troca" : "Devolução"} · {r.refund_method === "STORE_CREDIT" ? "vale-troca gerado" : r.refund_method?.toLowerCase()}
+                          </span>
+                        </div>
+                        <span className="font-semibold">{formatBRL(r.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {returnable && canWrite && (
+                    <div className="pt-2 border-t border-border">
+                      <LinkButton href={`/vender/trocas/nova?n=${o.number}`} variant="secondary">
+                        + Nova troca / devolução deste pedido
+                      </LinkButton>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted">Nenhuma peça deste pedido foi devolvida.</span>
+                  {returnable && canWrite && (
+                    <LinkButton href={`/vender/trocas/nova?n=${o.number}`} variant="secondary">
+                      Registrar troca ou devolução
+                    </LinkButton>
+                  )}
+                </div>
+              )}
             </Card>
           )}
         </div>

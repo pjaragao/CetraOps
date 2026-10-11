@@ -19,7 +19,7 @@ on conflict (org_id, key) do nothing;
 
 insert into core.role_permissions (role_id, permission_key)
 select r.id, p from core.roles r, unnest(case r.key
-  when 'seller' then array['crm.read', 'crm.write', 'catalog.read', 'inv.read', 'sales.read', 'sales.write',
+  when 'seller' then array['crm.read', 'crm.write', 'catalog.read', 'inv.read', 'sales.read', 'sales.write', 'sales.custom_item',
                            'omni.read', 'omni.write', 'ai.read', 'fin.reimburse', 'ai.assistant']
   when 'finance' then array['core.read', 'crm.read', 'catalog.read', 'inv.read', 'sales.read', 'fin.read', 'fin.write',
                             'fiscal.read', 'fiscal.write', 'ai.read', 'fin.reimburse', 'ai.assistant']

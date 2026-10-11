@@ -514,6 +514,31 @@ def test_notaas_payload_mapping() -> None:
     assert payload["pagamentos"] == [{"tipoPagamento": "01", "valor": 90.0}]
 
 
+NOTAAS_DOC = {"itens": [{"codigo": "SKU1", "descricao": "Camiseta", "ncm": "61091000", "cfop": "5102", "quantidade": 1, "valor_unitario": 50.0, "valor_total": 50.0}],
+              "formas_pagamento": [{"forma_pagamento": "17", "valor_pagamento": 50.0}]}
+
+
+def test_notaas_payload_never_invents_data() -> None:
+    with pytest.raises(PermanentError):
+        _to_notaas_payload(65, "r", {"itens": [], "formas_pagamento": [{"forma_pagamento": "01", "valor_pagamento": 10}]})      # sem itens
+    with pytest.raises(PermanentError):
+        _to_notaas_payload(65, "r", {**NOTAAS_DOC, "formas_pagamento": []})                                                     # sem pagamento
+    with pytest.raises(PermanentError):
+        _to_notaas_payload(65, "r", {**NOTAAS_DOC, "itens": [{**NOTAAS_DOC["itens"][0], "ncm": None}]})                         # sem NCM
+    with pytest.raises(PermanentError):
+        _to_notaas_payload(65, "r", {**NOTAAS_DOC, "itens": [{**NOTAAS_DOC["itens"][0], "valor_total": 0, "valor_unitario": 0}]})
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_notaas_async_cancellation_is_not_reported_as_done() -> None:
+    async with httpx.AsyncClient() as http:
+        client = NotaasClient(http, "https://platform.notaas.com.br/api/v1", "ntaas_test_key_123")
+        respx.post("https://platform.notaas.com.br/api/v1/nfe/cancelar").mock(return_value=httpx.Response(202, json={"status": "queued"}))
+        r = await client.cancel("65", "inv_1", "Cancelamento solicitado pelo cliente na loja")
+        assert r.status == "PROCESSING" and r.provider_ref == "inv_1"
+
+
 @pytest.mark.asyncio
 @respx.mock
 async def test_notaas_results() -> None:
@@ -524,7 +549,7 @@ async def test_notaas_results() -> None:
         respx.post("https://platform.notaas.com.br/api/v1/nfe/emitir").mock(
             return_value=httpx.Response(202, json={"invoiceId": "inv_abc_123", "status": "queued"})
         )
-        r_emit = await client.emit_nfce("ref_1", {"items": []})
+        r_emit = await client.emit_nfce("ref_1", NOTAAS_DOC)
         assert r_emit.status == "PROCESSING"
         assert r_emit.provider_ref == "inv_abc_123"
 
@@ -541,7 +566,7 @@ async def test_notaas_results() -> None:
                 "xmlUrl": "https://xml.xml",
             })
         )
-        r_auth = await client.emit_nfce("ref_2", {"items": []})
+        r_auth = await client.emit_nfce("ref_2", NOTAAS_DOC)
         assert r_auth.status == "AUTHORIZED"
         assert r_auth.number == 45
         assert r_auth.access_key == "42260912345678000195650010000000451000000045"
@@ -587,5 +612,5 @@ async def test_notaas_results() -> None:
             return_value=httpx.Response(500)
         )
         with pytest.raises(TransientError):
-            await client.emit_nfce("ref_err", {})
+            await client.emit_nfce("ref_err", NOTAAS_DOC)
 

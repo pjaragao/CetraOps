@@ -13,7 +13,7 @@ import respx
 from centralops_worker import queues
 from centralops_worker.db import call_fn, fetch_all, fetch_one
 from centralops_worker.handlers import fiscal
-from centralops_worker.runner import RetryLater
+from centralops_worker.runner import PermanentError, RetryLater
 
 from .conftest import ORG, STORE
 
@@ -192,3 +192,77 @@ async def test_connection_from_the_integrations_screen_wins_over_environment(poo
     await fiscal.handle(d, job(order))
     assert route.called and route.calls[0].request.headers["authorization"] == "Basic " + base64.b64encode(b"TOKEN-DA-TELA:").decode()
     assert (await document(pool, order))["status"] == "AUTHORIZED"  # type: ignore[index]
+
+
+async def connection(pool: Any, provider: str, secret: dict[str, Any], config: dict[str, Any]) -> None:
+    suffix = uuid.uuid4().hex[:8]
+    name = f"integ/test/{provider}/{suffix}"
+    await fetch_one(pool, "select vault.create_secret(%s, %s)", (json.dumps(secret), name))
+    await fetch_one(pool, "insert into core.integration_connections (org_id, provider, capability, config, secret_ref, status) values (%s, %s, %s, %s, %s, 'ACTIVE') returning id",
+                    (ORG, provider, f"T_{suffix}", json.dumps(config), name))
+
+
+@respx.mock
+async def test_custom_item_goes_into_the_note_and_without_ncm_nothing_is_emitted(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    await fetch_one(pool, "insert into sales.order_items (org_id, order_id, description, qty, list_price, unit_price, total) values (%s, %s, 'Ajuste de barra', 1, 30, 30, 30) returning id", (ORG, order["id"]))
+    route = respx.post("https://focus.test/v2/nfce").mock(return_value=httpx.Response(201, json=AUTHORIZED))
+    doc = await call_fn(pool, "fiscal.emission_payload", order["id"], "SALE")
+    assert [i["descricao"] for i in doc["document"]["itens"]][-1] == "Ajuste de barra"                       # antes o item avulso sumia da nota
+    with pytest.raises(PermanentError):
+        await fiscal.handle(deps, job(order))                                                                  # sem NCM: não emite nota com dado inventado
+    assert not route.called
+    row = await fetch_one(pool, "select title from core.notifications where kind = 'FISCAL_REJECTED' order by created_at desc, id desc limit 1")
+    assert row and "sem NCM" in row["title"] and "Ajuste de barra" in row["title"]
+
+
+@respx.mock
+async def test_primary_connection_wins_and_brasil_nfe_homologation_is_sent_as_test(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    import dataclasses
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": "", "brasilnfe_api_base": "https://bnfe.test"}))
+    await connection(pool, "BRASIL_NFE", {"token": "BNFE"}, {"environment": "homologacao", "primary": "true"})
+    await connection(pool, "FOCUS_NFE", {"token": "FOCUS"}, {"environment": "producao"})                       # editada por último, mas não é a principal
+    route = respx.post("https://bnfe.test/EnviarNotaFiscal").mock(return_value=httpx.Response(200, json={"Status": "autorizado", "Numero": 7, "Chave": KEY}))
+    focus = respx.post(url__regex=r"https://api\.focusnfe\.com\.br/.*").mock(return_value=httpx.Response(201, json=AUTHORIZED))
+    await fiscal.handle(d, job(order))
+    assert route.called and not focus.called
+    assert json.loads(route.calls[0].request.content)["TipoAmbiente"] == 2                                  # homologação na tela = homologação na emissão
+
+
+@respx.mock
+async def test_notaas_in_homologation_without_test_url_does_not_emit(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    import dataclasses
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": ""}))
+    await connection(pool, "NOTAAS", {"api_key": "ntaas_x"}, {"environment": "homologacao", "primary": "true"})
+    route = respx.post(url__regex=r"https://platform\.notaas\.com\.br/.*").mock(return_value=httpx.Response(202, json={"invoiceId": "x"}))
+    with pytest.raises(RetryLater):
+        await fiscal.handle(d, job(order))
+    assert not route.called                                                                                    # nunca emite nota real achando que é teste
+    row = await fetch_one(pool, "select title from core.notifications where kind = 'INTEGRATION_ERROR' order by created_at desc, id desc limit 1")
+    assert row and "homologação" in row["title"]
+
+
+@respx.mock
+async def test_dfe_sync_ignores_notaas_which_has_no_mde(pool: Any, deps: Any) -> None:
+    import dataclasses
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": ""}))
+    await connection(pool, "NOTAAS", {"api_key": "ntaas_x"}, {"environment": "producao", "primary": "true"})
+    calls = respx.route(url__regex=r".*").mock(return_value=httpx.Response(200, json={}))
+    await fiscal.handle(d, queues.QueueMessage("fiscal_emission", 1, 1, {"action": "DFE_SYNC", "org_id": ORG}))   # antes: AttributeError a cada 2 h
+    assert not calls.called
+
+
+@respx.mock
+async def test_async_cancellation_is_confirmed_later(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    import dataclasses
+    doc_id = await _authorized_document(pool, deps, order)
+    await fetch_one(pool, "update fiscal.documents set provider_ref = 'inv_9' where id = %s returning id", (doc_id,))
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": ""}))
+    await connection(pool, "NOTAAS", {"api_key": "ntaas_x"}, {"environment": "producao", "primary": "true"})
+    respx.post("https://platform.notaas.com.br/api/v1/nfe/cancelar").mock(return_value=httpx.Response(202, json={"status": "queued"}))
+    await fiscal.handle(d, cancel_job(order, doc_id))
+    assert (await document(pool, order))["status"] == "AUTHORIZED"  # type: ignore[index]                  # aceito não é cancelado
+    check = await fetch_one(pool, "select message from pgmq.q_fiscal_emission where message ->> 'action' = 'CANCEL_CHECK' order by msg_id desc limit 1")
+    assert check and check["message"]["document_id"] == doc_id
+    respx.get("https://platform.notaas.com.br/api/v1/nfe/invoices/inv_9/status").mock(return_value=httpx.Response(200, json={"status": "cancelled", "protocolo": "P-C9"}))
+    await fiscal.handle(d, queues.QueueMessage("fiscal_emission", 1, 1, check["message"]))
+    assert (await document(pool, order))["status"] == "CANCELLED"  # type: ignore[index]

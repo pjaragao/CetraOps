@@ -143,8 +143,9 @@ def _parse(data: dict[str, Any]) -> BrasilNfeResult:
 
 
 class BrasilNfeClient:
-    def __init__(self, http: httpx.AsyncClient, base: str, token: str, user_token: str | None = None) -> None:
+    def __init__(self, http: httpx.AsyncClient, base: str, token: str, user_token: str | None = None, tp_amb: int = 2) -> None:
         self._http, self._base = http, base.rstrip("/")
+        self._tp_amb = 1 if tp_amb == 1 else 2                       # 1 = produção, 2 = homologação (padrão seguro: testes)
         self._token = token.strip()
         self._user_token = (user_token or token).strip()
         self._headers = {
@@ -188,12 +189,12 @@ class BrasilNfeClient:
 
     async def emit_nfce(self, ref: str, document: dict[str, Any]) -> BrasilNfeResult:
         """Emite NFC-e (modelo 65)."""
-        payload = {**document, "ModeloDocumento": 65, "Identificador": ref, "ref": ref}
+        payload = {**document, "ModeloDocumento": 65, "TipoAmbiente": self._tp_amb, "Identificador": ref, "ref": ref}
         return self._result(await self._request("POST", "/EnviarNotaFiscal", json=payload))
 
     async def emit_nfe(self, ref: str, document: dict[str, Any]) -> BrasilNfeResult:
         """Emite NF-e (modelo 55)."""
-        payload = {**document, "ModeloDocumento": 55, "Identificador": ref, "ref": ref}
+        payload = {**document, "ModeloDocumento": 55, "TipoAmbiente": self._tp_amb, "Identificador": ref, "ref": ref}
         return self._result(await self._request("POST", "/EnviarNotaFiscal", json=payload))
 
     async def get(self, model: str, ref: str) -> BrasilNfeResult:

@@ -83,8 +83,10 @@ def _to_notaas_payload(model: int, ref: str, document: dict[str, Any]) -> dict[s
     for it in raw_items:
         codigo = str(it.get("codigo") or it.get("codigo_produto") or it.get("sku") or "ITEM")
         descricao = str(it.get("descricao") or it.get("xProd") or it.get("name") or "Produto")
-        ncm = "".join(c for c in str(it.get("ncm") or it.get("codigo_ncm") or "61091000") if c.isdigit())
-        cfop = "".join(c for c in str(it.get("cfop") or "5102") if c.isdigit())
+        ncm = "".join(c for c in str(it.get("ncm") or it.get("codigo_ncm") or "") if c.isdigit())
+        cfop = "".join(c for c in str(it.get("cfop") or "") if c.isdigit())
+        if len(ncm) != 8 or len(cfop) != 4:
+            raise PermanentError(f"Item «{descricao}» sem NCM (8 dígitos) ou CFOP (4 dígitos): a nota não é emitida com dado inventado")
         qty = float(it.get("quantidade") or it.get("quantidade_comercial") or it.get("qty") or 1)
         v_un = float(it.get("valorUnitario") or it.get("valor_unitario") or it.get("valor_unitario_comercial") or it.get("list_price") or 0)
         v_tot = float(it.get("valorTotal") or it.get("valor_total") or it.get("valor_bruto") or it.get("total") or 0)
@@ -101,11 +103,11 @@ def _to_notaas_payload(model: int, ref: str, document: dict[str, Any]) -> dict[s
         item_dict: dict[str, Any] = {
             "codigo": codigo,
             "descricao": descricao,
-            "ncm": ncm.zfill(8) if len(ncm) < 8 else ncm[:8],
-            "cfop": cfop.zfill(4) if len(cfop) < 4 else cfop[:4],
+            "ncm": ncm,
+            "cfop": cfop,
             "quantidade": qty,
             "valorUnitario": v_un,
-            "valorTotal": max(v_tot, 0.01),
+            "valorTotal": v_tot,
             "unidade": unidade,
         }
         if len(cst_csosn) <= 2:
@@ -119,17 +121,9 @@ def _to_notaas_payload(model: int, ref: str, document: dict[str, Any]) -> dict[s
         items.append(item_dict)
 
     if not items:
-        items.append({
-            "codigo": "ITEM01",
-            "descricao": "Item Avulso",
-            "ncm": "61091000",
-            "cfop": "5102",
-            "quantidade": 1,
-            "valorUnitario": 1.0,
-            "valorTotal": 1.0,
-            "unidade": "UN",
-            "csosn": "102",
-        })
+        raise PermanentError("Nota sem itens: nada a emitir")
+    if any(i["valorTotal"] <= 0 or i["quantidade"] <= 0 for i in items):
+        raise PermanentError("Item com valor ou quantidade zerada: confira o pedido")
 
     raw_pays = document.get("pagamentos") or document.get("formas_pagamento") or []
     pagamentos: list[dict[str, Any]] = []
@@ -138,9 +132,8 @@ def _to_notaas_payload(model: int, ref: str, document: dict[str, Any]) -> dict[s
         v_pag = float(p.get("valor") or p.get("valor_pagamento") or p.get("amount") or 0)
         pagamentos.append({"tipoPagamento": t_pag, "valor": v_pag})
 
-    if not pagamentos:
-        tot_items = sum(it["valorTotal"] for it in items)
-        pagamentos.append({"tipoPagamento": "01", "valor": round(tot_items, 2)})
+    if not pagamentos or sum(p["valor"] for p in pagamentos) <= 0:
+        raise PermanentError("Nota sem forma de pagamento registrada: nada é presumido (registre o pagamento do pedido)")
 
     payload: dict[str, Any] = {
         "modelo": model,
@@ -280,13 +273,11 @@ class NotaasClient:
 
         resp = await self._request("POST", "/nfe/cancelar", json=body)
         res = self._result(resp)
-        if resp.status_code in (200, 202):
-            return NotaasResult(
-                status="CANCELLED",
-                provider_ref=ref,
-                message=res.message or "Cancelamento registrado",
-                raw=res.raw,
-            )
+        if resp.status_code == 202:
+            # pedido aceito, a SEFAZ ainda vai responder: o worker consulta depois (nunca marca cancelada antes)
+            return NotaasResult(status="PROCESSING", provider_ref=ref, message=res.message, raw=res.raw)
+        if resp.status_code == 200 and res.status in ("CANCELLED", "PROCESSING"):
+            return NotaasResult(status=res.status, provider_ref=ref, message=res.message, protocol=res.protocol, code=res.code, raw=res.raw)
         return res
 
     async def ping(self) -> dict[str, Any]:

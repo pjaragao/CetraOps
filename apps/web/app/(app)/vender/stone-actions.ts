@@ -5,7 +5,8 @@ import { z } from "zod";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
-import { cancelPosOrder, getPosOrder, sendPosOrder } from "@/lib/stone";
+import { cancelPosOrder, sendPosOrder } from "@/lib/stone";
+import { stoneSecret, syncStoneOrder } from "@/lib/stone-sync";
 
 export interface StoneTerminal {
   id: string;
@@ -26,52 +27,22 @@ const sendSchema = z.object({
   customerDoc: z.string().optional(),
 });
 
-function salesRpc(client: unknown) {
-  return (client as { schema: (s: string) => { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> } }).schema("sales");
-}
-
+/** Configuração para a tela (maquininhas e ambiente). A chave secreta nunca passa por aqui. */
 async function resolveStoneConfig() {
   const supabase = await createClient();
-  const { data } = await salesRpc(supabase).rpc("get_stone_config");
-  const cfg = data as unknown as {
-    has_integration: boolean;
-    secret_key: string | null;
-    stone_code: string | null;
-    default_serial_number: string | null;
-    terminals: StoneTerminal[] | null;
-    environment: string;
-  } | null;
-
-  const envKey = process.env.CENTRALOPS_STONE_SECRET_KEY || process.env.STONE_SECRET_KEY || "";
-  const envSerial = process.env.CENTRALOPS_STONE_DEFAULT_SERIAL || process.env.STONE_DEFAULT_SERIAL || "";
-
-  const secretKey = cfg?.secret_key || envKey || null;
-  let terminals = Array.isArray(cfg?.terminals) ? cfg.terminals : [];
+  const { data } = await supabase.schema("sales").rpc("get_stone_config");
+  const cfg = data as unknown as { has_integration: boolean; stone_code: string | null; default_serial_number: string | null; terminals: { id: string; name: string; serial: string; is_default?: boolean }[] | null; environment: string } | null;
+  const envSerial = process.env.CENTRALOPS_STONE_DEFAULT_SERIAL || "";
+  let terminals: StoneTerminal[] = (cfg?.terminals ?? []).map((t) => ({ id: t.id, name: t.name, serial: t.serial, isDefault: Boolean(t.is_default) }));
   let defaultSerial = cfg?.default_serial_number || envSerial || null;
-
-  if (terminals.length === 0 && defaultSerial) {
-    terminals = [{ id: "default", name: "Maquininha Padrão", serial: defaultSerial, isDefault: true }];
-  }
-  if (!defaultSerial && terminals.length > 0) {
-    const def = terminals.find((t) => t.isDefault) || terminals[0];
-    defaultSerial = def.serial;
-  }
-
-  const stoneCode = cfg?.stone_code || null;
-
-  return {
-    hasIntegration: Boolean(secretKey),
-    secretKey,
-    defaultSerialNumber: defaultSerial,
-    terminals,
-    stoneCode,
-    environment: cfg?.environment || "producao",
-  };
+  if (terminals.length === 0 && defaultSerial) terminals = [{ id: "default", name: "Maquininha Padrão", serial: defaultSerial, isDefault: true }];
+  if (!defaultSerial && terminals.length > 0) defaultSerial = (terminals.find((t) => t.isDefault) ?? terminals[0]).serial;
+  return { hasIntegration: Boolean(cfg?.has_integration) || Boolean(process.env.CENTRALOPS_STONE_SECRET_KEY), defaultSerialNumber: defaultSerial, terminals, stoneCode: cfg?.stone_code ?? null, environment: cfg?.environment || "producao" };
 }
 
 /** Salva ou atualiza a lista de maquininhas Stone (nome, serial e padrão). */
 export async function saveStoneTerminalsAction(terminals: StoneTerminal[]) {
-  await requirePerm("sales.write");
+  await requirePerm("core.admin");
   const supabase = await createClient();
   const cleanTerminals = (terminals ?? []).map((t, idx) => ({
     id: t.id || `term_${Date.now()}_${idx}`,
@@ -86,7 +57,7 @@ export async function saveStoneTerminalsAction(terminals: StoneTerminal[]) {
     cleanTerminals[0].is_default = true;
   }
 
-  const { data, error } = await salesRpc(supabase).rpc("save_stone_terminals", {
+  const { data, error } = await supabase.schema("sales").rpc("save_stone_terminals", {
     p_terminals: cleanTerminals as unknown as Json,
   });
 
@@ -111,11 +82,13 @@ export async function getStoneConfigAction() {
 
 /** Envia o pedido / cobrança diretamente para a maquininha Smart POS da Stone. */
 export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
+  const session = await requirePerm("sales.write");
   const parsed = sendSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Dados inválidos para cobrança na maquininha" };
 
   const cfg = await resolveStoneConfig();
-  if (!cfg.hasIntegration || !cfg.secretKey) {
+  const secretKey = await stoneSecret(session.orgId);
+  if (!secretKey) {
     return {
       ok: false as const,
       error: "Integração da Stone não configurada. Conecte sua chave em Configurações › Integrações.",
@@ -142,7 +115,7 @@ export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
     : "Venda Balcão PDV";
 
   try {
-    const orderRes = await sendPosOrder(cfg.secretKey, {
+    const orderRes = await sendPosOrder(secretKey, {
       code,
       amountCents: Math.round(parsed.data.amount * 100),
       terminalSerial: serial,
@@ -156,8 +129,8 @@ export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
     });
 
     const supabase = await createClient();
-    await salesRpc(supabase).rpc("record_stone_pos_order", {
-      p_order_id: parsed.data.orderId || null,
+    const { error: recErr } = await supabase.schema("sales").rpc("record_stone_pos_order", {
+      p_order_id: (parsed.data.orderId || null) as unknown as string,      // venda de balcão ainda sem pedido: nulo
       p_stone_order_id: orderRes.id,
       p_terminal_serial: serial,
       p_amount: parsed.data.amount,
@@ -165,8 +138,12 @@ export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
       p_installments: parsed.data.installments,
       p_display_name: displayName,
       p_raw: orderRes.raw as unknown as Json,
-      p_terminal_name: terminalName,
+      p_terminal_name: terminalName ?? undefined,
     });
+    if (recErr) {
+      await cancelPosOrder(secretKey, orderRes.id).catch(() => null);     // sem registro aqui não há como conferir depois: desfaz na maquininha
+      return { ok: false as const, error: recErr.message };
+    }
 
     return {
       ok: true as const,
@@ -185,54 +162,21 @@ export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
   }
 }
 
-/** Verifica se a cobrança foi paga na maquininha da Stone e concilia a venda. */
+/** Confere na API da Stone se a cobrança foi paga e, se foi, registra (o valor e a forma vêm da Stone, não da tela). */
 export async function checkStonePosPaymentAction(stoneOrderId: string, orderId?: string) {
-  const cfg = await resolveStoneConfig();
-  if (!cfg.hasIntegration || !cfg.secretKey) {
-    return { ok: false as const, error: "Credencial da Stone não encontrada" };
-  }
-
+  const session = await requirePerm("sales.write");
+  if (!/^[A-Za-z0-9_-]{4,64}$/.test(stoneOrderId)) return { ok: false as const, error: "Cobrança inválida" };
   try {
-    const res = await getPosOrder(cfg.secretKey, stoneOrderId);
-
-    if (res.status === "paid" || res.charge?.paid) {
-      const nsu = res.charge?.nsu || "STONE-PAID";
-      const authCode = res.charge?.authCode || undefined;
-      const cardBrand = res.charge?.cardBrand || undefined;
-
-      const supabase = await createClient();
-      await salesRpc(supabase).rpc("complete_stone_pos_payment", {
-        p_stone_order_id: stoneOrderId,
-        p_nsu: nsu,
-        p_auth_code: authCode || null,
-        p_card_brand: cardBrand || null,
-        p_raw: res.raw as unknown as Json,
-      });
-
-      if (orderId) {
-        revalidatePath(`/vender/pedidos/${orderId}`);
-      }
+    const res = await syncStoneOrder(session.orgId, stoneOrderId);
+    if (!res.ok) return { ok: false as const, error: res.error };
+    if (res.paid) {
+      if (orderId) revalidatePath(`/vender/pedidos/${orderId}`);
       revalidatePath("/vender/pdv");
       revalidatePath("/vender/pedidos");
       revalidatePath("/inicio");
-
-      return {
-        ok: true as const,
-        paid: true as const,
-        nsu,
-        authCode,
-        cardBrand,
-        amount: (res.charge?.amountCents ?? 0) / 100,
-        method: res.charge?.method,
-      };
+      return { ok: true as const, paid: true as const, nsu: res.nsu ?? stoneOrderId, authCode: res.authCode, cardBrand: res.cardBrand, amount: res.amount, method: res.method, installments: res.installments };
     }
-
-    if (res.status === "canceled") {
-      const supabase = await createClient();
-      await salesRpc(supabase).rpc("cancel_stone_pos_order", { p_stone_order_id: stoneOrderId });
-      return { ok: true as const, paid: false as const, canceled: true as const };
-    }
-
+    if (res.canceled) return { ok: true as const, paid: false as const, canceled: true as const };
     return { ok: true as const, paid: false as const, status: res.status };
   } catch (e) {
     return { ok: false as const, error: (e as Error).message };
@@ -241,11 +185,10 @@ export async function checkStonePosPaymentAction(stoneOrderId: string, orderId?:
 
 /** Cancela a ordem na maquininha se o operador desistir ou quiser mudar a forma. */
 export async function cancelStonePosOrderAction(stoneOrderId: string) {
-  const cfg = await resolveStoneConfig();
-  if (cfg.secretKey) {
-    await cancelPosOrder(cfg.secretKey, stoneOrderId).catch(() => null);
-  }
+  const session = await requirePerm("sales.write");
+  const secretKey = await stoneSecret(session.orgId);
+  if (secretKey) await cancelPosOrder(secretKey, stoneOrderId).catch(() => null);
   const supabase = await createClient();
-  await salesRpc(supabase).rpc("cancel_stone_pos_order", { p_stone_order_id: stoneOrderId });
-  return { ok: true as const };
+  const { error } = await supabase.schema("sales").rpc("cancel_stone_pos_order", { p_stone_order_id: stoneOrderId });
+  return error ? { ok: false as const, error: error.message } : { ok: true as const };
 }

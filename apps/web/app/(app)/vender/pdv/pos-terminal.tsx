@@ -33,7 +33,7 @@ export interface CartLine {
   discountReason?: string;
 }
 
-interface PayLine { method: Method; amount: string; installments: number; anticipation: "D1" | "NATURAL"; nsu: string }
+interface PayLine { method: Method; amount: string; installments: number; anticipation: "D1" | "NATURAL"; nsu: string; stoneOrderId?: string }
 
 const METHODS: { value: Method; label: string }[] = [
   { value: "PIX", label: "Pix" }, { value: "DEBIT", label: "Débito" }, { value: "CREDIT", label: "Crédito" },
@@ -206,23 +206,58 @@ export function PosTerminal({
     return () => clearTimeout(handle);
   }, [DRAFT_KEY, initialDraft, products]);
 
-  // Auto-salvar no banco de dados (sales.orders com status DRAFT) a cada alteração
+  // Auto-salvar no banco (sales.orders em DRAFT). Uma gravação por vez: a próxima espera a anterior terminar (senão o primeiro
+  // salvamento ainda sem id criava rascunhos duplicados). Se a venda for concluída/descartada no meio, o resultado atrasado é jogado fora.
+  const draftGenRef = useRef(0);
+  const draftBusyRef = useRef(false);
+  const draftNextRef = useRef<{ gen: number; input: Omit<Parameters<typeof saveOrderDraft>[0], "orderId"> } | null>(null);
+
+  const flushDraft = async () => {
+    if (draftBusyRef.current) return;
+    draftBusyRef.current = true;
+    try {
+      while (draftNextRef.current) {
+        const job = draftNextRef.current;
+        draftNextRef.current = null;
+        if (job.gen !== draftGenRef.current) continue;
+        setDraftSaveStatus("saving");
+        const res = await saveOrderDraft({ ...job.input, orderId: draftOrderIdRef.current }).catch((e: unknown) => ({ ok: false as const, error: String(e) }));
+        if (job.gen !== draftGenRef.current) {
+          if (res.ok && res.id !== draftOrderIdRef.current) void discardDraftOrder(res.id);       // venda já concluída/descartada: não deixa rascunho órfão
+          continue;
+        }
+        if (res.ok) {
+          draftOrderIdRef.current = res.id;
+          setDbDraftOrderId(res.id);
+          setDbDraftOrderNumber(res.number);
+          setDraftSaveStatus("saved");
+        } else {
+          console.error("Erro no auto-save do pedido:", res.error);
+          setDraftSaveStatus("error");
+        }
+      }
+    } finally {
+      draftBusyRef.current = false;
+    }
+  };
+
   useEffect(() => {
     if (!isInitialLoadDone) return;
-
     if (cart.length === 0) {
       try { localStorage.removeItem(DRAFT_KEY); } catch {}
-      setDraftSaveStatus("idle");
       return;
     }
-
-    setDraftSaveStatus("saving");
-
-    const timer = setTimeout(async () => {
-      try {
-        const currentOrderId = draftOrderIdRef.current;
-        const res = await saveOrderDraft({
-          orderId: currentOrderId,
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        dbDraftOrderId: draftOrderIdRef.current, dbDraftOrderNumber, cart, customer, cpf, coupon, mode, channel, fulfillment,
+        shipping, holdHours, notes, payments, updatedAt: new Date().toISOString(),
+      }));
+    } catch {}
+    const gen = draftGenRef.current;
+    const timer = setTimeout(() => {
+      draftNextRef.current = {
+        gen,
+        input: {
           storeId,
           partyId: customer?.id ?? null,
           couponCode: coupon.trim() || null,
@@ -239,52 +274,12 @@ export function PosTerminal({
             discountAmount: l.discountAmount,
             discountReason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : null),
           })),
-        });
-
-        if (res.ok) {
-          draftOrderIdRef.current = res.id;
-          setDbDraftOrderId(res.id);
-          setDbDraftOrderNumber(res.number);
-          setDraftSaveStatus("saved");
-
-          try {
-            localStorage.setItem(
-              DRAFT_KEY,
-              JSON.stringify({
-                dbDraftOrderId: res.id,
-                dbDraftOrderNumber: res.number,
-                cart, customer, cpf, coupon, mode, channel, fulfillment,
-                shipping, holdHours, notes, payments, updatedAt: new Date().toISOString(),
-              }),
-            );
-          } catch {}
-        } else {
-          console.error("Erro no auto-save do pedido:", res.error);
-          setDraftSaveStatus("error");
-        }
-      } catch (err) {
-        console.error("Falha no auto-save:", err);
-        setDraftSaveStatus("error");
-      }
-    }, 500);
-
+        },
+      };
+      void flushDraft();
+    }, 800);
     return () => clearTimeout(timer);
-  }, [
-    isInitialLoadDone,
-    cart,
-    customer,
-    cpf,
-    coupon,
-    mode,
-    channel,
-    fulfillment,
-    shipping,
-    holdHours,
-    notes,
-    payments,
-    storeId,
-    DRAFT_KEY,
-  ]);
+  }, [isInitialLoadDone, cart, customer, cpf, coupon, mode, channel, fulfillment, shipping, holdHours, notes, payments, storeId, DRAFT_KEY, dbDraftOrderNumber]);
 
   // Cupons que a cliente tem (dela ou já usados e ainda válidos), conferidos pelo banco com o total atual
   useEffect(() => {
@@ -477,6 +472,7 @@ export function PosTerminal({
   };
 
   const discardDraft = () => {
+    draftGenRef.current += 1;
     const currentOrderId = draftOrderIdRef.current;
     if (currentOrderId) {
       void discardDraftOrder(currentOrderId);
@@ -507,6 +503,7 @@ export function PosTerminal({
       setMessage({ tone: "danger", text: "Pedido remoto precisa de cliente: busque ou cadastre." });
       return;
     }
+    draftGenRef.current += 1;
     const currentOrderId = draftOrderIdRef.current;
     if (currentOrderId) {
       void discardDraftOrder(currentOrderId);
@@ -561,10 +558,11 @@ export function PosTerminal({
       })),
       payments: payments.map((p) => ({
         method: p.method, amount: Number(p.amount.replace(",", ".")), installments: p.installments,
-        anticipation: p.anticipation, nsu: p.nsu || undefined,
+        anticipation: p.anticipation, nsu: p.nsu || undefined, stoneOrderId: p.stoneOrderId,
       })),
     });
     if (!r.ok) { setMessage({ tone: "danger", text: r.error }); return; }
+    draftGenRef.current += 1;                                              // gravação de rascunho em andamento não recria o pedido já vendido
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
@@ -1011,6 +1009,7 @@ export function PosTerminal({
                     amount: res.amount.toFixed(2).replace(".", ","),
                     installments: res.installments,
                     nsu: res.nsu,
+                    stoneOrderId: res.stoneOrderId,
                   }
                 : p,
             ),
@@ -1024,6 +1023,7 @@ export function PosTerminal({
               installments: res.installments,
               anticipation: "D1",
               nsu: res.nsu,
+              stoneOrderId: res.stoneOrderId,
             },
           ]);
         }

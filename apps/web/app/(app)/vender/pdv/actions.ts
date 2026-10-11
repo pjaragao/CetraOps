@@ -26,6 +26,7 @@ const saleSchema = z.object({
     installments: z.number().int().min(1).max(12),
     anticipation: z.enum(["D1", "NATURAL"]),
     nsu: z.string().max(40).optional(),
+    stoneOrderId: z.string().regex(/^[A-Za-z0-9_-]{4,64}$/).optional(),
   })).min(1),
 });
 
@@ -63,6 +64,7 @@ export async function finalizeSale(input: SaleInput): Promise<SaleResult> {
         acquirer: ["DEBIT", "CREDIT"].includes(p.method) ? "STONE" : null,
         anticipation_mode: p.method === "CREDIT" ? p.anticipation : null,
         nsu: p.nsu || null,
+        external_id: p.stoneOrderId || null,              // cobrança da maquininha: o banco confere com a Stone e não deixa usar duas vezes
       })),
     },
   });
@@ -95,8 +97,7 @@ export async function autoCouponFor(partyId: string) {
 /** Saldo de vale-troca disponível da cliente para uso no PDV. */
 export async function getCustomerStoreCredit(partyId: string): Promise<number> {
   const supabase = await createClient();
-  const sales = (supabase as unknown as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> } }).schema("sales");
-  const { data } = await sales.rpc("get_customer_store_credit", { p_party: partyId });
+  const { data } = await supabase.schema("sales").rpc("get_customer_store_credit", { p_party: partyId });
   return Number(data) || 0;
 }
 
@@ -130,11 +131,7 @@ export async function saveOrderDraft(input: DraftInput): Promise<DraftResult> {
   const d = parsed.data;
   const supabase = await createClient();
 
-  const sales = (supabase as unknown as {
-    schema: (s: string) => {
-      rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
-    }
-  }).schema("sales");
+  const sales = supabase.schema("sales");
 
   const { data, error } = await sales.rpc("save_order_draft", {
     p: {
@@ -168,11 +165,7 @@ export async function saveOrderDraft(input: DraftInput): Promise<DraftResult> {
 /** Descarta rascunho de pedido do banco de dados */
 export async function discardDraftOrder(orderId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const sales = (supabase as unknown as {
-    schema: (s: string) => {
-      rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
-    }
-  }).schema("sales");
+  const sales = supabase.schema("sales");
 
   const { error } = await sales.rpc("discard_order_draft", { p_order_id: orderId });
   if (error) return { ok: false, error: error.message };

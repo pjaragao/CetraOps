@@ -28,8 +28,8 @@ export async function saveIntegrationAction(_prev: State, formData: FormData): P
   const config: Record<string, string> = {};
   for (const f of def.config) {
     const v = str(formData.get(`config.${f.key}`));
-    if (v) config[f.key] = v;
-    else if (f.required) return { ok: false, error: `Informe: ${f.label}` };
+    if (!v && f.required) return { ok: false, error: `Informe: ${f.label}` };
+    config[f.key] = v;                                       // vazio também vai: o banco mescla a configuração, então só assim um campo é limpo
   }
   const secret: Record<string, string> = {};
   for (const f of def.secret) {

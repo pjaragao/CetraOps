@@ -60,7 +60,7 @@ export default async function PdvPage({ searchParams }: { searchParams: Promise<
         cashSessionId={session_?.id ?? null}
         initialMode={modo === "remoto" ? "remoto" : "balcao"}
         canDiscount={can(session, "sales.discount")}
-        canCustomItem={can(session, "sales.custom_item") || can(session, "sales.write")}
+        canCustomItem={can(session, "sales.custom_item")}
         initialDraft={draftOrder}
       />
     </>

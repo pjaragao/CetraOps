@@ -207,8 +207,7 @@ export async function emitOrderInvoiceAction(formData: FormData) {
   const id = str(formData.get("order_id"));
   const returnTo = str(formData.get("return_to")) || `/vender/pedidos/${id}`;
   const supabase = await createClient();
-  const sales = (supabase as unknown as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } }).schema("sales");
-  const { error } = await sales.rpc("request_order_invoice", { p_order: id });
+  const { error } = await supabase.schema("sales").rpc("request_order_invoice", { p_order: id });
   refresh();
   back(returnTo, error ? { erro: friendly(error.message) } : { ok: "Emissão de nota fiscal solicitada à SEFAZ. O retorno será atualizado em instantes." });
 }

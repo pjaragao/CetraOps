@@ -23,6 +23,7 @@ interface StonePosDialogProps {
   customerName?: string;
   customerDoc?: string;
   onPaymentConfirmed?: (res: {
+    stoneOrderId: string;
     nsu: string;
     authCode?: string;
     cardBrand?: string;
@@ -101,12 +102,13 @@ function StonePosModalInner({
         if (pollRef.current) clearInterval(pollRef.current);
         if (onPaymentConfirmed) {
           onPaymentConfirmed({
-            nsu: res.nsu || "STONE-PAID",
+            stoneOrderId,
+            nsu: res.nsu || stoneOrderId,
             authCode: res.authCode,
             cardBrand: res.cardBrand,
-            method,
-            amount,
-            installments,
+            method: res.method ?? method,                       // o que a Stone confirmou, não o que foi pedido
+            amount: res.amount ?? amount,
+            installments: res.installments ?? installments,
           });
         }
       } else if (res.ok && res.canceled) {

@@ -22,6 +22,17 @@ const METHOD: Record<string, string> = { PIX: "Pix", DEBIT: "Débito", CREDIT: "
 const CARRIER: Record<string, string> = { MOTOBOY_OWN: "Motoboy", MELHOR_ENVIO: "Melhor Envio", PICKUP_LOCKER: "Armário VIP", PICKUP_STORE: "Retirada na loja", OTHER: "Outro" };
 const SHIP: Record<string, string> = { PENDING: "pendente", IN_TRANSIT: "a caminho", DELIVERED: "entregue", FAILED: "falhou", CANCELLED: "cancelada" };
 
+/** Mudanças de situação feitas à mão (o resto segue pelos fluxos que lançam estoque, financeiro e nota: pagamento, cancelamento e devolução). */
+const NEXT_STATUS: Record<string, string[]> = {
+  DRAFT: ["PENDING_PAYMENT", "CANCELLED"], CONFIRMED: ["CANCELLED"], PENDING_PAYMENT: ["DRAFT", "CANCELLED"],
+  PAID: ["FULFILLING", "READY_FOR_PICKUP", "SHIPPED", "COMPLETED"], FULFILLING: ["READY_FOR_PICKUP", "SHIPPED", "COMPLETED"],
+  READY_FOR_PICKUP: ["SHIPPED", "COMPLETED"], SHIPPED: ["COMPLETED"],
+};
+const STATUS_OPTION_LABEL: Record<string, string> = {
+  DRAFT: "Rascunho (em andamento)", PENDING_PAYMENT: "Aguardando pagamento", FULFILLING: "Em separação", READY_FOR_PICKUP: "Pronto para retirar",
+  SHIPPED: "Enviado (a caminho)", COMPLETED: "Concluído (entregue)", CANCELLED: "Cancelado (libera o estoque)",
+};
+
 export default async function PedidoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SP }) {
   const session = await requirePerm("sales.read");
   const { id } = await params;
@@ -36,7 +47,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
     supabase.schema("sales").from("shipments").select("id, carrier, tracking, cost, charged, status, shipped_at, delivered_at").eq("order_id", id).order("created_at"),
     supabase.schema("sales").from("returns").select("id, number, type, amount, refund_method, created_at").eq("order_id", id).order("created_at"),
     o.party_id ? supabase.schema("crm").from("parties").select("id, display_name").eq("id", o.party_id).maybeSingle() : Promise.resolve({ data: null }),
-    (supabase as unknown as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> } }).schema("sales").rpc("get_order_fiscal_doc", { p_order: id }),
+    supabase.schema("sales").rpc("get_order_fiscal_doc", { p_order: id }),
   ]);
   const fiscalDoc = fiscalDocRaw as {
     id: string; number: number; series: number; model: string; status: string;
@@ -118,7 +129,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
                   />
                 </div>
               )}
-              <form action={registerPaymentAction} className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-4">
+              <form id="pagamento" action={registerPaymentAction} className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-4">
                 <input type="hidden" name="order_id" value={o.id} />
                 <Field label="Forma"><select name="method" className={inputClass}><option value="PIX">Pix</option><option value="CREDIT">Crédito</option><option value="DEBIT">Débito</option><option value="PAYMENT_LINK">Link pago</option><option value="CASH">Dinheiro</option></select></Field>
                 <Field label="Valor (R$)"><input name="amount" required inputMode="decimal" defaultValue={String(balance.toFixed(2)).replace(".", ",")} className={inputClass} /></Field>
@@ -215,35 +226,19 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
                 <Badge tone={st.tone}>{st.label}</Badge>
               </div>
 
-              {canWrite && (o.status === "DRAFT" || o.status === "PENDING_PAYMENT") && (
-                <div className="rounded-lg border border-success/20 bg-success/5 p-2.5">
-                  <p className="text-xs text-success mb-2">Pagamento já foi recebido ou confirmado fora do sistema?</p>
-                  <form action={setOrderStatusAction}>
-                    <input type="hidden" name="order_id" value={o.id} />
-                    <input type="hidden" name="status" value="PAID" />
-                    <input type="hidden" name="notes" value="Confirmado como pago manualmente" />
-                    <Button variant="primary" className="bg-success text-white hover:bg-success/90 text-xs px-3 py-1.5">
-                      ✓ Marcar pedido como Pago
-                    </Button>
-                  </form>
-                </div>
+              {canWrite && (o.status === "DRAFT" || o.status === "PENDING_PAYMENT" || o.status === "CONFIRMED") && (
+                <p className="rounded-lg border border-success/20 bg-success/5 p-2.5 text-xs text-success">
+                  Recebeu fora do sistema (Pix, dinheiro, maquininha)? Use <a href="#pagamento" className="font-medium underline">Registrar pagamento</a>: é ele que fecha a venda no estoque, no financeiro e na nota fiscal.
+                </p>
               )}
 
-              {canWrite && (
+              {canWrite && (NEXT_STATUS[o.status] ?? []).length > 0 && (
                 <form action={setOrderStatusAction} className="space-y-2 border-t border-border pt-3">
                   <input type="hidden" name="order_id" value={o.id} />
                   <Field label="Alterar situação para">
-                    <select name="status" defaultValue={o.status} className={inputClass}>
-                      <option value="DRAFT">Rascunho (Em andamento)</option>
-                      <option value="PENDING_PAYMENT">Aguardando pagamento</option>
-                      <option value="PAID">Pago</option>
-                      <option value="FULFILLING">Em separação</option>
-                      <option value="READY_FOR_PICKUP">Pronto para retirar</option>
-                      <option value="SHIPPED">Enviado (a caminho)</option>
-                      <option value="COMPLETED">Concluído (finalizado)</option>
-                      <option value="PARTIALLY_RETURNED">Devolvido em parte</option>
-                      <option value="RETURNED">Devolvido (total)</option>
-                      <option value="CANCELLED">Cancelado</option>
+                    <select name="status" defaultValue="" required className={inputClass}>
+                      <option value="" disabled>Escolha…</option>
+                      {(NEXT_STATUS[o.status] ?? []).map((k) => <option key={k} value={k}>{STATUS_OPTION_LABEL[k]}</option>)}
                     </select>
                   </Field>
                   <Field label="Observação da alteração (opcional)">

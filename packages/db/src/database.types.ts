@@ -202,6 +202,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"assistant_uploads": {
                   Row: {
@@ -249,13 +250,13 @@ isOneToOne: false
                   ]
                 },"corpus_pairs": {
                   Row: {
-                    "context": NonNullable<Json>,"created_at": string,"dialogue_id": string | null,"embedding": unknown,"embedding_model": string | null,"id": string,"intent": string | null,"message_id": string | null,"org_id": string,"persona_id": string,"position": number | null,"reply": NonNullable<Json>,"source": string,"stage": string | null,"weight": number
+                    "context": NonNullable<Json>,"created_at": string,"dialogue_id": string | null,"embedding": unknown | null,"embedding_model": string | null,"id": string,"intent": string | null,"message_id": string | null,"org_id": string,"persona_id": string,"position": number | null,"reply": NonNullable<Json>,"source": string,"stage": string | null,"weight": number
                   }
                   Insert: {
-                    "context": NonNullable<Json>,"created_at"?: string,"dialogue_id"?: string | null,"embedding"?: unknown,"embedding_model"?: string | null,"id"?: string,"intent"?: string | null,"message_id"?: string | null,"org_id": string,"persona_id": string,"position"?: number | null,"reply": NonNullable<Json>,"source": string,"stage"?: string | null,"weight"?: number
+                    "context": NonNullable<Json>,"created_at"?: string,"dialogue_id"?: string | null,"embedding"?: unknown | null,"embedding_model"?: string | null,"id"?: string,"intent"?: string | null,"message_id"?: string | null,"org_id": string,"persona_id": string,"position"?: number | null,"reply": NonNullable<Json>,"source": string,"stage"?: string | null,"weight"?: number
                   }
                   Update: {
-                    "context"?: NonNullable<Json>,"created_at"?: string,"dialogue_id"?: string | null,"embedding"?: unknown,"embedding_model"?: string | null,"id"?: string,"intent"?: string | null,"message_id"?: string | null,"org_id"?: string,"persona_id"?: string,"position"?: number | null,"reply"?: NonNullable<Json>,"source"?: string,"stage"?: string | null,"weight"?: number
+                    "context"?: NonNullable<Json>,"created_at"?: string,"dialogue_id"?: string | null,"embedding"?: unknown | null,"embedding_model"?: string | null,"id"?: string,"intent"?: string | null,"message_id"?: string | null,"org_id"?: string,"persona_id"?: string,"position"?: number | null,"reply"?: NonNullable<Json>,"source"?: string,"stage"?: string | null,"weight"?: number
                   }
                   Relationships: [
                     {
@@ -322,6 +323,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"eval_batches": {
                   Row: {
@@ -354,6 +356,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"eval_requests": {
                   Row: {
@@ -366,6 +369,7 @@ isOneToOne: false
                     "error"?: string | null,"finished_at"?: string | null,"id"?: string,"models"?: (string)[],"org_id"?: string,"progress"?: string | null,"requested_at"?: string,"requested_by"?: string | null,"status"?: string,"suite"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"eval_results": {
@@ -395,13 +399,13 @@ isOneToOne: false
                   ]
                 },"knowledge_chunks": {
                   Row: {
-                    "content": string,"doc_id": string,"id": string,"org_id": string,"position": number,"tsv": unknown
+                    "content": string,"doc_id": string,"id": string,"org_id": string,"position": number,"tsv": string
                   }
                   Insert: {
-                    "content": string,"doc_id": string,"id"?: string,"org_id": string,"position": number,"tsv"?: unknown
+                    "content": string,"doc_id": string,"id"?: string,"org_id": string,"position": number,"tsv"?: string
                   }
                   Update: {
-                    "content"?: string,"doc_id"?: string,"id"?: string,"org_id"?: string,"position"?: number,"tsv"?: unknown
+                    "content"?: string,"doc_id"?: string,"id"?: string,"org_id"?: string,"position"?: number,"tsv"?: string
                   }
                   Relationships: [
                     {
@@ -423,6 +427,7 @@ isOneToOne: false
                     "body_md"?: string | null,"created_at"?: string,"created_by"?: string | null,"draft_md"?: string,"id"?: string,"kind"?: string,"org_id"?: string,"published_at"?: string | null,"published_by"?: string | null,"status"?: string,"title"?: string,"updated_at"?: string,"valid_from"?: string | null,"valid_to"?: string | null,"version"?: number
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"knowledge_versions": {
@@ -456,6 +461,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"model_routes": {
                   Row: {
@@ -468,6 +474,7 @@ isOneToOne: false
                     "active"?: boolean,"daily_budget_usd"?: number | null,"fallback_models"?: (string)[],"id"?: string,"org_id"?: string,"params"?: NonNullable<Json>,"primary_model"?: string,"provider_prefs"?: NonNullable<Json>,"requires_json_schema"?: boolean,"requires_tools"?: boolean,"task"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"persona_versions": {
@@ -538,6 +545,7 @@ isOneToOne: false
                     "confidence"?: number | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"id"?: string,"kind"?: string,"org_id"?: string,"payload"?: NonNullable<Json>,"status"?: string,"target_id"?: string | null,"target_type"?: string | null
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"tool_calls": {
@@ -1235,13 +1243,13 @@ isOneToOne: false
                   ]
                 },"cost_centers": {
                   Row: {
-                    "archived_at": string | null,"channel": string | null,"code": string,"created_at": string,"id": string,"kind": Database["core"]['Enums']["cost_center_kind"],"legal_entity_id": string | null,"name": string,"org_id": string,"parent_id": string | null,"store_id": string | null,"updated_at": string,"valid_from": string,"valid_to": string | null
+                    "archived_at": string | null,"channel": string | null,"code": string,"created_at": string,"id": string,"kind": Database["core"]["Enums"]["cost_center_kind"],"legal_entity_id": string | null,"name": string,"org_id": string,"parent_id": string | null,"store_id": string | null,"updated_at": string,"valid_from": string,"valid_to": string | null
                   }
                   Insert: {
-                    "archived_at"?: string | null,"channel"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": Database["core"]['Enums']["cost_center_kind"],"legal_entity_id"?: string | null,"name": string,"org_id": string,"parent_id"?: string | null,"store_id"?: string | null,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null
+                    "archived_at"?: string | null,"channel"?: string | null,"code": string,"created_at"?: string,"id"?: string,"kind": Database["core"]["Enums"]["cost_center_kind"],"legal_entity_id"?: string | null,"name": string,"org_id": string,"parent_id"?: string | null,"store_id"?: string | null,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null
                   }
                   Update: {
-                    "archived_at"?: string | null,"channel"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: Database["core"]['Enums']["cost_center_kind"],"legal_entity_id"?: string | null,"name"?: string,"org_id"?: string,"parent_id"?: string | null,"store_id"?: string | null,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null
+                    "archived_at"?: string | null,"channel"?: string | null,"code"?: string,"created_at"?: string,"id"?: string,"kind"?: Database["core"]["Enums"]["cost_center_kind"],"legal_entity_id"?: string | null,"name"?: string,"org_id"?: string,"parent_id"?: string | null,"store_id"?: string | null,"updated_at"?: string,"valid_from"?: string,"valid_to"?: string | null
                   }
                   Relationships: [
                     {
@@ -1373,13 +1381,13 @@ isOneToOne: false
                   ]
                 },"legal_entities": {
                   Row: {
-                    "address": NonNullable<Json>,"cert_expires_at": string | null,"cnae_principal": string | null,"cnaes_secundarios": (string)[],"cnpj": string,"created_at": string,"crt": number,"fiscal_provider_ref": string | null,"id": string,"ie": string | null,"im": string | null,"kind": Database["core"]['Enums']["legal_entity_kind"],"nfce_series": number | null,"nfe_series": number | null,"nome_fantasia": string | null,"org_id": string,"parent_id": string | null,"razao_social": string,"status": string,"tax_regime": string,"updated_at": string
+                    "address": NonNullable<Json>,"cert_expires_at": string | null,"cnae_principal": string | null,"cnaes_secundarios": (string)[],"cnpj": string,"created_at": string,"crt": number,"fiscal_provider_ref": string | null,"id": string,"ie": string | null,"im": string | null,"kind": Database["core"]["Enums"]["legal_entity_kind"],"nfce_series": number | null,"nfe_series": number | null,"nome_fantasia": string | null,"org_id": string,"parent_id": string | null,"razao_social": string,"status": string,"tax_regime": string,"updated_at": string
                   }
                   Insert: {
-                    "address"?: NonNullable<Json>,"cert_expires_at"?: string | null,"cnae_principal"?: string | null,"cnaes_secundarios"?: (string)[],"cnpj": string,"created_at"?: string,"crt"?: number,"fiscal_provider_ref"?: string | null,"id"?: string,"ie"?: string | null,"im"?: string | null,"kind"?: Database["core"]['Enums']["legal_entity_kind"],"nfce_series"?: number | null,"nfe_series"?: number | null,"nome_fantasia"?: string | null,"org_id": string,"parent_id"?: string | null,"razao_social": string,"status"?: string,"tax_regime"?: string,"updated_at"?: string
+                    "address"?: NonNullable<Json>,"cert_expires_at"?: string | null,"cnae_principal"?: string | null,"cnaes_secundarios"?: (string)[],"cnpj": string,"created_at"?: string,"crt"?: number,"fiscal_provider_ref"?: string | null,"id"?: string,"ie"?: string | null,"im"?: string | null,"kind"?: Database["core"]["Enums"]["legal_entity_kind"],"nfce_series"?: number | null,"nfe_series"?: number | null,"nome_fantasia"?: string | null,"org_id": string,"parent_id"?: string | null,"razao_social": string,"status"?: string,"tax_regime"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "address"?: NonNullable<Json>,"cert_expires_at"?: string | null,"cnae_principal"?: string | null,"cnaes_secundarios"?: (string)[],"cnpj"?: string,"created_at"?: string,"crt"?: number,"fiscal_provider_ref"?: string | null,"id"?: string,"ie"?: string | null,"im"?: string | null,"kind"?: Database["core"]['Enums']["legal_entity_kind"],"nfce_series"?: number | null,"nfe_series"?: number | null,"nome_fantasia"?: string | null,"org_id"?: string,"parent_id"?: string | null,"razao_social"?: string,"status"?: string,"tax_regime"?: string,"updated_at"?: string
+                    "address"?: NonNullable<Json>,"cert_expires_at"?: string | null,"cnae_principal"?: string | null,"cnaes_secundarios"?: (string)[],"cnpj"?: string,"created_at"?: string,"crt"?: number,"fiscal_provider_ref"?: string | null,"id"?: string,"ie"?: string | null,"im"?: string | null,"kind"?: Database["core"]["Enums"]["legal_entity_kind"],"nfce_series"?: number | null,"nfe_series"?: number | null,"nome_fantasia"?: string | null,"org_id"?: string,"parent_id"?: string | null,"razao_social"?: string,"status"?: string,"tax_regime"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1508,6 +1516,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"permission_catalog": {
                   Row: {
@@ -1520,6 +1529,7 @@ isOneToOne: false
                     "area"?: string,"description"?: string,"key"?: string,"label"?: string,"position"?: number
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"role_permissions": {
@@ -1581,13 +1591,13 @@ isOneToOne: false
                   ]
                 },"stores": {
                   Row: {
-                    "area_m2": number | null,"business_hours": NonNullable<Json>,"closed_at": string | null,"code": string,"cost_center_id": string | null,"created_at": string,"fiscal_mode": string,"format": Database["core"]['Enums']["store_format"],"host_partner_party_id": string | null,"id": string,"legal_entity_id": string,"name": string,"opened_at": string | null,"org_id": string,"status": Database["core"]['Enums']["store_status"],"updated_at": string
+                    "area_m2": number | null,"business_hours": NonNullable<Json>,"closed_at": string | null,"code": string,"cost_center_id": string | null,"created_at": string,"fiscal_mode": string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id": string | null,"id": string,"legal_entity_id": string,"name": string,"opened_at": string | null,"org_id": string,"status": Database["core"]["Enums"]["store_status"],"updated_at": string
                   }
                   Insert: {
-                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code": string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format": Database["core"]['Enums']["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id": string,"name": string,"opened_at"?: string | null,"org_id": string,"status"?: Database["core"]['Enums']["store_status"],"updated_at"?: string
+                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code": string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id": string,"name": string,"opened_at"?: string | null,"org_id": string,"status"?: Database["core"]["Enums"]["store_status"],"updated_at"?: string
                   }
                   Update: {
-                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code"?: string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format"?: Database["core"]['Enums']["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id"?: string,"name"?: string,"opened_at"?: string | null,"org_id"?: string,"status"?: Database["core"]['Enums']["store_status"],"updated_at"?: string
+                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code"?: string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format"?: Database["core"]["Enums"]["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id"?: string,"name"?: string,"opened_at"?: string | null,"org_id"?: string,"status"?: Database["core"]["Enums"]["store_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1625,18 +1635,6 @@ isOneToOne: false
 "change_my_password":
 { Args: { "p_current": string,"p_new": string }; Returns: undefined
                            },
-"update_store":
-{ Args: { "p": Json }; Returns: Json
-                           },
-"save_cost_center":
-{ Args: { "p": Json }; Returns: Json
-                           },
-"set_cost_center_archived":
-{ Args: { "p_archived": boolean,"p_id": string }; Returns: Json
-                           },
-"link_user_party":
-{ Args: { "p_member": string,"p_party": string }; Returns: Json
-                           },
 "create_user":
 { Args: { "p": Json }; Returns: string
                            },
@@ -1645,6 +1643,9 @@ isOneToOne: false
                            },
 "integration_secret":
 { Args: { "p_connection": string }; Returns: Json
+                           },
+"link_user_party":
+{ Args: { "p_member": string,"p_party": string }; Returns: Json
                            },
 "next_number":
 { Args: { "p_doc_type": string,"p_org": string }; Returns: string
@@ -1667,6 +1668,29 @@ isOneToOne: false
 "reset_user_password":
 { Args: { "p_member": string,"p_password": string }; Returns: undefined
                            },
+"save_cost_center":
+{ Args: { "p": Json }; Returns: {
+              "archived_at": string | null,
+"channel": string | null,
+"code": string,
+"created_at": string,
+"id": string,
+"kind": Database["core"]["Enums"]["cost_center_kind"],
+"legal_entity_id": string | null,
+"name": string,
+"org_id": string,
+"parent_id": string | null,
+"store_id": string | null,
+"updated_at": string,
+"valid_from": string,
+"valid_to": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cost_centers"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_integration":
 { Args: { "p": Json }; Returns: Json
                            },
@@ -1684,12 +1708,60 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_cost_center_archived":
+{ Args: { "p_archived": boolean,"p_id": string }; Returns: {
+              "archived_at": string | null,
+"channel": string | null,
+"code": string,
+"created_at": string,
+"id": string,
+"kind": Database["core"]["Enums"]["cost_center_kind"],
+"legal_entity_id": string | null,
+"name": string,
+"org_id": string,
+"parent_id": string | null,
+"store_id": string | null,
+"updated_at": string,
+"valid_from": string,
+"valid_to": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "cost_centers"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_integration_enabled":
 { Args: { "p_enabled": boolean,"p_id": string }; Returns: undefined
                            },
 "set_user_status":
 { Args: { "p_active": boolean,"p_member": string }; Returns: undefined
                            },
+"update_store":
+{ Args: { "p": Json }; Returns: {
+              "area_m2": number | null,
+"business_hours": NonNullable<Json>,
+"closed_at": string | null,
+"code": string,
+"cost_center_id": string | null,
+"created_at": string,
+"fiscal_mode": string,
+"format": Database["core"]["Enums"]["store_format"],
+"host_partner_party_id": string | null,
+"id": string,
+"legal_entity_id": string,
+"name": string,
+"opened_at": string | null,
+"org_id": string,
+"status": Database["core"]["Enums"]["store_status"],
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "stores"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "update_user":
 { Args: { "p": Json,"p_member": string }; Returns: undefined
                            }
@@ -4194,6 +4266,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"document_installments": {
                   Row: {
@@ -4244,13 +4317,8 @@ isOneToOne: false
                     "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction"?: string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id"?: string,"model"?: string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id"?: string,"protocol"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
                   }
                   Relationships: [
-                    {
-      foreignKeyName: "documents_order_id_fkey"
-      columns: ["order_id"]
-isOneToOne: false
-      referencedRelation: "v_uninvoiced_orders"
-      referencedColumns: ["order_id"]
-    }
+                    
+                    
                   ]
                 },"esocial_events": {
                   Row: {
@@ -4263,6 +4331,7 @@ isOneToOne: false
                     "competence"?: string | null,"created_at"?: string,"event"?: string,"id"?: string,"legal_entity_id"?: string,"org_id"?: string,"payload"?: NonNullable<Json>,"reference_id"?: string | null,"reference_type"?: string | null,"status"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"inbound_dfe": {
@@ -4296,6 +4365,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"simples_brackets": {
                   Row: {
@@ -4309,6 +4379,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"tax_periods": {
                   Row: {
@@ -4321,6 +4392,7 @@ isOneToOne: false
                     "competence"?: string,"created_at"?: string,"created_by"?: string | null,"das_estimated"?: number,"id"?: string,"legal_entity_id"?: string,"org_id"?: string,"rate1"?: number,"rate3"?: number,"rbt12"?: number,"rbt12_method"?: string,"returns_amount"?: number,"revenue_annex1"?: number,"revenue_annex3"?: number,"status"?: string,"title_id"?: string | null
                   }
                   Relationships: [
+                    
                     
                   ]
                 }
@@ -4350,6 +4422,9 @@ isOneToOne: false
                            },
 "dfe_upsert":
 { Args: { "p_entity": string,"p_items": Json,"p_org": string }; Returns: number
+                           },
+"document_by_provider_ref":
+{ Args: { "p_ref": string }; Returns: Json
                            },
 "emission_payload":
 { Args: { "p_order": string,"p_purpose"?: string }; Returns: Json
@@ -4388,6 +4463,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"process_notaas_webhook":
+{ Args: { "p": Json }; Returns: Json
+                           },
 "record_cancellation":
 { Args: { "p": Json,"p_document": string }; Returns: undefined
                            },
@@ -6164,13 +6242,13 @@ isOneToOne: false
                   ]
                 },"link_clicks": {
                   Row: {
-                    "clicked_at": string,"device": string | null,"from_ad": boolean,"id": number,"org_id": string,"referrer_host": string | null,"tracking_link_id": string,"utm": NonNullable<Json>
+                    "clicked_at": string,"device": string | null,"fingerprint": string | null,"from_ad": boolean,"id": number,"org_id": string,"referrer_host": string | null,"tracking_link_id": string,"utm": NonNullable<Json>
                   }
                   Insert: {
-                    "clicked_at"?: string,"device"?: string | null,"from_ad"?: boolean,"id"?: never,"org_id": string,"referrer_host"?: string | null,"tracking_link_id": string,"utm"?: NonNullable<Json>
+                    "clicked_at"?: string,"device"?: string | null,"fingerprint"?: string | null,"from_ad"?: boolean,"id"?: never,"org_id": string,"referrer_host"?: string | null,"tracking_link_id": string,"utm"?: NonNullable<Json>
                   }
                   Update: {
-                    "clicked_at"?: string,"device"?: string | null,"from_ad"?: boolean,"id"?: never,"org_id"?: string,"referrer_host"?: string | null,"tracking_link_id"?: string,"utm"?: NonNullable<Json>
+                    "clicked_at"?: string,"device"?: string | null,"fingerprint"?: string | null,"from_ad"?: boolean,"id"?: never,"org_id"?: string,"referrer_host"?: string | null,"tracking_link_id"?: string,"utm"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -7906,6 +7984,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"po_items": {
                   Row: {
@@ -8118,6 +8197,39 @@ isOneToOne: false
 "ensure_supplier":
 { Args: { "p_cnpj": string,"p_name": string }; Returns: string
                            },
+"import_inbound_dfe":
+{ Args: { "p_dfe_id": string,"p_location": string,"p_po"?: string }; Returns: {
+              "checked_at": string | null,
+"checked_by": string | null,
+"created_at": string,
+"created_by": string | null,
+"credit_id": string | null,
+"document_id": string | null,
+"entry_id": string | null,
+"id": string,
+"landed_total": number | null,
+"legal_entity_id": string,
+"location_id": string,
+"nf_total": number,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"po_id": string | null,
+"post_ref": string | null,
+"posted_at": string | null,
+"posted_by": string | null,
+"shortage_total": number,
+"status": string,
+"store_id": string | null,
+"supplier_party_id": string,
+"title_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "receipts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "import_nfe":
 { Args: { "p_location": string,"p_po"?: string,"p_xml": string }; Returns: {
               "checked_at": string | null,
@@ -8299,6 +8411,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"cash_session_movements": {
                   Row: {
@@ -8333,7 +8446,7 @@ isOneToOne: false
                     {
       foreignKeyName: "cash_sessions_register_id_fkey"
       columns: ["register_id"]
-isOneToOne: false
+isOneToOne: true
       referencedRelation: "cash_registers"
       referencedColumns: ["id"]
     }
@@ -8436,13 +8549,13 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "assisted_by_ai": boolean,"attribution": NonNullable<Json>,"cash_session_id": string | null,"channel": Database["sales"]['Enums']["channel"],"completed_at": string | null,"cost_total": number,"coupon_id": string | null,"cpf_on_invoice": string | null,"created_at": string,"created_by": string | null,"customer_confirmed_message_id": string | null,"discount_total": number,"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],"id": string,"idempotency_key": string,"legal_entity_id": string,"location_id": string,"notes": string | null,"number": string,"org_id": string,"origin_conversation_id": string | null,"paid_total": number,"party_id": string | null,"price_list_id": string | null,"profit_cost_center_id": string | null,"seller_member_id": string | null,"shipping_total": number,"status": Database["sales"]['Enums']["order_status"],"store_id": string,"subtotal": number,"total": number,"updated_at": string
+                    "assisted_by_ai": boolean,"attribution": NonNullable<Json>,"cash_session_id": string | null,"channel": Database["sales"]["Enums"]["channel"],"completed_at": string | null,"cost_total": number,"coupon_id": string | null,"cpf_on_invoice": string | null,"created_at": string,"created_by": string | null,"customer_confirmed_message_id": string | null,"discount_total": number,"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],"id": string,"idempotency_key": string,"legal_entity_id": string,"location_id": string,"notes": string | null,"number": string,"org_id": string,"origin_conversation_id": string | null,"paid_total": number,"party_id": string | null,"price_list_id": string | null,"profit_cost_center_id": string | null,"seller_member_id": string | null,"shipping_total": number,"status": Database["sales"]["Enums"]["order_status"],"store_id": string,"subtotal": number,"total": number,"updated_at": string
                   }
                   Insert: {
-                    "assisted_by_ai"?: boolean,"attribution"?: NonNullable<Json>,"cash_session_id"?: string | null,"channel": Database["sales"]['Enums']["channel"],"completed_at"?: string | null,"cost_total"?: number,"coupon_id"?: string | null,"cpf_on_invoice"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_confirmed_message_id"?: string | null,"discount_total"?: number,"fulfillment_type"?: Database["sales"]['Enums']["fulfillment_type"],"id"?: string,"idempotency_key": string,"legal_entity_id": string,"location_id": string,"notes"?: string | null,"number": string,"org_id": string,"origin_conversation_id"?: string | null,"paid_total"?: number,"party_id"?: string | null,"price_list_id"?: string | null,"profit_cost_center_id"?: string | null,"seller_member_id"?: string | null,"shipping_total"?: number,"status"?: Database["sales"]['Enums']["order_status"],"store_id": string,"subtotal"?: number,"total"?: number,"updated_at"?: string
+                    "assisted_by_ai"?: boolean,"attribution"?: NonNullable<Json>,"cash_session_id"?: string | null,"channel": Database["sales"]["Enums"]["channel"],"completed_at"?: string | null,"cost_total"?: number,"coupon_id"?: string | null,"cpf_on_invoice"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_confirmed_message_id"?: string | null,"discount_total"?: number,"fulfillment_type"?: Database["sales"]["Enums"]["fulfillment_type"],"id"?: string,"idempotency_key": string,"legal_entity_id": string,"location_id": string,"notes"?: string | null,"number": string,"org_id": string,"origin_conversation_id"?: string | null,"paid_total"?: number,"party_id"?: string | null,"price_list_id"?: string | null,"profit_cost_center_id"?: string | null,"seller_member_id"?: string | null,"shipping_total"?: number,"status"?: Database["sales"]["Enums"]["order_status"],"store_id": string,"subtotal"?: number,"total"?: number,"updated_at"?: string
                   }
                   Update: {
-                    "assisted_by_ai"?: boolean,"attribution"?: NonNullable<Json>,"cash_session_id"?: string | null,"channel"?: Database["sales"]['Enums']["channel"],"completed_at"?: string | null,"cost_total"?: number,"coupon_id"?: string | null,"cpf_on_invoice"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_confirmed_message_id"?: string | null,"discount_total"?: number,"fulfillment_type"?: Database["sales"]['Enums']["fulfillment_type"],"id"?: string,"idempotency_key"?: string,"legal_entity_id"?: string,"location_id"?: string,"notes"?: string | null,"number"?: string,"org_id"?: string,"origin_conversation_id"?: string | null,"paid_total"?: number,"party_id"?: string | null,"price_list_id"?: string | null,"profit_cost_center_id"?: string | null,"seller_member_id"?: string | null,"shipping_total"?: number,"status"?: Database["sales"]['Enums']["order_status"],"store_id"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string
+                    "assisted_by_ai"?: boolean,"attribution"?: NonNullable<Json>,"cash_session_id"?: string | null,"channel"?: Database["sales"]["Enums"]["channel"],"completed_at"?: string | null,"cost_total"?: number,"coupon_id"?: string | null,"cpf_on_invoice"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_confirmed_message_id"?: string | null,"discount_total"?: number,"fulfillment_type"?: Database["sales"]["Enums"]["fulfillment_type"],"id"?: string,"idempotency_key"?: string,"legal_entity_id"?: string,"location_id"?: string,"notes"?: string | null,"number"?: string,"org_id"?: string,"origin_conversation_id"?: string | null,"paid_total"?: number,"party_id"?: string | null,"price_list_id"?: string | null,"profit_cost_center_id"?: string | null,"seller_member_id"?: string | null,"shipping_total"?: number,"status"?: Database["sales"]["Enums"]["order_status"],"store_id"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -8480,13 +8593,13 @@ isOneToOne: false
                   ]
                 },"payments": {
                   Row: {
-                    "acquirer": string | null,"acquirer_connection_id": string | null,"amount": number,"anticipation_mode": string | null,"auth_code": string | null,"brand": string | null,"created_at": string,"external_id": string | null,"fee_expected": number | null,"fee_rate_expected": number | null,"id": string,"installments": number,"last4": string | null,"method": Database["sales"]['Enums']["payment_method"],"net_expected": number | null,"nsu": string | null,"order_id": string,"org_id": string,"status": string,"terminal_id": string | null
+                    "acquirer": string | null,"acquirer_connection_id": string | null,"amount": number,"anticipation_mode": string | null,"auth_code": string | null,"brand": string | null,"created_at": string,"external_id": string | null,"fee_expected": number | null,"fee_rate_expected": number | null,"id": string,"installments": number,"last4": string | null,"method": Database["sales"]["Enums"]["payment_method"],"net_expected": number | null,"nsu": string | null,"order_id": string,"org_id": string,"status": string,"terminal_id": string | null
                   }
                   Insert: {
-                    "acquirer"?: string | null,"acquirer_connection_id"?: string | null,"amount": number,"anticipation_mode"?: string | null,"auth_code"?: string | null,"brand"?: string | null,"created_at"?: string,"external_id"?: string | null,"fee_expected"?: number | null,"fee_rate_expected"?: number | null,"id"?: string,"installments"?: number,"last4"?: string | null,"method": Database["sales"]['Enums']["payment_method"],"net_expected"?: number | null,"nsu"?: string | null,"order_id": string,"org_id": string,"status"?: string,"terminal_id"?: string | null
+                    "acquirer"?: string | null,"acquirer_connection_id"?: string | null,"amount": number,"anticipation_mode"?: string | null,"auth_code"?: string | null,"brand"?: string | null,"created_at"?: string,"external_id"?: string | null,"fee_expected"?: number | null,"fee_rate_expected"?: number | null,"id"?: string,"installments"?: number,"last4"?: string | null,"method": Database["sales"]["Enums"]["payment_method"],"net_expected"?: number | null,"nsu"?: string | null,"order_id": string,"org_id": string,"status"?: string,"terminal_id"?: string | null
                   }
                   Update: {
-                    "acquirer"?: string | null,"acquirer_connection_id"?: string | null,"amount"?: number,"anticipation_mode"?: string | null,"auth_code"?: string | null,"brand"?: string | null,"created_at"?: string,"external_id"?: string | null,"fee_expected"?: number | null,"fee_rate_expected"?: number | null,"id"?: string,"installments"?: number,"last4"?: string | null,"method"?: Database["sales"]['Enums']["payment_method"],"net_expected"?: number | null,"nsu"?: string | null,"order_id"?: string,"org_id"?: string,"status"?: string,"terminal_id"?: string | null
+                    "acquirer"?: string | null,"acquirer_connection_id"?: string | null,"amount"?: number,"anticipation_mode"?: string | null,"auth_code"?: string | null,"brand"?: string | null,"created_at"?: string,"external_id"?: string | null,"fee_expected"?: number | null,"fee_rate_expected"?: number | null,"id"?: string,"installments"?: number,"last4"?: string | null,"method"?: Database["sales"]["Enums"]["payment_method"],"net_expected"?: number | null,"nsu"?: string | null,"order_id"?: string,"org_id"?: string,"status"?: string,"terminal_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -8566,6 +8679,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"stone_pos_orders": {
+                  Row: {
+                    "amount": number,"auth_code": string | null,"card_brand": string | null,"created_at": string,"created_by": string | null,"display_name": string | null,"id": string,"installments": number,"method": string,"nsu": string | null,"order_id": string | null,"org_id": string,"raw_response": NonNullable<Json>,"status": string,"stone_order_id": string,"terminal_name": string | null,"terminal_serial": string,"updated_at": string
+                  }
+                  Insert: {
+                    "amount": number,"auth_code"?: string | null,"card_brand"?: string | null,"created_at"?: string,"created_by"?: string | null,"display_name"?: string | null,"id"?: string,"installments"?: number,"method": string,"nsu"?: string | null,"order_id"?: string | null,"org_id": string,"raw_response"?: NonNullable<Json>,"status"?: string,"stone_order_id": string,"terminal_name"?: string | null,"terminal_serial": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount"?: number,"auth_code"?: string | null,"card_brand"?: string | null,"created_at"?: string,"created_by"?: string | null,"display_name"?: string | null,"id"?: string,"installments"?: number,"method"?: string,"nsu"?: string | null,"order_id"?: string | null,"org_id"?: string,"raw_response"?: NonNullable<Json>,"status"?: string,"stone_order_id"?: string,"terminal_name"?: string | null,"terminal_serial"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stone_pos_orders_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"store_credit_ledger": {
                   Row: {
                     "amount": number,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": number,"org_id": string,"party_id": string,"reason": string,"source_id": string | null,"source_type": string | null
@@ -8578,6 +8710,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 }
           }
@@ -8585,41 +8718,12 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "party_auto_coupon":
-{ Args: { "p_party": string }; Returns: Json
-                           },
-"save_coupon":
-{ Args: { "p": Json }; Returns: {
-              "active": boolean,
-"affiliate_party_id": string | null,
-"campaign_id": string | null,
-"code": string,
-"created_at": string,
-"id": string,
-"kind": string,
-"max_uses": number | null,
-"min_order": number | null,
-"org_id": string,
-"party_id": string | null,
-"per_customer_limit": number | null,
-"source": string,
-"updated_at": string,
-"valid_from": string,
-"valid_to": string | null,
-"value": number
-            }
-                          SetofOptions: {
-        from: "*"
-        to: "coupons"
-        isOneToOne: true
-        isSetofReturn: false
-      } },
-"cancel_order":
+            "cancel_order":
 { Args: { "p_order": string,"p_reason": string }; Returns: {
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,
 "cash_session_id": string | null,
-"channel": Database["sales"]['Enums']["channel"],
+"channel": Database["sales"]["Enums"]["channel"],
 "completed_at": string | null,
 "cost_total": number,
 "coupon_id": string | null,
@@ -8628,7 +8732,7 @@ isOneToOne: false
 "created_by": string | null,
 "customer_confirmed_message_id": string | null,
 "discount_total": number,
-"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
 "id": string,
 "idempotency_key": string,
 "legal_entity_id": string,
@@ -8643,7 +8747,7 @@ isOneToOne: false
 "profit_cost_center_id": string | null,
 "seller_member_id": string | null,
 "shipping_total": number,
-"status": Database["sales"]['Enums']["order_status"],
+"status": Database["sales"]["Enums"]["order_status"],
 "store_id": string,
 "subtotal": number,
 "total": number,
@@ -8655,6 +8759,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"cancel_stone_pos_order":
+{ Args: { "p_stone_order_id": string }; Returns: boolean
+                           },
 "cash_movement":
 { Args: { "p_amount": number,"p_reason": string,"p_session": string,"p_type": string }; Returns: undefined
                            },
@@ -8705,6 +8812,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"complete_stone_pos_payment":
+{ Args: { "p_auth_code"?: string,"p_card_brand"?: string,"p_installments": number,"p_method": string,"p_nsu": string,"p_org": string,"p_paid_amount": number,"p_raw"?: Json,"p_stone_order_id": string }; Returns: Json
+                           },
 "create_payment_link":
 { Args: { "p_max_installments"?: number,"p_order": string,"p_provider"?: string }; Returns: {
               "amount": number,
@@ -8731,7 +8841,7 @@ isOneToOne: false
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,
 "cash_session_id": string | null,
-"channel": Database["sales"]['Enums']["channel"],
+"channel": Database["sales"]["Enums"]["channel"],
 "completed_at": string | null,
 "cost_total": number,
 "coupon_id": string | null,
@@ -8740,7 +8850,7 @@ isOneToOne: false
 "created_by": string | null,
 "customer_confirmed_message_id": string | null,
 "discount_total": number,
-"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
 "id": string,
 "idempotency_key": string,
 "legal_entity_id": string,
@@ -8755,7 +8865,7 @@ isOneToOne: false
 "profit_cost_center_id": string | null,
 "seller_member_id": string | null,
 "shipping_total": number,
-"status": Database["sales"]['Enums']["order_status"],
+"status": Database["sales"]["Enums"]["order_status"],
 "store_id": string,
 "subtotal": number,
 "total": number,
@@ -8772,7 +8882,7 @@ isOneToOne: false
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,
 "cash_session_id": string | null,
-"channel": Database["sales"]['Enums']["channel"],
+"channel": Database["sales"]["Enums"]["channel"],
 "completed_at": string | null,
 "cost_total": number,
 "coupon_id": string | null,
@@ -8781,7 +8891,7 @@ isOneToOne: false
 "created_by": string | null,
 "customer_confirmed_message_id": string | null,
 "discount_total": number,
-"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
 "id": string,
 "idempotency_key": string,
 "legal_entity_id": string,
@@ -8796,7 +8906,7 @@ isOneToOne: false
 "profit_cost_center_id": string | null,
 "seller_member_id": string | null,
 "shipping_total": number,
-"status": Database["sales"]['Enums']["order_status"],
+"status": Database["sales"]["Enums"]["order_status"],
 "store_id": string,
 "subtotal": number,
 "total": number,
@@ -8834,18 +8944,24 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"discard_order_draft":
+{ Args: { "p_order_id": string }; Returns: undefined
+                           },
 "expire_locker_drops":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "expire_pending_orders":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"fail_stone_pos_order":
+{ Args: { "p_org": string,"p_status": string,"p_stone_order_id": string }; Returns: undefined
+                           },
 "finalize_order":
 { Args: { "p_order": string }; Returns: {
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,
 "cash_session_id": string | null,
-"channel": Database["sales"]['Enums']["channel"],
+"channel": Database["sales"]["Enums"]["channel"],
 "completed_at": string | null,
 "cost_total": number,
 "coupon_id": string | null,
@@ -8854,7 +8970,7 @@ isOneToOne: false
 "created_by": string | null,
 "customer_confirmed_message_id": string | null,
 "discount_total": number,
-"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
 "id": string,
 "idempotency_key": string,
 "legal_entity_id": string,
@@ -8869,7 +8985,7 @@ isOneToOne: false
 "profit_cost_center_id": string | null,
 "seller_member_id": string | null,
 "shipping_total": number,
-"status": Database["sales"]['Enums']["order_status"],
+"status": Database["sales"]["Enums"]["order_status"],
 "store_id": string,
 "subtotal": number,
 "total": number,
@@ -8881,6 +8997,18 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"get_customer_store_credit":
+{ Args: { "p_party": string }; Returns: number
+                           },
+"get_order_fiscal_doc":
+{ Args: { "p_order": string }; Returns: Json
+                           },
+"get_orders_fiscal_docs":
+{ Args: { "p_orders": (string)[] }; Returns: Json
+                           },
+"get_stone_config":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "link_exchange":
 { Args: { "p_order": string,"p_return": string }; Returns: undefined
                            },
@@ -8907,6 +9035,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"party_auto_coupon":
+{ Args: { "p_party": string }; Returns: Json
+                           },
 "prepare_locker":
 { Args: { "p": Json }; Returns: {
               "closed_at": string | null,
@@ -8931,12 +9062,39 @@ isOneToOne: false
 "quote_order":
 { Args: { "p": Json }; Returns: Json
                            },
+"record_stone_pos_order":
+{ Args: { "p_amount": number,"p_display_name"?: string,"p_installments": number,"p_method": string,"p_order_id": string,"p_raw"?: Json,"p_stone_order_id": string,"p_terminal_name"?: string,"p_terminal_serial": string }; Returns: {
+              "amount": number,
+"auth_code": string | null,
+"card_brand": string | null,
+"created_at": string,
+"created_by": string | null,
+"display_name": string | null,
+"id": string,
+"installments": number,
+"method": string,
+"nsu": string | null,
+"order_id": string | null,
+"org_id": string,
+"raw_response": NonNullable<Json>,
+"status": string,
+"stone_order_id": string,
+"terminal_name": string | null,
+"terminal_serial": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "stone_pos_orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "register_payment":
 { Args: { "p": Json }; Returns: {
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,
 "cash_session_id": string | null,
-"channel": Database["sales"]['Enums']["channel"],
+"channel": Database["sales"]["Enums"]["channel"],
 "completed_at": string | null,
 "cost_total": number,
 "coupon_id": string | null,
@@ -8945,7 +9103,7 @@ isOneToOne: false
 "created_by": string | null,
 "customer_confirmed_message_id": string | null,
 "discount_total": number,
-"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
 "id": string,
 "idempotency_key": string,
 "legal_entity_id": string,
@@ -8960,7 +9118,7 @@ isOneToOne: false
 "profit_cost_center_id": string | null,
 "seller_member_id": string | null,
 "shipping_total": number,
-"status": Database["sales"]['Enums']["order_status"],
+"status": Database["sales"]["Enums"]["order_status"],
 "store_id": string,
 "subtotal": number,
 "total": number,
@@ -8988,6 +9146,76 @@ isOneToOne: false
 "report_sales":
 { Args: { "p_from": string,"p_group": string,"p_to": string }; Returns: Json
                            },
+"request_order_invoice":
+{ Args: { "p_order": string }; Returns: undefined
+                           },
+"save_coupon":
+{ Args: { "p": Json }; Returns: {
+              "active": boolean,
+"affiliate_party_id": string | null,
+"campaign_id": string | null,
+"code": string,
+"created_at": string,
+"id": string,
+"kind": string,
+"max_uses": number | null,
+"min_order": number | null,
+"org_id": string,
+"party_id": string | null,
+"per_customer_limit": number | null,
+"source": string,
+"updated_at": string,
+"valid_from": string,
+"valid_to": string | null,
+"value": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "coupons"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_order_draft":
+{ Args: { "p": Json }; Returns: {
+              "assisted_by_ai": boolean,
+"attribution": NonNullable<Json>,
+"cash_session_id": string | null,
+"channel": Database["sales"]["Enums"]["channel"],
+"completed_at": string | null,
+"cost_total": number,
+"coupon_id": string | null,
+"cpf_on_invoice": string | null,
+"created_at": string,
+"created_by": string | null,
+"customer_confirmed_message_id": string | null,
+"discount_total": number,
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
+"id": string,
+"idempotency_key": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"origin_conversation_id": string | null,
+"paid_total": number,
+"party_id": string | null,
+"price_list_id": string | null,
+"profit_cost_center_id": string | null,
+"seller_member_id": string | null,
+"shipping_total": number,
+"status": Database["sales"]["Enums"]["order_status"],
+"store_id": string,
+"subtotal": number,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_shipment":
 { Args: { "p": Json }; Returns: {
               "address": NonNullable<Json>,
@@ -9012,12 +9240,15 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_stone_terminals":
+{ Args: { "p_terminals": Json }; Returns: Json
+                           },
 "set_order_status":
-{ Args: { "p_order": string,"p_status": string }; Returns: {
+{ Args: { "p_notes"?: string,"p_order": string,"p_status": string }; Returns: {
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,
 "cash_session_id": string | null,
-"channel": Database["sales"]['Enums']["channel"],
+"channel": Database["sales"]["Enums"]["channel"],
 "completed_at": string | null,
 "cost_total": number,
 "coupon_id": string | null,
@@ -9026,7 +9257,7 @@ isOneToOne: false
 "created_by": string | null,
 "customer_confirmed_message_id": string | null,
 "discount_total": number,
-"fulfillment_type": Database["sales"]['Enums']["fulfillment_type"],
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
 "id": string,
 "idempotency_key": string,
 "legal_entity_id": string,
@@ -9041,7 +9272,7 @@ isOneToOne: false
 "profit_cost_center_id": string | null,
 "seller_member_id": string | null,
 "shipping_total": number,
-"status": Database["sales"]['Enums']["order_status"],
+"status": Database["sales"]["Enums"]["order_status"],
 "store_id": string,
 "subtotal": number,
 "total": number,
@@ -9055,6 +9286,9 @@ isOneToOne: false
       } },
 "set_payment_link":
 { Args: { "p_external_id": string,"p_link": string,"p_url": string }; Returns: undefined
+                           },
+"stone_secret":
+{ Args: { "p_org": string }; Returns: string
                            },
 "store_credit_balance":
 { Args: { "p_party": string }; Returns: number

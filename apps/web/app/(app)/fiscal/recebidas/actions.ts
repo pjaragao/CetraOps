@@ -12,10 +12,6 @@ function back(params: Record<string, string | undefined> = {}): never {
   redirect(q ? `${LIST}?${q}` : LIST);
 }
 
-function purchRpc(client: unknown) {
-  return (client as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> } }).schema("purch");
-}
-
 /** Pede ao worker a varredura de notas emitidas contra o CNPJ (também roda sozinha a cada 2 h). */
 export async function syncDfeAction() {
   const supabase = await createClient();
@@ -43,7 +39,7 @@ export async function importInboundDfeAction(formData: FormData) {
   if (!locationId) back({ erro: "Escolha o local de estoque para recebimento" });
 
   const supabase = await createClient();
-  const { data, error } = await purchRpc(supabase).rpc("import_inbound_dfe", {
+  const { data, error } = await supabase.schema("purch").rpc("import_inbound_dfe", {
     p_dfe_id: dfeId,
     p_location: locationId,
     ...(poId ? { p_po: poId } : {}),

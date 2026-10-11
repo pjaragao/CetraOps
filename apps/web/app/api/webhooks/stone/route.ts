@@ -1,45 +1,29 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@centralops/db";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { syncStoneOrder } from "@/lib/stone-sync";
 
-/** Endpoint de postback / webhook do Connect Stone (Pagar.me v5). */
+/**
+ * Aviso (postback) da Stone / Pagar.me. O corpo NÃO é fonte de verdade: só diz qual ordem conferir. A situação é lida na API da Stone
+ * com a chave da empresa dona da ordem; um aviso falso, no máximo, provoca uma conferência a mais. Ordem desconhecida é ignorada.
+ */
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+    return Response.json({ error: "JSON inválido" }, { status: 400 });
   }
-
-  const type = String(body.type ?? "").toLowerCase();
   const data = (body.data ?? {}) as Record<string, unknown>;
   const order = (data.order ?? {}) as Record<string, unknown>;
-
   const stoneOrderId = String(order.id ?? data.id ?? "");
-  if (!stoneOrderId) {
-    return Response.json({ received: true, ignored: "no order id" });
-  }
+  if (!/^[A-Za-z0-9_-]{4,64}$/.test(stoneOrderId)) return Response.json({ received: true, ignored: "sem ordem" });
 
-  // Se o evento é de pagamento confirmado
-  if (type === "charge.paid" || type === "order.paid") {
-    const meta = (data.metadata ?? order.metadata ?? {}) as Record<string, unknown>;
-    const lastTx = (data.last_transaction ?? {}) as Record<string, unknown>;
-    const nsu = String(data.code ?? meta.authorization_code ?? meta.initiator_transaction_key ?? lastTx.id ?? "STONE-WEBHOOK");
-    const authCode = String(meta.authorization_code ?? meta.authorizationCode ?? "");
-    const cardBrand = String(meta.scheme_name ?? meta.schemeName ?? "");
+  const admin = createAdminClient();
+  const { data: row, error } = await admin.schema("sales").from("stone_pos_orders").select("org_id, status").eq("stone_order_id", stoneOrderId).maybeSingle();
+  if (error) return Response.json({ error: "falha ao consultar" }, { status: 500 });          // a Stone reenvia
+  if (!row) return Response.json({ received: true, ignored: "ordem desconhecida" });
+  if (row.status !== "PENDING") return Response.json({ received: true, status: row.status });
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:55321";
-    const serviceKey = process.env.CENTRALOPS_SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-    const supabase = createClient<Database>(url, serviceKey);
-    const sales = (supabase as unknown as { schema: (s: string) => { rpc: (name: string, args: Record<string, unknown>) => Promise<unknown> } }).schema("sales");
-    await sales.rpc("complete_stone_pos_payment", {
-      p_stone_order_id: stoneOrderId,
-      p_nsu: nsu,
-      p_auth_code: authCode || null,
-      p_card_brand: cardBrand || null,
-      p_raw: body as unknown as Record<string, unknown>,
-    });
-  }
-
-  return Response.json({ received: true });
+  const res = await syncStoneOrder(row.org_id, stoneOrderId);
+  if (!res.ok) return Response.json({ received: true, error: res.error }, { status: 500 });
+  return Response.json({ received: true, paid: res.paid });
 }

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createHash } from "node:crypto";
 import { classifyUserAgent, linkDestination, type ResolvedLink } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,12 +14,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   let host: string | null = null;
   try { host = referrer ? new URL(referrer).hostname : null; } catch { host = null; }
 
+  // impressão digital curta (IP + navegador + dia, com hash): o mesmo clique repetido conta uma vez; o IP não é guardado
+  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || req.headers.get("x-real-ip") || "";
+  const fingerprint = createHash("sha256").update(`${ip}|${req.headers.get("user-agent") ?? ""}|${new Date().toISOString().slice(0, 10)}`).digest("hex").slice(0, 24);
+
   const supabase = await createClient();
   const { data, error } = await (supabase as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
   }).rpc("resolve_link", {
     p_code: code,
-    p_meta: { device: ua === "BOT" ? "OTHER" : ua, referrer_host: host, from_ad: sp.has("fbclid"), utm },
+    p_meta: { device: ua === "BOT" ? "OTHER" : ua, referrer_host: host, from_ad: sp.has("fbclid"), utm, fingerprint, bot: ua === "BOT" },
   });
   const link = error ? null : (data as unknown as ResolvedLink | null);
   const dest = link ? linkDestination(link) : null;

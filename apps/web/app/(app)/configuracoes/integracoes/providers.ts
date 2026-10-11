@@ -63,7 +63,7 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
     description: "Emite NFC-e no balcão do PDV, NF-e de remessa/devolução e consulta notas recebidas.",
     requirements: "Conta na Focus NFe com certificado digital A1 enviado no painel da Focus e CSC cadastrado para NFC-e.",
     secret: [{ key: "token", label: "Token de API", required: true }],
-    config: [{ key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes)" }, { value: "producao", label: "Produção" }] }],
+    config: [{ key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes)" }, { value: "producao", label: "Produção" }] }, { key: "primary", label: "Provedor fiscal principal", hint: "Com mais de um provedor fiscal conectado, as notas saem pelo principal", options: [{ value: "", label: "Não" }, { value: "true", label: "Sim" }] }],
     help: "Comece por Homologação. A troca para Produção só vale depois da bateria de NFC-e de teste e da validação da matriz fiscal com o contador.",
   },
   BRASIL_NFE: {
@@ -77,6 +77,7 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
     config: [
       { key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes)" }, { value: "producao", label: "Produção" }] },
       { key: "uf", label: "UF da Empresa (SEFAZ)", hint: "Ex: SC, SP, RJ (usado no teste de status SEFAZ)", required: false },
+      { key: "primary", label: "Provedor fiscal principal", hint: "Com mais de um provedor fiscal conectado, as notas saem pelo principal", options: [{ value: "", label: "Não" }, { value: "true", label: "Sim" }] },
     ],
     help: "Comece em Homologação para testes. Ao migrar para Produção, certifique-se de que o certificado A1 e o CSC estão configurados no painel da Brasil NFe.",
   },
@@ -88,10 +89,12 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
       { key: "api_key", label: "Chave de API (API Key)", hint: "Chave iniciada com ntaas_ gerada no painel da Notaas", required: true },
     ],
     config: [
-      { key: "environment", label: "Ambiente", options: [{ value: "producao", label: "Produção" }, { value: "homologacao", label: "Homologação (testes)" }] },
+      { key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes)" }, { value: "producao", label: "Produção" }] },
+      { key: "api_base", label: "URL da API", hint: "Obrigatória em homologação (endereço de testes da Notaas); em produção, vazio usa o endereço oficial", required: false },
       { key: "default_model", label: "Modelo padrão", hint: "65 para NFC-e (balcão/consumidor) ou 55 para NF-e", options: [{ value: "65", label: "NFC-e (modelo 65)" }, { value: "55", label: "NF-e (modelo 55)" }] },
+      { key: "primary", label: "Provedor fiscal principal", hint: "Com mais de um provedor fiscal conectado, as notas saem pelo principal", options: [{ value: "", label: "Não" }, { value: "true", label: "Sim" }] },
     ],
-    help: "Cadastre sua API Key gerada no painel da Notaas. O sistema utiliza a API v1 para emissão e webhooks em tempo real.",
+    help: "Cadastre a API Key da Notaas. Em homologação informe a URL de testes: sem ela nenhuma nota é emitida. A busca de notas recebidas (MDe) não existe na Notaas: use o Focus NFe ou a Brasil NFe para isso.",
   },
   STONE: {
     label: "Stone (Maquininha Smart POS)", category: "PAYMENTS", capability: "ACQUIRER",

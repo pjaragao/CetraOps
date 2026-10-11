@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Json } from "@centralops/db";
 import { briefingLine, formatBRL, todaySP, type BriefingItem } from "@centralops/domain";
 import type { ActionLine } from "./cards";
-import { dbError, fmtDate, tool, type ToolCtx, type ToolDef } from "./tool-kit";
+import { dbError, fmtDate, propose, tool, type ToolCtx, type ToolDef } from "./tool-kit";
 
 /**
  * Ferramentas de GESTÃO da Central (só leitura): as mesmas funções e consultas das telas de Financeiro, Fiscal, Compras, Relatórios,
@@ -325,39 +325,28 @@ const contarPublico = tool({
 
 const proporCampanha = tool({
   name: "propor_campanha",
-  description: "Cria um rascunho de campanha segmentada (nunca lança sozinho; a pessoa revisa e lança na tela de campanhas).",
+  description: "Prepara um rascunho de campanha segmentada para a pessoa confirmar (cartão). Nada é criado antes da confirmação e a campanha nunca é lançada sozinha.",
   perms: ["crm.write"],
   status: "Montando rascunho de campanha…",
   input: z.object({
-    nome: z.string().min(3).describe("nome da campanha"),
+    nome: z.string().min(3).max(120).describe("nome da campanha"),
     objetivo: z.enum(["REACTIVATE", "LAUNCH", "ACQUIRE", "CONVERT", "LOYALTY", "EVENT", "CLEARANCE", "CUSTOM"]).default("REACTIVATE"),
-    dias_sem_comprar: z.number().optional().describe("dias sem compra"),
-    estagios: z.array(z.string()).optional().describe("etapas ex: CUSTOMER, VIP"),
+    dias_sem_comprar: z.number().int().min(1).max(3650).optional().describe("dias sem compra"),
+    estagios: z.array(z.enum(["LEAD", "PROSPECT", "CUSTOMER", "VIP", "INACTIVE", "LOST"])).optional().describe("etapas"),
   }),
   async run(arg, ctx) {
-    const aud: Record<string, unknown> = {};
-    if (arg.dias_sem_comprar) aud.inactive_days = arg.dias_sem_comprar;
-    if (arg.estagios?.length) aud.lifecycle = arg.estagios;
-    const { data, error } = await ctx.supabase.schema("mkt").rpc("save_campaign", {
-      p: { name: arg.nome, objective: arg.objetivo, audience: aud } as unknown as Json,
-    });
+    const audience: Record<string, unknown> = {};
+    if (arg.dias_sem_comprar) audience.inactive_days = arg.dias_sem_comprar;
+    if (arg.estagios?.length) audience.lifecycle = arg.estagios;
+    const { data, error } = await ctx.supabase.schema("mkt").rpc("segment_preview", { p_def: audience as unknown as Json });
     dbError(error);
-    const c = data as unknown as { id: string; name: string };
-    ctx.addCard({
-      kind: "numeros",
-      title: "Rascunho de campanha criado",
-      href: `/marketing/campanhas/${c.id}/montar?passo=2`,
-      items: [
-        { label: "Campanha", value: c.name },
-        { label: "Objetivo", value: arg.objetivo },
-      ],
-    });
-    return {
-      campanha_id: c.id,
-      nome: c.name,
-      link: `/marketing/campanhas/${c.id}/montar?passo=2`,
-      aviso: "Rascunho criado. Para lançar, revise público, oferta e canais na tela de campanhas.",
-    };
+    const p = data as unknown as { total: number; whatsapp: number };
+    const lines: ActionLine[] = [
+      { label: "Objetivo", value: arg.objetivo },
+      { label: "Público", value: `${p?.total ?? 0} pessoa(s) · ${p?.whatsapp ?? 0} no WhatsApp` },
+    ];
+    return propose(ctx, "campanha_rascunho", { name: arg.nome, objective: arg.objetivo, audience }, { total: p?.total ?? 0 },
+      { title: `Rascunho de campanha: ${arg.nome}`, lines, warnings: ["Depois de criada, revise oferta e canais e lance pela tela de campanhas."] });
   },
 });
 

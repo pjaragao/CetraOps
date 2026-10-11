@@ -25,6 +25,7 @@ export interface CartLine {
   variant?: PosVariant;
   product?: PosProduct;
   customDescription?: string;
+  customNcm?: string;
   unitPrice: number;
   qty: number;
   discountType?: "PERCENT" | "FIXED";
@@ -160,6 +161,7 @@ export function PosTerminal({
               variant: foundVar,
               product: foundProd,
               customDescription: it.description || undefined,
+              customNcm: it.ncm || undefined,
               unitPrice: Number(it.unit_price),
               qty: Number(it.qty),
               discountAmount: Number(it.discount_amount),
@@ -268,6 +270,7 @@ export function PosTerminal({
           items: cart.map((l) => ({
             variantId: l.isCustom ? null : l.variant?.id ?? null,
             description: l.isCustom ? l.customDescription : null,
+            ncm: l.isCustom ? l.customNcm ?? null : null,
             unitPrice: l.unitPrice,
             listPrice: l.unitPrice,
             qty: l.qty,
@@ -321,7 +324,7 @@ export function PosTerminal({
     });
   };
 
-  const addCustomItem = (description: string, price: number, qty: number = 1) => {
+  const addCustomItem = (description: string, price: number, qty: number = 1, ncm?: string) => {
     setMessage(null);
     setCart((c) => [
       ...c,
@@ -329,6 +332,7 @@ export function PosTerminal({
         id: crypto.randomUUID(),
         isCustom: true,
         customDescription: description.trim(),
+        customNcm: ncm,
         unitPrice: price,
         qty,
         discountAmount: 0,
@@ -526,6 +530,7 @@ export function PosTerminal({
       items: cart.map((l) => ({
         variant_id: l.isCustom ? undefined : l.variant?.id,
         description: l.isCustom ? l.customDescription : undefined,
+        ncm: l.isCustom ? l.customNcm : undefined,
         unit_price: l.unitPrice,
         list_price: l.unitPrice,
         qty: l.qty,
@@ -550,6 +555,7 @@ export function PosTerminal({
       items: cart.map((l) => ({
         variantId: l.isCustom ? undefined : l.variant?.id,
         description: l.isCustom ? l.customDescription : undefined,
+        ncm: l.isCustom ? l.customNcm : undefined,
         unitPrice: l.unitPrice,
         listPrice: l.unitPrice,
         qty: l.qty,

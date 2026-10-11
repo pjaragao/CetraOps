@@ -45,13 +45,22 @@ export async function startCampaignAction(formData: FormData) {
   if (error) go(`${LIST}/nova`, { erro: friendly(error.message) });
   const id = (data as unknown as { id: string }).id;
   const o = preset.offer;
+  let warn: string | undefined;
   if (o.mode !== "NONE") {
-    await supabase.schema("mkt").rpc("save_campaign_offer", { p: {
-      campaign_id: id, mode: o.mode, kind: o.kind, value: o.value, valid_days: o.valid_days, min_order: o.min_order, code_prefix: o.mode === "PERSONAL" ? o.prefix : undefined, code: o.mode === "SHARED" ? undefined : undefined,
-    } as unknown as Json });
+    // código único do modelo (ex.: DROP10); se já existir, tenta com sufixo
+    const base = `${o.prefix ?? "CMP"}${o.value ?? ""}`.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
+    let lastErr: string | undefined;
+    for (const code of o.mode === "SHARED" ? [base, ...Array.from({ length: 3 }, () => base + Math.random().toString(36).slice(2, 5).toUpperCase())] : [undefined]) {
+      const { error: e } = await supabase.schema("mkt").rpc("save_campaign_offer", { p: {
+        campaign_id: id, mode: o.mode, kind: o.kind, value: o.value, valid_days: o.valid_days, min_order: o.min_order, code_prefix: o.mode === "PERSONAL" ? o.prefix : undefined, code,
+      } as unknown as Json });
+      lastErr = e ? friendly(e.message) : undefined;
+      if (!e) break;
+    }
+    if (lastErr) warn = `A oferta do modelo não foi aplicada (${lastErr}): ajuste no passo Oferta.`;
   }
   refresh();
-  step(id, 2, { preset: preset.key });
+  step(id, 2, { preset: preset.key, erro: warn });
 }
 
 /** Passo 2: público (filtros ou público salvo), escopo, grupo de controle e janela. */
@@ -176,11 +185,11 @@ export async function linkAdsAction(formData: FormData) {
   go(`${LIST}/${id}`, { aba: "canais", ...(error ? { erro: friendly(error.message) } : { ok: "Anúncios vinculados." }) });
 }
 
-/** Aba Canais: manda o público da campanha para a Meta (só sócio) e pede o semelhante. */
+/** Aba Canais: manda (ou atualiza) o público da campanha na Meta — só quem está no tratamento e aceitou anúncios. Só sócio. */
 export async function sendCampaignAudienceAction(formData: FormData) {
   const id = str(formData.get("id"));
   const supabase = await createClient();
-  const { error } = await supabase.schema("mkt").rpc("request_audience_sync", { p: { segment_id: str(formData.get("segment_id")), auto_sync: true } as unknown as Json });
+  const { error } = await supabase.schema("mkt").rpc("request_audience_sync", { p: { campaign_id: id, auto_sync: true } as unknown as Json });
   refresh();
   go(`${LIST}/${id}`, { aba: "canais", ...(error ? { erro: friendly(error.message) } : { ok: "Enviando o público para a Meta." }) });
 }

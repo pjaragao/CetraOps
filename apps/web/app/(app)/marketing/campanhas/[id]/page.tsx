@@ -8,6 +8,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { Badge, Button, Card, inputClass, PageHeader, Stat, Table } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
 import { cancelCampaignAction, cancelDispatchAction, endCampaignAction, linkAdsAction, sendCampaignAudienceAction, updateActiveCampaignAction } from "../../actions";
+import { DispatchForm } from "../../dispatch-form";
 
 export const metadata = { title: "Campanha" };
 
@@ -37,10 +38,11 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
   const st = CAMPAIGN_STATUS_LABEL[c.status] ?? { label: c.status, tone: "neutral" as const };
   const live = c.status === "ACTIVE";
 
+  const needResults = aba === "resultado" || aba === "oferta";              // o cálculo de atribuição é pesado: só onde aparece
   const [resRes, { data: offer }, { data: dispatches }, { data: links }, { data: adLinks }, { data: members }, { data: coupons }, { data: segment }] = await Promise.all([
-    supabase.schema("mkt").rpc("campaign_results", { p_id: id }),
+    needResults ? supabase.schema("mkt").rpc("campaign_results", { p_id: id }) : Promise.resolve({ data: null }),
     supabase.schema("mkt").from("campaign_offers").select("*").eq("campaign_id", id).maybeSingle(),
-    supabase.schema("mkt").from("campaign_dispatches").select("id, seq, label, filter, status, scheduled_at, template_id").eq("campaign_id", id).order("seq"),
+    supabase.schema("mkt").from("campaign_dispatches").select("id, seq, label, filter, status, scheduled_at, template_id, channel_account_id").eq("campaign_id", id).order("seq"),
     supabase.schema("mkt").from("tracking_links").select("id, code, name, kind, active").eq("campaign_id", id).order("code"),
     supabase.schema("mkt").from("campaign_ad_links").select("meta_campaign_id, meta_campaign_name, source").eq("campaign_id", id),
     aba === "pessoas" ? supabase.schema("mkt").from("campaign_members").select("party_id, grp, coupon_id").eq("campaign_id", id).limit(500) : Promise.resolve({ data: null }),
@@ -49,10 +51,13 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
   ]);
   const r = resRes.data as unknown as Results | null;
   const today = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
-  const [{ data: stats }, { data: metaCamps }, { data: audiences }] = await Promise.all([
+  const [{ data: stats }, { data: metaCamps }, { data: audiences }, { data: templates }, { data: accounts }] = await Promise.all([
     aba === "canais" ? supabase.schema("mkt").rpc("link_click_stats", { p_from: "2020-01-01", p_to: today }) : Promise.resolve({ data: null }),
     aba === "canais" ? supabase.schema("mkt").rpc("ad_campaigns") : Promise.resolve({ data: null }),
-    aba === "canais" && c.segment_id ? supabase.schema("mkt").from("ad_audiences").select("status, uploaded, matched_estimate, kind").eq("segment_id", c.segment_id) : Promise.resolve({ data: null }),
+    aba === "canais" ? supabase.schema("mkt").from("ad_audiences").select("status, uploaded, matched_estimate, kind, last_error")
+      .or(c.segment_id ? `campaign_id.eq.${id},segment_id.eq.${c.segment_id}` : `campaign_id.eq.${id}`) : Promise.resolve({ data: null }),
+    aba === "canais" && live ? supabase.schema("omni").from("templates").select("id, name, channel_account_id, components").eq("status", "APPROVED").order("name") : Promise.resolve({ data: null }),
+    aba === "canais" && live ? supabase.schema("omni").from("channel_accounts").select("id, display_name").eq("channel", "WHATSAPP").eq("status", "ACTIVE") : Promise.resolve({ data: null }),
   ]);
   const clicks = new Map((stats ?? []).map((s) => [s.link_id, s]));
   const names = new Map<string, string>();
@@ -71,7 +76,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
       <PageHeader title={c.name} description={`${OBJECTIVE_LABEL[c.objective] ?? c.objective} · ${when(c.starts_at)} → ${c.ends_at ? when(c.ends_at) : "sem fim"} · [c:${c.code}]`}
         actions={<div className="flex items-center gap-2"><Badge tone={st.tone}>{st.label}</Badge><Link href="/marketing/campanhas" className="rounded-lg px-3 py-1.5 text-sm hover:bg-surface-2">← Campanhas</Link></div>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
-      {(live || str(sp.wait)) && <AutoRefresh />}
+      {((live && (dispatches ?? []).some((d) => d.status === "SENDING")) || str(sp.wait)) && <AutoRefresh />}
       <nav aria-label="Abas" className="mb-4 flex flex-wrap gap-1 border-b border-border">
         {TABS.map(([k, l]) => <Link key={k} href={tabHref(k)} className={`-mb-px border-b-2 px-3 py-2 text-sm ${aba === k ? "border-brand font-medium" : "border-transparent text-muted hover:text-foreground"}`}>{l}</Link>)}
       </nav>
@@ -158,6 +163,10 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
               </ul>
             )}
           </Card>
+          {canWrite && live && (dispatches ?? []).filter((d) => d.filter !== "ALL" && d.status !== "CANCELLED").length < 2 && (
+            <DispatchForm campaignId={id} templates={templates ?? []} accounts={new Map((accounts ?? []).map((a) => [a.id, a.display_name]))} tplId={str(sp.tpl) ?? ""}
+              offerMode={offer?.mode ?? "NONE"} hasEnd={!!c.ends_at} hasMain onPage getParams={{ aba: "canais" }} />
+          )}
           <Card title="Links e QR">
             {(links ?? []).length === 0 ? <p className="text-sm text-muted">Sem links (configure o número público do WhatsApp em Marketing › Links).</p> : (
               <Table head={["Link", "Tipo", "Cliques", "QR"]}>
@@ -167,8 +176,8 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
           </Card>
           <Card title="Anúncios da Meta">
             <p className="mb-2 text-xs text-muted">Coloque <span className="font-mono">[c:{c.code}]</span> no nome da campanha na Meta para ligar sozinho, ou escolha abaixo.</p>
-            {(audiences ?? []).length > 0 && <p className="mb-2 text-sm">Público na Meta: {(audiences ?? []).map((a) => `${a.kind === "LOOKALIKE" ? "semelhante" : "personalizado"} (${a.status === "READY" ? `pronto, ${a.uploaded ?? 0} contatos` : a.status === "ERROR" ? "erro" : "enviando"})`).join(" · ")}</p>}
-            {isAdmin && c.segment_id && c.audience_scope !== "LOCAL" && <form action={sendCampaignAudienceAction} className="mb-3"><input type="hidden" name="id" value={id} /><input type="hidden" name="segment_id" value={c.segment_id} /><Button variant="secondary">Enviar público para a Meta</Button></form>}
+            {(audiences ?? []).length > 0 && <p className="mb-2 text-sm">Público na Meta: {(audiences ?? []).map((a) => `${a.kind === "LOOKALIKE" ? "semelhante" : "personalizado"} (${a.status === "READY" ? `pronto, ${a.uploaded ?? 0} contatos` : a.status === "ERROR" ? `erro: ${a.last_error ?? "veja Anúncios Meta"}` : "enviando"})`).join(" · ")}</p>}
+            {isAdmin && live && <form action={sendCampaignAudienceAction} className="mb-3"><input type="hidden" name="id" value={id} /><Button variant="secondary">{(audiences ?? []).length ? "Atualizar público na Meta" : "Enviar público para a Meta"}</Button><span className="ml-2 text-xs text-muted">só sobe quem está no tratamento e aceitou receber anúncios</span></form>}
             <form action={linkAdsAction} className="space-y-2">
               <input type="hidden" name="id" value={id} />
               {(metaCamps ?? []).length === 0 ? <p className="text-sm text-muted">Nenhuma campanha da Meta sincronizada ainda.</p> : (
@@ -195,7 +204,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
                 <Field label="Orçamento (R$)"><input name="budget" type="number" step="0.01" min={0} defaultValue={c.budget ?? ""} className={inputClass} /></Field>
                 <Button variant="secondary">Salvar</Button>
               </form>
-              <p className="mt-2 text-xs text-muted">Público, oferta e grupo de controle ficam congelados depois do lançamento. Para um lembrete novo, use a aba Canais após cancelar o que não vale mais.</p>
+              <p className="mt-2 text-xs text-muted">Público, oferta e grupo de controle ficam congelados depois do lançamento. Para um lembrete novo (até 2 por campanha), use a aba Canais.</p>
             </Card>
           )}
           {canWrite && live && (

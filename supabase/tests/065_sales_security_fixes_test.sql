@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(40);
+select plan(41);
 
 create or replace function pg_temp.login(p_user uuid) returns void language plpgsql as $$
 declare m record;
@@ -95,7 +95,7 @@ reset role;
 update sales.stone_pos_orders set amount = (select catalog.current_price(pg_temp.v('var'), (select id from catalog.price_lists where org_id = '00000000-0000-4000-8000-000000000001' and is_default))) where stone_order_id = 'or_t065_c';
 select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 insert into ids select 'venda', (sales.create_pos_order(jsonb_build_object('idempotency_key', 't065-s2', 'store_id', '00000000-0000-4000-8000-0000000000a1',
-  'items', jsonb_build_array(jsonb_build_object('variant_id', pg_temp.v('var'), 'qty', 1), jsonb_build_object('description', 'Ajuste de barra', 'unit_price', 30, 'qty', 1)),
+  'items', jsonb_build_array(jsonb_build_object('variant_id', pg_temp.v('var'), 'qty', 1), jsonb_build_object('description', 'Ajuste de barra', 'unit_price', 30, 'qty', 1, 'ncm', '9619.00.00')),
   'payments', jsonb_build_array(
     jsonb_build_object('method', 'CREDIT', 'amount', (select amount from sales.stone_pos_orders where stone_order_id = 'or_t065_c'), 'acquirer', 'STONE', 'external_id', 'or_t065_c'),
     jsonb_build_object('method', 'PIX', 'amount', 30))))).id;
@@ -106,8 +106,9 @@ select throws_ok($$ select sales.create_pos_order(jsonb_build_object('idempotenc
   'P0005', null, 'o mesmo pagamento da maquininha não entra em duas vendas');
 
 -- ---------- NFC-e com item avulso ----------
+select throws_ok($$ select sales.create_remote_order(jsonb_build_object('idempotency_key', 't065-n1', 'store_id', '00000000-0000-4000-8000-0000000000a1', 'channel', 'WHATSAPP',
+  'items', jsonb_build_array(jsonb_build_object('description', 'Ajuste', 'unit_price', 10, 'qty', 1, 'ncm', '123')))) $$, '22023', null, 'NCM do item avulso precisa de 8 dígitos');
 reset role;
-update sales.order_items set ncm = '96190000' where order_id = pg_temp.v('venda') and variant_id is null;
 select is(jsonb_array_length(fiscal.emission_payload(pg_temp.v('venda'), 'SALE') #> '{document,itens}'), 2, 'o item avulso entra na nota');
 select is((select x ->> 'descricao' || '/' || (x ->> 'codigo_ncm') from jsonb_array_elements(fiscal.emission_payload(pg_temp.v('venda'), 'SALE') #> '{document,itens}') x where x ->> 'codigo_produto' like 'AVULSO-%'),
   'Ajuste de barra/96190000', 'com a descrição digitada e o NCM do item');
@@ -125,8 +126,9 @@ reset role;
 insert into omni.channel_accounts (id, org_id, channel, provider_account_id, display_name, store_id, default_ai_mode, public_address)
 values ('00000000-0000-4000-8000-0000000065f8', '00000000-0000-4000-8000-000000000001', 'WHATSAPP', 'PN-065', 'WA 065', '00000000-0000-4000-8000-0000000000a1', 'AI_COPILOT', '5548900000065');
 insert into mkt.tracking_links (org_id, code, name, kind, channel_account_id) values ('00000000-0000-4000-8000-000000000001', 'qr-teste-065', 'QR teste', 'QR', '00000000-0000-4000-8000-0000000065f8');
-select public.resolve_link('qr-teste-065', '{"fingerprint":"abc"}'), public.resolve_link('qr-teste-065', '{"fingerprint":"abc"}'), public.resolve_link('qr-teste-065', '{"fingerprint":"xyz"}');
-select is((select count(*)::int from mkt.link_clicks k join mkt.tracking_links l on l.id = k.tracking_link_id where l.code = 'qr-teste-065'), 2, 'mesma pessoa em 10 min conta uma vez');
+select public.resolve_link('qr-teste-065', '{"fingerprint":"abc"}'), public.resolve_link('qr-teste-065', '{"fingerprint":"abc"}'), public.resolve_link('qr-teste-065', '{"fingerprint":"xyz"}'),
+       public.resolve_link('qr-teste-065', '{"fingerprint":"bot1","bot":true}');
+select is((select count(*)::int from mkt.link_clicks k join mkt.tracking_links l on l.id = k.tracking_link_id where l.code = 'qr-teste-065'), 2, 'mesma pessoa em 10 min conta uma vez; robô de pré-visualização não conta');
 
 -- ---------- Privilégios ----------
 select ok(not has_function_privilege('authenticated', 'sales.complete_stone_pos_payment(uuid,text,numeric,text,integer,text,text,text,jsonb)', 'execute')

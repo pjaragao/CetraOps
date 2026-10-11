@@ -137,6 +137,7 @@ const remoteSchema = z.object({
   items: z.array(z.object({
     variant_id: uuid.nullable().optional(),
     description: z.string().min(1).max(200).nullable().optional(),
+    ncm: z.string().regex(/^\d{8}$/).nullable().optional(),
     unit_price: z.number().min(0).optional(),
     list_price: z.number().min(0).optional(),
     qty: z.number().positive().max(1000),

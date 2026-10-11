@@ -46,7 +46,8 @@ export default async function AfiliadosPage({ searchParams }: { searchParams: SP
 
   return (
     <>
-      <PageHeader title="Afiliados (trainers parceiros)" description="Cada trainer tem um cupom com desconto para a aluna e ganha comissão sobre as vendas feitas com ele, paga em vale-troca ou por Pix." />
+      <PageHeader title="Afiliados (trainers parceiros)" description="Cada trainer tem um cupom com desconto para a aluna e ganha comissão sobre as vendas feitas com ele, paga em vale-troca ou por Pix."
+        actions={canWrite && (affiliates ?? []).some((a) => a.status === "ACTIVE" && !linkOf.get(a.party_id)) ? <form action={ensureAffiliateLinksAction}><Button variant="secondary">Criar links/QR que faltam</Button></form> : undefined} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
       <p className="mb-3 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">Atenção: confira no contrato com a academia parceira se a loja pode dirigir funcionários dela. Confirme com o jurídico antes de cadastrar trainers que trabalham na academia.</p>
 

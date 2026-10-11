@@ -8,7 +8,7 @@
 -- 4) NFC-e com item avulso: o item entra na nota (antes ficava de fora); vale-troca filtrado pela empresa.
 -- 5) Busca de notas recebidas (MDe) só com provedor que faz MDe (Focus NFe ou Brasil NFe).
 -- 6) IA: rascunho de campanha passa pelo cartão de confirmação.
--- 7) Link curto: clique repetido da mesma pessoa em 10 min conta uma vez (sem guardar IP).
+-- 7) Link curto: clique repetido da mesma pessoa em 10 min conta uma vez (sem guardar IP); robô de pré-visualização não conta.
 -- 8) Nenhuma função dos schemas expostos executável por anon/PUBLIC (faltou private.lock_functions nas migrations de 10/10).
 -- Códigos de erro: P0004 situação · P0005 pagamento · P0008 desconto/cupom · 42501 permissão.
 -- =====================================================================
@@ -200,6 +200,16 @@ end $$;
 -- ---------------------------------------------------------------------
 -- 3 e 4) Vendas (descontos, item avulso, maquininha) e NFC-e com item avulso
 -- ---------------------------------------------------------------------
+-- NCM do item avulso (vai para a NFC-e; sem ele vale o NCM padrão da matriz fiscal, e sem nenhum a nota não sai)
+create or replace function private.clean_ncm(p text) returns text
+language plpgsql immutable as $$
+declare d text := regexp_replace(coalesce(p, ''), '\D', '', 'g');
+begin
+  if d = '' then return null; end if;
+  if length(d) <> 8 then raise exception 'NCM do item avulso deve ter 8 dígitos (informado: %)', p using errcode = '22023'; end if;
+  return d;
+end $$;
+
 create or replace function sales.create_pos_order(p jsonb) returns sales.orders
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -326,9 +336,9 @@ begin
       end if;
 
       insert into sales.order_items (org_id, order_id, variant_id, description, qty, list_price, unit_price, discount_amount,
-                                     discount_reason, total, reservation_id)
+                                     discount_reason, total, reservation_id, ncm)
       values (v_org, o.id, null, v_desc_text, v_qty, v_list, v_list, v_disc, it ->> 'discount_reason',
-              round(v_list * v_qty - v_disc, 2), null);
+              round(v_list * v_qty - v_disc, 2), null, private.clean_ncm(it ->> 'ncm'));
       v_subtotal := v_subtotal + v_list * v_qty;
       v_discount := v_discount + v_disc;
     else
@@ -476,8 +486,8 @@ begin
       end if;
       if v_disc > 0 and not v_can_discount then raise exception 'Desconto exige permissão sales.discount' using errcode = '42501'; end if;
 
-      insert into sales.order_items (org_id, order_id, variant_id, description, qty, list_price, unit_price, discount_amount, total)
-      values (v_org, o.id, null, v_desc_text, v_qty, v_list, v_list, v_disc, round(v_list * v_qty - v_disc, 2));
+      insert into sales.order_items (org_id, order_id, variant_id, description, qty, list_price, unit_price, discount_amount, total, ncm)
+      values (v_org, o.id, null, v_desc_text, v_qty, v_list, v_list, v_disc, round(v_list * v_qty - v_disc, 2), private.clean_ncm(it ->> 'ncm'));
       v_subtotal := v_subtotal + v_list * v_qty; v_discount := v_discount + v_disc;
     else
       v_list := catalog.current_price((it ->> 'variant_id')::uuid, v_price_list);
@@ -619,11 +629,11 @@ begin
 
       insert into sales.order_items (
         org_id, order_id, variant_id, description, qty, list_price, unit_price, discount_amount,
-        discount_reason, total
+        discount_reason, total, ncm
       )
       values (
         v_org, o.id, null, v_desc_text, v_qty, v_list, v_unit, v_disc,
-        it ->> 'discount_reason', round(v_list * v_qty - v_disc, 2)
+        it ->> 'discount_reason', round(v_list * v_qty - v_disc, 2), private.clean_ncm(it ->> 'ncm')
       );
       v_subtotal := v_subtotal + v_list * v_qty;
       v_discount := v_discount + v_disc;
@@ -799,7 +809,8 @@ begin
     if cp.id is not null and cp.status in ('ENDED', 'CANCELLED') then return null; end if;
   end if;
   if v_dev not in ('MOBILE', 'DESKTOP', 'OTHER') then v_dev := 'OTHER'; end if;
-  if v_fp is null or not exists (select 1 from mkt.link_clicks k where k.tracking_link_id = l.id and k.fingerprint = v_fp and k.clicked_at > now() - interval '10 minutes') then
+  if not coalesce((p_meta ->> 'bot')::boolean, false)                                   -- pré-visualização de link (WhatsApp, Facebook…) não é clique
+     and (v_fp is null or not exists (select 1 from mkt.link_clicks k where k.tracking_link_id = l.id and k.fingerprint = v_fp and k.clicked_at > now() - interval '10 minutes')) then
     insert into mkt.link_clicks (org_id, tracking_link_id, device, referrer_host, from_ad, utm, fingerprint)
     values (l.org_id, l.id, v_dev, left(p_meta ->> 'referrer_host', 120), coalesce((p_meta ->> 'from_ad')::boolean, false),
             case when jsonb_typeof(p_meta -> 'utm') = 'object' then p_meta -> 'utm' else '{}' end, v_fp);
@@ -813,7 +824,7 @@ end $$;
 -- 8) Privilégios
 -- ---------------------------------------------------------------------
 insert into private.internal_functions (fqname) values
-  ('sales.stone_secret'), ('sales.complete_stone_pos_payment'), ('sales.fail_stone_pos_order'), ('fiscal.document_by_provider_ref')
+  ('private.clean_ncm'), ('sales.stone_secret'), ('sales.complete_stone_pos_payment'), ('sales.fail_stone_pos_order'), ('fiscal.document_by_provider_ref')
 on conflict do nothing;
 select private.lock_functions();
 revoke execute on function sales.finalize_order(uuid) from authenticated;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBRL, LINK_KINDS, shortLink, trackingMessage, trackingUrl } from "@centralops/domain";
+import { formatBRL, LINK_KINDS, shortLink, trackingUrl } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { isoFromNow, periodBounds, str, type SP } from "@/lib/context";

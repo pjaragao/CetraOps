@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { DISPATCH_FILTERS, DISPATCH_STATUS_LABEL, OFFER_MODES, VARIABLE_SOURCES, SKIP_REASON_LABEL, presetByKey, renderTemplate, suggestVariables, templateParts, templatePlaceholders, type AudienceDef, type TemplateComponent } from "@centralops/domain";
+import { DISPATCH_FILTERS, DISPATCH_STATUS_LABEL, OFFER_MODES, SKIP_REASON_LABEL, presetByKey, type AudienceDef } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
@@ -9,7 +9,8 @@ import { Field, Flash } from "@/components/form";
 import { AudienceBuilder } from "../../../audience-builder";
 import { loadLookups } from "../../../lookups";
 import { previewAudienceAction } from "../../../publicos/actions";
-import { deleteCampaignAction, deleteDispatchAction, launchCampaignAction, saveAudienceStepAction, saveDispatchAction, saveOfferStepAction } from "../../../actions";
+import { deleteCampaignAction, deleteDispatchAction, launchCampaignAction, saveAudienceStepAction, saveOfferStepAction } from "../../../actions";
+import { DispatchForm } from "../../../dispatch-form";
 
 export const metadata = { title: "Montar campanha" };
 
@@ -19,7 +20,6 @@ const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("sv-
 
 interface Check { key: string; ok: boolean; blocking: boolean; message: string }
 interface Checklist { items: Check[]; can_launch: boolean; preview: { audience: number; eligible: number; holdout: number; ads: number; excluded: Record<string, number>; sample: string[]; days_needed: number } }
-interface Variable { source: string; text?: string }
 
 export default async function MontarPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SP }) {
   const session = await requirePerm("crm.write");
@@ -43,10 +43,6 @@ export default async function MontarPage({ params, searchParams }: { params: Pro
   const mode = offer?.mode ?? "NONE";
   const check = checkRes.data as unknown as Checklist | null;
   const tplId = str(sp.tpl) ?? "";
-  const tpl = (templates ?? []).find((t) => t.id === tplId);
-  const body = tpl ? templateParts(tpl.components as unknown as TemplateComponent[]).body : "";
-  const nVars = tpl ? templatePlaceholders(body).length : 0;
-  const sugg = suggestVariables(nVars, mode, !!c.ends_at);
   const canWrite = can(session, "crm.write");
 
   return (
@@ -124,36 +120,7 @@ export default async function MontarPage({ params, searchParams }: { params: Pro
               </ul>
             )}
           </Card>
-          <Card title="Adicionar disparo ou lembrete">
-            <form method="get" className="mb-3 flex flex-wrap items-end gap-2">
-              <input type="hidden" name="passo" value="4" />
-              <Field label="Template aprovado"><select name="tpl" defaultValue={tplId} className={inputClass}><option value="">Escolha…</option>{(templates ?? []).map((t) => <option key={t.id} value={t.id}>{t.name} · {acc.get(t.channel_account_id)}</option>)}</select></Field>
-              <Button variant="secondary">Usar</Button>
-            </form>
-            {tpl && (
-              <form action={saveDispatchAction} className="space-y-3">
-                <input type="hidden" name="id" value={id} /><input type="hidden" name="template_id" value={tpl.id} /><input type="hidden" name="channel_account_id" value={tpl.channel_account_id} /><input type="hidden" name="var_count" value={nVars} />
-                <p className="max-w-md whitespace-pre-line rounded-2xl rounded-tl-sm bg-surface-2 px-3 py-2 text-sm">{renderTemplate(body, sugg.map((v) => (v.source === "TEXT" ? "…" : VARIABLE_SOURCES[v.source]?.sample ?? "…")))}</p>
-                {nVars > 0 && (
-                  <fieldset className="grid gap-3 sm:grid-cols-2"><legend className="mb-1 text-xs font-medium text-muted">Variáveis</legend>
-                    {Array.from({ length: nVars }, (_, i) => (
-                      <div key={i} className="flex gap-2"><span className="self-center text-xs text-muted">{`{{${i + 1}}}`}</span>
-                        <select name={`var_${i}_source`} defaultValue={(sugg[i] as Variable).source} className={inputClass} aria-label={`Variável ${i + 1}`}>{Object.entries(VARIABLE_SOURCES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
-                        <input name={`var_${i}_text`} placeholder="se texto fixo" className={inputClass} />
-                      </div>
-                    ))}
-                  </fieldset>
-                )}
-                <div className="grid gap-3 sm:grid-cols-4">
-                  <Field label="Quem recebe"><select name="filter" defaultValue={(dispatches ?? []).some((d) => d.filter === "ALL") ? "NOT_BOUGHT" : "ALL"} className={inputClass}>{Object.entries(DISPATCH_FILTERS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
-                  <Field label="Enviar em" hint="Lembrete: 24 h ou mais após o principal"><input name="scheduled_at" type="datetime-local" className={inputClass} /></Field>
-                  <Field label="Intervalo entre marketing (dias)"><input name="frequency_cap_days" type="number" min={0} max={90} defaultValue={7} className={inputClass} /></Field>
-                  <Field label="Limite por dia"><input name="daily_limit" type="number" min={1} max={10000} defaultValue={250} className={inputClass} /></Field>
-                </div>
-                <Button>Salvar disparo</Button>
-              </form>
-            )}
-          </Card>
+          {canWrite && <DispatchForm campaignId={id} templates={templates ?? []} accounts={acc} tplId={tplId} offerMode={mode} hasEnd={!!c.ends_at} hasMain={(dispatches ?? []).some((d) => d.filter === "ALL")} onPage={false} getParams={{ passo: "4" }} />}
           <Card title="Links, QR e anúncios">
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
               <li>Ao lançar, o sistema cria sozinho os links <span className="font-mono">{c.code}-story</span>, <span className="font-mono">-bio</span> e <span className="font-mono">-qr</span>{mode === "AFFILIATE" ? " e um link por afiliada" : ""}, com contagem de cliques.</li>

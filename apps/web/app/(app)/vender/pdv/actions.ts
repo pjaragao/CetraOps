@@ -14,6 +14,7 @@ const saleSchema = z.object({
   items: z.array(z.object({
     variantId: z.string().uuid().nullable().optional(),
     description: z.string().min(1).max(200).nullable().optional(),
+    ncm: z.string().regex(/^\d{8}$/).nullable().optional(),
     unitPrice: z.number().min(0).optional(),
     listPrice: z.number().min(0).optional(),
     qty: z.number().int().positive(),
@@ -51,6 +52,7 @@ export async function finalizeSale(input: SaleInput): Promise<SaleResult> {
       items: s.items.map((i) => ({
         variant_id: i.variantId || null,
         description: i.description || null,
+        ncm: i.ncm || null,
         unit_price: i.unitPrice ?? undefined,
         list_price: i.listPrice ?? undefined,
         qty: i.qty,
@@ -113,6 +115,7 @@ const draftSchema = z.object({
   items: z.array(z.object({
     variantId: z.string().uuid().optional().nullable(),
     description: z.string().min(1).max(200).optional().nullable(),
+    ncm: z.string().regex(/^\d{8}$/).optional().nullable(),
     unitPrice: z.number().min(0).default(0),
     listPrice: z.number().min(0).optional(),
     qty: z.number().positive().default(1),
@@ -146,6 +149,7 @@ export async function saveOrderDraft(input: DraftInput): Promise<DraftResult> {
       items: d.items.map((i) => ({
         variant_id: i.variantId || null,
         description: i.description || null,
+        ncm: i.ncm || null,
         unit_price: i.unitPrice,
         list_price: i.listPrice ?? i.unitPrice,
         qty: i.qty,
@@ -181,7 +185,7 @@ export async function getOrderDraft(orderId: string) {
   if (!order || order.status !== "DRAFT") return null;
 
   const [{ data: items }, { data: party }, { data: phoneContact }] = await Promise.all([
-    supabase.schema("sales").from("order_items").select("id, variant_id, description, qty, unit_price, list_price, discount_amount, discount_reason, total").eq("order_id", orderId),
+    supabase.schema("sales").from("order_items").select("id, variant_id, description, ncm, qty, unit_price, list_price, discount_amount, discount_reason, total").eq("order_id", orderId),
     order.party_id ? supabase.schema("crm").from("parties").select("id, display_name").eq("id", order.party_id).maybeSingle() : Promise.resolve({ data: null }),
     order.party_id ? supabase.schema("crm").from("party_contact_points").select("value_display").eq("party_id", order.party_id).in("type", ["PHONE", "WHATSAPP"]).limit(1).maybeSingle() : Promise.resolve({ data: null }),
   ]);

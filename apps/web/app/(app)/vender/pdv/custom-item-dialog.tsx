@@ -8,13 +8,14 @@ import { Field } from "@/components/form";
 interface CustomItemDialogProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (description: string, price: number, qty: number) => void;
+  onAdd: (description: string, price: number, qty: number, ncm?: string) => void;
 }
 
 export function CustomItemDialog({ open, onClose, onAdd }: CustomItemDialogProps) {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [qty, setQty] = useState(1);
+  const [ncm, setNcm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   if (!open) return null;
@@ -40,7 +41,14 @@ export function CustomItemDialog({ open, onClose, onAdd }: CustomItemDialogProps
       return;
     }
 
-    onAdd(desc, numPrice, qty);
+    const ncmDigits = ncm.replace(/\D/g, "");
+    if (ncmDigits && ncmDigits.length !== 8) {
+      setError("O NCM tem 8 dígitos (ou deixe em branco para usar o NCM padrão da matriz fiscal).");
+      return;
+    }
+
+    onAdd(desc, numPrice, qty, ncmDigits || undefined);
+    setNcm("");
     setDescription("");
     setPrice("");
     setQty(1);
@@ -109,6 +117,10 @@ export function CustomItemDialog({ open, onClose, onAdd }: CustomItemDialogProps
               />
             </Field>
           </div>
+
+          <Field label="NCM (opcional)" hint="8 dígitos. Em branco: usa o NCM padrão da matriz fiscal; sem nenhum, a NFC-e não é emitida">
+            <input inputMode="numeric" maxLength={10} value={ncm} onChange={(e) => setNcm(e.target.value)} placeholder="ex.: 61091000" className={`${inputClass} mt-1`} />
+          </Field>
 
           <p className="text-[11px] text-muted">
             Este item não baixará estoque de produto de catálogo e entrará diretamente no total e na nota fiscal do pedido.

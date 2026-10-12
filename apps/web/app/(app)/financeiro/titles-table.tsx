@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatBRL } from "@centralops/domain";
-import { Badge, Button } from "@/components/ui";
+import { Badge, Button, Table } from "@/components/ui";
 import { approveTitle, cancelTitle } from "./actions";
 
 export interface TitleRow {
@@ -41,20 +41,11 @@ export function TitlesTable({ direction, rows, canWrite, canApprove, back }: {
           </div>
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-2 text-left text-xs text-muted">
-            <tr>
-              <th className="w-8 px-3 py-2">
-                {canWrite && (
-                  <input type="checkbox" aria-label="Selecionar todas" checked={allIds.length > 0 && allIds.every((i) => sel.has(i))}
-                    onChange={(e) => setSel(e.target.checked ? new Set(allIds) : new Set())} />
-                )}
-              </th>
-              {["Vencimento", "Título", "Descrição", "Parcela", "Valor / saldo", direction === "RECEIVABLE" ? "Taxa esperada" : "Situação", ""].map((h, i) => <th key={i} className="px-3 py-2 font-medium whitespace-nowrap">{h}</th>)}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
+      <Table head={[
+        canWrite ? <input key="all" type="checkbox" aria-label="Selecionar todas" checked={allIds.length > 0 && allIds.every((i) => sel.has(i))}
+          onChange={(e) => setSel(e.target.checked ? new Set(allIds) : new Set())} /> : "",
+        "Vencimento", "Título", "Descrição", "Parcela", "Valor / saldo", direction === "RECEIVABLE" ? "Taxa esperada" : "Situação", "",
+      ]}>
             {rows.map((r) => (
               <tr key={r.installment_id} className={sel.has(r.installment_id) ? "bg-brand/5" : ""}>
                 <td className="px-3 py-2">{selectable(r) && <input type="checkbox" aria-label={`Selecionar ${r.title_number}`} checked={sel.has(r.installment_id)} onChange={() => toggle(r.installment_id)} />}</td>
@@ -91,9 +82,7 @@ export function TitlesTable({ direction, rows, canWrite, canApprove, back }: {
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+      </Table>
     </div>
   );
 }

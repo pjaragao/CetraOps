@@ -10,6 +10,7 @@ export * from "./templates";
 export * from "./csv";
 export * from "./catalog-import";
 export * from "./barcode";
+export * from "./html";
 export * from "./acquirer-csv";
 export * from "./lifecycle";
 export * from "./tracking";

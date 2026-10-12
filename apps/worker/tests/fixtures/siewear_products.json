@@ -1,0 +1,513 @@
+{
+ "products": [
+  {
+   "id": 15406041956572,
+   "title": "Casaqueto Liora Pink",
+   "handle": "casaqueto-liora-viscomodal-2",
+   "body_html": "<p><span>Nosso best seller ganhou uma nova versão. O Casaqueto Liberté, agora chega com novas atualizações, como as mangas longas com dedinho e o novo tecido em malha lisa, de toque macio. Com abertura frontal e amarração livre, é uma peça versátil e fácil de sobrepor, que combina conforto e funcionalidade em uma nova proposta.<br></span><br><strong>Composição:</strong> 96% Viscose / 4% Elastano</p>",
+   "published_at": "2026-10-09T15:09:28-03:00",
+   "created_at": "2026-09-30T14:51:56-03:00",
+   "updated_at": "2026-10-12T12:12:52-03:00",
+   "vendor": "Sié",
+   "product_type": "",
+   "tags": [],
+   "variants": [
+    {
+     "id": 67608313430236,
+     "title": "Rosa / PP",
+     "option1": "Rosa",
+     "option2": "PP",
+     "option3": null,
+     "sku": "18320020PP",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 1,
+     "product_id": 15406041956572,
+     "created_at": "2026-09-30T14:52:05-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 67608313135324,
+     "title": "Rosa / P",
+     "option1": "Rosa",
+     "option2": "P",
+     "option3": null,
+     "sku": "18320020P",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 2,
+     "product_id": 15406041956572,
+     "created_at": "2026-09-30T14:52:02-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 67608312447196,
+     "title": "Rosa / M",
+     "option1": "Rosa",
+     "option2": "M",
+     "option3": null,
+     "sku": "18320020M",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 3,
+     "product_id": 15406041956572,
+     "created_at": "2026-09-30T14:51:59-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 67608312053980,
+     "title": "Rosa / G",
+     "option1": "Rosa",
+     "option2": "G",
+     "option3": null,
+     "sku": "18320020G",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 4,
+     "product_id": 15406041956572,
+     "created_at": "2026-09-30T14:51:56-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    }
+   ],
+   "images": [
+    {
+     "id": 55405910720732,
+     "created_at": "2026-09-30T16:51:01-03:00",
+     "position": 1,
+     "updated_at": "2026-09-30T16:51:03-03:00",
+     "product_id": 15406041956572,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/Gemini_Generated_Image_a9y9jja9y9jja9y9_jpg.jpg?v=1790797863",
+     "width": 1686,
+     "height": 2528
+    },
+    {
+     "id": 55405910687964,
+     "created_at": "2026-09-30T16:51:01-03:00",
+     "position": 2,
+     "updated_at": "2026-09-30T16:51:03-03:00",
+     "product_id": 15406041956572,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/WhatsAppImage2026-09-30at16.45.14.jpg?v=1790797863",
+     "width": 991,
+     "height": 1242
+    }
+   ],
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Rosa"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "PP",
+      "P",
+      "M",
+      "G"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 15406040842460,
+   "title": "Casaqueto Liora Black",
+   "handle": "casaqueto-liora-viscomodal-1",
+   "body_html": "<p><span>Nosso best seller ganhou uma nova versão. O Casaqueto Liberté, agora chega com novas atualizações, como as mangas longas com dedinho e o novo tecido em malha lisa, de toque macio. Com abertura frontal e amarração livre, é uma peça versátil e fácil de sobrepor, que combina conforto e funcionalidade em uma nova proposta.<br></span><br><strong>Composição:</strong> 96% Viscose / 4% Elastano</p>",
+   "published_at": "2026-10-09T15:09:10-03:00",
+   "created_at": "2026-09-30T14:51:44-03:00",
+   "updated_at": "2026-10-12T12:12:52-03:00",
+   "vendor": "Sié",
+   "product_type": "",
+   "tags": [],
+   "variants": [
+    {
+     "id": 67608309629148,
+     "title": "Preto / PP",
+     "option1": "Preto",
+     "option2": "PP",
+     "option3": null,
+     "sku": "18320004PP",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 1,
+     "product_id": 15406040842460,
+     "created_at": "2026-09-30T14:51:53-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 67608309465308,
+     "title": "Preto / P",
+     "option1": "Preto",
+     "option2": "P",
+     "option3": null,
+     "sku": "18320004P",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": true,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 2,
+     "product_id": 15406040842460,
+     "created_at": "2026-09-30T14:51:50-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 67608309367004,
+     "title": "Preto / M",
+     "option1": "Preto",
+     "option2": "M",
+     "option3": null,
+     "sku": "18320004M",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": true,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 3,
+     "product_id": 15406040842460,
+     "created_at": "2026-09-30T14:51:47-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 67608309203164,
+     "title": "Preto / G",
+     "option1": "Preto",
+     "option2": "G",
+     "option3": null,
+     "sku": "18320004G",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": true,
+     "price": "388.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 4,
+     "product_id": 15406040842460,
+     "created_at": "2026-09-30T14:51:44-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    }
+   ],
+   "images": [
+    {
+     "id": 55405990478044,
+     "created_at": "2026-09-30T16:53:12-03:00",
+     "position": 1,
+     "updated_at": "2026-09-30T16:53:14-03:00",
+     "product_id": 15406040842460,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/ChatGPTImage30deset.de2026_14_56_48_1.png?v=1790797994",
+     "width": 1024,
+     "height": 1535
+    },
+    {
+     "id": 55405990412508,
+     "created_at": "2026-09-30T16:53:12-03:00",
+     "position": 2,
+     "updated_at": "2026-09-30T16:53:14-03:00",
+     "product_id": 15406040842460,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/Gemini_Generated_Image_c84sthc84sthc84s.jpg_1.jpg?v=1790797994",
+     "width": 1684,
+     "height": 2528
+    }
+   ],
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Preto"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "PP",
+      "P",
+      "M",
+      "G"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 9252493230300,
+   "title": "Top Ivy Black",
+   "handle": "blusa-ivy-black",
+   "body_html": "<p>Top de modelagem ajustada, com recorte anatômico no busto e comprimento levemente alongado para maior segurança no uso. Possui alças grossas e frente única. Desenvolvido em malha de alta elasticidade, ideal para treinos de diferentes intensidades ou uso no dia a dia.</p>\n<p><strong>Composição:</strong><span> </span>90% Poliamida / 10% Elastano</p>",
+   "published_at": "2026-08-17T15:42:38-03:00",
+   "created_at": "2026-02-19T15:14:27-03:00",
+   "updated_at": "2026-10-12T12:12:52-03:00",
+   "vendor": "Sié",
+   "product_type": "Top",
+   "tags": [
+    "SIÉ"
+   ],
+   "variants": [
+    {
+     "id": 47595530682588,
+     "title": "P",
+     "option1": "P",
+     "option2": null,
+     "option3": null,
+     "sku": "17847004P",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "368.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 1,
+     "product_id": 9252493230300,
+     "created_at": "2026-02-19T15:14:32-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 47595530518748,
+     "title": "M",
+     "option1": "M",
+     "option2": null,
+     "option3": null,
+     "sku": "17847004M",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "368.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 2,
+     "product_id": 9252493230300,
+     "created_at": "2026-02-19T15:14:30-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 47595530354908,
+     "title": "G",
+     "option1": "G",
+     "option2": null,
+     "option3": null,
+     "sku": "17847004G",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "368.00",
+     "grams": 0,
+     "compare_at_price": null,
+     "position": 3,
+     "product_id": 9252493230300,
+     "created_at": "2026-02-19T15:14:27-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    }
+   ],
+   "images": [
+    {
+     "id": 49051552383196,
+     "created_at": "2026-07-31T16:32:21-03:00",
+     "position": 1,
+     "updated_at": "2026-07-31T16:32:23-03:00",
+     "product_id": 9252493230300,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/026-0717-SIE12206.jpg?v=1785526343",
+     "width": 1800,
+     "height": 2400
+    },
+    {
+     "id": 49051552514268,
+     "created_at": "2026-07-31T16:32:21-03:00",
+     "position": 2,
+     "updated_at": "2026-07-31T16:32:23-03:00",
+     "product_id": 9252493230300,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/026-0717-SIE12200.jpg?v=1785526343",
+     "width": 1800,
+     "height": 2400
+    }
+   ],
+   "options": [
+    {
+     "name": "Tamanho",
+     "position": 1,
+     "values": [
+      "P",
+      "M",
+      "G"
+     ]
+    }
+   ]
+  },
+  {
+   "id": 9089700200668,
+   "title": "Camiseta Pierre Luna Black",
+   "handle": "camiseta-pierre-luna-black",
+   "body_html": "<p>A Camiseta Pierre é a peça chave para quem busca conforto, respirabilidade e um design minimalista para o dia a dia e atividades físicas. Feita com tecido leve e de secagem rápida, ela proporciona liberdade de movimento e mantém você seco mesmo nos treinos mais intensos.</p>\n<p><strong>Composição:</strong> 89% Poliamida / 11% Elastano</p>",
+   "published_at": "2026-07-28T12:12:34-03:00",
+   "created_at": "2025-10-08T16:01:58-03:00",
+   "updated_at": "2026-10-12T12:12:52-03:00",
+   "vendor": "SIÉ",
+   "product_type": "Camiseta",
+   "tags": [
+    "Activewear",
+    "Best-Seller",
+    "final-sale",
+    "gift-guide",
+    "men",
+    "Namorados",
+    "Preto",
+    "SIÉ"
+   ],
+   "variants": [
+    {
+     "id": 46997806088412,
+     "title": "P",
+     "option1": "P",
+     "option2": null,
+     "option3": null,
+     "sku": "10962019P",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": true,
+     "price": "336.00",
+     "grams": 0,
+     "compare_at_price": "0.00",
+     "position": 1,
+     "product_id": 9089700200668,
+     "created_at": "2025-10-08T16:01:58-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 46997806121180,
+     "title": "M",
+     "option1": "M",
+     "option2": null,
+     "option3": null,
+     "sku": "10962019M",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": true,
+     "price": "336.00",
+     "grams": 0,
+     "compare_at_price": "0.00",
+     "position": 2,
+     "product_id": 9089700200668,
+     "created_at": "2025-10-08T16:01:58-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 46997806153948,
+     "title": "G",
+     "option1": "G",
+     "option2": null,
+     "option3": null,
+     "sku": "10962019G",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": true,
+     "price": "336.00",
+     "grams": 0,
+     "compare_at_price": "0.00",
+     "position": 3,
+     "product_id": 9089700200668,
+     "created_at": "2025-10-08T16:01:58-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    },
+    {
+     "id": 46997806186716,
+     "title": "GG",
+     "option1": "GG",
+     "option2": null,
+     "option3": null,
+     "sku": "10962019GG",
+     "requires_shipping": true,
+     "taxable": true,
+     "featured_image": null,
+     "available": false,
+     "price": "336.00",
+     "grams": 0,
+     "compare_at_price": "0.00",
+     "position": 4,
+     "product_id": 9089700200668,
+     "created_at": "2025-10-08T16:01:58-03:00",
+     "updated_at": "2026-10-12T12:12:52-03:00"
+    }
+   ],
+   "images": [
+    {
+     "id": 45921700184284,
+     "created_at": "2026-02-25T18:30:08-03:00",
+     "position": 1,
+     "updated_at": "2026-02-25T18:31:33-03:00",
+     "product_id": 9089700200668,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/026-0212-Sie7957.webp?v=1772055093",
+     "width": 990,
+     "height": 1485
+    },
+    {
+     "id": 45921715290332,
+     "created_at": "2026-02-25T18:31:24-03:00",
+     "position": 2,
+     "updated_at": "2026-02-25T18:31:33-03:00",
+     "product_id": 9089700200668,
+     "variant_ids": [],
+     "src": "https://cdn.shopify.com/s/files/1/0788/2502/9852/files/026-0212-Sie7953.webp?v=1772055093",
+     "width": 990,
+     "height": 1485
+    }
+   ],
+   "options": [
+    {
+     "name": "Tamanho",
+     "position": 1,
+     "values": [
+      "P",
+      "M",
+      "G",
+      "GG"
+     ]
+    }
+   ]
+  }
+ ]
+}

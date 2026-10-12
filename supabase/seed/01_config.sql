@@ -270,3 +270,8 @@ insert into core.settings (org_id, key, value) values
   ('00000000-0000-4000-8000-000000000001', 'ai_policies', '{"max_discount_pct": 0, "handoff_cart_value": 1500, "reservation_max_hours": 48, "max_ai_reserved_items": 3, "sla_minutes": {"VIP": 5, "STANDARD": 15}}'),
   ('00000000-0000-4000-8000-000000000001', 'commission_plan_default', '{"base": "STORE_REVENUE", "rates_by_channel": {"POS": 3, "WHATSAPP": 3, "INSTAGRAM": 3}, "tiers": [{"from": 35000, "to": 60000, "bonus": 200}, {"from": 60000, "pct_over": 1}]}')
 on conflict (org_id, key) do nothing;
+
+-- Catálogo do site oficial da marca (rotina diária + preços a cada 6 h); desliga em Produtos › Site da marca
+insert into core.settings (org_id, key, value)
+values ('00000000-0000-4000-8000-000000000001', 'catalog_site', '{"enabled": true, "base_url": "https://siewear.com", "source": "SIEWEAR"}')
+on conflict (org_id, key) do nothing;

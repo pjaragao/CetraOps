@@ -953,6 +953,31 @@ isOneToOne: false
                     
                     
                   ]
+                },"price_changes": {
+                  Row: {
+                    "changed_at": string,"compare_at_price": number | null,"id": number,"in_stock": number,"new_price": number,"notified": boolean,"old_price": number | null,"org_id": string,"product_id": string,"source": string,"variant_id": string | null
+                  }
+                  Insert: {
+                    "changed_at"?: string,"compare_at_price"?: number | null,"id"?: never,"in_stock"?: number,"new_price": number,"notified"?: boolean,"old_price"?: number | null,"org_id": string,"product_id": string,"source"?: string,"variant_id"?: string | null
+                  }
+                  Update: {
+                    "changed_at"?: string,"compare_at_price"?: number | null,"id"?: never,"in_stock"?: number,"new_price"?: number,"notified"?: boolean,"old_price"?: number | null,"org_id"?: string,"product_id"?: string,"source"?: string,"variant_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "price_changes_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "price_changes_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "variants"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"price_lists": {
                   Row: {
                     "id": string,"is_default": boolean,"kind": string,"name": string,"org_id": string
@@ -1066,6 +1091,45 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"site_items": {
+                  Row: {
+                    "available": boolean,"collections": (string)[],"color_id": string | null,"compare_at_price": number | null,"external_id": string,"handle": string,"id": string,"images": NonNullable<Json>,"org_id": string,"price": number | null,"product_id": string | null,"product_type": string | null,"removed_at": string | null,"site_updated_at": string | null,"source": string,"synced_at": string,"tags": (string)[],"title": string,"url": string | null
+                  }
+                  Insert: {
+                    "available"?: boolean,"collections"?: (string)[],"color_id"?: string | null,"compare_at_price"?: number | null,"external_id": string,"handle": string,"id"?: string,"images"?: NonNullable<Json>,"org_id": string,"price"?: number | null,"product_id"?: string | null,"product_type"?: string | null,"removed_at"?: string | null,"site_updated_at"?: string | null,"source"?: string,"synced_at"?: string,"tags"?: (string)[],"title": string,"url"?: string | null
+                  }
+                  Update: {
+                    "available"?: boolean,"collections"?: (string)[],"color_id"?: string | null,"compare_at_price"?: number | null,"external_id"?: string,"handle"?: string,"id"?: string,"images"?: NonNullable<Json>,"org_id"?: string,"price"?: number | null,"product_id"?: string | null,"product_type"?: string | null,"removed_at"?: string | null,"site_updated_at"?: string | null,"source"?: string,"synced_at"?: string,"tags"?: (string)[],"title"?: string,"url"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "site_items_color_id_fkey"
+      columns: ["color_id"]
+isOneToOne: false
+      referencedRelation: "colors"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "site_items_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"site_sync_runs": {
+                  Row: {
+                    "error": string | null,"finished_at": string | null,"id": number,"kind": string,"org_id": string,"started_at": string,"stats": NonNullable<Json>,"status": string
+                  }
+                  Insert: {
+                    "error"?: string | null,"finished_at"?: string | null,"id"?: never,"kind": string,"org_id": string,"started_at"?: string,"stats"?: NonNullable<Json>,"status"?: string
+                  }
+                  Update: {
+                    "error"?: string | null,"finished_at"?: string | null,"id"?: never,"kind"?: string,"org_id"?: string,"started_at"?: string,"stats"?: NonNullable<Json>,"status"?: string
+                  }
+                  Relationships: [
+                    
+                    
+                  ]
                 },"size_charts": {
                   Row: {
                     "id": string,"measurements": NonNullable<Json>,"name": string,"org_id": string
@@ -1144,14 +1208,35 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "current_price":
+            "apply_site_prices":
+{ Args: { "p": Json,"p_org": string,"p_source"?: string }; Returns: Json
+                           },
+"current_price":
 { Args: { "p_price_list"?: string,"p_variant": string }; Returns: number
+                           },
+"finish_site_sync":
+{ Args: { "p_error"?: string,"p_org": string,"p_run": number,"p_seen"?: Json,"p_stats": Json,"p_status": string }; Returns: undefined
                            },
 "import_rows":
 { Args: { "p": Json,"p_location"?: string }; Returns: Json
                            },
+"request_site_sync":
+{ Args: { "p_kind"?: string }; Returns: undefined
+                           },
 "search_products":
 { Args: { "p": Json }; Returns: Json
+                           },
+"set_site_sync":
+{ Args: { "p_enabled": boolean }; Returns: undefined
+                           },
+"start_site_sync":
+{ Args: { "p_kind": string,"p_org": string }; Returns: number
+                           },
+"upsert_site_product":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"upsert_site_size_chart":
+{ Args: { "p_collections": Json,"p_html": string,"p_name": string,"p_org": string }; Returns: string
                            }
           }
           Enums: {

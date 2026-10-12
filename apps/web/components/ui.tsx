@@ -124,18 +124,8 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 }
 
 /** Tabela simples e responsiva (rolagem horizontal só dentro do cartão). */
-export function Table({ head, children }: { head: ReactNode[]; children: ReactNode }) {
-  return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full text-sm">
-        <thead className="bg-surface-2 text-left text-xs text-muted">
-          <tr>{head.map((h, i) => <th key={i} className="px-3 py-2 font-medium whitespace-nowrap">{h}</th>)}</tr>
-        </thead>
-        <tbody className="divide-y divide-border">{children}</tbody>
-      </table>
-    </div>
-  );
-}
+/** Tabela padrão (busca, ordenação por coluna e filtros): ver components/data-table.tsx. */
+export { Table } from "./data-table";
 
 export const inputClass =
   "w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand";

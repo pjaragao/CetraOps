@@ -86,6 +86,7 @@ export const NAV: NavArea[] = [
       { label: "Estoque", href: "/produtos/estoque", permission: "inv.read", ready: true },
       { label: "Contagem de estoque", href: "/produtos/contagem", permission: "inv.count|inv.write", ready: true },
       { label: "Etiquetas", href: "/produtos/etiquetas", ready: true },
+      { label: "Site da marca", href: "/produtos/site", ready: true },
       { label: "Importar catálogo", href: "/produtos/importar", permission: "catalog.write", ready: true },
       { label: "Pedidos de compra", href: "/produtos/compras", permission: "purch.read", ready: true },
       { label: "Recebimento de NF-e", href: "/produtos/recebimento", permission: "purch.read", ready: true },

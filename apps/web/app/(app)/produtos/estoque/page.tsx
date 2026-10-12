@@ -3,7 +3,7 @@ import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { fetchAll } from "@/lib/fetch-all";
 import { can } from "@/lib/session";
-import { cn, Empty, inputClass, LinkButton, PageHeader } from "@/components/ui";
+import { cn, Empty, inputClass, LinkButton, PageHeader, Table } from "@/components/ui";
 
 export const metadata = { title: "Estoque" };
 
@@ -55,12 +55,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: SP }
         </>} />
       <form className="mb-4"><input name="q" defaultValue={q} placeholder="Produto, referência ou SKU" className={`${inputClass} max-w-sm`} aria-label="Buscar" /></form>
       {matrix.size === 0 ? <Empty title="Sem estoque registrado">O saldo entra pela importação do catálogo com quantidade, pela contagem (Produtos › Contagem) ou pelo recebimento de NF-e.</Empty> : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-2 text-xs text-muted">
-              <tr><th className="px-3 py-2 text-left">Produto</th><th className="px-3 py-2 text-left">Cor</th>{cols.map((c) => <th key={c} className="px-3 py-2 text-center">{c}</th>)}<th className="px-3 py-2 text-right">Total</th><th className="px-3 py-2 text-right" title="Em malinhas com clientes ou em campanhas">Fora da loja</th></tr>
-            </thead>
-            <tbody className="divide-y divide-border">
+        <Table head={["Produto", "Cor", ...cols, "Total", "Fora da loja"]} searchPlaceholder="Filtrar produto, referência ou cor">
               {[...matrix.entries()].map(([k, m]) => {
                 const total = [...m.sizes.values()].reduce((a, s) => a + s.av, 0);
                 return (
@@ -81,9 +76,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: SP }
                   </tr>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+        </Table>
       )}
     </>
   );

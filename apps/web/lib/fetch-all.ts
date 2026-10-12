@@ -16,3 +16,21 @@ export async function fetchAll<T>(make: (from: number, to: number) => PromiseLik
   }
   return out;
 }
+
+/**
+ * Listas grandes de ids em `.in(...)` vão em lotes: o endereço da consulta cresce ~37 bytes por id e, acima de ~50, o proxy do
+ * homelab (e outros) recusa a resposta. Use `inChunks(ids, (lote) => consulta)` e junte os resultados.
+ */
+export const IN_CHUNK = 50;
+export function chunks<T>(arr: T[], size = IN_CHUNK): T[][] {
+  return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
+}
+export async function inChunks<T, R>(ids: T[], run: (part: T[]) => PromiseLike<{ data: R[] | null; error?: { message: string } | null }>): Promise<R[]> {
+  const out: R[] = [];
+  for (const part of chunks(ids)) {
+    const { data, error } = await run(part);
+    if (error) throw new Error(error.message);
+    out.push(...(data ?? []));
+  }
+  return out;
+}

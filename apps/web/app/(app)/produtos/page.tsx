@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cdnImage, formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
-import { fetchAll } from "@/lib/fetch-all";
+import { chunks, fetchAll } from "@/lib/fetch-all";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { Badge, Empty, inputClass, LinkButton, PageHeader, Table } from "@/components/ui";
@@ -36,12 +36,12 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
     supabase.schema("catalog").from("collections").select("id, name").order("name"),
   ]);
   const ids = products.map((p) => p.id);
-  const chunks = Array.from({ length: Math.ceil(ids.length / 200) }, (_, i) => ids.slice(i * 200, i * 200 + 200));
+  const idChunks = chunks(ids);
   const [variants, media, prices, site, stock] = await Promise.all([
-    Promise.all(chunks.map((c) => fetchAll((a, b) => supabase.schema("catalog").from("variants").select("id, product_id, color_id").in("product_id", c).order("id").range(a, b)))).then((r) => r.flat()),
-    Promise.all(chunks.map((c) => fetchAll((a, b) => supabase.schema("catalog").from("product_media").select("product_id, storage_path, position").in("product_id", c).order("position").order("id").range(a, b)))).then((r) => r.flat()),
+    Promise.all(idChunks.map((c) => fetchAll((a, b) => supabase.schema("catalog").from("variants").select("id, product_id, color_id").in("product_id", c).order("id").range(a, b)))).then((r) => r.flat()),
+    Promise.all(idChunks.map((c) => fetchAll((a, b) => supabase.schema("catalog").from("product_media").select("product_id, storage_path, position").in("product_id", c).order("position").order("id").range(a, b)))).then((r) => r.flat()),
     fetchAll((a, b) => supabase.schema("catalog").from("prices").select("product_id, variant_id, price").is("valid_to", null).order("id").range(a, b)),
-    Promise.all(chunks.map((c) => supabase.schema("catalog").from("site_items").select("product_id, url, available, removed_at").in("product_id", c))).then((r) => r.flatMap((x) => x.data ?? [])),
+    Promise.all(idChunks.map((c) => supabase.schema("catalog").from("site_items").select("product_id, url, available, removed_at").in("product_id", c))).then((r) => r.flatMap((x) => x.data ?? [])),
     fetchAll((a, b) => supabase.schema("inv").from("v_stock_matrix").select("product_id, available").eq("is_sellable", true).order("variant_id").order("location_id").range(a, b)),
   ]);
 

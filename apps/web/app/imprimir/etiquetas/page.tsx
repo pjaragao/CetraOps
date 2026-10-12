@@ -1,7 +1,7 @@
 import { code128Svg, formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
-import { fetchAll } from "@/lib/fetch-all";
+import { chunks, fetchAll, inChunks } from "@/lib/fetch-all";
 import { str, type SP } from "@/lib/context";
 import { PrintBar } from "../print-bar";
 
@@ -40,18 +40,22 @@ export default async function EtiquetasPrint({ searchParams }: { searchParams: S
     for (const s of stock) if (s.variant_id) want.set(s.variant_id, (want.get(s.variant_id) ?? 0) + Number(s.on_hand));
   }
   const ids = [...want.keys()];
-  const variants = ids.length ? (await Promise.all(Array.from({ length: Math.ceil(ids.length / 200) }, (_, k) =>
-    supabase.schema("catalog").from("variants").select("id, sku, gtin, size, product_id, color_id").in("id", ids.slice(k * 200, k * 200 + 200))))).flatMap((r) => r.data ?? []) : [];
+  const variants = ids.length ? (await Promise.all(chunks(ids).map((part) =>
+    supabase.schema("catalog").from("variants").select("id, sku, gtin, size, product_id, color_id").in("id", part)))).flatMap((r) => r.data ?? []) : [];
   const pids = [...new Set(variants.map((v) => v.product_id))];
   const [{ data: products }, { data: colors }, prices] = await Promise.all([
-    pids.length ? supabase.schema("catalog").from("products").select("id, name, reference_code").in("id", pids) : Promise.resolve({ data: [] as { id: string; name: string; reference_code: string }[] }),
+    inChunks(pids, (part) => supabase.schema("catalog").from("products").select("id, name, reference_code").in("id", part)).then((data) => ({ data })),
     supabase.schema("catalog").from("colors").select("id, name"),
     // preço vigente da lista padrão (de variante, senão do produto), em lote
     pids.length ? (async () => {
       const { data: pl } = await supabase.schema("catalog").from("price_lists").select("id").eq("is_default", true).maybeSingle();
       if (!pl) return [];
-      return fetchAll((a, b) => supabase.schema("catalog").from("prices").select("product_id, variant_id, price").eq("price_list_id", pl.id).is("valid_to", null)
-        .in("product_id", pids).order("id").range(a, b));
+      const vids = variants.map((v) => v.id);
+      const [byProd, byVar] = await Promise.all([
+        inChunks(pids, (part) => supabase.schema("catalog").from("prices").select("product_id, variant_id, price").eq("price_list_id", pl.id).is("valid_to", null).in("product_id", part)),
+        inChunks(vids, (part) => supabase.schema("catalog").from("prices").select("product_id, variant_id, price").eq("price_list_id", pl.id).is("valid_to", null).in("variant_id", part)),
+      ]);
+      return [...byProd, ...byVar];
     })() : Promise.resolve([] as { product_id: string; variant_id: string | null; price: number }[]),
   ]);
   const pmap = new Map((products ?? []).map((p) => [p.id, p])), cname = new Map((colors ?? []).map((c) => [c.id, c.name]));

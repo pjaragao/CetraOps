@@ -118,11 +118,11 @@ export async function searchSellable(q: string, locationId?: string): Promise<Se
     supabase.schema("catalog").from("products").select("id, name").in("id", [...new Set(variants.map((v) => v.product_id))]),
     supabase.schema("catalog").from("colors").select("id, name"),
     (locationId ? supabase.schema("inv").from("stock_levels").select("variant_id, available").eq("location_id", locationId).in("variant_id", variants.map((v) => v.id))
-      : supabase.schema("inv").from("stock_levels").select("variant_id, available").in("variant_id", variants.map((v) => v.id))),
+      : supabase.schema("inv").from("v_stock_matrix").select("variant_id, available").eq("is_sellable", true).in("variant_id", variants.map((v) => v.id))),
   ]);
   const pname = new Map((products ?? []).map((p) => [p.id, p.name])), cname = new Map((colors ?? []).map((c) => [c.id, c.name]));
   const avail = new Map<string, number>();
-  for (const s of stock ?? []) avail.set(s.variant_id, (avail.get(s.variant_id) ?? 0) + Number(s.available));
+  for (const s of stock ?? []) if (s.variant_id) avail.set(s.variant_id, (avail.get(s.variant_id) ?? 0) + Number(s.available));
   const prices = await Promise.all(variants.map(async (v) => (await supabase.schema("catalog").rpc("current_price", { p_variant: v.id })).data as number | null));
   return variants.map((v, i) => ({ id: v.id, sku: v.sku, label: `${pname.get(v.product_id) ?? ""} · ${v.color_id ? cname.get(v.color_id) ?? "" : "—"} · ${v.size}`, price: prices[i], available: avail.get(v.id) ?? 0 }));
 }

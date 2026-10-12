@@ -49,6 +49,9 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
     o.party_id ? supabase.schema("crm").from("parties").select("id, display_name").eq("id", o.party_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.schema("sales").rpc("get_order_fiscal_doc", { p_order: id }),
   ]);
+  const { data: phone } = o.party_id
+    ? await supabase.schema("crm").from("party_contact_points").select("value_normalized").eq("party_id", o.party_id).in("type", ["WHATSAPP", "PHONE"]).order("type", { ascending: false }).limit(1).maybeSingle()
+    : { data: null };
   const fiscalDoc = fiscalDocRaw as {
     id: string; number: number; series: number; model: string; status: string;
     access_key?: string | null; danfe_path?: string | null; xml_path?: string | null;
@@ -62,12 +65,17 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   const balance = Number(o.total) - Number(o.paid_total);
   const isPaidOrBeyond = ["PAID", "COMPLETED", "FULFILLING", "READY_FOR_PICKUP", "SHIPPED"].includes(o.status);
   const delivery = isPaidOrBeyond;
+  // comprovante pelo WhatsApp da cliente (link wa.me, sem depender da API): com o DANFE da NFC-e quando houver
+  const waDigits = (phone?.value_normalized ?? "").replace(/\D/g, "");
+  const waLink = waDigits.length >= 10 && o.status !== "DRAFT"
+    ? `https://wa.me/${waDigits.length <= 11 ? `55${waDigits}` : waDigits}?text=${encodeURIComponent(`Oi, ${party?.display_name?.split(" ")[0] ?? ""}! Obrigada pela compra 💛 Pedido ${o.number}: ${formatBRL(o.total)}.${fiscalDoc?.danfe_path ? ` Sua nota fiscal: ${fiscalDoc.danfe_path}` : ""}`)}`
+    : null;
   const returnable = ["PAID", "COMPLETED", "FULFILLING", "READY_FOR_PICKUP", "SHIPPED", "PARTIALLY_RETURNED"].includes(o.status);
 
   return (
     <>
       <PageHeader title={`Pedido ${o.number}`} description={`${o.channel} · ${new Date(o.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}${party ? ` · ${party.display_name}` : ""}`}
-        actions={<><Badge tone={st.tone}>{st.label}</Badge>{o.status === "DRAFT" && canWrite && <LinkButton href={`/vender/pdv?resume=${o.id}`} variant="primary">Retomar no PDV</LinkButton>}{returnable && canWrite && <LinkButton href={`/vender/trocas/nova?n=${o.number}`}>Trocar / devolver</LinkButton>}<LinkButton href="/vender/pedidos">Voltar</LinkButton></>} />
+        actions={<><Badge tone={st.tone}>{st.label}</Badge>{o.status === "DRAFT" && canWrite && <LinkButton href={`/vender/pdv?resume=${o.id}`} variant="primary">Retomar no PDV</LinkButton>}{returnable && canWrite && <LinkButton href={`/vender/trocas/nova?n=${o.number}`}>Trocar / devolver</LinkButton>}{o.status !== "DRAFT" && <LinkButton href={`/imprimir/comprovante/${o.id}`}>Imprimir comprovante</LinkButton>}{waLink && <a href={waLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-2">Enviar pelo WhatsApp</a>}<LinkButton href="/vender/pedidos">Voltar</LinkButton></>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
       {o.status === "DRAFT" && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/40 bg-brand/10 p-4">

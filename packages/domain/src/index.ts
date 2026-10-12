@@ -8,6 +8,8 @@ export * from "./statement";
 export * from "./notifications";
 export * from "./templates";
 export * from "./csv";
+export * from "./catalog-import";
+export * from "./barcode";
 export * from "./acquirer-csv";
 export * from "./lifecycle";
 export * from "./tracking";

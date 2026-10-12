@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     focus_api_base: str = "https://homologacao.focusnfe.com.br"
     focus_token: str = ""
     # Brasil NFe
-    brasilnfe_api_base: str = "https://api.brasilnfe.com.br"
+    brasilnfe_api_base: str = "https://api.brasilnfe.com.br/services"
     brasilnfe_token: str = ""
     # Notaas
     notaas_api_base: str = "https://platform.notaas.com.br/api/v1"

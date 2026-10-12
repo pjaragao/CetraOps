@@ -221,11 +221,11 @@ async def test_primary_connection_wins_and_brasil_nfe_homologation_is_sent_as_te
     d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": "", "brasilnfe_api_base": "https://bnfe.test"}))
     await connection(pool, "BRASIL_NFE", {"token": "BNFE"}, {"environment": "homologacao", "primary": "true"})
     await connection(pool, "FOCUS_NFE", {"token": "FOCUS"}, {"environment": "producao"})                       # editada por último, mas não é a principal
-    route = respx.post("https://bnfe.test/EnviarNotaFiscal").mock(return_value=httpx.Response(200, json={"Status": "autorizado", "Numero": 7, "Chave": KEY}))
+    route = respx.post("https://bnfe.test/services/EnviarNotaFiscal").mock(return_value=httpx.Response(200, json={"returnNF": {"numero": 7, "chaveNf": KEY, "codStatusRespostaSefaz": 100, "ok": True}}))
     focus = respx.post(url__regex=r"https://api\.focusnfe\.com\.br/.*").mock(return_value=httpx.Response(201, json=AUTHORIZED))
     await fiscal.handle(d, job(order))
     assert route.called and not focus.called
-    assert json.loads(route.calls[0].request.content)["TipoAmbiente"] == 2                                  # homologação na tela = homologação na emissão
+    assert json.loads(route.calls[0].request.content)["tipoAmbiente"] == 2                                  # homologação na tela = homologação na emissão
 
 
 @respx.mock
@@ -266,3 +266,33 @@ async def test_async_cancellation_is_confirmed_later(pool: Any, deps: Any, order
     respx.get("https://platform.notaas.com.br/api/v1/nfe/invoices/inv_9/status").mock(return_value=httpx.Response(200, json={"status": "cancelled", "protocolo": "P-C9"}))
     await fiscal.handle(d, queues.QueueMessage("fiscal_emission", 1, 1, check["message"]))
     assert (await document(pool, order))["status"] == "CANCELLED"  # type: ignore[index]
+
+
+@respx.mock
+async def test_unconfigured_providers_are_ignored_without_warnings(pool: Any, deps: Any, order: dict[str, Any]) -> None:
+    """Só um provedor configurado: os outros (sem credencial, pendentes ou desativados) não são escolhidos nem geram aviso."""
+    import dataclasses
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": "", "brasilnfe_api_base": "https://bnfe.test"}))
+    await fetch_one(pool, "insert into core.integration_connections (org_id, provider, capability, config, status) values (%s, 'NOTAAS', 'FISCAL_X1', '{}', 'PENDING') returning id", (ORG,))
+    await fetch_one(pool, "insert into core.integration_connections (org_id, provider, capability, config, status) values (%s, 'FOCUS_NFE', 'FISCAL_X2', '{}', 'DISABLED') returning id", (ORG,))
+    await connection(pool, "BRASIL_NFE", {"token": "BNFE"}, {"environment": "homologacao"})
+    before = await fetch_one(pool, "select count(*) as n from core.notifications where kind = 'INTEGRATION_ERROR'")
+    route = respx.post("https://bnfe.test/services/EnviarNotaFiscal").mock(return_value=httpx.Response(200, json={"returnNF": {"numero": 8, "chaveNf": KEY, "codStatusRespostaSefaz": 100, "ok": True}}))
+    other = respx.route(url__regex=r"https://(api\.focusnfe|platform\.notaas).*").mock(return_value=httpx.Response(500))
+    await fiscal.handle(d, job(order))
+    assert route.called and not other.called
+    after = await fetch_one(pool, "select count(*) as n from core.notifications where kind = 'INTEGRATION_ERROR'")
+    assert after["n"] == before["n"]
+
+
+@respx.mock
+async def test_dfe_sync_with_brasil_nfe_uses_the_services_endpoint(pool: Any, deps: Any) -> None:
+    import dataclasses
+    d = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"focus_token": "", "brasilnfe_api_base": "https://bnfe.test"}))
+    await connection(pool, "BRASIL_NFE", {"token": "BNFE"}, {"environment": "producao", "primary": "true"})
+    route = respx.post("https://bnfe.test/services/ObterNotasFiscais").mock(return_value=httpx.Response(200, json={"notas": [
+        {"chave": "42261011222333000181550010000000501000000501", "cnpjEmissor": "11222333000181", "nomeEmissor": "Fornecedor", "valor": 900.5, "status": 1}]}))
+    await fiscal.handle(d, queues.QueueMessage("fiscal_emission", 1, 1, {"action": "DFE_SYNC", "org_id": ORG}))
+    assert route.called
+    row = await fetch_one(pool, "select issuer_name from fiscal.inbound_dfe where access_key = '42261011222333000181550010000000501000000501'")
+    assert row and row["issuer_name"] == "Fornecedor"

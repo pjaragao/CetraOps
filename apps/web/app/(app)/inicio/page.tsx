@@ -34,7 +34,7 @@ export default async function Inicio({ searchParams }: { searchParams: SP }) {
       ? supabase.schema("omni").from("conversations").select("id", { count: "exact", head: true }).neq("status", "CLOSED")
       : Promise.resolve({ count: 0 }),
     can(session, "inv.read")
-      ? supabase.schema("inv").from("v_stock_matrix").select("sku, product_name, size, available").lte("available", 1).order("available").limit(8)
+      ? supabase.schema("inv").from("v_stock_matrix").select("sku, product_name, size, available").eq("is_sellable", true).lte("available", 1).order("available").limit(8)
       : Promise.resolve({ data: [] as never[] }),
     can(session, "fin.read")
       ? supabase.schema("fin").from("contract_obligations").select("id, description, due_date").eq("status", "PENDING").order("due_date").limit(5)
@@ -42,6 +42,12 @@ export default async function Inicio({ searchParams }: { searchParams: SP }) {
     can(session, "crm.read") ? supabase.schema("crm").rpc("daily_actions", { p_limit: 10 }) : Promise.resolve({ data: [] as never[] }),
     supabase.schema("ai").rpc("daily_briefing"),
   ]);
+  // rotina da loja: lembra a abertura de manhã e o fechamento à tarde enquanto não forem registrados
+  const hour = Number(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }));
+  const routineKind = hour >= 15 ? "CLOSING" : "OPENING";
+  const routine = session.storeId && can(session, "sales.write")
+    ? (await supabase.schema("sales").rpc("routine_status", { p_store: session.storeId, p_kind: routineKind })).data as unknown as { completed_at: string | null; items: { ok: boolean }[] } | null
+    : null;
   const briefingItems = ((briefing.data as unknown as { items?: BriefingItem[] } | null)?.items ?? []).map((i) => ({ ...i, amount: i.amount === undefined ? undefined : Number(i.amount), compare_amount: i.compare_amount === undefined ? undefined : Number(i.compare_amount) }));
 
   const list = orders.data ?? [];
@@ -60,6 +66,12 @@ export default async function Inicio({ searchParams }: { searchParams: SP }) {
       {erro === "sem-permissao" && <p className="mb-4 rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning">Você não tem permissão para aquela tela.</p>}
       <Flash ok={str(sp.ok)} erro={erro && erro !== "sem-permissao" ? erro : undefined} />
 
+      {routine && !routine.completed_at && (
+        <Link href={`/vender/rotina?r=${routineKind}`} className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+          <span><b>{routineKind === "OPENING" ? "Abertura da loja" : "Fechamento da loja"}</b> ainda não registrado · {routine.items.filter((i) => !i.ok).length} item(ns) pendente(s)</span>
+          <span className="text-brand">abrir a rotina →</span>
+        </Link>
+      )}
       {!briefing.error && <div className="mb-4"><BriefingCard items={briefingItems} central={can(session, "ai.assistant")} /></div>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

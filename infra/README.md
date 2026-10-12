@@ -94,6 +94,8 @@ Todo `docker compose up` (e todo deploy pelo Coolify) roda primeiro o serviço *
 
 ## 7. Backups e restauração
 
+> **Atual (out/2026):** o backup diário é `infra/scripts/backup-db.sh` (homelab hoje, Supabase Cloud depois), o teste de restauração é `infra/scripts/restore-check.sh` e a mudança para o Supabase Cloud está em [`MIGRACAO-SUPABASE-CLOUD.md`](MIGRACAO-SUPABASE-CLOUD.md). A tabela abaixo é o desenho original.
+
 | O quê | Como | Frequência |
 |---|---|---|
 | Banco (PITR) | Supabase (plano Pro) | contínuo |

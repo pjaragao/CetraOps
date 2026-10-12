@@ -14,18 +14,24 @@ const row = z.object({
   size: z.string().max(10),
   gtin: z.string().max(14),
   price: z.string().max(20),
+  qty: z.string().max(10),
+  cost: z.string().max(20),
+  brand: z.string().max(80),
+  collection: z.string().max(80),
 });
 export type ImportRow = z.infer<typeof row>;
 
-type Result = { linhas: number; produtos: number; variantes: number; precos: number; erros: { linha: number; erro: string }[] } | { error: string };
+type Result = { linhas: number; produtos: number; variantes: number; precos: number; estoque?: number; erros: { linha: number; erro: string }[] } | { error: string };
 
-export async function importCatalog(rows: ImportRow[]): Promise<Result> {
+export async function importCatalog(rows: ImportRow[], locationId?: string): Promise<Result> {
   const parsed = z.array(row).max(5000).safeParse(rows);
   if (!parsed.success) return { error: "Planilha inválida: confira o cabeçalho e o tamanho dos campos (máx. 5.000 linhas)." };
   const supabase = await createClient();
-  const { data, error } = await supabase.schema("catalog").rpc("import_rows", { p: parsed.data });
+  if (locationId !== undefined && !z.string().uuid().safeParse(locationId).success) return { error: "Escolha o local do estoque" };
+  const { data, error } = await supabase.schema("catalog").rpc("import_rows", { p: parsed.data, p_location: locationId });
   if (error) return { error: error.message };
   revalidatePath("/produtos");
   revalidatePath("/vender/pdv");
+  revalidatePath("/produtos/estoque");
   return data as Result;
 }

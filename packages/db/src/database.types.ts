@@ -904,6 +904,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"categories": {
                   Row: {
@@ -936,6 +937,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"colors": {
                   Row: {
@@ -949,6 +951,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"price_lists": {
                   Row: {
@@ -961,6 +964,7 @@ isOneToOne: false
                     "id"?: string,"is_default"?: boolean,"kind"?: string,"name"?: string,"org_id"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"prices": {
@@ -1021,13 +1025,13 @@ isOneToOne: false
                   ]
                 },"products": {
                   Row: {
-                    "activities": (string)[],"assortment_class": Database["catalog"]['Enums']["assortment_class"],"brand_id": string | null,"care": string | null,"category_id": string | null,"cest": string | null,"collection_id": string | null,"composition": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"description": string | null,"gender": Database["catalog"]['Enums']["gender"],"id": string,"name": string,"ncm": string | null,"org_id": string,"origin": number,"product_kind": Database["catalog"]['Enums']["product_kind"],"reference_code": string,"size_chart_id": string | null,"size_grid_id": string | null,"status": Database["catalog"]['Enums']["product_status"],"updated_at": string
+                    "activities": (string)[],"assortment_class": Database["catalog"]["Enums"]["assortment_class"],"brand_id": string | null,"care": string | null,"category_id": string | null,"cest": string | null,"collection_id": string | null,"composition": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"description": string | null,"gender": Database["catalog"]["Enums"]["gender"],"id": string,"name": string,"ncm": string | null,"org_id": string,"origin": number,"product_kind": Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id": string | null,"size_grid_id": string | null,"status": Database["catalog"]["Enums"]["product_status"],"updated_at": string
                   }
                   Insert: {
-                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]['Enums']["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender": Database["catalog"]['Enums']["gender"],"id"?: string,"name": string,"ncm"?: string | null,"org_id": string,"origin"?: number,"product_kind"?: Database["catalog"]['Enums']["product_kind"],"reference_code": string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]['Enums']["product_status"],"updated_at"?: string
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender": Database["catalog"]["Enums"]["gender"],"id"?: string,"name": string,"ncm"?: string | null,"org_id": string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string
                   }
                   Update: {
-                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]['Enums']["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender"?: Database["catalog"]['Enums']["gender"],"id"?: string,"name"?: string,"ncm"?: string | null,"org_id"?: string,"origin"?: number,"product_kind"?: Database["catalog"]['Enums']["product_kind"],"reference_code"?: string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]['Enums']["product_status"],"updated_at"?: string
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender"?: Database["catalog"]["Enums"]["gender"],"id"?: string,"name"?: string,"ncm"?: string | null,"org_id"?: string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code"?: string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1074,6 +1078,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"size_grids": {
                   Row: {
@@ -1086,6 +1091,7 @@ isOneToOne: false
                     "id"?: string,"name"?: string,"org_id"?: string,"sizes"?: (string)[]
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"supplier_items": {
@@ -1142,7 +1148,7 @@ isOneToOne: false
 { Args: { "p_price_list"?: string,"p_variant": string }; Returns: number
                            },
 "import_rows":
-{ Args: { "p": Json }; Returns: Json
+{ Args: { "p": Json,"p_location"?: string }; Returns: Json
                            },
 "search_products":
 { Args: { "p": Json }; Returns: Json
@@ -5616,13 +5622,13 @@ isOneToOne: false
           Tables: {
             "count_items": {
                   Row: {
-                    "count_id": string,"counted": number,"expected": number | null,"id": string,"org_id": string,"variant_id": string
+                    "count_id": string,"counted": number,"expected": number | null,"id": string,"org_id": string,"unit_cost": number | null,"updated_at": string,"variant_id": string
                   }
                   Insert: {
-                    "count_id": string,"counted": number,"expected"?: number | null,"id"?: string,"org_id": string,"variant_id": string
+                    "count_id": string,"counted": number,"expected"?: number | null,"id"?: string,"org_id": string,"unit_cost"?: number | null,"updated_at"?: string,"variant_id": string
                   }
                   Update: {
-                    "count_id"?: string,"counted"?: number,"expected"?: number | null,"id"?: string,"org_id"?: string,"variant_id"?: string
+                    "count_id"?: string,"counted"?: number,"expected"?: number | null,"id"?: string,"org_id"?: string,"unit_cost"?: number | null,"updated_at"?: string,"variant_id"?: string
                   }
                   Relationships: [
                     {
@@ -5631,23 +5637,17 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "counts"
       referencedColumns: ["id"]
-    },{
-      foreignKeyName: "count_items_variant_id_fkey"
-      columns: ["variant_id"]
-isOneToOne: false
-      referencedRelation: "v_stock_matrix"
-      referencedColumns: ["variant_id"]
     }
                   ]
                 },"counts": {
                   Row: {
-                    "created_at": string,"id": string,"kind": string,"location_id": string,"org_id": string,"posted_at": string | null,"status": string,"updated_at": string
+                    "adjusted": number | null,"created_at": string,"created_by": string | null,"id": string,"kind": string,"location_id": string,"notes": string | null,"org_id": string,"posted_at": string | null,"posted_by": string | null,"status": string,"updated_at": string
                   }
                   Insert: {
-                    "created_at"?: string,"id"?: string,"kind": string,"location_id": string,"org_id": string,"posted_at"?: string | null,"status"?: string,"updated_at"?: string
+                    "adjusted"?: number | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind": string,"location_id": string,"notes"?: string | null,"org_id": string,"posted_at"?: string | null,"posted_by"?: string | null,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"kind"?: string,"location_id"?: string,"org_id"?: string,"posted_at"?: string | null,"status"?: string,"updated_at"?: string
+                    "adjusted"?: number | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string,"location_id"?: string,"notes"?: string | null,"org_id"?: string,"posted_at"?: string | null,"posted_by"?: string | null,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -5669,25 +5669,65 @@ isOneToOne: false
                     "avg_cost"?: number,"last_cost"?: number | null,"legal_entity_id"?: string,"org_id"?: string,"updated_at"?: string,"variant_id"?: string
                   }
                   Relationships: [
+                    
+                    
+                  ]
+                },"loan_items": {
+                  Row: {
+                    "damaged": number,"gifted": number,"id": string,"loan_id": string,"lost": number,"org_id": string,"qty": number,"returned": number,"sold": number,"unit_price": number | null,"variant_id": string
+                  }
+                  Insert: {
+                    "damaged"?: number,"gifted"?: number,"id"?: string,"loan_id": string,"lost"?: number,"org_id": string,"qty": number,"returned"?: number,"sold"?: number,"unit_price"?: number | null,"variant_id": string
+                  }
+                  Update: {
+                    "damaged"?: number,"gifted"?: number,"id"?: string,"loan_id"?: string,"lost"?: number,"org_id"?: string,"qty"?: number,"returned"?: number,"sold"?: number,"unit_price"?: number | null,"variant_id"?: string
+                  }
+                  Relationships: [
                     {
-      foreignKeyName: "item_costs_variant_id_fkey"
-      columns: ["variant_id"]
+      foreignKeyName: "loan_items_loan_id_fkey"
+      columns: ["loan_id"]
 isOneToOne: false
-      referencedRelation: "v_stock_matrix"
-      referencedColumns: ["variant_id"]
+      referencedRelation: "loans"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"loans": {
+                  Row: {
+                    "campaign_id": string | null,"closed_at": string | null,"created_at": string,"created_by": string | null,"due_at": string,"from_location_id": string,"id": string,"kind": string,"notes": string | null,"number": string,"order_id": string | null,"org_id": string,"out_location_id": string,"overdue_notified_at": string | null,"party_id": string | null,"purpose": string | null,"status": string,"store_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "campaign_id"?: string | null,"closed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"due_at": string,"from_location_id": string,"id"?: string,"kind": string,"notes"?: string | null,"number": string,"order_id"?: string | null,"org_id": string,"out_location_id": string,"overdue_notified_at"?: string | null,"party_id"?: string | null,"purpose"?: string | null,"status"?: string,"store_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "campaign_id"?: string | null,"closed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"due_at"?: string,"from_location_id"?: string,"id"?: string,"kind"?: string,"notes"?: string | null,"number"?: string,"order_id"?: string | null,"org_id"?: string,"out_location_id"?: string,"overdue_notified_at"?: string | null,"party_id"?: string | null,"purpose"?: string | null,"status"?: string,"store_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "loans_from_location_id_fkey"
+      columns: ["from_location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "loans_out_location_id_fkey"
+      columns: ["out_location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
     }
                   ]
                 },"locations": {
                   Row: {
-                    "allow_negative": boolean,"created_at": string,"id": string,"is_sellable": boolean,"kind": Database["inv"]['Enums']["location_kind"],"legal_entity_id": string,"name": string,"org_id": string,"store_id": string | null
+                    "allow_negative": boolean,"created_at": string,"id": string,"is_sellable": boolean,"kind": Database["inv"]["Enums"]["location_kind"],"legal_entity_id": string,"name": string,"org_id": string,"store_id": string | null
                   }
                   Insert: {
-                    "allow_negative"?: boolean,"created_at"?: string,"id"?: string,"is_sellable"?: boolean,"kind": Database["inv"]['Enums']["location_kind"],"legal_entity_id": string,"name": string,"org_id": string,"store_id"?: string | null
+                    "allow_negative"?: boolean,"created_at"?: string,"id"?: string,"is_sellable"?: boolean,"kind": Database["inv"]["Enums"]["location_kind"],"legal_entity_id": string,"name": string,"org_id": string,"store_id"?: string | null
                   }
                   Update: {
-                    "allow_negative"?: boolean,"created_at"?: string,"id"?: string,"is_sellable"?: boolean,"kind"?: Database["inv"]['Enums']["location_kind"],"legal_entity_id"?: string,"name"?: string,"org_id"?: string,"store_id"?: string | null
+                    "allow_negative"?: boolean,"created_at"?: string,"id"?: string,"is_sellable"?: boolean,"kind"?: Database["inv"]["Enums"]["location_kind"],"legal_entity_id"?: string,"name"?: string,"org_id"?: string,"store_id"?: string | null
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"lockers": {
@@ -5702,16 +5742,17 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"movements": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": number,"location_id": string,"movement_type": Database["inv"]['Enums']["movement_type"],"notes": string | null,"occurred_at": string,"org_id": string,"qty": number,"reversal_of_id": number | null,"source_id": string | null,"source_line_id": string | null,"source_type": string | null,"total_cost": number | null,"unit_cost": number | null,"variant_id": string
+                    "created_at": string,"created_by": string | null,"id": number,"location_id": string,"movement_type": Database["inv"]["Enums"]["movement_type"],"notes": string | null,"occurred_at": string,"org_id": string,"qty": number,"reversal_of_id": number | null,"source_id": string | null,"source_line_id": string | null,"source_type": string | null,"total_cost": number | null,"unit_cost": number | null,"variant_id": string
                   }
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: never,"location_id": string,"movement_type": Database["inv"]['Enums']["movement_type"],"notes"?: string | null,"occurred_at"?: string,"org_id": string,"qty": number,"reversal_of_id"?: number | null,"source_id"?: string | null,"source_line_id"?: string | null,"source_type"?: string | null,"total_cost"?: number | null,"unit_cost"?: number | null,"variant_id": string
+                    "created_at"?: string,"created_by"?: string | null,"id"?: never,"location_id": string,"movement_type": Database["inv"]["Enums"]["movement_type"],"notes"?: string | null,"occurred_at"?: string,"org_id": string,"qty": number,"reversal_of_id"?: number | null,"source_id"?: string | null,"source_line_id"?: string | null,"source_type"?: string | null,"total_cost"?: number | null,"unit_cost"?: number | null,"variant_id": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: never,"location_id"?: string,"movement_type"?: Database["inv"]['Enums']["movement_type"],"notes"?: string | null,"occurred_at"?: string,"org_id"?: string,"qty"?: number,"reversal_of_id"?: number | null,"source_id"?: string | null,"source_line_id"?: string | null,"source_type"?: string | null,"total_cost"?: number | null,"unit_cost"?: number | null,"variant_id"?: string
+                    "created_at"?: string,"created_by"?: string | null,"id"?: never,"location_id"?: string,"movement_type"?: Database["inv"]["Enums"]["movement_type"],"notes"?: string | null,"occurred_at"?: string,"org_id"?: string,"qty"?: number,"reversal_of_id"?: number | null,"source_id"?: string | null,"source_line_id"?: string | null,"source_type"?: string | null,"total_cost"?: number | null,"unit_cost"?: number | null,"variant_id"?: string
                   }
                   Relationships: [
                     {
@@ -5726,12 +5767,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "movements"
       referencedColumns: ["id"]
-    },{
-      foreignKeyName: "movements_variant_id_fkey"
-      columns: ["variant_id"]
-isOneToOne: false
-      referencedRelation: "v_stock_matrix"
-      referencedColumns: ["variant_id"]
     }
                   ]
                 },"reservations": {
@@ -5757,12 +5792,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "lockers"
       referencedColumns: ["id"]
-    },{
-      foreignKeyName: "reservations_variant_id_fkey"
-      columns: ["variant_id"]
-isOneToOne: false
-      referencedRelation: "v_stock_matrix"
-      referencedColumns: ["variant_id"]
     }
                   ]
                 },"stock_levels": {
@@ -5782,12 +5811,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "locations"
       referencedColumns: ["id"]
-    },{
-      foreignKeyName: "stock_levels_variant_id_fkey"
-      columns: ["variant_id"]
-isOneToOne: false
-      referencedRelation: "v_stock_matrix"
-      referencedColumns: ["variant_id"]
     }
                   ]
                 },"transfer_items": {
@@ -5807,12 +5830,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "transfers"
       referencedColumns: ["id"]
-    },{
-      foreignKeyName: "transfer_items_variant_id_fkey"
-      columns: ["variant_id"]
-isOneToOne: false
-      referencedRelation: "v_stock_matrix"
-      referencedColumns: ["variant_id"]
     }
                   ]
                 },"transfers": {
@@ -5845,7 +5862,7 @@ isOneToOne: false
           Views: {
             "v_stock_matrix": {
                   Row: {
-                    "available": number | null,"color": string | null,"gender": Database["catalog"]['Enums']["gender"] | null,"location_id": string | null,"location_name": string | null,"on_hand": number | null,"org_id": string | null,"product_id": string | null,"product_name": string | null,"reference_code": string | null,"reserved": number | null,"size": string | null,"sku": string | null,"store_id": string | null,"variant_id": string | null
+                    "available": number | null,"color": string | null,"gender": Database["catalog"]['Enums']["gender"] | null,"is_sellable": boolean | null,"location_id": string | null,"location_kind": string | null,"location_name": string | null,"on_hand": number | null,"org_id": string | null,"product_id": string | null,"product_name": string | null,"reference_code": string | null,"reserved": number | null,"size": string | null,"sku": string | null,"store_id": string | null,"variant_id": string | null
                   }
                   Relationships: [
                     {
@@ -5859,11 +5876,93 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "ensure_lockers":
+            "adjust_stock":
+{ Args: { "p": Json }; Returns: number
+                           },
+"cancel_count":
+{ Args: { "p_count": string }; Returns: undefined
+                           },
+"count_item":
+{ Args: { "p_count": string,"p_mode"?: string,"p_qty": number,"p_unit_cost"?: number,"p_variant": string }; Returns: {
+              "count_id": string,
+"counted": number,
+"expected": number | null,
+"id": string,
+"org_id": string,
+"unit_cost": number | null,
+"updated_at": string,
+"variant_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "count_items"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"create_loan":
+{ Args: { "p": Json }; Returns: {
+              "campaign_id": string | null,
+"closed_at": string | null,
+"created_at": string,
+"created_by": string | null,
+"due_at": string,
+"from_location_id": string,
+"id": string,
+"kind": string,
+"notes": string | null,
+"number": string,
+"order_id": string | null,
+"org_id": string,
+"out_location_id": string,
+"overdue_notified_at": string | null,
+"party_id": string | null,
+"purpose": string | null,
+"status": string,
+"store_id": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "loans"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"ensure_lockers":
 { Args: { "p_count": number,"p_store": string }; Returns: number
                            },
 "expire_reservations":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"extend_loan":
+{ Args: { "p_due": string,"p_loan": string }; Returns: {
+              "campaign_id": string | null,
+"closed_at": string | null,
+"created_at": string,
+"created_by": string | null,
+"due_at": string,
+"from_location_id": string,
+"id": string,
+"kind": string,
+"notes": string | null,
+"number": string,
+"order_id": string | null,
+"org_id": string,
+"out_location_id": string,
+"overdue_notified_at": string | null,
+"party_id": string | null,
+"purpose": string | null,
+"status": string,
+"store_id": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "loans"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"link_loan_order":
+{ Args: { "p_loan": string,"p_order": string }; Returns: undefined
                            },
 "post_count":
 { Args: { "p_count": string }; Returns: number
@@ -5893,6 +5992,30 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "reservations"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"settle_loan":
+{ Args: { "p": Json,"p_loan": string,"p_notes"?: string }; Returns: Json
+                           },
+"start_count":
+{ Args: { "p_kind"?: string,"p_location": string,"p_notes"?: string }; Returns: {
+              "adjusted": number | null,
+"created_at": string,
+"created_by": string | null,
+"id": string,
+"kind": string,
+"location_id": string,
+"notes": string | null,
+"org_id": string,
+"posted_at": string | null,
+"posted_by": string | null,
+"status": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "counts"
         isOneToOne: true
         isSetofReturn: false
       } }
@@ -8660,6 +8783,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"routine_runs": {
+                  Row: {
+                    "checks": NonNullable<Json>,"completed_at": string | null,"completed_by": string | null,"created_at": string,"id": string,"kind": string,"notes": string | null,"org_id": string,"run_date": string,"store_id": string,"summary": Json | null,"updated_at": string
+                  }
+                  Insert: {
+                    "checks"?: NonNullable<Json>,"completed_at"?: string | null,"completed_by"?: string | null,"created_at"?: string,"id"?: string,"kind": string,"notes"?: string | null,"org_id": string,"run_date": string,"store_id": string,"summary"?: Json | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "checks"?: NonNullable<Json>,"completed_at"?: string | null,"completed_by"?: string | null,"created_at"?: string,"id"?: string,"kind"?: string,"notes"?: string | null,"org_id"?: string,"run_date"?: string,"store_id"?: string,"summary"?: Json | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                    
+                  ]
                 },"shipments": {
                   Row: {
                     "address": NonNullable<Json>,"carrier": string,"charged": number,"cost": number,"created_at": string,"created_by": string | null,"delivered_at": string | null,"id": string,"label_url": string | null,"notes": string | null,"order_id": string,"org_id": string,"shipped_at": string | null,"status": string,"tracking": string | null
@@ -9149,6 +9286,15 @@ isOneToOne: false
 "request_order_invoice":
 { Args: { "p_order": string }; Returns: undefined
                            },
+"routine_check":
+{ Args: { "p_done": boolean,"p_key": string,"p_kind": string,"p_store": string }; Returns: undefined
+                           },
+"routine_complete":
+{ Args: { "p_kind": string,"p_notes"?: string,"p_store": string }; Returns: Json
+                           },
+"routine_status":
+{ Args: { "p_date"?: string,"p_kind": string,"p_store": string }; Returns: Json
+                           },
 "save_coupon":
 { Args: { "p": Json }; Returns: {
               "active": boolean,
@@ -9216,6 +9362,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_routine_template":
+{ Args: { "p": Json }; Returns: undefined
+                           },
 "save_shipment":
 { Args: { "p": Json }; Returns: {
               "address": NonNullable<Json>,

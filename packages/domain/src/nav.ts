@@ -42,9 +42,11 @@ export const NAV: NavArea[] = [
   {
     key: "vender", label: "Vender", href: "/vender/pdv", icon: "ShoppingBag", permission: "sales.read",
     items: [
+      { label: "Rotina da loja", href: "/vender/rotina", ready: true },
       { label: "PDV", href: "/vender/pdv", permission: "sales.write", ready: true },
       { label: "Pedidos", href: "/vender/pedidos", ready: true },
       { label: "Reservas & Armário VIP", href: "/vender/reservas", ready: true },
+      { label: "Malinhas & campanhas", href: "/vender/malinhas", ready: true },
       { label: "Trocas & devoluções", href: "/vender/trocas", ready: true },
       { label: "Entregas", href: "/vender/entregas", ready: true },
       { label: "Caixa", href: "/vender/caixa", ready: true },
@@ -83,6 +85,8 @@ export const NAV: NavArea[] = [
     items: [
       { label: "Catálogo", href: "/produtos", ready: true },
       { label: "Estoque", href: "/produtos/estoque", permission: "inv.read", ready: true },
+      { label: "Contagem de estoque", href: "/produtos/contagem", permission: "inv.count|inv.write", ready: true },
+      { label: "Etiquetas", href: "/produtos/etiquetas", ready: true },
       { label: "Importar catálogo", href: "/produtos/importar", permission: "catalog.write", ready: true },
       { label: "Pedidos de compra", href: "/produtos/compras", permission: "purch.read", ready: true },
       { label: "Recebimento de NF-e", href: "/produtos/recebimento", permission: "purch.read", ready: true },

@@ -67,7 +67,7 @@ def run_sql_file(conn: psycopg.Connection, path: Path) -> None:
         conn.execute(sql)  # sem parâmetros: vai pelo protocolo simples, que aceita vários comandos
 
 
-def apply(dsn: str, base: Path, check_only: bool = False) -> int:
+def apply(dsn: str, base: Path, check_only: bool = False, seeds_enabled: bool = True) -> int:
     with psycopg.connect(dsn, autocommit=True) as conn:
         conn.execute("select pg_advisory_lock(%s)", (LOCK_KEY,))
         try:
@@ -90,6 +90,10 @@ def apply(dsn: str, base: Path, check_only: bool = False) -> int:
                     )
             log.info("migrations: %s aplicada(s); banco em dia", len(todo))
 
+            if not seeds_enabled:                   # mudança de servidor: só a estrutura; os dados vêm do banco antigo
+                conn.execute("notify pgrst, 'reload schema'")
+                log.info("seeds ignorados (--skip-seed)")
+                return 0
             seeds = base / "seed"
             fresh = conn.execute("select not exists (select 1 from core.orgs where id = %s)", (ORG_ID,)).fetchone()[0]
             if fresh:
@@ -111,6 +115,7 @@ def main(argv: list[str] | None = None) -> None:
     adopt_legacy_env()                       # deploys ainda com SIE_* (nome antigo do produto) continuam funcionando
     parser = argparse.ArgumentParser(prog="centralops-migrate", description="Aplica as migrations pendentes do CentralOps.")
     parser.add_argument("--check", action="store_true", help="só lista as pendentes (sai com 2 se houver)")
+    parser.add_argument("--skip-seed", action="store_true", help="não roda seeds nem o administrador inicial (banco novo que vai receber os dados de outro)")
     args = parser.parse_args(argv)
     logging.basicConfig(level=os.environ.get("CENTRALOPS_LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s %(message)s")
     dsn = os.environ.get("CENTRALOPS_MIGRATE_DATABASE_URL") or os.environ.get("CENTRALOPS_DATABASE_URL")
@@ -119,7 +124,7 @@ def main(argv: list[str] | None = None) -> None:
         log.error("CENTRALOPS_DATABASE_URL não definida: migrations NÃO conferidas. Defina-a (conexão como usuário postgres) no .env do deploy.")
         sys.exit(0)
     try:
-        code = apply(dsn, supabase_dir(), check_only=args.check)
+        code = apply(dsn, supabase_dir(), check_only=args.check, seeds_enabled=not args.skip_seed)
     except psycopg.Error as e:
         log.error("falha ao migrar: %s", e)
         sys.exit(1)

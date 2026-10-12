@@ -121,7 +121,8 @@ export function IntegrationsTable({ rows, functionsUrl }: IntegrationsTableProps
             {filteredRows.map((r) => {
               const def = PROVIDERS[r.key];
               const CategoryIcon = CATEGORY_ICONS[def.category];
-              const st = r.status ? STATUS_LABEL[r.status] : null;
+              // conexão criada mas sem credencial: "não configurada" (neutro), nunca alerta
+              const st = r.status === "PENDING" && !r.hasSecret ? { label: "Não configurada", tone: "neutral" as const } : r.status ? STATUS_LABEL[r.status] : null;
 
               // Para a Stone, verifica a quantidade de maquininhas cadastradas
               const stoneCount = r.key === "STONE" ? stoneTerminalsState.length : 0;

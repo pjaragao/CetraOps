@@ -1,23 +1,29 @@
-import { requirePerm } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
+import { can, requirePerm } from "@/lib/session";
 import { Card, PageHeader } from "@/components/ui";
 import { CatalogImporter } from "./importer";
 
 export const metadata = { title: "Importar catálogo" };
 
 export default async function ImportarPage() {
-  await requirePerm("catalog.write");
+  const session = await requirePerm("catalog.write");
+  const supabase = await createClient();
+  let q = supabase.schema("inv").from("locations").select("id, name").in("kind", ["SALES_FLOOR", "BACKROOM"]).order("name");
+  if (session.storeId) q = q.eq("store_id", session.storeId);
+  const { data: locations } = await q;
   return (
     <>
-      <PageHeader title="Importar catálogo" description="Cole ou envie a planilha (CSV) com o catálogo real. Linhas repetidas atualizam em vez de duplicar." />
-      <Card title="Formato esperado (uma linha por variante: referência × cor × tamanho)" className="mb-4">
+      <PageHeader title="Importar catálogo" description="Envie ou cole a planilha (CSV do Excel). Reimportar atualiza em vez de duplicar; a quantidade FIXA o saldo do local (não soma)." />
+      <Card title="Formato (uma linha por variante: referência × cor × tamanho)" className="mb-4">
         <code className="block overflow-x-auto rounded-lg bg-surface-2 p-3 text-xs whitespace-pre">
-{`referencia;nome;genero;categoria;ncm;cor;tamanho;ean;preco
-LEG-001;Legging Sculpt;FEM;Leggings;61046200;Preto;P;7890000000011;429,00
-TEE-M01;Camiseta Dry;MASC;Camisetas;61091000;Off-white;G;;249,00`}
+{`referencia;nome;genero;categoria;ncm;cor;tamanho;ean;preco;quantidade;custo;marca;colecao
+LEG-001;Legging Sculpt;FEM;Leggings;61046200;Preto;P;;429,00;4;178,75;SIÉ;Essenciais
+LEG-001;Legging Sculpt;FEM;Leggings;61046200;Preto;M;;429,00;5;178,75;SIÉ;Essenciais`}
         </code>
-        <p className="mt-2 text-xs text-muted">Separador <b>;</b> ou <b>,</b>. Gênero: FEM, MASC ou UNISSEX. Preço em reais. EAN opcional.</p>
+        <p className="mt-2 text-xs text-muted">Separador <b>;</b> ou <b>,</b> (texto com separador vai entre aspas). Gênero: FEM, MASC ou UNISSEX. Valores em reais (1.234,56).
+          EAN, preço, quantidade, custo, marca e coleção são opcionais; sem EAN, a etiqueta usa o SKU. Sem preço, o sistema sugere pelo markup.</p>
       </Card>
-      <CatalogImporter />
+      <CatalogImporter locations={locations ?? []} canStock={can(session, "inv.write")} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 """Fila `fiscal_emission`: emite a NFC-e da venda (Focus NFe, Brasil NFe ou Notaas), cancela nota autorizada e busca as notas recebidas (MDe).
 Devolução e NF-e (B2B) ainda dependem da matriz validada com o contador: geram aviso para revisão em vez de emitir errado.
-Provedor: a conexão marcada como principal na tela de Integrações; sem marcação, a editada por último. O ambiente (produção/homologação) escolhido
+Provedor: a conexão marcada como principal na tela de Integrações; sem marcação, a que está funcionando (e, entre elas, a mais antiga):
+conexão sem credencial ou desativada nunca é escolhida nem gera aviso. O ambiente (produção/homologação) escolhido
 na tela vale também na emissão. MDe só existe no Focus NFe e na Brasil NFe. As variáveis de ambiente só valem como reserva."""
 from __future__ import annotations
 
@@ -32,7 +33,7 @@ CANCEL_CHECK_MAX = 30
 async def _connection(deps: Deps, org_id: str, providers: tuple[str, ...]) -> dict[str, Any] | None:
     return await fetch_one(deps.pool, """select id, provider, config from core.integration_connections
                                          where org_id = %s and provider = any(%s) and status <> 'DISABLED' and secret_ref is not null
-                                         order by lower(coalesce(config ->> 'primary', '')) in ('1', 'true', 'sim') desc, updated_at desc limit 1""", (org_id, list(providers)))
+                                         order by lower(coalesce(config ->> 'primary', '')) in ('1', 'true', 'sim') desc, (status = 'ACTIVE') desc, created_at limit 1""", (org_id, list(providers)))
 
 
 async def _client_for(deps: Deps, conn: dict[str, Any]) -> tuple[Client | None, str]:

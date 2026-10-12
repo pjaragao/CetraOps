@@ -1595,6 +1595,31 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"store_hours_exceptions": {
+                  Row: {
+                    "closed": boolean,"created_at": string,"day": string,"hours": NonNullable<Json>,"id": string,"note": string | null,"org_id": string,"store_id": string
+                  }
+                  Insert: {
+                    "closed"?: boolean,"created_at"?: string,"day": string,"hours"?: NonNullable<Json>,"id"?: string,"note"?: string | null,"org_id": string,"store_id": string
+                  }
+                  Update: {
+                    "closed"?: boolean,"created_at"?: string,"day"?: string,"hours"?: NonNullable<Json>,"id"?: string,"note"?: string | null,"org_id"?: string,"store_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "store_hours_exceptions_org_id_fkey"
+      columns: ["org_id"]
+isOneToOne: false
+      referencedRelation: "orgs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "store_hours_exceptions_store_id_fkey"
+      columns: ["store_id"]
+isOneToOne: false
+      referencedRelation: "stores"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"stores": {
                   Row: {
                     "area_m2": number | null,"business_hours": NonNullable<Json>,"closed_at": string | null,"code": string,"cost_center_id": string | null,"created_at": string,"fiscal_mode": string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id": string | null,"id": string,"legal_entity_id": string,"name": string,"opened_at": string | null,"org_id": string,"status": Database["core"]["Enums"]["store_status"],"updated_at": string
@@ -1645,6 +1670,9 @@ isOneToOne: false
 { Args: { "p": Json }; Returns: string
                            },
 "delete_role":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"delete_store_hours_exception":
 { Args: { "p_id": string }; Returns: undefined
                            },
 "integration_secret":
@@ -1714,6 +1742,23 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_store_hours_exception":
+{ Args: { "p": Json }; Returns: {
+              "closed": boolean,
+"created_at": string,
+"day": string,
+"hours": NonNullable<Json>,
+"id": string,
+"note": string | null,
+"org_id": string,
+"store_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "store_hours_exceptions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_cost_center_archived":
 { Args: { "p_archived": boolean,"p_id": string }; Returns: {
               "archived_at": string | null,
@@ -1740,8 +1785,36 @@ isOneToOne: false
 "set_integration_enabled":
 { Args: { "p_enabled": boolean,"p_id": string }; Returns: undefined
                            },
+"set_store_hours":
+{ Args: { "p": Json,"p_store": string }; Returns: {
+              "area_m2": number | null,
+"business_hours": NonNullable<Json>,
+"closed_at": string | null,
+"code": string,
+"cost_center_id": string | null,
+"created_at": string,
+"fiscal_mode": string,
+"format": Database["core"]["Enums"]["store_format"],
+"host_partner_party_id": string | null,
+"id": string,
+"legal_entity_id": string,
+"name": string,
+"opened_at": string | null,
+"org_id": string,
+"status": Database["core"]["Enums"]["store_status"],
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "stores"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_user_status":
 { Args: { "p_active": boolean,"p_member": string }; Returns: undefined
+                           },
+"store_calendar":
+{ Args: { "p_from": string,"p_store": string,"p_to": string }; Returns: Json
                            },
 "update_store":
 { Args: { "p": Json }; Returns: {
@@ -4547,6 +4620,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"coverage_rules": {
                   Row: {
@@ -4559,6 +4633,7 @@ isOneToOne: false
                     "active"?: boolean,"end_time"?: string,"id"?: string,"label"?: string,"min_staff"?: number,"org_id"?: string,"start_time"?: string,"store_id"?: string,"weekday"?: number
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"dependents": {
@@ -4655,6 +4730,7 @@ isOneToOne: true
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"entity_settings": {
                   Row: {
@@ -4667,6 +4743,7 @@ isOneToOne: true
                     "charge_profile"?: string,"inss_employer_pct"?: number,"legal_entity_id"?: string,"org_id"?: string,"pay_business_day"?: number,"rat_pct"?: number,"third_parties_pct"?: number,"updated_at"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"freelance_jobs": {
@@ -4681,6 +4758,7 @@ isOneToOne: true
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"holidays": {
                   Row: {
@@ -4693,6 +4771,7 @@ isOneToOne: true
                     "created_at"?: string,"holiday_date"?: string,"id"?: string,"name"?: string,"optional"?: boolean,"org_id"?: string,"scope"?: string,"store_id"?: string | null,"uf"?: string | null
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"leaves": {
@@ -4745,6 +4824,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"payroll_runs": {
                   Row: {
@@ -4757,6 +4837,7 @@ isOneToOne: false
                     "approved_at"?: string | null,"approved_by"?: string | null,"competence"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"kind"?: string,"legal_entity_id"?: string,"notes"?: string | null,"org_id"?: string,"pay_date"?: string | null,"reference_id"?: string | null,"reference_type"?: string | null,"source"?: string,"status"?: string,"totals"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"payslip_lines": {
@@ -4814,6 +4895,7 @@ isOneToOne: false
                     "competence"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"journal_entry_id"?: string | null,"legal_entity_id"?: string,"org_id"?: string,"totals"?: NonNullable<Json>
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"provisions": {
@@ -4891,6 +4973,7 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                    
                   ]
                 },"tax_tables": {
                   Row: {
@@ -4903,6 +4986,7 @@ isOneToOne: false
                     "data"?: NonNullable<Json>,"id"?: string,"kind"?: string,"notes"?: string | null,"source"?: string | null,"valid_from"?: string
                   }
                   Relationships: [
+                    
                     
                   ]
                 },"terminations": {
@@ -4919,7 +5003,7 @@ isOneToOne: false
                     {
       foreignKeyName: "terminations_employee_id_fkey"
       columns: ["employee_id"]
-isOneToOne: false
+isOneToOne: true
       referencedRelation: "employees"
       referencedColumns: ["id"]
     },{
@@ -5029,12 +5113,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "payslips"
       referencedColumns: ["id"]
-    },{
-      foreignKeyName: "vacations_period_id_fkey"
-      columns: ["period_id"]
-isOneToOne: false
-      referencedRelation: "v_vacation_balance"
-      referencedColumns: ["period_id"]
     },{
       foreignKeyName: "vacations_period_id_fkey"
       columns: ["period_id"]
@@ -5558,7 +5636,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "set_roster_hours":
-{ Args: { "p_break"?: number,"p_date": string,"p_employee": string,"p_end": string,"p_notes"?: string,"p_start": string }; Returns: {
+{ Args: { "p_break"?: number,"p_date": string,"p_employee": string,"p_end": unknown,"p_notes"?: string,"p_start": unknown }; Returns: {
               "break_minutes": number,
 "employee_id": string,
 "end_time": string | null,

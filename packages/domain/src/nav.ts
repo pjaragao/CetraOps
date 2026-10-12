@@ -62,7 +62,6 @@ export const NAV: NavArea[] = [
       { label: "Casos", href: "/clientes/casos", ready: true },
       { label: "Indicações", href: "/clientes/indicacoes", ready: true },
       { label: "Prospecção assistida", href: "/clientes/prospeccao", ready: true },
-      { label: "Afiliadas", href: "/marketing/afiliadas", ready: true },
     ],
   },
   {
@@ -159,6 +158,7 @@ export const NAV: NavArea[] = [
     key: "configuracoes", label: "Configurações", href: "/configuracoes", icon: "Settings", permission: "core.admin",
     items: [
       { label: "Empresas & lojas", href: "/configuracoes", ready: true },
+      { label: "Horário das lojas", href: "/configuracoes/horarios", permission: "core.admin|hr.read", ready: true },
       { label: "Contas bancárias", href: "/configuracoes/contas-bancarias", ready: true },
       { label: "Plano de contas", href: "/configuracoes/plano-de-contas", ready: true },
       { label: "Centros de custo", href: "/configuracoes/centros-de-custo", ready: true },

@@ -87,7 +87,7 @@ export default async function Inicio({ searchParams }: { searchParams: SP }) {
         )}
       </div>
 
-      {can(session, "crm.read") && <div className="mt-4"><DailyList items={(daily.data ?? []) as unknown as DailyAction[]} canSend={can(session, "omni.write")} /></div>}
+      {can(session, "crm.read") && <div id="lista-do-dia" className="mt-4 scroll-mt-20"><DailyList items={(daily.data ?? []) as unknown as DailyAction[]} canSend={can(session, "omni.write")} /></div>}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card title="Vendas por canal">

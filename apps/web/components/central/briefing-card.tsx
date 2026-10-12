@@ -18,7 +18,7 @@ export function BriefingCard({ items, central }: { items: BriefingItem[]; centra
           {items.map((i) => (
             <li key={i.key} className="flex items-start gap-2">
               <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", i.tone === "danger" ? "bg-danger" : i.tone === "warning" ? "bg-warning" : "bg-muted/40")} aria-hidden />
-              <Link href={i.href} className="hover:underline">{briefingLine(i)}</Link>
+              <Link href={i.href === "/inicio" ? "#lista-do-dia" : i.href} className="hover:underline">{briefingLine(i)}</Link>
             </li>
           ))}
         </ul>

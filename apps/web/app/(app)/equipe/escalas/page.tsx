@@ -66,8 +66,8 @@ export default async function EscalasPage({ searchParams }: { searchParams: SP }
 
   return (
     <>
-      <PageHeader title="Escalas" description="Monte a escala mensal por loja com turnos prontos ou qualquer horário num dia. O sistema confere descanso de 11h, sete dias seguidos, intervalo, jornada e a cobertura dos horários de pico antes de publicar."
-        actions={<div className="flex gap-2"><Link href={`/equipe/escalas/padrao?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Escala semanal padrão</Link><Link href={`/equipe/escalas/turnos?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Turnos, picos e regras</Link></div>} />
+      <PageHeader title="Escalas" description="Monte a escala mensal por loja com turnos prontos ou qualquer horário num dia. O sistema confere descanso de 11h, sete dias seguidos, intervalo, jornada e a cobertura dos horários de pico antes de publicar, e avisa quando a loja fica aberta sem ninguém ou há turno fora do horário da loja."
+        actions={<div className="flex gap-2"><Link href={`/equipe/escalas/padrao?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Escala semanal padrão</Link><Link href={`/configuracoes/horarios?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Horário da loja</Link><Link href={`/equipe/escalas/turnos?loja=${store}`} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2">Turnos, picos e regras</Link></div>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">

@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(6);
+select plan(8);
 
 create or replace function pg_temp.login(p_user uuid) returns void language plpgsql as $$
 declare m record;
@@ -23,6 +23,9 @@ select pg_temp.login('00000000-0000-4000-8000-0000000000f1');
 select lives_ok($$ select catalog.request_site_sync('PRICES') $$, 'quem cuida do catálogo pede a atualização de preços');
 reset role;
 select ok((select count(*) from pgmq.q_catalog_sync where message ->> 'kind' = 'PRICES') >= 1, 'e o pedido vai para a fila do worker');
+
+select is(private.category_for('00000000-0000-4000-8000-000000000001', 'calça  de teste'), private.category_for('00000000-0000-4000-8000-000000000001', 'Calça de Teste'), 'mesma categoria, sem diferenciar maiúsculas nem espaços');
+select throws_ok($$ insert into catalog.categories (org_id, name) values ('00000000-0000-4000-8000-000000000001', 'CALÇA DE TESTE') $$, '23505', null, 'o banco não aceita categoria repetida');
 
 select * from finish();
 rollback;

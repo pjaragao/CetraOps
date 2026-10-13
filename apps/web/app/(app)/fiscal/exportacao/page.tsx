@@ -25,7 +25,7 @@ export default async function ExportacaoPage({ searchParams }: { searchParams: S
         </label>
         <Button variant="secondary">Atualizar</Button>
       </form>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cards gap-3 [--card-min:22rem]">
         {Object.entries(DATASETS).map(([key, d]) => (
           <Card key={key} title={d.title}>
             <p className="mb-3 text-sm text-muted">{d.description}</p>

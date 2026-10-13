@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Button, Card, inputClass, PageHeader } from "@/components/ui";
+import { Button, Card, inputClass, Narrow, PageHeader } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { saveBusinessHoursAction } from "../actions";
 
@@ -24,7 +24,7 @@ export default async function HorarioPage({ params, searchParams }: { params: Pr
   const configured = Object.keys(days).length > 0;
 
   return (
-    <>
+    <Narrow>
       <PageHeader title={`Horário de atendimento: ${ch.display_name}`}
         description="Fora deste horário a cliente recebe a resposta de quando a equipe volta, o prazo de atendimento (SLA) para de correr e fica uma tarefa para a abertura. Sem nenhum dia preenchido, o canal é tratado como sempre aberto."
         actions={<Link href="/configuracoes/integracoes" className="rounded-lg px-3 py-1.5 text-sm hover:bg-surface-2">← Integrações</Link>} />
@@ -63,6 +63,6 @@ export default async function HorarioPage({ params, searchParams }: { params: Pr
         </Card>
         <Button>Salvar horário</Button>
       </form>
-    </>
+    </Narrow>
   );
 }

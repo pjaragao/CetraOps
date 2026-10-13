@@ -4,7 +4,7 @@ import { TIER_LABEL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Button, Card, inputClass, PageHeader } from "@/components/ui";
+import { Button, Card, inputClass, Narrow, PageHeader } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
 import { updateProfileAction } from "../../actions";
 
@@ -27,7 +27,7 @@ export default async function EditarFicha({ params, searchParams }: { params: Pr
   const isAdmin = can(session, "core.admin");
 
   return (
-    <>
+    <Narrow>
       <PageHeader title={`Editar: ${p.display_name}`} description="Tamanho, aniversário e atividades alimentam as recomendações, o score e as réguas de relacionamento."
         actions={<Link href={`/clientes/${id}`} className="rounded-lg px-3 py-1.5 text-sm hover:bg-surface-2">← Ficha</Link>} />
       <Flash erro={str(sp.erro)} />
@@ -80,6 +80,6 @@ export default async function EditarFicha({ params, searchParams }: { params: Pr
         </Card>
         <div className="flex items-center gap-3"><Button>Salvar ficha</Button><Link href={`/clientes/${id}`} className="text-sm text-brand">Cancelar</Link></div>
       </form>
-    </>
+    </Narrow>
   );
 }

@@ -2,7 +2,7 @@ import { describeNotification, timeAgo } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Button, Empty, PageHeader } from "@/components/ui";
+import { Badge, Button, Empty, Narrow, PageHeader } from "@/components/ui";
 import { markAllNotificationsRead } from "./actions";
 
 export const metadata = { title: "Notificações" };
@@ -20,7 +20,7 @@ export default async function NotificacoesPage({ searchParams }: { searchParams:
   const unread = (items ?? []).filter((i) => !i.read_at).length;
 
   return (
-    <>
+    <Narrow>
       <PageHeader title="Notificações" description="Avisos do atendimento, do fiscal e das integrações. Cada aviso abre a tela de quem resolve."
         actions={unread > 0 ? <form action={markAllNotificationsRead}><Button variant="secondary">Marcar todas como lidas</Button></form> : undefined} />
       <div className="mb-3 flex gap-2 text-xs">
@@ -44,6 +44,6 @@ export default async function NotificacoesPage({ searchParams }: { searchParams:
           })}
         </ul>
       )}
-    </>
+    </Narrow>
   );
 }

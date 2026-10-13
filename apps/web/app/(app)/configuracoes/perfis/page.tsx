@@ -12,7 +12,7 @@ interface Perm { key: string; area: string; label: string; description: string; 
 function PermissionGrid({ catalog, checked }: { catalog: Perm[]; checked: Set<string> }) {
   const areas = [...new Set(catalog.map((p) => p.area))];
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cards gap-3 [--card-min:18rem]">
       {areas.map((a) => (
         <fieldset key={a} className="rounded-lg border border-border p-3">
           <legend className="px-1 text-sm font-semibold">{a}</legend>

@@ -683,7 +683,7 @@ export function PosTerminal({
             Amarelo: não tem na loja, entra como encomenda (pedido ao fornecedor).
           </p>
         )}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cards gap-3 [--card-min:17rem]">
           {filtered.map((p) => {
             const onlyOrder = p.backorder && p.variants.every((v) => v.available <= 0);
             return (

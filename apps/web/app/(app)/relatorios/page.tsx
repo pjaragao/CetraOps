@@ -10,7 +10,7 @@ export default async function RelatoriosPage() {
   return (
     <>
       <PageHeader title="Relatórios" description="Consultas prontas para conferir a operação e tomar decisões. Todas aceitam período e baixam em CSV (abre no Excel)." />
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cards gap-3 [--card-min:22rem]">
         {Object.entries(REPORTS).filter(([, r]) => can(session, r.perm)).map(([key, r]) => (
           <Card key={key} title={r.title}>
             <p className="mb-3 text-sm text-muted">{r.description}</p>

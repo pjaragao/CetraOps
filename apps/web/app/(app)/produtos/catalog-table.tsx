@@ -163,8 +163,8 @@ export function CatalogTable({ rows, categories, collections, initial, canWrite 
               {COLUMNS.map((c) => {
                 const on = sort?.key === c.key;
                 return (
-                  <th key={c.key} className="whitespace-nowrap px-2 py-2 font-medium" aria-sort={on ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}>
-                    <button type="button" onClick={() => toggleSort(c.key)} className={cn("inline-flex items-center gap-1 hover:text-text", on && "text-text")}>
+                  <th key={c.key} className="px-2 py-2 align-bottom font-medium" aria-sort={on ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}>
+                    <button type="button" onClick={() => toggleSort(c.key)} className={cn("inline-flex items-center gap-1 text-left hover:text-text", on && "text-text")}>
                       {c.label}{on ? (sort!.dir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-40" />}
                     </button>
                   </th>

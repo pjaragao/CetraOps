@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Button, Card, PageHeader } from "@/components/ui";
+import { Badge, Button, Card, Narrow, PageHeader } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { DocForm } from "../doc-form";
 import { archiveKnowledgeAction, deleteKnowledgeAction } from "../actions";
@@ -22,11 +22,11 @@ export default async function DocPage({ params, searchParams }: { params: Promis
   if (id === "novo") {
     if (!canWrite) notFound();
     return (
-      <>
+      <Narrow>
         <PageHeader title="Novo documento" description="Escreva o que a equipe costuma responder. Fica como rascunho até você publicar." actions={<Link className="text-sm text-brand" href="/ia/conhecimento">← Base de conhecimento</Link>} />
         <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
         <Card><DocForm archived={false} doc={{ id: "", title: "", kind: "FAQ", body: "", validFrom: "", validTo: "" }} /></Card>
-      </>
+      </Narrow>
     );
   }
 
@@ -41,7 +41,7 @@ export default async function DocPage({ params, searchParams }: { params: Promis
   const unpublished = doc.status === "PUBLISHED" && doc.draft_md !== doc.body_md;
 
   return (
-    <>
+    <Narrow>
       <PageHeader title={doc.title} description={KINDS[doc.kind]?.hint}
         actions={<Link className="text-sm text-brand" href="/ia/conhecimento">← Base de conhecimento</Link>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
@@ -80,6 +80,6 @@ export default async function DocPage({ params, searchParams }: { params: Promis
           </ul>
         </Card>
       )}
-    </>
+    </Narrow>
   );
 }

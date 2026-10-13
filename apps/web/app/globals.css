@@ -67,6 +67,25 @@
   --font-sans: var(--font-inter);
 }
 
+/*
+ * Larguras de conteúdo (geram max-w-page e max-w-form). O <main> do app vai até "page": a tela cresce quando a barra
+ * lateral recolhe. Formulário e texto corrido ficam em "form" (componente Narrow) para os campos não esticarem.
+ */
+@theme {
+  --container-page: 120rem;
+  --container-form: 72rem;
+}
+
+/* Grade de cartões que ganha colunas conforme o espaço da tela (e não da janela): mínimo de 16rem por cartão, ou --card-min. */
+@utility grid-cards {
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--card-min, 16rem), 100%), 1fr));
+}
+
+@layer base {
+  /* foto/ícone dentro de tabela tem a largura que pediu: o max-width: 100% padrão deixava a coluna espremer a imagem */
+  td img, th img { max-width: none; }
+}
+
 html, body {
   background: var(--bg);
   color: var(--text);

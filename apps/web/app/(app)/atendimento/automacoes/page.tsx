@@ -83,7 +83,7 @@ export default async function AutomacoesPage({ searchParams }: { searchParams: S
       {canWrite && (
         <Card className="mt-4" title={editing ? `Editar: ${editing.name}` : def ? `Nova automação: ${def.label}` : "Nova automação"}>
           {!def ? (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cards gap-2">
               {Object.entries(TRIGGERS).map(([k, t]) => (
                 <Link key={k} href={`/atendimento/automacoes?novo=${k}`} className="rounded-xl border border-border p-3 text-sm hover:bg-surface-2"><span className="font-medium">{t.label}</span><span className="mt-1 block text-xs text-muted">{t.help}</span></Link>
               ))}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Button, Card, inputClass, PageHeader } from "@/components/ui";
+import { Badge, Button, Card, inputClass, Narrow, PageHeader } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
 import { AccessFields } from "../access-fields";
 import { linkUserPartyAction, resetPasswordAction, setUserStatusAction, updateUserAction } from "../actions";
@@ -23,7 +23,7 @@ export default async function UsuarioPage({ params, searchParams }: { params: Pr
   const taken = new Set(users.flatMap((x) => (x.party ? [x.party.id] : [])));
 
   return (
-    <>
+    <Narrow>
       <PageHeader title={u.display_name} description={`${u.email} · criado em ${when(u.created_at)} · último acesso ${when(u.last_sign_in_at)}`}
         actions={<Link href="/configuracoes/usuarios" className="text-sm text-brand">Voltar aos usuários</Link>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
@@ -86,6 +86,6 @@ export default async function UsuarioPage({ params, searchParams }: { params: Pr
           )}
         </Card>
       </div>
-    </>
+    </Narrow>
   );
 }

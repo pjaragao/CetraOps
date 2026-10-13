@@ -6,12 +6,20 @@ export function cn(...args: Parameters<typeof clsx>) {
   return clsx(...args);
 }
 
+/**
+ * Página de formulário ou texto: segura a largura em max-w-form para os campos não esticarem na tela larga.
+ * Listas, tabelas e painéis não usam: ocupam a largura toda (que cresce ao recolher a barra lateral).
+ */
+export function Narrow({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("max-w-form", className)}>{children}</div>;
+}
+
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+        {description && <p className="mt-1 max-w-4xl text-sm text-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -52,7 +60,7 @@ const badgeTones = {
 } as const;
 
 export function Badge({ children, tone = "neutral", className }: { children: ReactNode; tone?: keyof typeof badgeTones; className?: string }) {
-  return <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", badgeTones[tone], className)}>{children}</span>;
+  return <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", badgeTones[tone], className)}>{children}</span>;
 }
 
 export function Button({

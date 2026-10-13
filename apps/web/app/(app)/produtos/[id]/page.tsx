@@ -77,7 +77,7 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
             ))}
           </div>
           {photos.length === 0 ? <p className="text-sm text-muted">Sem fotos desta cor.</p> : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cards gap-2 [--card-min:11rem]">
               {photos.map((m) => (
                 <a key={m.storage_path} href={m.storage_path} target="_blank" rel="noreferrer">
                   <Image src={cdnImage(m.storage_path, 500)} alt={`${p.name} ${cname.get(selColor ?? "") ?? ""}`} width={250} height={333} unoptimized className="aspect-[3/4] w-full rounded-lg object-cover" />

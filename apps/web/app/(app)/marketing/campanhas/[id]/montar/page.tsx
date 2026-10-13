@@ -4,7 +4,7 @@ import { DISPATCH_FILTERS, DISPATCH_STATUS_LABEL, OFFER_MODES, SKIP_REASON_LABEL
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Button, Card, inputClass, PageHeader, Stat } from "@/components/ui";
+import { Badge, Button, Card, inputClass, Narrow, PageHeader, Stat } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
 import { AudienceBuilder } from "../../../audience-builder";
 import { loadLookups } from "../../../lookups";
@@ -46,7 +46,7 @@ export default async function MontarPage({ params, searchParams }: { params: Pro
   const canWrite = can(session, "crm.write");
 
   return (
-    <>
+    <Narrow>
       <PageHeader title={c.name} description={`Passo ${passo} de 5 · ${STEPS[passo - 1]}`} actions={<Link href="/marketing/campanhas" className="rounded-lg px-3 py-1.5 text-sm hover:bg-surface-2">Salvar e sair</Link>} />
       <nav aria-label="Passos" className="mb-4 flex flex-wrap gap-2">
         {STEPS.map((s, i) => (i === 0 ? <Badge key={s} tone="success">1 · {s}</Badge> : <Link key={s} href={`/marketing/campanhas/${id}/montar?passo=${i + 1}`}><Badge tone={i + 1 === passo ? "brand" : "neutral"}>{i + 1} · {s}</Badge></Link>))}
@@ -153,6 +153,6 @@ export default async function MontarPage({ params, searchParams }: { params: Pro
           </div>
         </div>
       )}
-    </>
+    </Narrow>
   );
 }

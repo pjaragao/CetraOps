@@ -12,6 +12,8 @@ import { clsx } from "clsx";
  * Linha de uma célula só com colspan (aviso de lista vazia, total) fica fixa no fim. Em listas paginadas no servidor, a ordem e a busca valem
  * para a página aberta (a busca da própria página continua sendo a que procura no banco).
  * `plain` desliga tudo (tabelas de formulário/edição); `sortable={false}` numa coluna via `noSort` (índices).
+ * Largura: ocupa o espaço da tela (cresce ao recolher a barra lateral); cabeçalho de várias palavras quebra linha antes de
+ * aparecer rolagem lateral, e com 9+ colunas o espaçamento das células fica mais justo (vale sobre o px-3 de cada página).
  */
 export interface TableProps {
   head: ReactNode[];
@@ -105,6 +107,7 @@ export function Table({ head, children, plain, noSort = [], searchPlaceholder, d
     return out;
   }, [data, q, filters, sort]);
 
+  const dense = head.length >= 9;
   const toggle = (col: number) => setSort((s) => (s?.col !== col ? { col, dir: "asc" } : s.dir === "asc" ? { col, dir: "desc" } : null));
   const active = q !== "" || Object.values(filters).some(Boolean);
 
@@ -124,20 +127,20 @@ export function Table({ head, children, plain, noSort = [], searchPlaceholder, d
               {f.values.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
           ))}
-          {active && <button type="button" onClick={() => { setQ(""); setFilters({}); }} className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"><X size={12} /> limpar</button>}
+          {active && <button type="button" onClick={() => { setQ(""); setFilters({}); }} className="inline-flex items-center gap-1 text-xs text-muted hover:text-text"><X size={12} /> limpar</button>}
           <span className="ml-auto text-xs text-muted">{visible.length === data.length ? `${data.length} linha(s)` : `${visible.length} de ${data.length}`}</span>
         </div>
       )}
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-        <table className="w-full text-sm">
+        <table className={clsx("w-full text-sm", dense && "[&_td]:px-2 [&_th]:px-2")}>
           <thead className="bg-surface-2 text-left text-xs text-muted">
             <tr>{head.map((h, i) => {
               const can = enhanced && headText[i] !== "" && !noSort.includes(i);
               const on = sort?.col === i;
               return (
-                <th key={i} className="px-3 py-2 font-medium whitespace-nowrap" aria-sort={on ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}>
+                <th key={i} className="px-3 py-2 align-bottom font-medium" aria-sort={on ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}>
                   {can ? (
-                    <button type="button" onClick={() => toggle(i)} className={clsx("inline-flex items-center gap-1 hover:text-foreground", on && "text-foreground")}>
+                    <button type="button" onClick={() => toggle(i)} className={clsx("inline-flex items-center gap-1 text-left hover:text-text", on && "text-text")}>
                       {h}{on ? (sort!.dir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-40" />}
                     </button>
                   ) : h}

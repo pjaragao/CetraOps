@@ -16,7 +16,7 @@ export default async function NovaCampanhaPage({ searchParams }: { searchParams:
       <PageHeader title="Nova campanha" description="Passo 1 de 5 · Objetivo. Escolha um modelo: ele já preenche público, oferta e lembrete, e tudo continua editável."
         actions={<Link href="/marketing/campanhas" className="rounded-lg px-3 py-1.5 text-sm hover:bg-surface-2">← Campanhas</Link>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cards gap-3 [--card-min:18rem]">
         {CAMPAIGN_PRESETS.map((p) => (
           <Card key={p.key} title={p.label}>
             <form action={startCampaignAction} className="space-y-3">

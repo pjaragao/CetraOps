@@ -179,7 +179,7 @@ export function ConversationPane(props: {
           </div>
         ) : (
           <div key={t.m.id} className={cn("flex", t.m.direction === "OUT" ? "justify-end" : "justify-start")}>
-            <div className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line",
+            <div className={cn("max-w-[min(80%,42rem)] rounded-2xl px-3 py-2 text-sm whitespace-pre-line",
               t.m.direction === "OUT" ? "bg-brand/10" : "bg-surface-2")}>
               {t.m.body ?? (t.m.transcript ? `🎙️ ${t.m.transcript}` : `[${t.m.type}]`)}
               <span className="mt-1 block text-right text-[10px] text-muted">

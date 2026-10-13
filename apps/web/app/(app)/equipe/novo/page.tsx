@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSession, requirePerm } from "@/lib/session";
 import { todayIsoSP } from "@/lib/context";
 import Link from "next/link";
-import { cn, LinkButton, PageHeader } from "@/components/ui";
+import { cn, LinkButton, Narrow, PageHeader } from "@/components/ui";
 import { str, type SP } from "@/lib/context";
 import { Badge, Button, Card, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";
@@ -35,7 +35,7 @@ export default async function NovoColaboradorPage({ searchParams }: { searchPara
   }
   const hits = !freelancer && !person ? await searchPeople(buscar) : [];
   return (
-    <>
+    <Narrow>
       <PageHeader title={freelancer ? "Freelancer PJ/MEI" : "Admitir colaborador"}
         description={freelancer ? "Prestador sem vínculo para datas especiais: vira conta a pagar, sem folha nem encargos de CLT." : "Cria o cadastro único (pessoa), o vínculo, o salário inicial e os períodos de férias, e enfileira o evento S-2200 do eSocial."}
         actions={<LinkButton href="/equipe">Voltar</LinkButton>} />
@@ -67,6 +67,6 @@ export default async function NovoColaboradorPage({ searchParams }: { searchPara
         : <AdmissionForm today={todayIsoSP()}
             entities={(entities ?? []).map((e) => ({ id: e.id, label: e.nome_fantasia ?? e.razao_social }))}
             stores={session.stores.map((s) => ({ id: s.id, label: s.name, legal_entity_id: s.legal_entity_id }))} person={person} />}
-    </>
+    </Narrow>
   );
 }

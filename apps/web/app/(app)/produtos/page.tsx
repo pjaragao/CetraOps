@@ -66,7 +66,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
   });
 
   return (
-    <div data-wide>
+    <>
       <PageHeader title="Catálogo" description="Modelos com fotos, cores e tamanhos. Os produtos da marca vêm do site oficial (Produtos › Site da marca); peças de outras marcas entram pela planilha."
         actions={<>
           <LinkButton href="/produtos/site">Site da marca</LinkButton>
@@ -78,6 +78,6 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
       ) : (
         <CatalogTable rows={rows} categories={cats ?? []} collections={colls ?? []} initial={initial} canWrite={can(session, "catalog.write")} />
       )}
-    </div>
+    </>
   );
 }

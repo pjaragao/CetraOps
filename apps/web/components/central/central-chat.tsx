@@ -169,31 +169,34 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3" aria-live="polite">
-        {messages.length === 0 && (
-          <div className="space-y-3 pt-6 text-center">
-            <Sparkles className="mx-auto text-brand" />
-            <p className="text-sm text-muted">Fale, escreva, bipe ou mande uma foto (RG, CNH, boleto, Pix, nota). A {ASSISTANT_NAME} consulta o sistema e prepara vendas, cadastros e contas para você confirmar.</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)} className="rounded-full border border-border bg-surface px-3 py-1 text-xs hover:bg-surface-2">{s}</button>)}
+      <div className="min-h-0 flex-1 overflow-y-auto p-3" aria-live="polite">
+        {/* na tela larga, a conversa fica numa largura de leitura (no painel lateral não muda nada) */}
+        <div className="mx-auto max-w-4xl space-y-4">
+          {messages.length === 0 && (
+            <div className="space-y-3 pt-6 text-center">
+              <Sparkles className="mx-auto text-brand" />
+              <p className="text-sm text-muted">Fale, escreva, bipe ou mande uma foto (RG, CNH, boleto, Pix, nota). A {ASSISTANT_NAME} consulta o sistema e prepara vendas, cadastros e contas para você confirmar.</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)} className="rounded-full border border-border bg-surface px-3 py-1 text-xs hover:bg-surface-2">{s}</button>)}
+              </div>
             </div>
-          </div>
-        )}
-        {messages.map((m) => (
-          <div key={m.id} className={cn("flex flex-col gap-2", m.role === "user" ? "items-end" : "items-stretch")}>
-            {m.role === "user" ? (
-              <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-sm whitespace-pre-wrap text-brand-contrast">{m.text}</p>
-            ) : (
-              <>
-                {m.cards.map((c, i) => <CentralCard key={i} card={c} onPick={busy ? undefined : send} />)}
-                {m.text && <p className="text-sm whitespace-pre-wrap">{m.text}</p>}
-                {m.pending && <p className="flex items-center gap-2 text-xs text-muted"><Loader2 size={13} className="animate-spin" />{m.status ?? "Pensando…"}</p>}
-                {m.mode === "search" && <p className="text-[11px] text-muted">modo busca (sem IA)</p>}
-              </>
-            )}
-          </div>
-        ))}
-        <div ref={bottom} />
+          )}
+          {messages.map((m) => (
+            <div key={m.id} className={cn("flex flex-col gap-2", m.role === "user" ? "items-end" : "items-stretch")}>
+              {m.role === "user" ? (
+                <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-sm whitespace-pre-wrap text-brand-contrast">{m.text}</p>
+              ) : (
+                <>
+                  {m.cards.map((c, i) => <CentralCard key={i} card={c} onPick={busy ? undefined : send} />)}
+                  {m.text && <p className="text-sm whitespace-pre-wrap">{m.text}</p>}
+                  {m.pending && <p className="flex items-center gap-2 text-xs text-muted"><Loader2 size={13} className="animate-spin" />{m.status ?? "Pensando…"}</p>}
+                  {m.mode === "search" && <p className="text-[11px] text-muted">modo busca (sem IA)</p>}
+                </>
+              )}
+            </div>
+          ))}
+          <div ref={bottom} />
+        </div>
       </div>
 
       {(notice || recorder.error) && <p className="px-3 pb-1 text-xs text-warning">{notice ?? recorder.error}</p>}

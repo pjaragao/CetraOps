@@ -275,6 +275,14 @@ async def test_received_note_by_access_key(pool: Any, deps: Any, direct: dict, s
     assert row and row["issuer_name"] == "FORNECEDOR TESTE"
 
 
+async def test_key_before_first_use_enters_list_for_ciencia(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
+    sefaz.dist = ["137"]
+    key = "35261060978916000142550010000012911642509325"
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 9, 1, {"action": "DFE_KEY", "org_id": ORG, "key": key}))
+    row = await fetch_one(pool, "select issuer_cnpj, manifest_status, last_error from fiscal.inbound_dfe where access_key = %s", (key,))
+    assert row and row["issuer_cnpj"] == "60978916000142" and row["manifest_status"] == "PENDING" and "Ciência" in row["last_error"]
+
+
 async def test_integration_check_reports_certificate_and_service(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
     await integrations.handle(deps, queues.QueueMessage("integration_checks", 6, 1, {"connection_id": direct["conn_id"], "org_id": ORG, "action": "CHECK"}))
     c = await fetch_one(pool, "select status, config, last_error from core.integration_connections where id = %s", (direct["conn_id"],))

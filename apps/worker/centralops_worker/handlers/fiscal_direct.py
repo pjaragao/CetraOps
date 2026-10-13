@@ -333,6 +333,14 @@ async def dfe_by_key(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> Non
             if r.get("xml"):
                 await call_fn(deps.pool, "fiscal.dfe_attach_xml", p["org_id"], r["access_key"], r["xml"])
         return
+    if res.cstat == "137":
+        # Nota anterior ao primeiro uso do serviço: a SEFAZ não gera NSU retroativo nem para a consulta pela chave (NT 2014.002, 3.4).
+        # A nota entra na lista só com a chave; a Ciência da Operação (decisão da pessoa) faz o Ambiente Nacional liberar a NF-e completa.
+        await call_fn(deps.pool, "fiscal.dfe_upsert", p["org_id"], ctx.entity_id, [{"access_key": key, "issuer_cnpj": key[6:20]}])
+        row = await fetch_one(deps.pool, "select id, xml_downloaded from fiscal.inbound_dfe where org_id = %s and access_key = %s", (p["org_id"], key))
+        if row and not row["xml_downloaded"]:
+            await call_fn(deps.pool, "fiscal.dfe_mark", row["id"], None, "Nota anterior ao primeiro uso da busca: a SEFAZ só libera o conteúdo depois da Ciência da Operação", None)
+        return
     msg = f"{res.cstat} {res.xmotivo}".strip() if res.cstat != "138" else "a SEFAZ não devolveu o resumo da nota"
     await deps.notify(p["org_id"], "INTEGRATION_ERROR", f"Consulta da nota {key[25:34].lstrip('0')} pela chave: {msg}", {"access_key": key},
                       perm="fiscal.write", member=p.get("by"))
@@ -361,7 +369,12 @@ async def dfe_manifest(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> N
         if kind in ("CIENCIA", "CONFIRMADA"):                                  # o XML completo fica disponível depois da manifestação
             try:
                 res = await client.distribution(ctx.emitter.cnpj, key=key)
-                xml = next((doc["xml"] for doc in res.docs if doc["schema"].startswith("procNFe")), None)
+                full = next((doc for doc in res.docs if doc["schema"].startswith("procNFe")), None)
+                xml = full["xml"] if full else None
+                parsed = parse_dfe_doc(full) if full else None
+                if parsed:                                                     # nota que entrou só pela chave ganha fornecedor e valor
+                    await call_fn(deps.pool, "fiscal.dfe_upsert", p["org_id"], str(d["legal_entity_id"]),
+                                  [{k: v for k, v in parsed.items() if k not in ("xml", "cancelled", "nsu")}])
             except (SefazNetworkError, ProviderPermanent) as e:
                 log.info("XML da nota %s ainda indisponível: %s", key, e)       # chega depois pela varredura (distNSU)
     await call_fn(deps.pool, "fiscal.dfe_mark", d["id"], kind, None, xml)

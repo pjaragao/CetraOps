@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/session";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;
 export type ActionResult = { ok: boolean; error?: string };
@@ -121,6 +122,45 @@ export async function createProductFromItem(itemId: string, input: z.input<typeo
     ? await supabase.schema("catalog").from("variants").select("id").eq("product_id", prod.id).eq("color_id", col.id).eq("size", p.size.trim().toUpperCase()).maybeSingle()
     : { data: null };
   if (!variant) return { ok: false, error: "Produto criado, mas não foi possível localizar a variante: vincule manualmente" };
+  return setReceiptItem(itemId, { variant_id: variant.id, learn: true });
+}
+
+const variantSchema = z.object({
+  product_id: uuid, color: z.string().trim().min(1).max(40), color_code: z.string().trim().max(10).optional(), size: z.string().trim().min(1).max(10), sku: z.string().trim().max(40).optional(),
+});
+
+/** Nova variação (cor/tamanho) de um produto que já existe, a partir do item da nota, e já vincula. A cor nova entra no cadastro de cores;
+ * o SKU segue o padrão do catálogo (referência + código da cor + tamanho) e o NCM da nota preenche o produto que ainda não tem. */
+export async function addVariantFromItem(itemId: string, input: z.input<typeof variantSchema>): Promise<ActionResult> {
+  const parsed = variantSchema.safeParse(input);
+  if (!uuid.safeParse(itemId).success || !parsed.success) return { ok: false, error: parsed.success ? "Item inválido" : `Confira os campos: ${parsed.error.issues[0]?.path.join(".")}` };
+  const s = await getSession();
+  const supabase = await createClient();
+  const p = parsed.data;
+  const size = p.size.toUpperCase();
+  const [{ data: item }, { data: prod }] = await Promise.all([
+    supabase.schema("purch").from("receipt_items").select("id, cean, ncm").eq("id", itemId).maybeSingle(),
+    supabase.schema("catalog").from("products").select("id, reference_code, ncm").eq("id", p.product_id).maybeSingle(),
+  ]);
+  if (!item || !prod) return { ok: false, error: "Item ou produto não encontrado" };
+
+  let { data: color } = await supabase.schema("catalog").from("colors").select("id, code").ilike("name", p.color).maybeSingle();
+  if (!color) {
+    const code = (p.color_code || p.color.normalize("NFD").replace(/[^a-zA-Z0-9]/g, "").slice(0, 3)).toUpperCase();
+    const { data: created, error } = await supabase.schema("catalog").from("colors").insert({ org_id: s.orgId, name: p.color, code }).select("id, code").single();
+    if (error) return { ok: false, error: `Não foi possível cadastrar a cor: ${friendly(error.message)}` };
+    color = created;
+  }
+  let { data: variant } = await supabase.schema("catalog").from("variants").select("id").eq("product_id", prod.id).eq("color_id", color.id).eq("size", size).maybeSingle();
+  if (!variant) {
+    const gtin = /^\d{8,14}$/.test(item.cean ?? "") && !/^0+$/.test(item.cean ?? "") ? item.cean : null;
+    const sku = (p.sku || `${prod.reference_code}${color.code ?? ""}${size}`).toUpperCase();
+    const { data: created, error } = await supabase.schema("catalog").from("variants")
+      .insert({ org_id: s.orgId, product_id: prod.id, color_id: color.id, size, sku, gtin }).select("id").single();
+    if (error) return { ok: false, error: /duplicate|unique/i.test(error.message) ? `Já existe uma variação com o SKU ${sku} ou o mesmo código de barras: ajuste o SKU` : friendly(error.message) };
+    variant = created;
+  }
+  if (!prod.ncm && /^\d{8}$/.test(item.ncm ?? "")) await supabase.schema("catalog").from("products").update({ ncm: item.ncm }).eq("id", prod.id);
   return setReceiptItem(itemId, { variant_id: variant.id, learn: true });
 }
 

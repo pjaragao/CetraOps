@@ -9,7 +9,7 @@ import { Field, Flash, fmtDate } from "@/components/form";
 import { acceptSuggestionsAction, confirmReceiptAction, countAllAction, discardReceiptAction, postReceiptAction, reverseReceiptAction } from "../../compras/actions";
 import { RECEIPT_STATUS } from "../../compras/labels";
 import { resolveItems } from "../../compras/options";
-import { ConferenceTable, type ConferenceItem } from "./conference";
+import { ConferenceTable, type CatalogOptions, type ConferenceItem } from "./conference";
 
 export const metadata = { title: "Recebimento" };
 
@@ -29,13 +29,27 @@ export default async function RecebimentoPage({ params, searchParams }: { params
     rc.po_id ? supabase.schema("purch").from("purchase_orders").select("id, number").eq("id", rc.po_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const { data: dups } = doc ? await supabase.schema("fiscal").from("document_installments").select("n_dup, due_date, amount").eq("document_id", doc.id).order("due_date") : { data: [] as { n_dup: string | null; due_date: string; amount: number }[] };
+  const linked = (rows ?? []).map((r) => r.variant_id).filter(Boolean) as string[];
+  const [{ data: vprod }, { data: prods }, { data: colors }, { data: sizes }, { data: cats }] = await Promise.all([
+    linked.length ? supabase.schema("catalog").from("variants").select("id, product_id").in("id", linked) : Promise.resolve({ data: [] as { id: string; product_id: string }[] }),
+    supabase.schema("catalog").from("products").select("id, name, reference_code").neq("status", "DISCONTINUED").order("name"),
+    supabase.schema("catalog").from("colors").select("name").order("name"),
+    supabase.schema("catalog").from("variants").select("size"),
+    supabase.schema("catalog").from("categories").select("name").order("name"),
+  ]);
+  const productOf = new Map((vprod ?? []).map((v) => [v.id, v.product_id]));
+  const SIZE_ORDER = ["PP", "P", "M", "G", "GG", "XG", "XGG", "TU"];
+  const options: CatalogOptions = {
+    products: prods ?? [], colors: (colors ?? []).map((c) => c.name), categories: (cats ?? []).map((c) => c.name),
+    sizes: [...new Set([...(sizes ?? []).map((v) => v.size), "PP", "P", "M", "G", "GG"])].sort((a, b) => (SIZE_ORDER.indexOf(a) + 1 || 99) - (SIZE_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b)),
+  };
   const labels = await resolveItems((rows ?? []).flatMap((r) => (r.variant_id ? [{ variant_id: r.variant_id, qty: 0, unit_cost: 0 }] : [])));
   const lmap = new Map(labels.map((l) => [l.variant_id, l]));
   const items: ConferenceItem[] = (rows ?? []).map((r) => ({
     id: r.id, n_item: r.n_item, cprod: r.supplier_cprod, cean: r.cean, description: r.description, ncm: r.ncm, qty_nfe: Number(r.qty_nfe),
     qty_counted: r.qty_counted == null ? null : Number(r.qty_counted), item_total: Number(r.item_total), landed_unit_cost: r.landed_unit_cost == null ? null : Number(r.landed_unit_cost),
     match_status: r.match_status, match_confidence: r.match_confidence == null ? null : Number(r.match_confidence),
-    variant: r.variant_id && lmap.get(r.variant_id) ? { id: r.variant_id, sku: lmap.get(r.variant_id)!.sku, label: lmap.get(r.variant_id)!.label } : null,
+    variant: r.variant_id && lmap.get(r.variant_id) ? { id: r.variant_id, sku: lmap.get(r.variant_id)!.sku, label: lmap.get(r.variant_id)!.label, product_id: productOf.get(r.variant_id) } : null,
   }));
 
   const st = RECEIPT_STATUS[rc.status] ?? { label: rc.status, tone: "neutral" as const };
@@ -70,7 +84,7 @@ export default async function RecebimentoPage({ params, searchParams }: { params
         </div>
       )}
 
-      <ConferenceTable items={items} editable={editable} />
+      <ConferenceTable items={items} editable={editable} options={options} />
 
       {rc.status === "CHECKED" && canApprove && (
         <Card className="mt-4" title="Lançar no estoque e no financeiro">

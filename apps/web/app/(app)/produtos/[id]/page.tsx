@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cdnImage, formatBRL, sanitizeHtml } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
-import { requirePerm } from "@/lib/session";
+import { can, requirePerm } from "@/lib/session";
+import { Flash } from "@/components/form";
+import { setBackorderAction } from "../../vender/encomendas/actions";
 import { str, type SP } from "@/lib/context";
-import { Badge, Card, cn, LinkButton, PageHeader, Table } from "@/components/ui";
+import { Badge, Button, Card, cn, LinkButton, PageHeader, Table } from "@/components/ui";
 
 export const metadata = { title: "Produto" };
 
@@ -13,12 +15,12 @@ const SIZE_ORDER = ["PP", "P", "M", "G", "GG", "XG", "XGG", "U", "UN"];
 
 /** Ficha do produto: fotos por cor, textos, guia de tamanho, variantes (preço, estoque, situação no site) e histórico de preço. */
 export default async function ProdutoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SP }) {
-  await requirePerm("catalog.read");
+  const session = await requirePerm("catalog.read");
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
   const { data: p } = await supabase.schema("catalog").from("products")
-    .select("id, reference_code, name, description, composition, care, gender, status, ncm, custom_fields, size_chart_id, brands(name), categories(name), collections(name)")
+    .select("id, reference_code, name, description, composition, care, gender, status, ncm, custom_fields, size_chart_id, backorder, brands(name), categories(name), collections(name)")
     .eq("id", id).maybeSingle();
   if (!p) notFound();
   const [{ data: variants }, { data: media }, { data: site }, { data: chart }, { data: changes }] = await Promise.all([
@@ -56,6 +58,15 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
           <LinkButton href="/produtos">Catálogo</LinkButton>
         </>} />
 
+      <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
+        <span>Encomenda: {p.backorder ? <Badge tone="success">aceita encomenda</Badge> : <Badge tone="neutral">não aceita</Badge>}</span>
+        <span className="text-xs text-muted">Com encomenda liberada, a cliente pode pedir cor e tamanho que não estão na loja (Vender › Encomendas).</span>
+        {can(session, "catalog.write") && (
+          <form action={setBackorderAction} className="ml-auto"><input type="hidden" name="product_ids" value={p.id} /><input type="hidden" name="enabled" value={p.backorder ? "0" : "1"} /><input type="hidden" name="back" value={`/produtos/${p.id}`} />
+            <Button variant="secondary">{p.backorder ? "Desligar encomenda" : "Liberar encomenda"}</Button></form>
+        )}
+      </div>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Card>
           <div className="mb-3 flex flex-wrap gap-2">

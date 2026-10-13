@@ -1050,13 +1050,13 @@ isOneToOne: false
                   ]
                 },"products": {
                   Row: {
-                    "activities": (string)[],"assortment_class": Database["catalog"]["Enums"]["assortment_class"],"brand_id": string | null,"care": string | null,"category_id": string | null,"cest": string | null,"collection_id": string | null,"composition": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"description": string | null,"gender": Database["catalog"]["Enums"]["gender"],"id": string,"name": string,"ncm": string | null,"org_id": string,"origin": number,"product_kind": Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id": string | null,"size_grid_id": string | null,"status": Database["catalog"]["Enums"]["product_status"],"updated_at": string
+                    "activities": (string)[],"assortment_class": Database["catalog"]["Enums"]["assortment_class"],"backorder": boolean,"brand_id": string | null,"care": string | null,"category_id": string | null,"cest": string | null,"collection_id": string | null,"composition": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"description": string | null,"gender": Database["catalog"]["Enums"]["gender"],"id": string,"name": string,"ncm": string | null,"org_id": string,"origin": number,"product_kind": Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id": string | null,"size_grid_id": string | null,"status": Database["catalog"]["Enums"]["product_status"],"updated_at": string
                   }
                   Insert: {
-                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender": Database["catalog"]["Enums"]["gender"],"id"?: string,"name": string,"ncm"?: string | null,"org_id": string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"backorder"?: boolean,"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender": Database["catalog"]["Enums"]["gender"],"id"?: string,"name": string,"ncm"?: string | null,"org_id": string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string
                   }
                   Update: {
-                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender"?: Database["catalog"]["Enums"]["gender"],"id"?: string,"name"?: string,"ncm"?: string | null,"org_id"?: string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code"?: string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"backorder"?: boolean,"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender"?: Database["catalog"]["Enums"]["gender"],"id"?: string,"name"?: string,"ncm"?: string | null,"org_id"?: string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code"?: string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1225,6 +1225,9 @@ isOneToOne: false
                            },
 "search_products":
 { Args: { "p": Json }; Returns: Json
+                           },
+"set_backorder":
+{ Args: { "p": Json }; Returns: number
                            },
 "set_site_sync":
 { Args: { "p_enabled": boolean }; Returns: undefined
@@ -8685,7 +8688,32 @@ isOneToOne: false
           }
         },"sales": {
           Tables: {
-            "cash_registers": {
+            "backorder_items": {
+                  Row: {
+                    "arrived_at": string | null,"created_at": string,"id": string,"order_id": string,"order_item_id": string,"org_id": string,"po_id": string | null,"qty": number,"reservation_id": string | null,"status": string,"updated_at": string,"variant_id": string
+                  }
+                  Insert: {
+                    "arrived_at"?: string | null,"created_at"?: string,"id"?: string,"order_id": string,"order_item_id": string,"org_id": string,"po_id"?: string | null,"qty": number,"reservation_id"?: string | null,"status"?: string,"updated_at"?: string,"variant_id": string
+                  }
+                  Update: {
+                    "arrived_at"?: string | null,"created_at"?: string,"id"?: string,"order_id"?: string,"order_item_id"?: string,"org_id"?: string,"po_id"?: string | null,"qty"?: number,"reservation_id"?: string | null,"status"?: string,"updated_at"?: string,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "backorder_items_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "backorder_items_order_item_id_fkey"
+      columns: ["order_item_id"]
+isOneToOne: false
+      referencedRelation: "order_items"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"cash_registers": {
                   Row: {
                     "active": boolean,"device_id": string | null,"id": string,"name": string,"org_id": string,"store_id": string
                   }
@@ -9115,6 +9143,47 @@ isOneToOne: false
 "complete_stone_pos_payment":
 { Args: { "p_auth_code"?: string,"p_card_brand"?: string,"p_installments": number,"p_method": string,"p_nsu": string,"p_org": string,"p_paid_amount": number,"p_raw"?: Json,"p_stone_order_id": string }; Returns: Json
                            },
+"create_backorder":
+{ Args: { "p": Json }; Returns: {
+              "assisted_by_ai": boolean,
+"attribution": NonNullable<Json>,
+"cash_session_id": string | null,
+"channel": Database["sales"]["Enums"]["channel"],
+"completed_at": string | null,
+"cost_total": number,
+"coupon_id": string | null,
+"cpf_on_invoice": string | null,
+"created_at": string,
+"created_by": string | null,
+"customer_confirmed_message_id": string | null,
+"discount_total": number,
+"fulfillment_type": Database["sales"]["Enums"]["fulfillment_type"],
+"id": string,
+"idempotency_key": string,
+"legal_entity_id": string,
+"location_id": string,
+"notes": string | null,
+"number": string,
+"org_id": string,
+"origin_conversation_id": string | null,
+"paid_total": number,
+"party_id": string | null,
+"price_list_id": string | null,
+"profit_cost_center_id": string | null,
+"seller_member_id": string | null,
+"shipping_total": number,
+"status": Database["sales"]["Enums"]["order_status"],
+"store_id": string,
+"subtotal": number,
+"total": number,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "create_payment_link":
 { Args: { "p_max_installments"?: number,"p_order": string,"p_provider"?: string }; Returns: {
               "amount": number,
@@ -9554,6 +9623,9 @@ isOneToOne: false
       } },
 "save_stone_terminals":
 { Args: { "p_terminals": Json }; Returns: Json
+                           },
+"set_backorder_supplier":
+{ Args: { "p_party": string }; Returns: undefined
                            },
 "set_order_status":
 { Args: { "p_notes"?: string,"p_order": string,"p_status": string }; Returns: {

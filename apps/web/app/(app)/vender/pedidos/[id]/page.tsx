@@ -49,6 +49,8 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
     o.party_id ? supabase.schema("crm").from("parties").select("id, display_name").eq("id", o.party_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.schema("sales").rpc("get_order_fiscal_doc", { p_order: id }),
   ]);
+  const { data: backorder } = await supabase.schema("sales").from("backorder_items").select("status, qty").eq("order_id", id);
+  const boOpen = (backorder ?? []).filter((b) => b.status === "OPEN").reduce((a, b) => a + Number(b.qty), 0);
   const { data: phone } = o.party_id
     ? await supabase.schema("crm").from("party_contact_points").select("value_normalized").eq("party_id", o.party_id).in("type", ["WHATSAPP", "PHONE"]).order("type", { ascending: false }).limit(1).maybeSingle()
     : { data: null };
@@ -77,6 +79,11 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
       <PageHeader title={`Pedido ${o.number}`} description={`${o.channel} · ${new Date(o.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}${party ? ` · ${party.display_name}` : ""}`}
         actions={<><Badge tone={st.tone}>{st.label}</Badge>{o.status === "DRAFT" && canWrite && <LinkButton href={`/vender/pdv?resume=${o.id}`} variant="primary">Retomar no PDV</LinkButton>}{returnable && canWrite && <LinkButton href={`/vender/trocas/nova?n=${o.number}`}>Trocar / devolver</LinkButton>}{o.status !== "DRAFT" && <LinkButton href={`/imprimir/comprovante/${o.id}`}>Imprimir comprovante</LinkButton>}{waLink && <a href={waLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-2">Enviar pelo WhatsApp</a>}<LinkButton href="/vender/pedidos">Voltar</LinkButton></>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+      {(backorder ?? []).length > 0 && o.status === "PENDING_PAYMENT" && (
+        <p className={`mb-4 rounded-xl border px-4 py-3 text-sm ${boOpen > 0 ? "border-warning/40 bg-warning/10" : "border-success/40 bg-success/10"}`}>
+          <b>Encomenda.</b> {boOpen > 0 ? `${boOpen} peça(s) ainda aguardando o fornecedor: dá para registrar um sinal; o restante, quando chegarem.` : "Todas as peças chegaram e estão separadas no nome da cliente: receba o restante para concluir."}
+        </p>
+      )}
       {o.status === "DRAFT" && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/40 bg-brand/10 p-4">
           <div>

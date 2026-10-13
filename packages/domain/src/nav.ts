@@ -47,6 +47,7 @@ export const NAV: NavArea[] = [
       { label: "Pedidos", href: "/vender/pedidos", ready: true },
       { label: "Reservas & Armário VIP", href: "/vender/reservas", ready: true },
       { label: "Malinhas & campanhas", href: "/vender/malinhas", ready: true },
+      { label: "Encomendas", href: "/vender/encomendas", ready: true },
       { label: "Trocas & devoluções", href: "/vender/trocas", ready: true },
       { label: "Entregas", href: "/vender/entregas", ready: true },
       { label: "Caixa", href: "/vender/caixa", ready: true },

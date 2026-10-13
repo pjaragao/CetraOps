@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { chunks, fetchAll } from "@/lib/fetch-all";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Empty, inputClass, LinkButton, PageHeader, Table } from "@/components/ui";
+import { Badge, Button, Empty, inputClass, LinkButton, PageHeader, Table } from "@/components/ui";
+import { Flash } from "@/components/form";
+import { setBackorderAction } from "../vender/encomendas/actions";
 
 export const metadata = { title: "Catálogo" };
 
@@ -24,7 +26,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
   const [products, { data: cats }, { data: colls }] = await Promise.all([
     fetchAll((a, b) => {
       let query = supabase.schema("catalog").from("products")
-        .select("id, reference_code, name, gender, status, ncm, category_id, collection_id, categories(name), collections(name)")
+        .select("id, reference_code, name, gender, status, ncm, backorder, category_id, collection_id, categories(name), collections(name)")
         .order("name").order("id").range(a, b);
       if (q) query = query.or(`name.ilike.%${q}%,reference_code.ilike.%${q}%`);
       if (genero === "FEM" || genero === "MASC" || genero === "UNISSEX") query = query.eq("gender", genero);
@@ -70,6 +72,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
           <LinkButton href="/produtos/site">Site da marca</LinkButton>
           {can(session, "catalog.write") && <LinkButton href="/produtos/importar" variant="primary">Importar planilha</LinkButton>}
         </>} />
+      <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
       <form className="mb-4 flex flex-wrap gap-2">
         <input name="q" defaultValue={q} placeholder="Nome ou referência" className={`${inputClass} max-w-xs`} aria-label="Buscar" />
         <select name="genero" defaultValue={genero ?? ""} className={`${inputClass} max-w-[160px]`} aria-label="Linha">
@@ -89,7 +92,18 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
       {rows.length === 0 ? (
         <Empty title="Nenhum produto">Traga o catálogo do site em Produtos › Site da marca ou importe uma planilha.</Empty>
       ) : (
-        <Table head={["", "Referência", "Produto", "Linha", "Categoria", "Coleção", "Cores", "Variantes", "Preço", "Estoque", "Site", "NCM"]} noSort={[0]}>
+        <>
+        {can(session, "catalog.write") && (
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted">Encomenda nos {rows.length} produto(s) listados:</span>
+            {(["1", "0"] as const).map((en) => (
+              <form key={en} action={setBackorderAction}><input type="hidden" name="product_ids" value={rows.map((r) => r.id).join(",")} /><input type="hidden" name="enabled" value={en} />
+                <input type="hidden" name="back" value={`/produtos?${new URLSearchParams(Object.entries({ q, genero, categoria, colecao, estoque }).filter((e): e is [string, string] => Boolean(e[1]))).toString()}`} />
+                <Button variant="secondary" className="px-2 py-1 text-xs">{en === "1" ? "liberar" : "desligar"}</Button></form>
+            ))}
+          </div>
+        )}
+        <Table head={["", "Referência", "Produto", "Linha", "Categoria", "Coleção", "Cores", "Variantes", "Preço", "Estoque", "Encomenda", "Site", "NCM"]} noSort={[0]}>
           {rows.map((p) => {
             const r = range.get(p.id), s = onSite.get(p.id), img = photo.get(p.id);
             return (
@@ -104,12 +118,14 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
                 <td className="px-3 py-2 tabular-nums">{nVar.get(p.id) ?? 0}</td>
                 <td className="px-3 py-2 whitespace-nowrap" data-sort={r?.[0] ?? -1}>{r ? (r[0] === r[1] ? formatBRL(r[0]) : `${formatBRL(r[0])} – ${formatBRL(r[1])}`) : <span className="text-danger">sem preço</span>}</td>
                 <td className="px-3 py-2 tabular-nums">{qty.get(p.id) ?? 0}</td>
+                <td className="px-3 py-2">{p.backorder ? <Badge tone="success">aceita</Badge> : <span className="text-muted">não</span>}</td>
                 <td className="px-3 py-2">{s ? (s.live ? <Badge tone="success">no site</Badge> : <Badge tone="neutral">fora do site</Badge>) : "—"}</td>
                 <td className="px-3 py-2">{p.ncm ?? <span className="text-warning">faltando</span>}</td>
               </tr>
             );
           })}
         </Table>
+        </>
       )}
     </>
   );

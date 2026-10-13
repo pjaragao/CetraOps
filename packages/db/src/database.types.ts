@@ -4509,13 +4509,13 @@ isOneToOne: false
                   ]
                 },"documents": {
                   Row: {
-                    "access_key": string | null,"cfop_main": string | null,"counterpart_cnpj": string | null,"counterpart_name": string | null,"counterpart_party_id": string | null,"created_at": string,"created_by": string | null,"danfe_path": string | null,"direction": string,"events": NonNullable<Json>,"fin_nfe": number,"id": string,"idempotency_key": string | null,"issue_at": string | null,"legal_entity_id": string,"model": string,"number": number | null,"operation_nature": string | null,"order_id": string | null,"org_id": string,"protocol": string | null,"provider_ref": string | null,"receipt_id": string | null,"referenced_keys": (string)[],"return_id": string | null,"sefaz_code": string | null,"sefaz_msg": string | null,"series": number | null,"status": string,"totals": NonNullable<Json>,"transfer_id": string | null,"updated_at": string,"xml": string | null,"xml_path": string | null
+                    "access_key": string | null,"cfop_main": string | null,"counterpart_cnpj": string | null,"counterpart_name": string | null,"counterpart_party_id": string | null,"created_at": string,"created_by": string | null,"danfe_path": string | null,"direction": string,"events": NonNullable<Json>,"fin_nfe": number,"id": string,"idempotency_key": string | null,"issue_at": string | null,"legal_entity_id": string,"model": string,"number": number | null,"operation_nature": string | null,"order_id": string | null,"org_id": string,"protocol": string | null,"provider": string | null,"provider_ref": string | null,"receipt_id": string | null,"referenced_keys": (string)[],"return_id": string | null,"sefaz_code": string | null,"sefaz_msg": string | null,"series": number | null,"status": string,"totals": NonNullable<Json>,"transfer_id": string | null,"updated_at": string,"xml": string | null,"xml_path": string | null
                   }
                   Insert: {
-                    "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction": string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id": string,"model": string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id": string,"protocol"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
+                    "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction": string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id": string,"model": string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id": string,"protocol"?: string | null,"provider"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
                   }
                   Update: {
-                    "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction"?: string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id"?: string,"model"?: string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id"?: string,"protocol"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
+                    "access_key"?: string | null,"cfop_main"?: string | null,"counterpart_cnpj"?: string | null,"counterpart_name"?: string | null,"counterpart_party_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"danfe_path"?: string | null,"direction"?: string,"events"?: NonNullable<Json>,"fin_nfe"?: number,"id"?: string,"idempotency_key"?: string | null,"issue_at"?: string | null,"legal_entity_id"?: string,"model"?: string,"number"?: number | null,"operation_nature"?: string | null,"order_id"?: string | null,"org_id"?: string,"protocol"?: string | null,"provider"?: string | null,"provider_ref"?: string | null,"receipt_id"?: string | null,"referenced_keys"?: (string)[],"return_id"?: string | null,"sefaz_code"?: string | null,"sefaz_msg"?: string | null,"series"?: number | null,"status"?: string,"totals"?: NonNullable<Json>,"transfer_id"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_path"?: string | null
                   }
                   Relationships: [
                     
@@ -4684,6 +4684,9 @@ isOneToOne: false
                            },
 "request_emission":
 { Args: { "p_order": string }; Returns: undefined
+                           },
+"request_number_void":
+{ Args: { "p_document": string,"p_reason": string }; Returns: undefined
                            },
 "request_manifest":
 { Args: { "p_id": string,"p_reason"?: string,"p_type": string }; Returns: {
@@ -9411,6 +9414,9 @@ isOneToOne: false
                            },
 "get_order_fiscal_doc":
 { Args: { "p_order": string }; Returns: Json
+                           },
+"get_nfce_print":
+{ Args: { "p_document": string }; Returns: Json
                            },
 "get_orders_fiscal_docs":
 { Args: { "p_orders": (string)[] }; Returns: Json

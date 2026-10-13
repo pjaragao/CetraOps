@@ -56,7 +56,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
     : { data: null };
   const fiscalDoc = fiscalDocRaw as {
     id: string; number: number; series: number; model: string; status: string;
-    access_key?: string | null; danfe_path?: string | null; xml_path?: string | null;
+    access_key?: string | null; danfe_path?: string | null; xml_path?: string | null; consult_url?: string | null;
     issued_at?: string | null; rejection_reason?: string | null;
   } | null;
   const labels = await resolveItems((items ?? []).flatMap((i) => i.variant_id ? [{ variant_id: i.variant_id, qty: 0, unit_cost: 0 }] : []));
@@ -67,10 +67,12 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   const balance = Number(o.total) - Number(o.paid_total);
   const isPaidOrBeyond = ["PAID", "COMPLETED", "FULFILLING", "READY_FOR_PICKUP", "SHIPPED"].includes(o.status);
   const delivery = isPaidOrBeyond;
-  // comprovante pelo WhatsApp da cliente (link wa.me, sem depender da API): com o DANFE da NFC-e quando houver
+  // comprovante pelo WhatsApp da cliente (link wa.me, sem depender da API): com o link da nota quando houver
+  // (NFC-e emitida direto: a página de consulta da SEFAZ, que é pública; pela API: o DANFE do provedor)
+  const nfLink = fiscalDoc?.status === "AUTHORIZED" ? (fiscalDoc.consult_url ?? (/^https?:\/\//.test(fiscalDoc.danfe_path ?? "") ? fiscalDoc.danfe_path : null)) : null;
   const waDigits = (phone?.value_normalized ?? "").replace(/\D/g, "");
   const waLink = waDigits.length >= 10 && o.status !== "DRAFT"
-    ? `https://wa.me/${waDigits.length <= 11 ? `55${waDigits}` : waDigits}?text=${encodeURIComponent(`Oi, ${party?.display_name?.split(" ")[0] ?? ""}! Obrigada pela compra 💛 Pedido ${o.number}: ${formatBRL(o.total)}.${fiscalDoc?.danfe_path ? ` Sua nota fiscal: ${fiscalDoc.danfe_path}` : ""}`)}`
+    ? `https://wa.me/${waDigits.length <= 11 ? `55${waDigits}` : waDigits}?text=${encodeURIComponent(`Oi, ${party?.display_name?.split(" ")[0] ?? ""}! Obrigada pela compra 💛 Pedido ${o.number}: ${formatBRL(o.total)}.${nfLink ? ` Sua nota fiscal: ${nfLink}` : ""}`)}`
     : null;
   const returnable = ["PAID", "COMPLETED", "FULFILLING", "READY_FOR_PICKUP", "SHIPPED", "PARTIALLY_RETURNED"].includes(o.status);
 
@@ -198,7 +200,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-brand-contrast hover:opacity-90"
                     >
-                      📄 Visualizar DANFE (PDF)
+                      📄 {fiscalDoc.danfe_path.startsWith("/imprimir/") ? "Imprimir DANFE NFC-e" : "Visualizar DANFE (PDF)"}
                     </a>
                   )}
                   {canWrite && fiscalDoc.status === "REJECTED" && (

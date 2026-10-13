@@ -9,7 +9,7 @@ export interface NotaasConfig {
 }
 
 export interface NotaasInvoiceStatus {
-  status: "AUTHORIZED" | "PROCESSING" | "REJECTED" | "CANCELLED" | "DENIED";
+  status: "AUTHORIZED" | "PROCESSING" | "REJECTED" | "CANCELLED" | "DENIED" | "NUMBER_VOIDED";
   invoiceId?: string;
   number?: number;
   series?: number;
@@ -49,14 +49,16 @@ export async function fetchNotaasInvoiceStatus(
   const rawStatus = String(data.status ?? "").toLowerCase();
 
   let status: NotaasInvoiceStatus["status"] = "PROCESSING";
-  if (rawStatus === "issued" || rawStatus === "autorizado") {
+  if (["issued", "autorizado", "autorizada"].includes(rawStatus)) {
     status = "AUTHORIZED";
-  } else if (rawStatus === "cancelled" || rawStatus === "cancelado") {
+  } else if (["cancelled", "cancelado", "cancelada"].includes(rawStatus)) {
     status = "CANCELLED";
-  } else if (rawStatus === "error" || rawStatus === "rejeitado") {
+  } else if (["error", "rejeitado", "rejeitada"].includes(rawStatus)) {
     status = "REJECTED";
-  } else if (rawStatus === "denied" || rawStatus === "denegado") {
+  } else if (["denied", "denegado"].includes(rawStatus)) {
     status = "DENIED";
+  } else if (["inutilized", "inutilizado", "inutilizada"].includes(rawStatus)) {
+    status = "NUMBER_VOIDED";
   }
 
   const rawKey = data.chaveAcesso ?? data.chave_nfe ?? "";

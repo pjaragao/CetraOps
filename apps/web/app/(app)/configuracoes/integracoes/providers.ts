@@ -1,5 +1,5 @@
 /** Catálogo dos provedores configuráveis na tela. Campos "secret" vão para o Vault (nunca voltam); "config" é não sensível e fica visível. */
-export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "FOCUS_NFE" | "BRASIL_NFE" | "NOTAAS" | "STONE" | "META_CAPI" | "META_ADS";
+export type ProviderKey = "META_WA" | "META_IG" | "TELEGRAM" | "SEFAZ" | "FOCUS_NFE" | "BRASIL_NFE" | "NOTAAS" | "STONE" | "META_CAPI" | "META_ADS";
 
 export interface ProviderField {
   key: string;
@@ -7,6 +7,10 @@ export interface ProviderField {
   hint?: string;
   required?: boolean;
   options?: { value: string; label: string }[];
+  /** "file": o arquivo é lido no navegador e enviado em base64 (ex.: certificado A1) */
+  type?: "file";
+  accept?: string;
+  placeholder?: string;
 }
 
 export type IntegrationCategory = "MESSAGING" | "FISCAL" | "PAYMENTS" | "MARKETING";
@@ -58,6 +62,36 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
     config: [],
     help: "Depois do teste, use “Registrar webhook”: o sistema aponta o bot para a Edge Function com o segredo configurado.",
   },
+  SEFAZ: {
+    label: "SEFAZ direta (certificado A1)", category: "FISCAL", capability: "FISCAL",
+    description: "Emite a NFC-e e busca as notas recebidas direto nos webservices da SEFAZ, sem API paga. As APIs conectadas abaixo viram reserva.",
+    requirements: "Certificado digital e-CNPJ A1 (.pfx) da empresa, Inscrição Estadual ativa e credenciamento para NFC-e na SEF/SC. Hoje: emitente de SC no Simples Nacional.",
+    secret: [
+      { key: "certificate_pfx", label: "Certificado digital A1 (.pfx / .p12)", type: "file", accept: ".pfx,.p12,application/x-pkcs12", required: true,
+        hint: "O arquivo fica guardado cifrado no cofre e só o worker o lê para assinar e conectar na SEFAZ" },
+      { key: "certificate_password", label: "Senha do certificado", required: true },
+      { key: "csc_token", label: "CSC – código (opcional)", hint: "Só para o QR Code versão 2. Em branco, o sistema usa a versão 3 (NT 2025.001), que dispensa o CSC" },
+    ],
+    config: [
+      { key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes, sem valor fiscal)" }, { value: "producao", label: "Produção" }] },
+      { key: "uf", label: "UF do emitente", options: [{ value: "SC", label: "SC — autorização pela SVRS" }] },
+      { key: "ie", label: "Inscrição Estadual", hint: "Só números, como no cadastro da SEF/SC", required: true },
+      { key: "cmun", label: "Código IBGE do município", hint: "7 dígitos. Florianópolis: 4205407", placeholder: "4205407", required: true },
+      { key: "nfce_series", label: "Série da NFC-e", hint: "Use uma série só deste sistema (diferente da usada na Notaas ou em outro emissor), para os números nunca colidirem", placeholder: "2", required: true },
+      { key: "nfce_last_number", label: "Último número já emitido nesta série", hint: "0 se a série é nova. O sistema continua do número seguinte", placeholder: "0" },
+      { key: "csc_id", label: "CSC – identificador (opcional)", hint: "Ex.: 000001. Junto com o código, ativa o QR Code versão 2" },
+      { key: "phone", label: "Telefone da loja (opcional)", hint: "Sai no endereço do emitente" },
+      { key: "resp_cnpj", label: "Responsável técnico – CNPJ", hint: "Quem mantém o sistema emissor; pode ser a própria empresa. Em branco: CNPJ da empresa" },
+      { key: "resp_contato", label: "Responsável técnico – contato" },
+      { key: "resp_email", label: "Responsável técnico – e-mail" },
+      { key: "resp_fone", label: "Responsável técnico – telefone" },
+      { key: "trib_federal_pct", label: "Tributos aproximados – federal (%)", hint: "Lei 12.741/2012: % da tabela do IBPT para os seus produtos (ou o informado pelo contador). Ex.: 13,45. Em branco: a nota sai sem a informação" },
+      { key: "trib_estadual_pct", label: "Tributos aproximados – estadual (%)", hint: "Ex.: 17,00" },
+      { key: "trib_municipal_pct", label: "Tributos aproximados – municipal (%)", hint: "Para venda de mercadoria normalmente 0" },
+      { key: "trib_fonte", label: "Fonte dos tributos", hint: "Sai no DANFE. Ex.: IBPT 26.2.A", placeholder: "IBPT" },
+    ],
+    help: "Comece em Homologação: o teste confere o certificado, a senha, o CNPJ e o serviço da SEFAZ. Depois de algumas NFC-e de teste autorizadas, troque para Produção. Se a SEFAZ estiver fora do ar, a nota sai pela API conectada (Notaas, Focus NFe ou Brasil NFe), se houver.",
+  },
   FOCUS_NFE: {
     label: "Focus NFe (NFC-e / NF-e)", category: "FISCAL", capability: "FISCAL",
     description: "Emite NFC-e no balcão do PDV, NF-e de remessa/devolução e consulta notas recebidas.",
@@ -94,7 +128,7 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
       { key: "default_model", label: "Modelo padrão", hint: "65 para NFC-e (balcão/consumidor) ou 55 para NF-e", options: [{ value: "65", label: "NFC-e (modelo 65)" }, { value: "55", label: "NF-e (modelo 55)" }] },
       { key: "primary", label: "Provedor fiscal principal", hint: "Com mais de um provedor fiscal conectado, as notas saem pelo principal", options: [{ value: "", label: "Não" }, { value: "true", label: "Sim" }] },
     ],
-    help: "Cadastre a API Key da Notaas. Em homologação informe a URL de testes: sem ela nenhuma nota é emitida. A busca de notas recebidas (MDe) não existe na Notaas: use o Focus NFe ou a Brasil NFe para isso.",
+    help: "Cadastre a API Key da Notaas. Em homologação informe a URL de testes: sem ela nenhuma nota é emitida. A busca de notas recebidas (MDe) não existe na Notaas: use a SEFAZ direta, o Focus NFe ou a Brasil NFe para isso. Com a SEFAZ direta conectada, a Notaas vira reserva: use nela uma série diferente.",
   },
   STONE: {
     label: "Stone (Maquininha Smart POS)", category: "PAYMENTS", capability: "ACQUIRER",

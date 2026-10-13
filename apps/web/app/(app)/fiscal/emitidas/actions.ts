@@ -27,3 +27,14 @@ export async function cancelDocumentAction(_prev: State, formData: FormData): Pr
   revalidatePath(PATH);
   return { ok: true, message: "Cancelamento pedido: a SEFAZ responde em instantes." };
 }
+
+/** Inutiliza o número de uma NFC-e rejeitada que não vai ser reenviada (emissão direta na SEFAZ). */
+export async function voidNumberAction(_prev: State, formData: FormData): Promise<State> {
+  const reason = str(formData.get("reason"));
+  if (reason.length < 15 || reason.length > 255) return { ok: false, error: "A justificativa precisa ter de 15 a 255 caracteres." };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("fiscal").rpc("request_number_void", { p_document: str(formData.get("document_id")), p_reason: reason });
+  if (error) return { ok: false, error: friendly(error.message) };
+  revalidatePath(PATH);
+  return { ok: true, message: "Inutilização pedida: a SEFAZ responde em instantes." };
+}

@@ -16,6 +16,7 @@ from ..adapters.telegram import TelegramClient
 from ..db import call_fn, fetch_one
 from ..deps import Deps
 from ..runner import RetryLater
+from . import fiscal_direct
 
 log = logging.getLogger("centralops_worker.integrations")
 
@@ -94,6 +95,8 @@ async def _check(deps: Deps, conn: dict[str, Any], token: str, action: str) -> d
             "default_serial_number": serial or None,
             "environment": "sandbox" if env in ("sandbox", "teste") else "producao",
         }
+    if provider == "SEFAZ":
+        return await fiscal_direct.check(deps, conn)
     raise PermanentError(f"Provedor {provider} ainda não tem verificação automática")
 
 
@@ -103,7 +106,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     if conn is None or conn["status"] == "DISABLED":
         return
     secret = await deps.secret(str(conn["id"]))
-    token = secret.get("token") or secret.get("access_token") or secret.get("api_key") or secret.get("secret_key")
+    token = secret.get("token") or secret.get("access_token") or secret.get("api_key") or secret.get("secret_key") or secret.get("certificate_pfx")
     if not token:
         await _record(deps, conn["id"], False, {}, "credencial não encontrada no cofre")
         return

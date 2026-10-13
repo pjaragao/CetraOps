@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   try {
     const st = await fetchNotaasInvoiceStatus(key, invoiceId, base);
     const { data: res, error: e2 } = await admin.schema("fiscal").rpc("process_notaas_webhook", { p: {
-      invoiceId, status: st.status === "AUTHORIZED" ? "issued" : st.status === "CANCELLED" ? "cancelled" : st.status === "REJECTED" ? "error" : st.status === "DENIED" ? "denied" : "processing",
+      invoiceId, status: st.status === "AUTHORIZED" ? "issued" : st.status === "CANCELLED" ? "cancelled" : st.status === "REJECTED" ? "error" : st.status === "DENIED" ? "denied" : st.status === "NUMBER_VOIDED" ? "inutilized" : "processing",
       chaveAcesso: st.accessKey, numero: st.number, serie: st.series, protocolo: st.protocol, codigoStatus: st.sefazCode, motivo: st.sefazMessage, pdfUrl: st.pdfUrl, xmlUrl: st.xmlUrl,
     } as unknown as Json });
     if (e2) return Response.json({ received: true, error: e2.message }, { status: 500 });

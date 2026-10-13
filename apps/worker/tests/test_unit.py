@@ -15,7 +15,7 @@ from centralops_worker.adapters.brasilnfe import normalize_received as brasilnfe
 from centralops_worker.adapters.errors import PermanentError, TransientError
 from centralops_worker.adapters.focus import FocusClient
 from centralops_worker.adapters.meta import MetaClient
-from centralops_worker.adapters.notaas import NotaasClient, _to_notaas_payload
+from centralops_worker.adapters.notaas import NotaasClient, _parse, _to_notaas_payload
 from centralops_worker.adapters.stone import StoneClient
 from centralops_worker.adapters.telegram import TelegramClient
 from centralops_worker.ai import guardrails, rules
@@ -514,6 +514,15 @@ def test_notaas_payload_never_invents_data() -> None:
         _to_notaas_payload(65, "r", {**NOTAAS_DOC, "itens": [{**NOTAAS_DOC["itens"][0], "ncm": None}]})                         # sem NCM
     with pytest.raises(PermanentError):
         _to_notaas_payload(65, "r", {**NOTAAS_DOC, "itens": [{**NOTAAS_DOC["itens"][0], "valor_total": 0, "valor_unitario": 0}]})
+
+
+def test_notaas_payload_frete_outros_e_inutilizada() -> None:
+    p = _to_notaas_payload(65, "r", {**NOTAAS_DOC, "valor_frete": 15, "modalidade_frete": 0,
+                                     "formas_pagamento": [{"forma_pagamento": "99", "valor_pagamento": 65.0}]})
+    assert p["valorFrete"] == 15 and p["transporte"] == {"modalidadeFrete": 0}
+    assert p["pagamentos"] == [{"tipoPagamento": "99", "valor": 65.0, "descricaoPagamento": "Outros"}]
+    assert "valorFrete" not in _to_notaas_payload(65, "r", {**NOTAAS_DOC, "valor_frete": None})
+    assert _parse({"status": "inutilized", "invoiceId": "inv1"}).status == "NUMBER_VOIDED"
 
 
 @pytest.mark.asyncio

@@ -9,6 +9,8 @@ dependencies = [
   "pydantic>=2.8",
   "pydantic-settings>=2.4",
   "pyjwt>=2.9",
+  "lxml>=5.3",
+  "cryptography>=43",
   "centralops-agent-contract",
 ]
 

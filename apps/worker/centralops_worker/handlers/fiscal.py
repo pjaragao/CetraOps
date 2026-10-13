@@ -1,6 +1,8 @@
-"""Fila `fiscal_emission`: emite a NFC-e da venda (Focus NFe, Brasil NFe ou Notaas), cancela nota autorizada e busca as notas recebidas (MDe).
+"""Fila `fiscal_emission`: emite a NFC-e da venda, cancela nota autorizada, inutiliza número e busca as notas recebidas (MDe).
+Primeira opção: direto na SEFAZ com o certificado A1 (provedor SEFAZ, sem API paga — handlers/fiscal_direct.py). Segunda opção: as APIs
+(Notaas, Focus NFe, Brasil NFe), usadas quando a emissão direta não está configurada/utilizável ou quando é certo que a SEFAZ não recebeu o envio.
 Devolução e NF-e (B2B) ainda dependem da matriz validada com o contador: geram aviso para revisão em vez de emitir errado.
-Provedor: a conexão marcada como principal na tela de Integrações; sem marcação, a que está funcionando (e, entre elas, a mais antiga):
+API reserva: a conexão marcada como principal na tela de Integrações; sem marcação, a que está funcionando (e, entre elas, a mais antiga):
 conexão sem credencial ou desativada nunca é escolhida nem gera aviso. O ambiente (produção/homologação) escolhido
 na tela vale também na emissão. MDe só existe no Focus NFe e na Brasil NFe. As variáveis de ambiente só valem como reserva."""
 from __future__ import annotations
@@ -17,7 +19,7 @@ from ..adapters.notaas import NOTAAS_PRODUCTION_BASE, NotaasClient
 from ..db import call_fn, fetch_one
 from ..deps import Deps
 from ..runner import PermanentError, RetryLater
-from . import dfe
+from . import dfe, fiscal_direct
 
 log = logging.getLogger("centralops_worker.fiscal")
 
@@ -25,6 +27,7 @@ Client = FocusClient | BrasilNfeClient | NotaasClient
 FISCAL_PROVIDERS = ("NOTAAS", "BRASIL_NFE", "FOCUS_NFE")
 DFE_PROVIDERS = ("BRASIL_NFE", "FOCUS_NFE")
 NAMES = {"NOTAAS": "Notaas", "BRASIL_NFE": "Brasil NFe", "FOCUS_NFE": "Focus NFe"}
+PROVIDER_OF = {NotaasClient: "NOTAAS", BrasilNfeClient: "BRASIL_NFE", FocusClient: "FOCUS_NFE"}
 PRODUCTION = ("producao", "production")
 CANCEL_CHECK_DELAY_S = 60
 CANCEL_CHECK_MAX = 30
@@ -79,9 +82,21 @@ async def _fiscal_client(deps: Deps, org_id: str, providers: tuple[str, ...] = F
 
 
 async def _cancel(deps: Deps, p: dict[str, Any]) -> None:
-    doc = await fetch_one(deps.pool, "select id, org_id, model, provider_ref, idempotency_key, status, number from fiscal.documents where id = %s and org_id = %s", (p["document_id"], p["org_id"]))
+    doc = await fetch_one(deps.pool, """select id, org_id, legal_entity_id, model, provider, provider_ref, idempotency_key, status, number, access_key, protocol, xml
+                                        from fiscal.documents where id = %s and org_id = %s""", (p["document_id"], p["org_id"]))
     if doc is None or doc["status"] != "AUTHORIZED":
         return                                                          # reentrega da fila ou nota que já mudou: nada a cancelar
+    if doc["provider"] == "SEFAZ":                                      # nota emitida direto: cancela direto (a API não conhece a nota)
+        conn = await fiscal_direct.connection(deps, p["org_id"])
+        if conn is None:
+            await deps.notify(p["org_id"], "INTEGRATION_ERROR", "Cancelamento parado: a integração SEFAZ direta está desativada", {"document_id": p["document_id"]}, perm="fiscal.write")
+            raise RetryLater(600, "SEFAZ direta desativada")
+        try:
+            await fiscal_direct.cancel(deps, conn, doc, p["org_id"], p["reason"])
+        except ProviderPermanent as e:
+            await call_fn(deps.pool, "fiscal.record_document_event", doc["id"], {"type": "CANCEL_FAILED", "message": str(e)})
+            await deps.notify(p["org_id"], "FISCAL_CANCEL_FAILED", f"Não foi possível cancelar a nota {doc['number']}: {e}", {"document_id": str(doc["id"])}, perm="fiscal.write")
+        return
     client, provider_name = await _fiscal_client(deps, p["org_id"])
     if client is None:
         await deps.notify(p["org_id"], "INTEGRATION_ERROR", f"Cancelamento fiscal parado: {provider_name}", {"document_id": p["document_id"]}, perm="fiscal.write")
@@ -115,7 +130,20 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     if p.get("action") == "CANCEL_CHECK":
         await _cancel_check(deps, p)
         return
+    if p.get("action") == "VOID_NUMBER":
+        conn = await fiscal_direct.connection(deps, p["org_id"])
+        if conn is None:
+            raise RetryLater(600, "SEFAZ direta desativada")
+        await fiscal_direct.void_number(deps, conn, p)
+        return
     if p.get("action") in ("DFE_SYNC", "DFE_MANIFEST"):
+        conn = await fiscal_direct.connection(deps, p["org_id"])
+        if conn is not None:                                            # direto no Ambiente Nacional com o certificado
+            try:
+                await (fiscal_direct.dfe_sync(deps, conn, p["org_id"]) if p["action"] == "DFE_SYNC" else fiscal_direct.dfe_manifest(deps, conn, p))
+                return
+            except fiscal_direct.DirectConfigError as e:
+                log.warning("MDe direta indisponível (%s): tentando o provedor", e)
         client, _ = await _fiscal_client(deps, p["org_id"], DFE_PROVIDERS)
         if client is None or isinstance(client, NotaasClient):
             return                                                      # MDe só no Focus NFe e na Brasil NFe; sem credencial a tela de Integrações já mostra o estado
@@ -138,11 +166,25 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         await deps.notify(org_id, "FISCAL_REJECTED", f"NFC-e do pedido {doc.get('order_number')} não emitida: {why}", {"order_id": order_id}, perm="fiscal.write")
         raise PermanentError(why)
     client, provider_name = await _fiscal_client(deps, org_id)
+    direct = await fiscal_direct.connection(deps, org_id)
+    if direct is not None:
+        try:
+            if await fiscal_direct.emit(deps, direct, doc, org_id, order_id, has_fallback=client is not None):
+                return
+            log.warning("NFC-e do pedido %s não chegou à SEFAZ: emitindo pela API reserva (%s)", doc.get("order_number"), provider_name)
+        except fiscal_direct.DirectConfigError as e:
+            if client is None:
+                await deps.notify(org_id, "INTEGRATION_ERROR", f"Emissão fiscal parada: {e}", {"order_id": order_id}, perm="fiscal.write")
+                raise RetryLater(600, str(e)) from e
+            await deps.notify(org_id, "INTEGRATION_ERROR", f"SEFAZ direta indisponível ({e}): a NFC-e do pedido {doc.get('order_number')} saiu pela API reserva",
+                              {"order_id": order_id}, perm="fiscal.write")
     if client is None:
         await deps.notify(org_id, "INTEGRATION_ERROR", f"Emissão fiscal parada: {provider_name}", {"order_id": order_id}, perm="fiscal.write")
         raise RetryLater(600, provider_name)
 
     existing = await fetch_one(deps.pool, "select status, provider_ref from fiscal.documents where idempotency_key = %s and org_id = %s", (ref, org_id))
+    if existing and existing["status"] == "AUTHORIZED":
+        return
     try:
         ref_to_query = (existing.get("provider_ref") if existing else None) or ref
         result = await (client.get("65", ref_to_query) if existing and existing["status"] == "PROCESSING" else client.emit_nfce(ref, doc["document"]))
@@ -155,12 +197,13 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     await call_fn(deps.pool, "fiscal.record_emission", {
         "ref": ref, "order_id": order_id, "model": "65", "status": result.status, "series": result.series or doc.get("series"), "number": result.number,
         "access_key": result.access_key, "protocol": result.protocol, "sefaz_code": result.code, "sefaz_msg": result.message, "provider_ref": getattr(result, "provider_ref", None) or ref,
-        "xml_path": result.xml_path, "danfe_path": result.danfe_path,
+        "xml_path": result.xml_path, "danfe_path": result.danfe_path, "provider": PROVIDER_OF.get(type(client)),
     })
     if result.status == "PROCESSING":
         raise RetryLater(15, "NFC-e ainda em processamento na SEFAZ")
-    if result.status in ("REJECTED", "DENIED"):
-        await deps.notify(org_id, "FISCAL_REJECTED", f"NFC-e do pedido {doc['order_number']} rejeitada: {result.message or result.code}",
+    if result.status in ("REJECTED", "DENIED", "NUMBER_VOIDED"):
+        what = "inutilizada" if result.status == "NUMBER_VOIDED" else "rejeitada"
+        await deps.notify(org_id, "FISCAL_REJECTED", f"NFC-e do pedido {doc['order_number']} {what}: {result.message or result.code or 'reenvie a nota pelo pedido'}",
                           {"order_id": order_id, "code": result.code, "message": result.message}, perm="fiscal.write")
 
 

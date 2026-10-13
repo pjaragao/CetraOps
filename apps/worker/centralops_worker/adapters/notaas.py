@@ -32,12 +32,15 @@ STATUS_MAP = {
     "cancelada": "CANCELLED",
     "denied": "DENIED",
     "denegado": "DENIED",
+    "inutilized": "NUMBER_VOIDED",
+    "inutilizado": "NUMBER_VOIDED",
+    "inutilizada": "NUMBER_VOIDED",
 }
 
 
 @dataclass
 class NotaasResult:
-    status: str  # PROCESSING | AUTHORIZED | REJECTED | CANCELLED | DENIED
+    status: str  # PROCESSING | AUTHORIZED | REJECTED | CANCELLED | DENIED | NUMBER_VOIDED
     number: int | None = None
     series: int | None = None
     access_key: str | None = None
@@ -130,7 +133,10 @@ def _to_notaas_payload(model: int, ref: str, document: dict[str, Any]) -> dict[s
     for p in raw_pays:
         t_pag = str(p.get("tipoPagamento") or p.get("forma_pagamento") or "01").zfill(2)
         v_pag = float(p.get("valor") or p.get("valor_pagamento") or p.get("amount") or 0)
-        pagamentos.append({"tipoPagamento": t_pag, "valor": v_pag})
+        pag: dict[str, Any] = {"tipoPagamento": t_pag, "valor": v_pag}
+        if t_pag == "99":                                                   # SEFAZ exige a descrição (xPag) em "Outros"
+            pag["descricaoPagamento"] = str(p.get("descricaoPagamento") or p.get("descricao_pagamento") or "Outros")[:60]
+        pagamentos.append(pag)
 
     if not pagamentos or sum(p["valor"] for p in pagamentos) <= 0:
         raise PermanentError("Nota sem forma de pagamento registrada: nada é presumido (registre o pagamento do pedido)")
@@ -144,6 +150,14 @@ def _to_notaas_payload(model: int, ref: str, document: dict[str, Any]) -> dict[s
     }
     if dest is not None:
         payload["dest"] = dest
+
+    # frete entra na nota (a Notaas rateia entre os itens); sem ele o total pago passa do total da nota
+    frete = float(document.get("valorFrete") or document.get("valor_frete") or 0)
+    if frete > 0:
+        payload["valorFrete"] = round(frete, 2)
+    mod_frete = document.get("modalidadeFrete", document.get("modalidade_frete"))
+    if mod_frete is not None:
+        payload["transporte"] = {"modalidadeFrete": int(mod_frete)}
 
     inf_cpl = document.get("infCpl") or document.get("informacoes_complementares")
     if inf_cpl:

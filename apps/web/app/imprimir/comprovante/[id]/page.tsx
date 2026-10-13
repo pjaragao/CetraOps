@@ -25,7 +25,8 @@ export default async function Comprovante({ params }: { params: Promise<{ id: st
   ]);
   const { data: le } = store?.legal_entity_id ? await supabase.schema("core").from("legal_entities").select("razao_social, nome_fantasia, cnpj").eq("id", store.legal_entity_id).maybeSingle() : { data: null };
   const labels = new Map((await resolveItems((items ?? []).flatMap((i) => (i.variant_id ? [{ variant_id: i.variant_id, qty: 0, unit_cost: 0 }] : [])))).map((l) => [l.variant_id, l]));
-  const fiscal = doc as { status?: string; number?: number; series?: number; access_key?: string | null; danfe_path?: string | null } | null;
+  const fiscal = doc as { status?: string; number?: number; series?: number; access_key?: string | null; danfe_path?: string | null; consult_url?: string | null } | null;
+  const consult = fiscal?.consult_url ? fiscal.consult_url.split("?")[0] : /^https?:\/\//.test(fiscal?.danfe_path ?? "") ? fiscal?.danfe_path : null;
   const cnpj = (le?.cnpj ?? "").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 
   return (
@@ -58,7 +59,7 @@ export default async function Comprovante({ params }: { params: Promise<{ id: st
         <div className="text-center" style={{ fontSize: "7.5pt" }}>
           <p>NFC-e nº {fiscal.number} série {fiscal.series}</p>
           {fiscal.access_key && <p className="break-all">Chave: {fiscal.access_key.replace(/(\d{4})/g, "$1 ").trim()}</p>}
-          {fiscal.danfe_path && <p className="break-all">Consulte: {fiscal.danfe_path}</p>}
+          {consult && <p className="break-all">Consulte: {consult}</p>}
         </div>
       ) : <p className="text-center" style={{ fontSize: "7.5pt" }}>A nota fiscal (NFC-e) é enviada à parte quando autorizada.</p>}
       <p className="mt-2 text-center" style={{ fontSize: "8pt" }}>Trocas em até 30 dias com etiqueta e este comprovante. Obrigada!</p>

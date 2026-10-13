@@ -30,6 +30,20 @@ function describe(provider: ProviderKey, d: Record<string, unknown>, terminals?:
       return [...row("Conta de anúncios", d.name), ...row("Moeda", d.currency)];
     case "META_CAPI":
       return [...row("Conjunto de dados", d.name), ...row("ID", d.dataset_id)];
+    case "SEFAZ": {
+      const until = typeof d.valid_until === "string" ? d.valid_until.split("-").reverse().join("/") : undefined;
+      const fallback = Array.isArray(d.fallback) && d.fallback.length ? (d.fallback as string[]).map((p) => PROVIDERS[p as ProviderKey]?.label.split(" (")[0] ?? p).join(", ") : "nenhuma";
+      return [
+        ...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment),
+        ...row("SEFAZ", d.sefaz),
+        ...row("Certificado", d.certificate),
+        ...row("Válido até", until ? `${until}${typeof d.days_left === "number" ? ` (${d.days_left} dias)` : ""}` : undefined),
+        ...row("Série NFC-e", d.series),
+        ...row("QR Code", d.qr_code),
+        ...row("Tributos (Lei 12.741)", d.tributos),
+        ...row("API reserva", d.sefaz ? fallback : undefined),
+      ];
+    }
     case "FOCUS_NFE":
       return [...row("Ambiente", d.environment === "producao" ? "Produção" : d.environment === "homologacao" ? "Homologação" : d.environment)];
     case "BRASIL_NFE":

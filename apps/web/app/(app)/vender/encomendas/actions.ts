@@ -106,3 +106,15 @@ export async function setBackorderAction(formData: FormData) {
   revalidatePath("/produtos", "layout");
   redirect(`${back}${back.includes("?") ? "&" : "?"}${error ? `erro=${encodeURIComponent(friendly(error.message))}` : `ok=${encodeURIComponent(`${data} produto(s) atualizados`)}`}`);
 }
+
+/** Catálogo: liga/desliga encomenda numa seleção de produtos, sem sair da lista (a tela atualiza com router.refresh). */
+export async function setBackorderForProductsAction(productIds: string[], enabled: boolean): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  const ids = z.array(uuid).min(1).max(2000).safeParse(productIds);
+  if (!ids.success) return { ok: false, error: "Selecione ao menos um produto" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("catalog").rpc("set_backorder", { p: { enabled, product_ids: ids.data } as unknown as Json });
+  if (error) return { ok: false, error: friendly(error.message) };
+  revalidatePath("/produtos", "layout");
+  revalidatePath("/vender", "layout");
+  return { ok: true, count: Number(data) };
+}

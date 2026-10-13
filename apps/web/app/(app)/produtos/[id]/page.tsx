@@ -1,13 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cdnImage, formatBRL, sanitizeHtml } from "@centralops/domain";
+import { formatBRL, sanitizeHtml } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { Flash } from "@/components/form";
 import { setBackorderAction } from "../../vender/encomendas/actions";
 import { str, type SP } from "@/lib/context";
 import { Badge, Button, Card, cn, LinkButton, PageHeader, Table } from "@/components/ui";
+import { photoUrl } from "@/lib/photos";
 
 export const metadata = { title: "Produto" };
 
@@ -79,8 +80,8 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
           {photos.length === 0 ? <p className="text-sm text-muted">Sem fotos desta cor.</p> : (
             <div className="grid grid-cards gap-2 [--card-min:11rem]">
               {photos.map((m) => (
-                <a key={m.storage_path} href={m.storage_path} target="_blank" rel="noreferrer">
-                  <Image src={cdnImage(m.storage_path, 500)} alt={`${p.name} ${cname.get(selColor ?? "") ?? ""}`} width={250} height={333} unoptimized className="aspect-[3/4] w-full rounded-lg object-cover" />
+                <a key={m.storage_path} href={photoUrl(m.storage_path)} target="_blank" rel="noreferrer">
+                  <Image src={photoUrl(m.storage_path, 500)} alt={`${p.name} ${cname.get(selColor ?? "") ?? ""}`} width={250} height={333} unoptimized className="aspect-[3/4] w-full rounded-lg object-cover" />
                 </a>
               ))}
             </div>

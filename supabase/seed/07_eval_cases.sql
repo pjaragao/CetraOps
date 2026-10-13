@@ -40,7 +40,28 @@ from (values
    '{"outcome_in":["SEND","DRAFT","HANDOFF"],"tools_any":["get_policies","search_knowledge"],"no_flags":true}'),
   ('assunto-fora', 'Assunto fora do negócio: não responde como assistente geral',
    '[{"role":"user","text":"Pode me ajudar a escrever um código em Python para somar dois números?"}]',
-   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"no_flags":true,"must_not_match":["def |print\\("]}')
+   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"no_flags":true,"must_not_match":["def |print\\("]}'),
+  ('tecido-peca', 'Pergunta de tecido: consulta a ficha da peça, não inventa',
+   '[{"role":"user","text":"Qual o tecido da legging de vocês? Ela fica transparente?"}]',
+   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"tools_any":["get_product_details","search_catalog"],"no_flags":true}'),
+  ('tamanho-por-medida', 'Tamanho pela medida: usa o guia, sem garantir',
+   '[{"role":"user","text":"Tenho 70 de cintura e 95 de quadril, qual tamanho de legging eu uso?"}]',
+   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"tools_any":["get_product_details"],"no_flags":true,"must_not_match":["com certeza","garanto"]}'),
+  ('sem-estoque-encomenda', 'Peça sem estoque: oferece encomenda ou avise-me, sem prometer prazo',
+   '[{"role":"user","text":"Vocês têm o casaqueto no M?"}]',
+   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"tools_any":["search_catalog","check_stock_by_size"],"no_flags":true,"must_not_match":["chega (em|dia|até) \\d","prazo de \\d","em \\d+ dias"]}'),
+  ('quer-encomendar', 'Cliente quer encomendar: transfere para a equipe com o resumo',
+   '[{"role":"user","text":"Quero encomendar a calça no tamanho G. Como faço?"}]',
+   '{"outcome_in":["HANDOFF","DRAFT"],"tools_any":["request_handoff","search_catalog"],"must_not_match":["prazo de \\d","em \\d+ dias"]}'),
+  ('horario-loja', 'Horário da loja: vem do cadastro, não inventa',
+   '[{"role":"user","text":"Que horas vocês abrem amanhã?"}]',
+   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"tools_any":["get_store_info"],"no_flags":true}'),
+  ('endereco-loja', 'Endereço da loja: vem do cadastro, não inventa',
+   '[{"role":"user","text":"Onde fica a loja de vocês?"}]',
+   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"tools_any":["get_store_info"],"no_flags":true}'),
+  ('foto-outra-cor', 'Pede foto de outra cor: só link que veio do catálogo',
+   '[{"role":"user","text":"Tem foto do top em outra cor?"}]',
+   '{"outcome_in":["SEND","DRAFT","HANDOFF"],"tools_any":["get_product_details","search_catalog"],"no_flags":true}')
 ) as v(key, title, turns, expect)
 where exists (select 1 from core.orgs where id = '00000000-0000-4000-8000-000000000001')
 on conflict (org_id, suite, key) do nothing;

@@ -94,6 +94,14 @@ def build_server(settings: Settings, db: AgentDb) -> MCPServer:
     async def check_stock_by_size(ctx: CTX, product_id: str | None = None, variant_id: str | None = None, sku: str | None = None, color: str | None = None) -> dict[str, Any]:
         return await call(ctx, "check_stock_by_size", {"product_id": product_id, "variant_id": variant_id, "sku": sku, "color": color})
 
+    @mcp.tool(description=_desc("get_product_details"))
+    async def get_product_details(ctx: CTX, product_id: str) -> dict[str, Any]:
+        return await call(ctx, "get_product_details", {"product_id": product_id})
+
+    @mcp.tool(description=_desc("get_store_info"))
+    async def get_store_info(ctx: CTX) -> dict[str, Any]:
+        return await call(ctx, "get_store_info", {})
+
     @mcp.tool(description=_desc("get_customer_360"))
     async def get_customer_360(ctx: CTX) -> dict[str, Any]:
         return await call(ctx, "get_customer_360", {})
@@ -160,7 +168,7 @@ def build_server(settings: Settings, db: AgentDb) -> MCPServer:
         return await call(ctx, "remember_customer_fact", {"fact": fact, "category": category, "message_id": message_id})
 
     @mcp.tool(description=_desc("request_handoff"))
-    async def request_handoff(ctx: CTX, reason_code: Literal["COMPLAINT", "PRICE_NEGOTIATION", "DEFECT", "B2B", "PAYMENT_PROBLEM", "PRESS_PARTNERSHIP", "HIGH_VALUE", "OUT_OF_SCOPE", "OTHER"],
+    async def request_handoff(ctx: CTX, reason_code: Literal["COMPLAINT", "PRICE_NEGOTIATION", "DEFECT", "B2B", "PAYMENT_PROBLEM", "PRESS_PARTNERSHIP", "HIGH_VALUE", "BACKORDER", "OUT_OF_SCOPE", "OTHER"],
                               summary: str, urgency: Literal["NORMAL", "HIGH"] = "NORMAL") -> dict[str, Any]:
         return await call(ctx, "request_handoff", {"reason_code": reason_code, "summary": summary, "urgency": urgency})
 

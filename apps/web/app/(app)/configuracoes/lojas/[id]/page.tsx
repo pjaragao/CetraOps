@@ -5,7 +5,7 @@ import { requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { Badge, Button, Card, inputClass, PageHeader } from "@/components/ui";
 import { Field, Flash, fmtDate } from "@/components/form";
-import { updateStoreAction } from "../actions";
+import { updateStoreAction, updateStoreAddressAction } from "../actions";
 
 export const metadata = { title: "Loja" };
 
@@ -19,6 +19,7 @@ export default async function LojaPage({ params, searchParams }: { params: Promi
   const supabase = await createClient();
   const { data: s } = await supabase.schema("core").from("stores").select("*").eq("id", id).maybeSingle();
   if (!s) notFound();
+  const addr = ((s as { address?: unknown }).address ?? {}) as Record<string, string | undefined>;
   const [{ data: entity }, { data: cc }, { data: registers }, { data: locations }, { data: banks }] = await Promise.all([
     supabase.schema("core").from("legal_entities").select("razao_social, nome_fantasia, cnpj").eq("id", s.legal_entity_id).maybeSingle(),
     s.cost_center_id ? supabase.schema("core").from("cost_centers").select("id, code, name").eq("id", s.cost_center_id).maybeSingle() : Promise.resolve({ data: null }),
@@ -55,6 +56,20 @@ export default async function LojaPage({ params, searchParams }: { params: Promi
           <Field label="Área (m²)"><input name="area_m2" inputMode="decimal" defaultValue={s.area_m2 ?? ""} className={inputClass} /></Field>
           <div className="sm:col-span-5 self-end text-xs text-muted">O código ({s.code}) e a empresa não mudam: estão nas notas fiscais, no estoque e no centro de custo. O nome do centro de custo acompanha o da loja.</div>
           <div className="sm:col-span-6"><Button>Salvar loja</Button></div>
+        </form>
+      </Card>
+      <Card className="mt-4" title="Endereço para as clientes">
+        <form action={updateStoreAddressAction} className="grid gap-3 sm:grid-cols-6">
+          <input type="hidden" name="id" value={s.id} />
+          <Field label="Rua" className="sm:col-span-3"><input name="street" maxLength={120} defaultValue={addr.street ?? ""} className={inputClass} /></Field>
+          <Field label="Número"><input name="number" maxLength={20} defaultValue={addr.number ?? ""} className={inputClass} /></Field>
+          <Field label="Complemento" className="sm:col-span-2"><input name="complement" maxLength={120} defaultValue={addr.complement ?? ""} className={inputClass} /></Field>
+          <Field label="Bairro" className="sm:col-span-2"><input name="district" maxLength={120} defaultValue={addr.district ?? ""} className={inputClass} /></Field>
+          <Field label="Cidade" className="sm:col-span-2"><input name="city" maxLength={120} defaultValue={addr.city ?? ""} className={inputClass} /></Field>
+          <Field label="UF"><input name="uf" maxLength={2} defaultValue={addr.uf ?? ""} className={inputClass} /></Field>
+          <Field label="CEP"><input name="cep" maxLength={9} defaultValue={addr.cep ?? ""} className={inputClass} /></Field>
+          <Field label="Como chegar" hint="ex.: dentro do JOY Wellness Club, 2º andar" className="sm:col-span-6"><input name="reference" maxLength={120} defaultValue={addr.reference ?? ""} className={inputClass} /></Field>
+          <div className="sm:col-span-6 flex items-center gap-3"><Button>Salvar endereço</Button><span className="text-xs text-muted">É o endereço que a assistente do atendimento passa às clientes, junto com o horário da loja.</span></div>
         </form>
       </Card>
     </>

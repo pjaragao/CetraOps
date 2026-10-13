@@ -87,6 +87,9 @@ export const ACTION_LABELS: Record<string, string> = {
   baixa: "Pagamento (baixa)",
   abrir_caixa: "Abrir caixa",
   fechar_caixa: "Fechar caixa",
+  campanha_rascunho: "Rascunho de campanha",
+  encomenda: "Encomenda",
+  malinha: "Malinha",
 };
 
 /** Item do resumo do dia (ai.daily_briefing): números do banco; o texto é montado aqui, igual no Início e na Central. */
@@ -123,6 +126,10 @@ export function briefingLine(i: BriefingItem): string {
     case "aniversarios_contatar": return `${plural(i.count, "contato", "contatos")} de aniversário para fazer hoje.`;
     case "aniversariantes": return `${plural(i.count, "cliente faz", "clientes fazem")} aniversário hoje.`;
     case "eventos_semana": return `${plural(i.count, "evento", "eventos")} nos próximos 7 dias.`;
+    case "encomendas_chegaram": return `${plural(i.count, "encomenda tem", "encomendas têm")} peça que chegou: avise a cliente.`;
+    case "encomendas_sem_pedido": return `${plural(i.count, "peça encomendada está", "peças encomendadas estão")} sem pedido de compra.`;
+    case "malinhas_vencidas": return `${plural(i.count, "malinha passou", "malinhas passaram")} do prazo de devolução.`;
+    case "precos_alterados": return `${plural(i.count, "peça com estoque mudou", "peças com estoque mudaram")} de preço no site: confira as etiquetas.`;
     case "alertas": return `${plural(i.count, "alerta importante", "alertas importantes")} na Central de sugestões.`;
     default: return i.key;
   }

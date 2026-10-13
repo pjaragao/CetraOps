@@ -116,8 +116,17 @@ export function CentralCard({ card, onPick }: { card: Card; onPick?: (text: stri
             {card.items.map((p) => {
               const colors = [...new Set(p.variants.map((v) => v.color ?? ""))];
               return (
-                <div key={p.product_id}>
-                  <p className="text-sm font-medium">{p.name} <span className="text-xs font-normal text-muted">{p.reference}</span></p>
+                <div key={p.product_id} className="flex gap-3">
+                  {p.photo && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.photo} alt={p.name} loading="lazy" className="aspect-[3/4] w-16 shrink-0 rounded-md object-cover" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    {p.name} <span className="text-xs font-normal text-muted">{p.reference}</span>
+                    {p.backorder && <Badge tone="warning" className="ml-1.5 align-middle">aceita encomenda</Badge>}
+                  </p>
+                  {p.fit_note && <p className="text-xs text-muted">{p.fit_note}</p>}
                   {colors.map((c) => (
                     <div key={c} className="mt-1 flex flex-wrap items-center gap-1.5">
                       {c && <span className="w-20 shrink-0 truncate text-xs text-muted">{c}</span>}
@@ -128,7 +137,9 @@ export function CentralCard({ card, onPick }: { card: Card; onPick?: (text: stri
                           onClick={() => onPick?.(`Quero ${p.name}${v.color ? ` ${v.color}` : ""} tamanho ${v.size} [variant_id=${v.variant_id}]`)}
                           title={`${v.sku} · ${v.price !== null ? formatBRL(v.price) : "sem preço"} · ${v.available} disponível`}
                           className={cn("min-w-10 rounded-lg border px-2 py-1 text-xs font-medium",
-                            v.available > 0 ? "border-border hover:border-brand hover:text-brand" : "border-dashed border-border text-muted/60 line-through")}
+                            v.available > 0 ? "border-border hover:border-brand hover:text-brand"
+                              : p.backorder ? "border-dashed border-amber-400 text-amber-700 hover:border-brand dark:text-amber-300"
+                              : "border-dashed border-border text-muted/60 line-through")}
                         >
                           {v.size}<span className="block text-[10px] font-normal text-muted">{v.available}</span>
                         </button>
@@ -136,6 +147,7 @@ export function CentralCard({ card, onPick }: { card: Card; onPick?: (text: stri
                       <span className="text-xs text-muted">{p.variants.find((v) => (v.color ?? "") === c)?.price != null ? formatBRL(p.variants.find((v) => (v.color ?? "") === c)!.price) : ""}</span>
                     </div>
                   ))}
+                  </div>
                 </div>
               );
             })}

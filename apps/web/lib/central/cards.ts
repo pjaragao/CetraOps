@@ -27,6 +27,15 @@ export interface ProductHit {
   name: string;
   reference: string;
   variants: VariantHit[];
+  category?: string | null;
+  line?: string | null;
+  /** Aceita encomenda (sem estoque, a peça pode ser pedida ao fornecedor). */
+  backorder?: boolean;
+  fit_note?: string | null;
+  /** URL da foto já pronta para o navegador. */
+  photo?: string | null;
+  /** Preço "de" no site da marca (peça em promoção lá). */
+  site_compare_at?: number | null;
 }
 
 export interface TitleRow {

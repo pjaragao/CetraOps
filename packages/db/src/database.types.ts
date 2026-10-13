@@ -1025,13 +1025,13 @@ isOneToOne: false
                   ]
                 },"product_media": {
                   Row: {
-                    "color_id": string | null,"id": string,"org_id": string,"position": number,"product_id": string,"storage_path": string
+                    "bytes": number | null,"color_id": string | null,"content_hash": string | null,"id": string,"mirror_error": string | null,"mirror_tried_at": string | null,"mirrored_at": string | null,"org_id": string,"position": number,"product_id": string,"source_url": string | null,"storage_path": string
                   }
                   Insert: {
-                    "color_id"?: string | null,"id"?: string,"org_id": string,"position"?: number,"product_id": string,"storage_path": string
+                    "bytes"?: number | null,"color_id"?: string | null,"content_hash"?: string | null,"id"?: string,"mirror_error"?: string | null,"mirror_tried_at"?: string | null,"mirrored_at"?: string | null,"org_id": string,"position"?: number,"product_id": string,"source_url"?: string | null,"storage_path": string
                   }
                   Update: {
-                    "color_id"?: string | null,"id"?: string,"org_id"?: string,"position"?: number,"product_id"?: string,"storage_path"?: string
+                    "bytes"?: number | null,"color_id"?: string | null,"content_hash"?: string | null,"id"?: string,"mirror_error"?: string | null,"mirror_tried_at"?: string | null,"mirrored_at"?: string | null,"org_id"?: string,"position"?: number,"product_id"?: string,"source_url"?: string | null,"storage_path"?: string
                   }
                   Relationships: [
                     {
@@ -1222,6 +1222,12 @@ isOneToOne: false
                            },
 "request_site_sync":
 { Args: { "p_kind"?: string }; Returns: undefined
+                           },
+"recent_price_changes":
+{ Args: { "p_days"?: number,"p_limit"?: number }; Returns: Json
+                           },
+"request_media_mirror":
+{ Args: never; Returns: undefined
                            },
 "search_products":
 { Args: { "p": Json }; Returns: Json
@@ -1710,13 +1716,13 @@ isOneToOne: false
                   ]
                 },"stores": {
                   Row: {
-                    "area_m2": number | null,"business_hours": NonNullable<Json>,"closed_at": string | null,"code": string,"cost_center_id": string | null,"created_at": string,"fiscal_mode": string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id": string | null,"id": string,"legal_entity_id": string,"name": string,"opened_at": string | null,"org_id": string,"status": Database["core"]["Enums"]["store_status"],"updated_at": string
+                    "address": NonNullable<Json>,"area_m2": number | null,"business_hours": NonNullable<Json>,"closed_at": string | null,"code": string,"cost_center_id": string | null,"created_at": string,"fiscal_mode": string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id": string | null,"id": string,"legal_entity_id": string,"name": string,"opened_at": string | null,"org_id": string,"status": Database["core"]["Enums"]["store_status"],"updated_at": string
                   }
                   Insert: {
-                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code": string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id": string,"name": string,"opened_at"?: string | null,"org_id": string,"status"?: Database["core"]["Enums"]["store_status"],"updated_at"?: string
+                    "address"?: NonNullable<Json>,"area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code": string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id": string,"name": string,"opened_at"?: string | null,"org_id": string,"status"?: Database["core"]["Enums"]["store_status"],"updated_at"?: string
                   }
                   Update: {
-                    "area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code"?: string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format"?: Database["core"]["Enums"]["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id"?: string,"name"?: string,"opened_at"?: string | null,"org_id"?: string,"status"?: Database["core"]["Enums"]["store_status"],"updated_at"?: string
+                    "address"?: NonNullable<Json>,"area_m2"?: number | null,"business_hours"?: NonNullable<Json>,"closed_at"?: string | null,"code"?: string,"cost_center_id"?: string | null,"created_at"?: string,"fiscal_mode"?: string,"format"?: Database["core"]["Enums"]["store_format"],"host_partner_party_id"?: string | null,"id"?: string,"legal_entity_id"?: string,"name"?: string,"opened_at"?: string | null,"org_id"?: string,"status"?: Database["core"]["Enums"]["store_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1873,9 +1879,36 @@ isOneToOne: false
 "set_integration_enabled":
 { Args: { "p_enabled": boolean,"p_id": string }; Returns: undefined
                            },
+"set_store_address":
+{ Args: { "p": Json,"p_store": string }; Returns: {
+              "address": NonNullable<Json>,
+"area_m2": number | null,
+"business_hours": NonNullable<Json>,
+"closed_at": string | null,
+"code": string,
+"cost_center_id": string | null,
+"created_at": string,
+"fiscal_mode": string,
+"format": Database["core"]["Enums"]["store_format"],
+"host_partner_party_id": string | null,
+"id": string,
+"legal_entity_id": string,
+"name": string,
+"opened_at": string | null,
+"org_id": string,
+"status": Database["core"]["Enums"]["store_status"],
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "stores"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_store_hours":
 { Args: { "p": Json,"p_store": string }; Returns: {
-              "area_m2": number | null,
+              "address": NonNullable<Json>,
+"area_m2": number | null,
 "business_hours": NonNullable<Json>,
 "closed_at": string | null,
 "code": string,
@@ -1906,7 +1939,8 @@ isOneToOne: false
                            },
 "update_store":
 { Args: { "p": Json }; Returns: {
-              "area_m2": number | null,
+              "address": NonNullable<Json>,
+"area_m2": number | null,
 "business_hours": NonNullable<Json>,
 "closed_at": string | null,
 "code": string,
@@ -6065,6 +6099,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"loans_overview":
+{ Args: { "p_kind"?: string,"p_limit"?: number }; Returns: Json
+                           },
 "create_loan":
 { Args: { "p": Json }; Returns: {
               "campaign_id": string | null,
@@ -9526,6 +9563,9 @@ isOneToOne: false
                            },
 "routine_complete":
 { Args: { "p_kind": string,"p_notes"?: string,"p_store": string }; Returns: Json
+                           },
+"backorder_overview":
+{ Args: { "p_limit"?: number }; Returns: Json
                            },
 "routine_status":
 { Args: { "p_date"?: string,"p_kind": string,"p_store": string }; Returns: Json

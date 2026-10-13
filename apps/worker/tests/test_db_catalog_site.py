@@ -10,7 +10,7 @@ import respx
 
 from centralops_worker import queues
 from centralops_worker.adapters import shopify_site as site
-from centralops_worker.db import fetch_one
+from centralops_worker.db import call_fn, fetch_one
 from centralops_worker.handlers import catalog_site
 
 ORG = "00000000-0000-4000-8000-000000000001"
@@ -53,6 +53,8 @@ def _mock_site(products: list[dict[str, Any]]) -> None:
     respx.get(url__regex=rf"{BASE}/collections/feminino/products\.json.*").mock(return_value=httpx.Response(200, json={"products": [{"id": p["id"]} for p in products[:3]]}))
     respx.get(url__regex=rf"{BASE}/collections/masculino/products\.json.*").mock(return_value=httpx.Response(200, json={"products": [{"id": products[3]["id"]}]}))
     respx.get(url__regex=rf"{BASE}/products/[^.]+$").mock(return_value=httpx.Response(200, text=CHART_HTML))
+    respx.get(url__regex=r"https://cdn\.shopify\.com/.*").mock(return_value=httpx.Response(200, content=b"\xff\xd8foto", headers={"content-type": "image/jpeg"}))
+    respx.post(url__regex=r"https://storage\.test/storage/v1/object/catalog-media/.*").mock(return_value=httpx.Response(200, json={"Key": "ok"}))
 
 
 @respx.mock
@@ -69,6 +71,11 @@ async def test_full_sync_then_price_change_alerts_only_stocked_items(pool: Any, 
                                     from catalog.products p left join catalog.size_charts s on s.id = p.size_chart_id where p.reference_code = '18320'""")
     assert prod["name"] == "Casaqueto Liora" and prod["colors"] == 2 and prod["photos"] >= 2 and prod["chart"] == "Site: Feminino"
     assert prod["composition"] == "96% Viscose / 4% Elastano"
+    # fotos copiadas para o bucket do catálogo (o link do site fica como origem)
+    assert run["stats"]["photos_copied"] >= 2 and run["stats"]["photos_failed"] == 0
+    media = await fetch_one(pool, """select count(*) filter (where storage_path like 'http%%') as links, count(*) filter (where source_url like 'http%%') as origins,
+                                            min(storage_path) filter (where storage_path not like 'http%%') as sample from catalog.product_media where product_id = %s""", (prod["id"],))
+    assert media["links"] == 0 and media["origins"] >= 2 and media["sample"].startswith(f"{ORG}/18320/")
     sku = PRODUCTS[0]["variants"][0]["sku"]
     v = await fetch_one(pool, "select id from catalog.variants where sku = %s", (sku,))
     assert float(await _price(pool, v["id"])) == float(PRODUCTS[0]["variants"][0]["price"])
@@ -103,3 +110,17 @@ async def test_disabled_routine_does_nothing(pool: Any, deps: Any) -> None:
     calls = respx.route(url__regex=r".*").mock(return_value=httpx.Response(200, json={}))
     await catalog_site.handle(deps, queues.QueueMessage("catalog_sync", 1, 1, {"org_id": ORG, "kind": "FULL"}))
     assert not calls.called
+
+
+@respx.mock
+async def test_photo_download_failure_keeps_the_site_link(pool: Any, deps: Any) -> None:
+    prod = await fetch_one(pool, "select id from catalog.products where org_id = %s order by created_at limit 1", (ORG,))
+    await fetch_one(pool, "insert into catalog.product_media (org_id, product_id, storage_path, source_url, position) values (%s, %s, %s, %s, 9) returning id",
+                    (ORG, prod["id"], "https://cdn.shopify.com/quebrada.jpg", "https://cdn.shopify.com/quebrada.jpg"))
+    respx.get(url__regex=r"https://cdn\.shopify\.com/.*").mock(return_value=httpx.Response(404))
+    res = await catalog_site.mirror_media(deps, ORG)
+    assert res["photos_copied"] == 0 and res["photos_failed"] >= 1
+    row = await fetch_one(pool, "select storage_path, mirror_error from catalog.product_media where source_url = 'https://cdn.shopify.com/quebrada.jpg'")
+    assert row["storage_path"].startswith("https://") and "404" in row["mirror_error"]
+    again = await call_fn(pool, "catalog.media_to_mirror", ORG, 1000)
+    assert all(m["url"] != "https://cdn.shopify.com/quebrada.jpg" for m in again)               # só tenta de novo depois de 6 h

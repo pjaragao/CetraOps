@@ -13,10 +13,14 @@ UUID = {"type": "string", "description": "UUID"}
 ITEMS = {"type": "array", "minItems": 1, "maxItems": 5, "items": {"type": "object", "properties": {"variant_id": UUID, "qty": {"type": "number", "minimum": 1, "maximum": 5}}, "required": ["variant_id"]}}
 
 TOOLS: list[dict[str, Any]] = [
-    _fn("search_catalog", "Busca produtos por nome, cor ou categoria com preço e tamanhos em estoque.",
+    _fn("search_catalog", "Busca produtos por nome, cor, categoria, linha, tecido ou detalhe (ex.: 'short com bolso'). Devolve preço, tamanhos em estoque, foto, "
+        "composição, aviso de modelagem e availability: IN_STOCK (tem na loja), BACKORDER (sem estoque, mas pode ser encomendada) ou OUT_OF_STOCK.",
         {"query": {"type": "string"}, "category": {"type": "string"}, "color": {"type": "string"}, "price_max": {"type": "number"}, "in_stock_only": {"type": "boolean"}}, ["query"]),
-    _fn("check_stock_by_size", "Estoque disponível por tamanho e cor de um produto/variante/SKU.",
+    _fn("check_stock_by_size", "Estoque disponível por tamanho e cor de um produto/variante/SKU; backorder_ok = sem estoque, mas pode ser encomendado.",
         {"product_id": UUID, "variant_id": UUID, "sku": {"type": "string"}, "color": {"type": "string"}}),
+    _fn("get_product_details", "Detalhes de um produto: descrição, composição (tecido), cuidados, aviso de modelagem, guia de tamanhos (medidas) e fotos por cor.",
+        {"product_id": UUID}, ["product_id"]),
+    _fn("get_store_info", "Endereço e horário da loja (próximos 7 dias, feriados e exceções) e se está aberta agora. O que não vier não está cadastrado: não invente.", {}),
     _fn("get_customer_360", "Resumo seguro da cliente: nome, tamanhos, últimas compras, vale-troca.", {}),
     _fn("get_order_status", "Situação dos pedidos da cliente (últimos 3 ou por número).", {"number": {"type": "string"}}),
     _fn("get_policies", "Políticas da loja (troca, pagamento, entrega). Sem tema, lista os temas.", {"topic": {"type": "string"}}),
@@ -39,7 +43,7 @@ TOOLS: list[dict[str, Any]] = [
         {"product_id": UUID, "size": {"type": "string"}, "note": {"type": "string"}}, ["product_id", "size"]),
     _fn("remember_customer_fact", "Guarda um fato útil e não sensível dito pela cliente (ex.: faz pilates às terças).", {"fact": {"type": "string"}, "category": {"type": "string"}, "message_id": UUID}, ["fact"]),
     _fn("request_handoff", "Transfere para uma pessoa da equipe.",
-        {"reason_code": {"type": "string", "enum": ["COMPLAINT", "PRICE_NEGOTIATION", "DEFECT", "B2B", "PAYMENT_PROBLEM", "PRESS_PARTNERSHIP", "HIGH_VALUE", "OUT_OF_SCOPE", "OTHER"]},
+        {"reason_code": {"type": "string", "enum": ["COMPLAINT", "PRICE_NEGOTIATION", "DEFECT", "B2B", "PAYMENT_PROBLEM", "PRESS_PARTNERSHIP", "HIGH_VALUE", "BACKORDER", "OUT_OF_SCOPE", "OTHER"]},
          "summary": {"type": "string"}, "urgency": {"type": "string", "enum": ["NORMAL", "HIGH"]}}, ["reason_code", "summary"]),
     _fn("propose_reply", "RESPOSTA FINAL: 1 a 3 mensagens curtas para a cliente. Sempre termine chamando esta ferramenta.",
         {"messages": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string", "maxLength": 600}},

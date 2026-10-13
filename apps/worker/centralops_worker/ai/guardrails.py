@@ -13,7 +13,7 @@ DISCOUNT = re.compile(r"\b(desconto|% ?off|promo[cç][aã]o|cupom|abatimento|mai
 AVAILABILITY = re.compile(r"\b(tem|temos|temos sim|dispon[ií]vel|dispon[ií]veis|em estoque|no estoque|sobrou|restou)\b", re.I)
 HEALTH_CLAIM = re.compile(r"\b(cura|curar|trata|tratamento|previne|previnir|trata dor|alivia|trata les[aã]o|indicado para (les[aã]o|dor))\b", re.I)
 PRICE_TOOLS = {"search_catalog", "check_stock_by_size", "create_order_draft", "apply_coupon", "get_order_status", "get_customer_360", "create_payment_link", "confirm_order_draft"}
-STOCK_TOOLS = {"search_catalog", "check_stock_by_size", "create_reservation", "create_order_draft", "list_upcoming_events", "rsvp_event"}   # "tem vaga" também precisa de consulta
+STOCK_TOOLS = {"search_catalog", "check_stock_by_size", "get_product_details", "get_store_info", "create_reservation", "create_order_draft", "list_upcoming_events", "rsvp_event"}   # "tem vaga" também precisa de consulta; detalhes trazem o estoque por cor; "tem horário" vem da loja
 
 
 @dataclass(frozen=True)

@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     supabase_url: str = "http://127.0.0.1:55321"
     supabase_service_key: str = ""
     media_bucket: str = "omni-media"
+    catalog_media_bucket: str = "catalog-media"      # fotos do catálogo (público)
 
     log_level: str = "INFO"
 

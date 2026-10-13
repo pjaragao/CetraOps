@@ -4,6 +4,8 @@ import { PAYMENT_METHODS, dueRange, formatBRL, maskCpf, normalizeSize, visibleNa
 import type { Session } from "@/lib/session";
 import type { ActionLine, PersonHit, ProductHit, TitleRow } from "./cards";
 import { GESTAO_TOOLS } from "./tools-gestao";
+import { LOJA_TOOLS } from "./tools-loja";
+import { photoUrl } from "@/lib/photos";
 import { checkPicked, date, dbError, fail, fmtDate, id, openSession, propose, storeOf, tool, ToolError, type ToolCtx, type ToolDef } from "./tool-kit";
 
 export type { ToolCtx, ToolDef } from "./tool-kit";
@@ -83,13 +85,20 @@ const buscarProduto = tool({
       p: { query: consulta ?? null, code: codigo ?? null, color: cor ?? null, size: normalizeSize(tamanho), store_id: ctx.storeId, limit: 6 } as never,
     });
     dbError(error);
-    const items = ((data as unknown as ProductHit[]) ?? []).map((p) => ({ ...p, variants: p.variants.map((v) => ({ ...v, price: v.price === null ? null : Number(v.price), available: Number(v.available) })) }));
+    type Raw = Omit<ProductHit, "photo"> & { photo?: { path: string; source: string | null } | null };
+    const items: ProductHit[] = ((data as unknown as Raw[]) ?? []).map((p) => ({
+      ...p, photo: p.photo ? photoUrl(p.photo.path, 160) : null, site_compare_at: p.site_compare_at == null ? null : Number(p.site_compare_at),
+      variants: p.variants.map((v) => ({ ...v, price: v.price === null ? null : Number(v.price), available: Number(v.available) })),
+    }));
     if (items.length) ctx.addCard({ kind: "produtos", title: items.length === 1 ? items[0].name : `${items.length} produtos`, items });
+    const semEstoqueEncomendavel = items.some((p) => p.backorder && p.variants.some((v) => v.available <= 0));
     return {
       quantidade: items.length,
-      produtos: items.map((p) => ({ product_id: p.product_id, nome: p.name, referencia: p.reference,
+      produtos: items.map((p) => ({ product_id: p.product_id, nome: p.name, referencia: p.reference, categoria: p.category, linha: p.line,
+        aceita_encomenda: Boolean(p.backorder), aviso_modelagem: p.fit_note ?? undefined, preco_de_no_site: p.site_compare_at ?? undefined,
         variantes: p.variants.slice(0, 30).map((v) => ({ variant_id: v.variant_id, sku: v.sku, cor: v.color, tamanho: v.size, preco: v.price, disponivel: v.available })) })),
-      dica: items.length === 0 ? "Nada encontrado: tente outro nome ou sem a cor/tamanho." : undefined,
+      dica: items.length === 0 ? "Nada encontrado: tente outro nome ou sem a cor/tamanho."
+        : semEstoqueEncomendavel ? "Peça sem estoque de produto que aceita encomenda: ofereça propor_encomenda." : undefined,
     };
   },
 });
@@ -286,7 +295,12 @@ const proporVenda = tool({
     const q = quote as unknown as { items: { variant_id: string; name: string; color: string | null; size: string; qty: number; unit_price: number; total: number; available: number }[];
                                      subtotal: number; total: number; coupon: { code: string; discount: number } | null; warnings: string[] };
     const short = q.items.filter((i) => Number(i.available) < Number(i.qty));
-    if (short.length) fail(`Sem estoque suficiente na loja: ${short.map((i) => `${i.name} ${i.color ?? ""} ${i.size} (disponível ${Number(i.available)})`).join("; ")}. Ofereça outro tamanho/cor ou o avise-me.`);
+    if (short.length) {
+      const { data: bo } = await ctx.supabase.schema("catalog").from("variants").select("id, products!inner(backorder)").in("id", short.map((i) => i.variant_id));
+      const canOrder = (bo ?? []).some((v) => (v.products as unknown as { backorder: boolean } | null)?.backorder);
+      fail(`Sem estoque suficiente na loja: ${short.map((i) => `${i.name} ${i.color ?? ""} ${i.size} (disponível ${Number(i.available)})`).join("; ")}. ` +
+           (canOrder ? "O produto aceita encomenda: ofereça propor_encomenda (a cliente paga e a peça é pedida ao fornecedor)." : "Ofereça outro tamanho/cor ou o avise-me."));
+    }
     warnings.push(...q.warnings);
     const coupon = q.coupon ? a.cupom : null;
     const pay = PAYMENT_METHODS[a.pagamento.forma];
@@ -552,7 +566,7 @@ const proporFecharCaixa = tool({
 export const TOOLS: ToolDef[] = [
   buscarCliente, fichaCliente, buscarProduto, contas, saldos, vendas, caixa, listaDoDia, navegar,
   proporVenda, proporCadastro, proporReserva, proporAviseMe, proporTarefa, proporContaPagar, proporBaixa, proporAbrirCaixa, proporFecharCaixa,
-  ...GESTAO_TOOLS,
+  ...LOJA_TOOLS, ...GESTAO_TOOLS,
 ];
 
 export function allowedTools(session: Session): ToolDef[] {

@@ -19,3 +19,16 @@ export async function updateStoreAction(formData: FormData) {
   const q = new URLSearchParams(error ? { erro: clean(error.message) } : { ok: "Loja salva" });
   redirect(`/configuracoes/lojas/${id}?${q}`);
 }
+
+const ADDRESS_KEYS = ["street", "number", "complement", "district", "city", "uf", "cep", "reference"] as const;
+
+/** Endereço da loja para as clientes (a IA do atendimento informa este, não o endereço fiscal da empresa). */
+export async function updateStoreAddressAction(formData: FormData) {
+  const id = str(formData.get("id"));
+  const supabase = await createClient();
+  const p = Object.fromEntries(ADDRESS_KEYS.map((k) => [k, str(formData.get(k))]));
+  const { error } = await supabase.schema("core").rpc("set_store_address", { p_store: id, p: p as Json });
+  revalidatePath("/configuracoes", "layout");
+  const q = new URLSearchParams(error ? { erro: clean(error.message) } : { ok: "Endereço salvo" });
+  redirect(`/configuracoes/lojas/${id}?${q}`);
+}

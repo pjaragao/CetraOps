@@ -1,4 +1,3 @@
-import { cdnImage } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { chunks, fetchAll } from "@/lib/fetch-all";
 import { can, requirePerm } from "@/lib/session";
@@ -6,6 +5,7 @@ import { str, type SP } from "@/lib/context";
 import { Empty, LinkButton, PageHeader } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { CatalogTable, type CatalogRow } from "./catalog-table";
+import { photoUrl } from "@/lib/photos";
 
 export const metadata = { title: "Catálogo" };
 
@@ -43,7 +43,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
   const colors = new Map<string, Set<string>>(), nVar = new Map<string, number>();
   for (const v of variants) { nVar.set(v.product_id, (nVar.get(v.product_id) ?? 0) + 1); if (v.color_id) (colors.get(v.product_id) ?? colors.set(v.product_id, new Set()).get(v.product_id)!).add(v.color_id); }
   const photo = new Map<string, string>();
-  for (const m of media) if (!photo.has(m.product_id) && m.storage_path.startsWith("http")) photo.set(m.product_id, m.storage_path);
+  for (const m of media) if (!photo.has(m.product_id)) photo.set(m.product_id, m.storage_path);
   const range = new Map<string, [number, number]>();
   for (const p of prices) {
     const pid = p.product_id ?? (p.variant_id ? varOf.get(p.variant_id) : undefined);
@@ -61,7 +61,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
       id: p.id, reference: p.reference_code, name: p.name, gender: p.gender,
       categoryId: p.category_id ?? "", category: p.categories?.name ?? "", collectionId: p.collection_id ?? "", collection: p.collections?.name ?? "",
       colors: colors.get(p.id)?.size ?? 0, variants: nVar.get(p.id) ?? 0, priceMin: r?.[0] ?? null, priceMax: r?.[1] ?? null,
-      stock: qty.get(p.id) ?? 0, backorder: p.backorder, site: s ? (s.live ? "live" : "off") : null, photo: img ? cdnImage(img, 240) : null,
+      stock: qty.get(p.id) ?? 0, backorder: p.backorder, site: s ? (s.live ? "live" : "off") : null, photo: img ? photoUrl(img, 240) : null,
     };
   });
 

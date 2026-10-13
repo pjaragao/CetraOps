@@ -19,6 +19,18 @@ export function sanitizeHtml(input: string): string {
   });
 }
 
+/**
+ * Foto do catálogo para mostrar: caminho no bucket público `catalog-media` (cópia guardada; miniatura pelo imgproxy do Storage)
+ * ou o link do site, enquanto a cópia não foi feita.
+ */
+export function catalogPhoto(pathOrUrl: string, width: number | null, supabaseUrl: string): string {
+  if (/^https?:\/\//.test(pathOrUrl)) return width ? cdnImage(pathOrUrl, width) : pathOrUrl;
+  const base = supabaseUrl.replace(/\/+$/, "");
+  const path = pathOrUrl.split("/").map(encodeURIComponent).join("/");
+  return width ? `${base}/storage/v1/render/image/public/catalog-media/${path}?width=${width}&resize=contain&quality=80`
+               : `${base}/storage/v1/object/public/catalog-media/${path}`;
+}
+
 /** URL de imagem do CDN da Shopify num tamanho menor (o próprio CDN redimensiona). */
 export function cdnImage(url: string, width: number): string {
   if (!/^https:\/\/cdn\.shopify\.com\//.test(url)) return url;

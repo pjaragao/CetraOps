@@ -9,7 +9,6 @@ import ssl
 import tempfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from importlib import resources
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -17,14 +16,14 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from ..adapters.errors import PermanentError
+from .icp_roots import ICP_BRASIL_ROOTS
 
 OID_CNPJ = "2.16.76.1.3.3"                  # ICP-Brasil: CNPJ da pessoa jurídica no SubjectAltName (otherName)
 
 
 def icp_brasil_bundle() -> str:
     """Raízes da ICP-Brasil (os webservices da SVRS usam cadeia ICP-Brasil, que não vem no repositório padrão do sistema)."""
-    pem = resources.files(__package__).joinpath("icp_brasil.pem").read_text(encoding="utf-8")
-    return "".join(re.findall(r"-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----\n?", pem, flags=re.S))
+    return ICP_BRASIL_ROOTS
 
 
 @dataclass

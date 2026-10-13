@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, ScanBarcode, Smartphone, Tag, Trash2, UserPlus, UserRound } from "lucide-react";
 import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
 import { createRemoteOrderAction, customerCoupons, type CustomerCoupon } from "../actions";
+import { createPdvBackorderAction } from "../encomendas/actions";
 import { autoCouponFor, discardDraftOrder, finalizeSale, getCustomerStoreCredit, type getOrderDraft, saveOrderDraft, type SaleInput } from "./actions";
 import { PartyPicker, type PartyHit } from "../pickers";
 import { QuickCustomerDialog } from "./quick-customer-dialog";
@@ -15,7 +17,8 @@ import { ItemDiscountDialog } from "./item-discount-dialog";
 import { GlobalDiscountDialog } from "./global-discount-dialog";
 
 export interface PosVariant { id: string; sku: string; size: string; gtin: string | null; price: number; available: number }
-export interface PosProduct { key: string; name: string; reference: string; gender: string; color: string; variants: PosVariant[] }
+/** backorder: produto liberado para encomenda (o tamanho sem estoque entra no carrinho como encomenda). */
+export interface PosProduct { key: string; name: string; reference: string; gender: string; color: string; backorder: boolean; variants: PosVariant[] }
 
 type Method = SaleInput["payments"][number]["method"];
 
@@ -79,7 +82,8 @@ export function PosTerminal({
   const [customerCredit, setCustomerCredit] = useState<number>(0);
   const [cpf, setCpf] = useState("");
   const [coupon, setCoupon] = useState("");
-  const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "danger" | "warning"; text: string } | null>(null);
+  const router = useRouter();
   const [idem, setIdem] = useState(() => crypto.randomUUID());
   const [scanning, setScanning] = useState(false);
   const [pending, start] = useTransition();
@@ -112,13 +116,31 @@ export function PosTerminal({
     paymentIndex?: number;
   }>({ open: false, amount: 0, method: "CREDIT", installments: 1 });
 
-  const filtered = useMemo(() => {
+  // Só aparece o que dá para vender: peça em estoque ou de produto liberado para encomenda
+  const { filtered, hidden } = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return products.slice(0, 24);
-    return products.filter((p) =>
+    const found = !t ? products : products.filter((p) =>
       p.name.toLowerCase().includes(t) || p.reference.toLowerCase().includes(t) ||
-      p.variants.some((v) => v.sku.toLowerCase() === t || v.gtin === t)).slice(0, 24);
+      p.variants.some((v) => v.sku.toLowerCase() === t || v.gtin === t));
+    const sellable = found.filter((p) => p.backorder || p.variants.some((v) => v.available > 0));
+    return { filtered: sellable.slice(0, 24), hidden: t ? found.length - sellable.length : 0 };
   }, [q, products]);
+  const hasBackorderProducts = useMemo(() => products.some((p) => p.backorder), [products]);
+
+  // Dado fresco da peça (o carrinho pode vir de um rascunho antigo): quanto da linha não está na loja
+  const byVariant = useMemo(() => {
+    const m = new Map<string, { product: PosProduct; variant: PosVariant }>();
+    for (const p of products) for (const v of p.variants) m.set(v.id, { product: p, variant: v });
+    return m;
+  }, [products]);
+  const backorderQty = (l: CartLine) => {
+    if (l.isCustom || !l.variant) return 0;
+    const live = byVariant.get(l.variant.id);
+    if (!live?.product.backorder) return 0;
+    return Math.max(l.qty - Math.max(live.variant.available, 0), 0);
+  };
+  const backorderPieces = cart.reduce((a, l) => a + backorderQty(l), 0);
+  const hasBackorder = backorderPieces > 0;
 
   const grossTotal = roundCents(cart.reduce((a, l) => a + l.unitPrice * l.qty, 0));
   const discountTotal = roundCents(cart.reduce((a, l) => a + l.discountAmount, 0));
@@ -127,6 +149,7 @@ export function PosTerminal({
   const remaining = roundCents(total - paid);
   const remote = mode === "remoto";
   const ship = Number(shipping.replace(/\./g, "").replace(",", ".")) || 0;
+  const shipShown = remote && !hasBackorder ? ship : 0;                    // encomenda não leva frete: combina na chegada
 
   // Restaurar rascunho anterior (seja vindo de initialDraft do banco ou salvo no navegador)
   useEffect(() => {
@@ -293,7 +316,13 @@ export function PosTerminal({
   }, [customer, total]);
 
   const add = (product: PosProduct, variant: PosVariant) => {
-    setMessage(null);
+    if (variant.available <= 0 && !product.backorder) {
+      setMessage({ tone: "danger", text: `${product.name} · ${variant.size} está sem estoque e o produto não está liberado para encomenda.` });
+      return;
+    }
+    setMessage(variant.available <= 0
+      ? { tone: "warning", text: `${product.name} · ${variant.size} não tem na loja: entra como encomenda (pedido ao fornecedor).` }
+      : null);
     setCart((c) => {
       const i = c.findIndex((l) => !l.isCustom && l.variant?.id === variant.id);
       if (i >= 0) {
@@ -545,6 +574,40 @@ export function PosTerminal({
     if (r && !r.ok) setMessage({ tone: "danger", text: r.error ?? "Não foi possível salvar o pedido" });
   });
 
+  // Encomenda: peça sem estoque (de produto liberado) vai ao pedido de compra; o que tem fica reservado; sinal na tela do pedido
+  const createBackorder = () => start(async () => {
+    setMessage(null);
+    if (!customer) {
+      setMessage({ tone: "danger", text: "Encomenda precisa de cliente: busque ou cadastre." });
+      return;
+    }
+    const r = await createPdvBackorderAction({
+      store_id: storeId,
+      party_id: customer.id,
+      channel: remote ? channel : "POS",
+      idempotency_key: `pdv-${idem}`,
+      ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}),
+      ...(notes ? { notes } : {}),
+      items: cart.map((l) => (l.isCustom ? {
+        description: l.customDescription, ncm: l.customNcm || undefined, unit_price: l.unitPrice, list_price: l.unitPrice, qty: l.qty,
+        discount_amount: l.discountAmount, discount_reason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : undefined),
+      } : {
+        variant_id: l.variant?.id, qty: l.qty,
+        discount_amount: l.discountAmount, discount_reason: l.discountReason || (l.discountAmount > 0 ? "Desconto manual" : undefined),
+      })),
+    });
+    if (!r.ok) { setMessage({ tone: "danger", text: r.error }); return; }
+    draftGenRef.current += 1;                                              // gravação de rascunho em andamento não recria o pedido
+    const draftId = draftOrderIdRef.current;
+    draftOrderIdRef.current = null;
+    if (draftId) await discardDraftOrder(draftId);
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    setDbDraftOrderId(null); setDbDraftOrderNumber(null); setDraftSaveStatus("idle");
+    setCart([]); setPayments([]); setCustomer(null); setCpf(""); setCoupon(""); setNotes(""); setDraftRestored(false);
+    setIdem(crypto.randomUUID());
+    router.push(`/vender/pedidos/${r.id}?ok=${encodeURIComponent("Encomenda registrada: receba o sinal aqui e acompanhe o pedido de compra")}`);
+  });
+
   const finalize = () => start(async () => {
     setMessage(null);
     const r = await finalizeSale({
@@ -614,34 +677,55 @@ export function PosTerminal({
           )}
         </div>
         {scanning && <BarcodeScanner onDone={onScanned} onClose={() => setScanning(false)} title="Bipar peças para a venda" />}
+        {hasBackorderProducts && (
+          <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span className="inline-flex min-w-9 flex-col items-center rounded-md border border-warning/60 bg-warning/15 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-warning">M<span className="text-[9px] font-normal">enc.</span></span>
+            Amarelo: não tem na loja, entra como encomenda (pedido ao fornecedor).
+          </p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((p) => (
-            <Card key={p.key} className="p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{p.name}</p>
-                  <p className="text-xs text-muted">{p.reference} · {p.color}</p>
+          {filtered.map((p) => {
+            const onlyOrder = p.backorder && p.variants.every((v) => v.available <= 0);
+            return (
+              <Card key={p.key} className={cn("p-3", onlyOrder && "border-warning/60 bg-warning/5")}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{p.name}</p>
+                    <p className="text-xs text-muted">{p.reference} · {p.color}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge tone={p.gender === "MASC" ? "info" : "brand"}>{p.gender === "MASC" ? "Masc" : p.gender === "FEM" ? "Fem" : "Uni"}</Badge>
+                    {onlyOrder && <Badge tone="warning" className="bg-warning/20">Só encomenda</Badge>}
+                  </div>
                 </div>
-                <Badge tone={p.gender === "MASC" ? "info" : "brand"}>{p.gender === "MASC" ? "Masc" : p.gender === "FEM" ? "Fem" : "Uni"}</Badge>
-              </div>
-              <p className="mt-1 text-sm font-semibold">{formatBRL(p.variants[0]?.price)}</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {p.variants.map((v) => (
-                  <button
-                    key={v.id} onClick={() => add(p, v)} disabled={v.available <= 0}
-                    title={`${v.sku} · ${v.available} disponível`}
-                    className={cn(
-                      "min-w-11 rounded-lg border px-2 py-1.5 text-sm font-medium",
-                      v.available > 0 ? "border-border hover:border-brand hover:text-brand" : "border-dashed border-border text-muted/50 line-through",
-                    )}
-                  >
-                    {v.size}<span className="block text-[10px] font-normal text-muted">{v.available}</span>
-                  </button>
-                ))}
-              </div>
-            </Card>
-          ))}
+                <p className="mt-1 text-sm font-semibold">{formatBRL(p.variants[0]?.price)}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {p.variants.map((v) => {
+                    const inStock = v.available > 0;
+                    const orderable = !inStock && p.backorder;
+                    return (
+                      <button
+                        key={v.id} onClick={() => add(p, v)} disabled={!inStock && !orderable}
+                        title={inStock ? `${v.sku} · ${v.available} disponível` : orderable ? `${v.sku} · não tem na loja: entra como encomenda` : `${v.sku} · sem estoque`}
+                        className={cn(
+                          "min-w-11 rounded-lg border px-2 py-1.5 text-sm font-medium",
+                          inStock && "border-border hover:border-brand hover:text-brand",
+                          orderable && "border-warning/60 bg-warning/15 text-warning hover:border-warning",
+                          !inStock && !orderable && "border-dashed border-border text-muted/50 line-through",
+                        )}
+                      >
+                        {v.size}<span className={cn("block text-[10px] font-normal", orderable ? "text-warning" : "text-muted")}>{orderable ? "enc." : v.available}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })}
           {filtered.length === 0 && <p className="text-sm text-muted">Nenhum produto encontrado.</p>}
+          {hidden > 0 && (
+            <p className="col-span-full text-xs text-muted">{hidden} produto(s) dessa busca estão sem estoque e sem encomenda liberada, por isso não aparecem. Libere em Produtos › ficha do produto › Encomenda.</p>
+          )}
         </div>
       </div>
 
@@ -681,11 +765,13 @@ export function PosTerminal({
             <ul className="divide-y divide-border">
               {cart.map((l) => {
                 const lineNet = Math.max(l.unitPrice * l.qty - l.discountAmount, 0);
+                const bo = backorderQty(l);
                 return (
-                  <li key={l.id} className="flex items-center gap-2 py-2 text-sm">
+                  <li key={l.id} className={cn("flex items-center gap-2 py-2 text-sm", bo > 0 && "-mx-1 rounded-md border-l-2 border-warning bg-warning/10 px-2")}>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 truncate">
                         {l.isCustom && <Badge tone="neutral" className="text-[10px] px-1 py-0">Avulso</Badge>}
+                        {bo > 0 && <Badge tone="warning" className="bg-warning/20 text-[10px] px-1 py-0" >{bo === l.qty ? "Encomenda" : `${bo} enc.`}</Badge>}
                         <p className="truncate font-medium">
                           {l.isCustom ? l.customDescription : `${l.product?.name} · `}
                           {!l.isCustom && <b>{l.variant?.size}</b>}
@@ -746,17 +832,17 @@ export function PosTerminal({
                   <span>- {formatBRL(discountTotal)}</span>
                 </div>
               )}
-              {remote && ship > 0 && (
+              {shipShown > 0 && (
                 <div className="flex justify-between text-muted">
                   <span>Frete</span>
-                  <span>{formatBRL(ship)}</span>
+                  <span>{formatBRL(shipShown)}</span>
                 </div>
               )}
             </div>
           )}
 
           <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-lg font-semibold">
-            <span>Total</span><span>{formatBRL(total + (remote ? ship : 0))}</span>
+            <span>Total</span><span>{formatBRL(total + shipShown)}</span>
           </div>
 
           {cart.length > 0 && (
@@ -838,13 +924,34 @@ export function PosTerminal({
               )}
             </div>
           ) : (
-            <PartyPicker onPick={pickCustomer} placeholder={remote ? "Buscar cliente por nome ou telefone (obrigatório)" : "Buscar cliente por nome ou telefone (opcional)"} />
+            <PartyPicker onPick={pickCustomer} placeholder={remote || hasBackorder ? "Buscar cliente por nome ou telefone (obrigatório)" : "Buscar cliente por nome ou telefone (opcional)"} />
           )}
-          {!remote && <input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="CPF na nota (opcional)" inputMode="numeric" className={cn(inputClass, "mt-2")} aria-label="CPF na nota" />}
+          {!remote && !hasBackorder && <input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="CPF na nota (opcional)" inputMode="numeric" className={cn(inputClass, "mt-2")} aria-label="CPF na nota" />}
         </Card>
         {newCustomer && <QuickCustomerDialog onClose={() => setNewCustomer(false)} onCreated={(p) => { pickCustomer(p); setNewCustomer(false); }} />}
 
-        {remote && (
+        {hasBackorder && (
+          <Card title="Encomenda" className="border-warning/60">
+            <p className="text-sm">
+              <b>{backorderPieces} peça(s)</b> não estão na loja e vão para o pedido de compra ao fornecedor
+              {cart.some((l) => !l.isCustom && l.qty > backorderQty(l)) ? "; as que têm estoque ficam reservadas para a cliente" : ""}.
+            </p>
+            {remote && (
+              <label className="mt-2 block text-xs text-muted">Canal
+                <select value={channel} onChange={(e) => setChannel(e.target.value)} className={inputClass}>{CHANNELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+              </label>
+            )}
+            <div className="mt-3 flex flex-col gap-2">
+              <Button className="w-full py-3 text-base" onClick={createBackorder} disabled={pending || cart.length === 0 || !customer}>
+                {pending ? "Registrando…" : "Registrar encomenda"}
+              </Button>
+            </div>
+            {!customer && <p className="mt-2 text-xs text-warning">Escolha a cliente: a encomenda fica no nome dela.</p>}
+            <p className="mt-2 text-xs text-muted">Depois de registrar, receba o sinal na tela do pedido; o restante, quando as peças chegarem. Entrega e frete: combine na chegada.</p>
+          </Card>
+        )}
+
+        {remote && !hasBackorder && (
           <Card title="Entrega e reserva">
             <div className="grid grid-cols-2 gap-2 text-xs text-muted">
               <label>Canal<select value={channel} onChange={(e) => setChannel(e.target.value)} className={inputClass}>{CHANNELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
@@ -861,7 +968,7 @@ export function PosTerminal({
           </Card>
         )}
 
-        {!remote && <Card title="Pagamento" action={<span className={cn("text-sm font-medium", remaining === 0 ? "text-success" : "text-warning")}>{remaining > 0 ? `falta ${formatBRL(remaining)}` : remaining < 0 ? `troco ${formatBRL(-remaining)}` : "fechado"}</span>}>
+        {!remote && !hasBackorder && <Card title="Pagamento" action={<span className={cn("text-sm font-medium", remaining === 0 ? "text-success" : "text-warning")}>{remaining > 0 ? `falta ${formatBRL(remaining)}` : remaining < 0 ? `troco ${formatBRL(-remaining)}` : "fechado"}</span>}>
           <div className="flex flex-wrap items-center gap-1.5">
             {METHODS.map((m) => {
               const isCredit = m.value === "STORE_CREDIT";
@@ -952,7 +1059,7 @@ export function PosTerminal({
         </Card>}
 
         {message && (
-          <p role="status" className={cn("rounded-lg px-3 py-2 text-sm", message.tone === "success" ? "bg-success/10 text-success" : "bg-danger/10 text-danger")}>{message.text}</p>
+          <p role="status" className={cn("rounded-lg px-3 py-2 text-sm", message.tone === "success" && "bg-success/10 text-success", message.tone === "warning" && "bg-warning/15 text-warning", message.tone === "danger" && "bg-danger/10 text-danger")}>{message.text}</p>
         )}
       </div>
     </div>

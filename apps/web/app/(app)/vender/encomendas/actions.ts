@@ -44,21 +44,47 @@ export async function backorderCost(variantId: string, storeId: string): Promise
   return (data as unknown as CostInfo) ?? null;
 }
 
+const channels = ["POS", "WHATSAPP", "INSTAGRAM", "TELEGRAM", "PAYMENT_LINK", "B2B", "EVENT"] as const;
 const schema = z.object({
   store_id: uuid, party_id: uuid, notes: z.string().trim().max(300).optional(),
-  items: z.array(z.object({ variant_id: uuid, qty: z.number().int().min(1).max(50) })).min(1).max(40),
+  channel: z.enum(channels).optional(), coupon_code: z.string().trim().max(40).optional(), idempotency_key: z.string().min(8).max(80).optional(),
+  items: z.array(z.object({
+    variant_id: uuid.optional(),
+    description: z.string().trim().min(1).max(200).optional(),             // item avulso (PDV): sem peça do catálogo
+    ncm: z.string().regex(/^\d{8}$/).optional(),
+    unit_price: z.number().min(0).max(100000).optional(), list_price: z.number().min(0).max(100000).optional(),
+    qty: z.number().int().min(1).max(50),
+    discount_amount: z.number().min(0).max(100000).optional(), discount_reason: z.string().max(200).optional(),
+  }).refine((i) => Boolean(i.variant_id || i.description), { message: "peça ou descrição", path: ["variant_id"] })).min(1).max(40),
 });
-export async function createBackorderAction(_prev: State, formData: FormData): Promise<State> {
-  let raw: unknown;
-  try { raw = JSON.parse(String(formData.get("payload") ?? "")); } catch { return { ok: false, error: "Dados inválidos" }; }
+type Registered = { ok: true; id: string } | { ok: false; error: string };
+
+async function registerBackorder(raw: unknown): Promise<Registered> {
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: "Escolha a cliente e ao menos uma peça" };
+  if (!parsed.success) {
+    const i = parsed.error.issues[0];
+    return { ok: false, error: i?.path[0] === "party_id" || i?.path[0] === "items" ? "Escolha a cliente e ao menos uma peça" : `Confira a encomenda: ${i?.path.join(".")} — ${i?.message}` };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.schema("sales").rpc("create_backorder", { p: parsed.data as unknown as Json });
   if (error) return { ok: false, error: friendly(error.message) };
   revalidatePath("/vender", "layout");
   revalidatePath("/produtos/compras");
-  redirect(`/vender/pedidos/${(data as unknown as { id: string }).id}?ok=${encodeURIComponent("Encomenda registrada e incluída no pedido de compra")}`);
+  return { ok: true, id: (data as unknown as { id: string }).id };
+}
+
+/** Tela de Encomendas: registra e vai para o pedido. */
+export async function createBackorderAction(_prev: State, formData: FormData): Promise<State> {
+  let raw: unknown;
+  try { raw = JSON.parse(String(formData.get("payload") ?? "")); } catch { return { ok: false, error: "Dados inválidos" }; }
+  const r = await registerBackorder(raw);
+  if (!r.ok) return r;
+  redirect(`/vender/pedidos/${r.id}?ok=${encodeURIComponent("Encomenda registrada e incluída no pedido de compra")}`);
+}
+
+/** PDV: carrinho com peça sem estoque (de produto liberado), em estoque, avulso, desconto e cupom. A tela decide para onde ir. */
+export async function createPdvBackorderAction(raw: unknown): Promise<Registered> {
+  return registerBackorder(raw);
 }
 
 export async function setSupplierAction(formData: FormData) {

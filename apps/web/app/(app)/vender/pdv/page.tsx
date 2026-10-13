@@ -20,7 +20,7 @@ export default async function PdvPage({ searchParams }: { searchParams: Promise<
   // em páginas: o Supabase Cloud devolve no máximo 1.000 linhas por consulta; só o estoque vendável (malinha e campanha ficam de fora)
   const [variants, prices, stock, { data: session_ }] = await Promise.all([
     fetchAll((a, b) => supabase.schema("catalog").from("variants")
-      .select("id, sku, size, gtin, product_id, products!inner(name, reference_code, gender, status), colors(name)")
+      .select("id, sku, size, gtin, product_id, products!inner(name, reference_code, gender, status, backorder), colors(name)")
       .eq("active", true).eq("products.status", "ACTIVE").order("id").range(a, b)),
     fetchAll((a, b) => supabase.schema("catalog").from("prices").select("product_id, variant_id, price").is("valid_to", null).order("id").range(a, b)),
     fetchAll((a, b) => supabase.schema("inv").from("v_stock_matrix").select("variant_id, available").eq("store_id", session.storeId!).eq("is_sellable", true)
@@ -44,7 +44,7 @@ export default async function PdvPage({ searchParams }: { searchParams: Promise<
     const key = `${v.product_id}|${v.colors?.name ?? ""}`;
     const prod = byProduct.get(key) ?? {
       key, name: v.products.name, reference: v.products.reference_code, gender: v.products.gender,
-      color: v.colors?.name ?? "", variants: [],
+      color: v.colors?.name ?? "", backorder: v.products.backorder, variants: [],
     };
     prod.variants.push({ id: v.id, sku: v.sku, size: v.size, gtin: v.gtin, price, available: avail.get(v.id) ?? 0 });
     byProduct.set(key, prod);
@@ -56,7 +56,7 @@ export default async function PdvPage({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <PageHeader title="PDV" description="Nova venda: no balcão (recebe e emite a NFC-e) ou pedido remoto (reserva o estoque até o pagamento)." />
+      <PageHeader title="PDV" description="Nova venda: no balcão (recebe e emite a NFC-e) ou pedido remoto (reserva o estoque até o pagamento). Só aparece o que dá para vender: peça em estoque ou de produto liberado para encomenda." />
       <PosTerminal
         storeId={session.storeId}
         products={products}

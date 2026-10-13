@@ -38,8 +38,9 @@ function IntegrationConfigModal({
   onOpenTerminals,
 }: Omit<IntegrationConfigDialogProps, "open">) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/60 p-4 backdrop-blur-sm animate-in fade-in sm:items-center">
+      {/* formulário longo (ex.: SEFAZ direta): a caixa tem altura máxima e rola por dentro */}
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
           <div>
             <div className="flex items-center gap-2">

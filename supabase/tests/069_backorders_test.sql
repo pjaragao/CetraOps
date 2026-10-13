@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(21);
 
 create or replace function pg_temp.login(p_user uuid) returns void language plpgsql as $$
 declare m record;
@@ -38,6 +38,7 @@ select is((select status::text from sales.orders where id = pg_temp.v('o1')), 'P
 insert into ids select 'po', po_id from sales.backorder_items where order_id = pg_temp.v('o1');
 select is((select status from purch.purchase_orders where id = pg_temp.v('po')), 'DRAFT', 'gera pedido de compra em rascunho');
 select is((select qty_ordered::int from purch.po_items where po_id = pg_temp.v('po') and variant_id = pg_temp.v('var')), 2, 'com a peça encomendada');
+select is((select unit_cost from purch.po_items where po_id = pg_temp.v('po') and variant_id = pg_temp.v('var')), coalesce((select coalesce(last_cost, nullif(avg_cost, 0)) from inv.item_costs where variant_id = pg_temp.v('var') limit 1), catalog.current_price(pg_temp.v('var'))), 'custo: último custo, senão preço de catálogo');
 select ok((select notes from purch.purchase_orders where id = pg_temp.v('po')) like '%Encomenda VEN-%', 'e a observação de qual venda pediu');
 select is((select count(*)::int from crm.tasks where source_rule = 'po_close:' || pg_temp.v('po') and status = 'OPEN'), 1, 'tarefa de fechar o pedido de compra');
 

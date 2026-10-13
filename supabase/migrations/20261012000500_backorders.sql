@@ -2,6 +2,7 @@
 -- Encomenda de peças da coleção que não estão no estoque
 --  • catalog.products.backorder: liga/desliga "aceita encomenda" por produto (ou em lote: coleção, categoria, todos os do site).
 --    Produto que veio do site nunca é apagado pela sincronização: some do site, continua no catálogo e pode ser encomendado.
+--  • Custo da peça no pedido de compra: último custo conhecido; sem ele, o preço de catálogo (sem desconto); sem os dois, zero.
 --  • sales.create_backorder: cria o pedido da cliente (aguardando pagamento, sem reservar estoque) e, para cada peça, entra no pedido
 --    de compra em RASCUNHO do fornecedor das encomendas (ou abre um), com a observação de qual venda pediu; abre a tarefa
 --    "Fechar pedido de compra" (uma por pedido de compra), que se conclui sozinha quando o pedido é aprovado.
@@ -57,6 +58,20 @@ begin
     or (coalesce((p ->> 'site')::boolean, false) and exists (select 1 from catalog.site_items si where si.product_id = pr.id)));
   get diagnostics n = row_count;
   return n;
+end $$;
+
+-- De onde vem o custo de cada peça no pedido de compra (a tela avisa ao adicionar)
+create or replace function sales.backorder_cost(p_variant uuid, p_store uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare v_le uuid; c numeric; v_price numeric;
+begin
+  perform private.require_perm('sales.read');
+  select legal_entity_id into v_le from core.stores where id = p_store and org_id = private.org_id();
+  select coalesce(last_cost, nullif(avg_cost, 0)) into c from inv.item_costs where variant_id = p_variant and legal_entity_id = v_le;
+  if c is not null then return jsonb_build_object('source', 'LAST_COST', 'cost', c); end if;
+  v_price := catalog.current_price(p_variant);
+  if v_price is not null then return jsonb_build_object('source', 'CATALOG_PRICE', 'cost', v_price); end if;
+  return jsonb_build_object('source', 'ZERO', 'cost', 0);
 end $$;
 
 create or replace function sales.set_backorder_supplier(p_party uuid) returns void
@@ -122,7 +137,9 @@ begin
     insert into sales.backorder_items (org_id, order_id, order_item_id, variant_id, qty, po_id) values (v_org, o.id, v_item, v.id, v_qty, po.id);
     v_total := v_total + round(v_price * v_qty, 2);
 
-    v_cost := coalesce((select coalesce(ic.last_cost, ic.avg_cost) from inv.item_costs ic where ic.variant_id = v.id and ic.legal_entity_id = s.legal_entity_id), 0);
+    -- custo no pedido de compra: último custo conhecido → preço de catálogo (sem desconto) → zero
+    v_cost := coalesce((select coalesce(ic.last_cost, nullif(ic.avg_cost, 0)) from inv.item_costs ic where ic.variant_id = v.id and ic.legal_entity_id = s.legal_entity_id),
+                       catalog.current_price(v.id), 0);
     if exists (select 1 from purch.po_items where po_id = po.id and variant_id = v.id) then
       update purch.po_items set qty_ordered = qty_ordered + v_qty where po_id = po.id and variant_id = v.id;
     else

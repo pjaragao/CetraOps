@@ -9046,7 +9046,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "cancel_order":
+            "backorder_cost":
+{ Args: { "p_store": string,"p_variant": string }; Returns: Json
+                           },
+"cancel_order":
 { Args: { "p_order": string,"p_reason": string }; Returns: {
               "assisted_by_ai": boolean,
 "attribution": NonNullable<Json>,

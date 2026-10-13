@@ -75,8 +75,8 @@ export const PROVIDERS: Record<ProviderKey, ProviderDef> = {
     config: [
       { key: "environment", label: "Ambiente", options: [{ value: "homologacao", label: "Homologação (testes, sem valor fiscal)" }, { value: "producao", label: "Produção" }] },
       { key: "uf", label: "UF do emitente", options: [{ value: "SC", label: "SC — autorização pela SVRS" }] },
-      { key: "ie", label: "Inscrição Estadual", hint: "Só números, como no cadastro da SEF/SC", required: true },
-      { key: "cmun", label: "Código IBGE do município", hint: "7 dígitos. Florianópolis: 4205407", placeholder: "4205407", required: true },
+      { key: "ie", label: "Inscrição Estadual (opcional)", hint: "Em branco: usa a IE do cadastro da empresa (Configurações › Empresas & lojas)" },
+      { key: "cmun", label: "Código IBGE do município (opcional)", hint: "Em branco: usa o do cadastro da empresa. Florianópolis: 4205407", placeholder: "4205407" },
       { key: "nfce_series", label: "Série da NFC-e", hint: "Use uma série só deste sistema (diferente da usada na Notaas ou em outro emissor), para os números nunca colidirem", placeholder: "2", required: true },
       { key: "nfce_last_number", label: "Último número já emitido nesta série", hint: "0 se a série é nova. O sistema continua do número seguinte", placeholder: "0" },
       { key: "csc_id", label: "CSC – identificador (opcional)", hint: "Ex.: 000001. Junto com o código, ativa o QR Code versão 2" },

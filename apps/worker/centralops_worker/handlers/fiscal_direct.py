@@ -317,6 +317,27 @@ async def dfe_sync(deps: Deps, conn: dict[str, Any], org_id: str) -> None:
         await deps.notify(org_id, "INTEGRATION_ERROR", f"Busca de notas recebidas na SEFAZ: {error}", {"legal_entity_id": ctx.entity_id}, perm="fiscal.write")
 
 
+async def dfe_by_key(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> None:
+    """Uma nota recebida pela chave (consChNFe): resumo, ou a NF-e completa se a manifestação já foi feita."""
+    ctx = await context(deps, conn, p["org_id"])
+    key = str(p["key"])
+    async with ctx.client() as client:
+        try:
+            res = await client.distribution(ctx.emitter.cnpj, key=key)
+        except SefazNetworkError as e:
+            raise RetryLater(int(e.retry_after or 60), str(e)) from e
+    rows = [r for r in (parse_dfe_doc(d) for d in res.docs) if r and r.get("access_key")]
+    if res.cstat == "138" and rows:
+        await call_fn(deps.pool, "fiscal.dfe_upsert", p["org_id"], ctx.entity_id, [{k: v for k, v in r.items() if k not in ("xml", "cancelled", "nsu")} for r in rows])
+        for r in rows:
+            if r.get("xml"):
+                await call_fn(deps.pool, "fiscal.dfe_attach_xml", p["org_id"], r["access_key"], r["xml"])
+        return
+    msg = f"{res.cstat} {res.xmotivo}".strip() if res.cstat != "138" else "a SEFAZ não devolveu o resumo da nota"
+    await deps.notify(p["org_id"], "INTEGRATION_ERROR", f"Consulta da nota {key[25:34].lstrip('0')} pela chave: {msg}", {"access_key": key},
+                      perm="fiscal.write", member=p.get("by"))
+
+
 async def dfe_manifest(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> None:
     d = await fetch_one(deps.pool, "select id, legal_entity_id, access_key, manifest_status, manifest_requested, manifest_reason from fiscal.inbound_dfe where id = %s and org_id = %s",
                         (p["dfe_id"], p["org_id"]))

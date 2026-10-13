@@ -54,3 +54,11 @@ export async function importInboundDfeAction(formData: FormData) {
   revalidatePath("/produtos/recebimento");
   redirect(`/produtos/recebimento/${receipt.id}?ok=${encodeURIComponent(`NF-e importada (${receipt.number}): confira a contagem dos itens para dar entrada no estoque`)}`);
 }
+
+/** Busca uma nota pela chave de acesso na SEFAZ (nota anterior ao primeiro uso da busca automática, que não é retroativa). */
+export async function fetchDfeByKeyAction(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("fiscal").rpc("request_dfe_by_key", { p_key: str(formData.get("key")) });
+  revalidatePath(LIST);
+  back(error ? { erro: friendly(error.message) } : { ok: "Consulta pela chave pedida à SEFAZ: a nota aparece em instantes.", wait: "1" });
+}

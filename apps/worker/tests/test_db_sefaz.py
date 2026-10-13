@@ -265,6 +265,16 @@ async def test_received_notes_respect_the_one_hour_rule(pool: Any, deps: Any, di
     assert len(sefaz.calls) == calls                                               # dentro da hora: não consulta (evita o bloqueio 656)
 
 
+async def test_received_note_by_access_key(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
+    sefaz.dist = ["138"]
+    key = "42261099888777000166550010000004561000004561"
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 8, 1, {"action": "DFE_KEY", "org_id": ORG, "key": key}))
+    body = next(el for op, el in sefaz.calls if op == "distDFeInt")
+    assert body.findtext(f".//{{{NFE}}}consChNFe/{{{NFE}}}chNFe") == key
+    row = await fetch_one(pool, "select issuer_name from fiscal.inbound_dfe where access_key = %s", (key,))
+    assert row and row["issuer_name"] == "FORNECEDOR TESTE"
+
+
 async def test_integration_check_reports_certificate_and_service(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
     await integrations.handle(deps, queues.QueueMessage("integration_checks", 6, 1, {"connection_id": direct["conn_id"], "org_id": ORG, "action": "CHECK"}))
     c = await fetch_one(pool, "select status, config, last_error from core.integration_connections where id = %s", (direct["conn_id"],))

@@ -4679,6 +4679,9 @@ isOneToOne: false
 "request_cancellation":
 { Args: { "p_document": string,"p_reason": string }; Returns: undefined
                            },
+"request_dfe_by_key":
+{ Args: { "p_key": string }; Returns: undefined
+                           },
 "request_dfe_sync":
 { Args: Record<PropertyKey, never>; Returns: number
                            },

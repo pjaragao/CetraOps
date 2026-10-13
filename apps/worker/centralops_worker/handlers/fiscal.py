@@ -136,6 +136,11 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
             raise RetryLater(600, "SEFAZ direta desativada")
         await fiscal_direct.void_number(deps, conn, p)
         return
+    if p.get("action") == "DFE_KEY":
+        conn = await fiscal_direct.connection(deps, p["org_id"])
+        if conn is not None:
+            await fiscal_direct.dfe_by_key(deps, conn, p)
+        return
     if p.get("action") in ("DFE_SYNC", "DFE_MANIFEST"):
         conn = await fiscal_direct.connection(deps, p["org_id"])
         if conn is not None:                                            # direto no Ambiente Nacional com o certificado

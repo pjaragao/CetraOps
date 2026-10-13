@@ -6,7 +6,7 @@ import { str, type SP } from "@/lib/context";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Badge, Button, Card, Empty, PageHeader, Table, inputClass } from "@/components/ui";
 import { Flash, fmtDate } from "@/components/form";
-import { manifestAction, syncDfeAction } from "./actions";
+import { fetchDfeByKeyAction, manifestAction, syncDfeAction } from "./actions";
 import { InboundReceiveButton } from "./receive-inbound-dialog";
 
 export const metadata = { title: "Notas recebidas" };
@@ -52,6 +52,15 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
           A busca roda sozinha a cada 2 horas{lastRun ? ` (última: ${new Date(lastRun).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })})` : ""}.
           A manifestação do destinatário tem efeito legal e é sempre decidida por uma pessoa: <b>ciência</b> libera o XML; <b>confirmar</b> reconhece a compra; <b>desconhecer</b> ou <b>não realizada</b> exigem justificativa (15 a 255 caracteres).
         </p>
+        {canWrite && (
+          <form action={fetchDfeByKeyAction} className="mb-3 flex flex-wrap items-end gap-2">
+            <label className="min-w-0 flex-1 text-xs text-muted">Buscar uma nota pela chave de acesso (44 dígitos do DANFE)
+              <input name="key" required inputMode="numeric" maxLength={60} placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000" className={`${inputClass} mt-1 font-mono`} />
+            </label>
+            <Button variant="secondary" className="px-3 py-2 text-xs">Buscar pela chave</Button>
+            <span className="w-full text-[11px] text-muted">A busca automática só traz notas emitidas depois do primeiro uso (regra da SEFAZ, sem notas retroativas). Para uma nota anterior, use a chave. Limite da SEFAZ: 20 consultas por hora.</span>
+          </form>
+        )}
         {syncError && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">A última busca falhou: {syncError}</p>}
         {(dfe ?? []).length === 0 ? <p className="text-sm text-muted">Nada por aqui ainda. Conecte a SEFAZ direta (certificado A1), o Focus NFe ou a Brasil NFe em Configurações › Integrações e use “Buscar agora”. Pela SEFAZ direta, a busca respeita a espera de 1 hora exigida quando não há nota nova.</p> : (
           <Table head={["Emissão", "Fornecedor", "Valor", "Manifestação", "Entrada no Estoque", canWrite ? "Manifestar" : ""]}>

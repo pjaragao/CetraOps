@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from .. import queues
 from ..adapters.errors import PermanentError as ProviderPermanent
 from ..db import call_fn, fetch_all, fetch_one
 from ..deps import Deps
@@ -27,6 +28,7 @@ PRODUCTION = ("producao", "production")
 PARALYZED = {"108", "109"}
 DFE_WAIT = timedelta(hours=1)               # NT 2014.002: sem documento novo (137) ou ultNSU = maxNSU, nova consulta só depois de 1 hora
 DFE_MAX_PAGES = 20
+XML_RETRY_DELAYS = (300, 900, 3600, 3 * 3600)   # depois da manifestação o Ambiente Nacional leva um tempo para liberar a NF-e completa
 
 
 class DirectConfigError(ProviderPermanent):
@@ -317,6 +319,17 @@ async def dfe_sync(deps: Deps, conn: dict[str, Any], org_id: str) -> None:
         await deps.notify(org_id, "INTEGRATION_ERROR", f"Busca de notas recebidas na SEFAZ: {error}", {"legal_entity_id": ctx.entity_id}, perm="fiscal.write")
 
 
+async def _company_name(deps: Deps, cnpj: str) -> str | None:
+    """Razão social pública do CNPJ (BrasilAPI), para a nota que entrou só pela chave ter o nome do fornecedor."""
+    try:
+        r = await deps.http.get(f"https://brasilapi.com.br/api/cnpj/v1/{cnpj}", timeout=8)
+        if r.status_code != 200:
+            return None
+        return str(r.json().get("razao_social") or "").strip() or None
+    except Exception:  # noqa: BLE001 — só um enfeite: sem nome a nota segue com o CNPJ
+        return None
+
+
 async def dfe_by_key(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> None:
     """Uma nota recebida pela chave (consChNFe): resumo, ou a NF-e completa se a manifestação já foi feita."""
     ctx = await context(deps, conn, p["org_id"])
@@ -336,7 +349,8 @@ async def dfe_by_key(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> Non
     if res.cstat == "137":
         # Nota anterior ao primeiro uso do serviço: a SEFAZ não gera NSU retroativo nem para a consulta pela chave (NT 2014.002, 3.4).
         # A nota entra na lista só com a chave; a Ciência da Operação (decisão da pessoa) faz o Ambiente Nacional liberar a NF-e completa.
-        await call_fn(deps.pool, "fiscal.dfe_upsert", p["org_id"], ctx.entity_id, [{"access_key": key, "issuer_cnpj": key[6:20]}])
+        await call_fn(deps.pool, "fiscal.dfe_upsert", p["org_id"], ctx.entity_id,
+                      [{"access_key": key, "issuer_cnpj": key[6:20], "issuer_name": await _company_name(deps, key[6:20])}])
         row = await fetch_one(deps.pool, "select id, xml_downloaded from fiscal.inbound_dfe where org_id = %s and access_key = %s", (p["org_id"], key))
         if row and not row["xml_downloaded"]:
             await call_fn(deps.pool, "fiscal.dfe_mark", row["id"], None, "Nota anterior ao primeiro uso da busca: a SEFAZ só libera o conteúdo depois da Ciência da Operação", None)
@@ -378,6 +392,37 @@ async def dfe_manifest(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> N
             except (SefazNetworkError, ProviderPermanent) as e:
                 log.info("XML da nota %s ainda indisponível: %s", key, e)       # chega depois pela varredura (distNSU)
     await call_fn(deps.pool, "fiscal.dfe_mark", d["id"], kind, None, xml)
+    if xml is None and kind in ("CIENCIA", "CONFIRMADA"):
+        await queues.send(deps.pool, "fiscal_emission", {"action": "DFE_XML", "org_id": p["org_id"], "dfe_id": str(d["id"]), "attempt": 1}, XML_RETRY_DELAYS[0])
+
+
+async def dfe_fetch_xml(deps: Deps, conn: dict[str, Any], p: dict[str, Any]) -> None:
+    """Tenta de novo baixar a NF-e completa de uma nota já manifestada (o XML também chega pela varredura por NSU)."""
+    d = await fetch_one(deps.pool, "select id, legal_entity_id, access_key, manifest_status, xml_downloaded from fiscal.inbound_dfe where id = %s and org_id = %s",
+                        (p["dfe_id"], p["org_id"]))
+    if d is None or d["xml_downloaded"] or d["manifest_status"] not in ("CIENCIA", "CONFIRMADA"):
+        return
+    ctx = await context(deps, conn, p["org_id"], str(d["legal_entity_id"]))
+    key = str(d["access_key"])
+    async with ctx.client() as client:
+        try:
+            res = await client.distribution(ctx.emitter.cnpj, key=key)
+        except SefazNetworkError as e:
+            raise RetryLater(int(e.retry_after or 300), str(e)) from e
+    full = next((doc for doc in res.docs if doc["schema"].startswith("procNFe")), None)
+    parsed = parse_dfe_doc(full) if full else None
+    if parsed and full:
+        await call_fn(deps.pool, "fiscal.dfe_upsert", p["org_id"], str(d["legal_entity_id"]), [{k: v for k, v in parsed.items() if k not in ("xml", "cancelled", "nsu")}])
+        await call_fn(deps.pool, "fiscal.dfe_attach_xml", p["org_id"], key, full["xml"])
+        await call_fn(deps.pool, "fiscal.dfe_mark", d["id"], None, None, None)
+        return
+    attempt = int(p.get("attempt") or 1)
+    log.info("XML da nota %s ainda não liberado (tentativa %s): %s %s", key, attempt, res.cstat, res.xmotivo)
+    if attempt < len(XML_RETRY_DELAYS):
+        await queues.send(deps.pool, "fiscal_emission", {**p, "attempt": attempt + 1}, XML_RETRY_DELAYS[attempt])
+        return
+    await call_fn(deps.pool, "fiscal.dfe_mark", d["id"], None, f"A SEFAZ ainda não liberou o XML ({res.cstat} {res.xmotivo}). Ele pode chegar na busca automática; "
+                  "se precisar já, peça o XML ao fornecedor e importe em Produtos › Recebimento", None)
 
 
 # ---------------------------------------------------------------------- teste da integração

@@ -283,6 +283,34 @@ async def test_key_before_first_use_enters_list_for_ciencia(pool: Any, deps: Any
     assert row and row["issuer_cnpj"] == "60978916000142" and row["manifest_status"] == "PENDING" and "Ciência" in row["last_error"]
 
 
+async def test_xml_after_manifest_is_retried_until_released(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
+    key = "42261099888777000166550010000004561000004561"
+    await call_fn(pool, "fiscal.dfe_upsert", ORG, LEGAL_ENTITY, [{"access_key": key, "issuer_cnpj": "99888777000166"}])
+    d = await fetch_one(pool, "update fiscal.inbound_dfe set manifest_status = 'CONFIRMADA' where access_key = %s returning id", (key,))
+    sefaz.dist = ["137"]                                                           # ainda não liberado: agenda nova tentativa
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 10, 1, {"action": "DFE_XML", "org_id": ORG, "dfe_id": str(d["id"]), "attempt": 1}))
+    queued = await fetch_one(pool, "select message from pgmq.q_fiscal_emission where message->>'action' = 'DFE_XML' order by msg_id desc limit 1")
+    assert queued and queued["message"]["attempt"] == 2
+    proc = (f'<nfeProc xmlns="{NFE}" versao="4.00"><NFe><infNFe Id="NFe{key}" versao="4.00"><emit><CNPJ>99888777000166</CNPJ><xNome>FORNECEDOR XML</xNome></emit>'
+            f'<total><ICMSTot><vNF>3372.00</vNF></ICMSTot></total></infNFe></NFe><protNFe versao="4.00"><infProt><chNFe>{key}</chNFe></infProt></protNFe></nfeProc>')
+    orig = sefaz.__call__
+
+    def with_proc(req: httpx.Request) -> httpx.Response:
+        if b"distDFeInt" in req.content:
+            z = base64.b64encode(gzip.compress(proc.encode())).decode()
+            return _soap(f'<retDistDFeInt xmlns="{NFE}" versao="1.01"><tpAmb>1</tpAmb><verAplic>1</verAplic><cStat>138</cStat><xMotivo>ok</xMotivo><dhResp>2026-10-13T15:00:00-03:00</dhResp>'
+                         f'<ultNSU>000000000000000</ultNSU><maxNSU>000000000000000</maxNSU><loteDistDFeInt><docZip NSU="000000000000001" schema="procNFe_v4.00.xsd">{z}</docZip></loteDistDFeInt></retDistDFeInt>')
+        return orig(req)
+
+    def client(self: fiscal_direct.DirectCtx, tp_amb: int | None = None) -> SefazClient:
+        return SefazClient(self.cert, self.emitter.uf, tp_amb or self.tp_amb, transport=httpx.MockTransport(with_proc))
+
+    fiscal_direct.DirectCtx.client = client  # type: ignore[method-assign]
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 11, 1, {"action": "DFE_XML", "org_id": ORG, "dfe_id": str(d["id"]), "attempt": 2}))
+    row = await fetch_one(pool, "select xml_downloaded, issuer_name, amount, last_error from fiscal.inbound_dfe where id = %s", (d["id"],))
+    assert row["xml_downloaded"] and row["issuer_name"] == "FORNECEDOR XML" and float(row["amount"]) == 3372.0 and row["last_error"] is None
+
+
 async def test_integration_check_reports_certificate_and_service(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
     await integrations.handle(deps, queues.QueueMessage("integration_checks", 6, 1, {"connection_id": direct["conn_id"], "org_id": ORG, "action": "CHECK"}))
     c = await fetch_one(pool, "select status, config, last_error from core.integration_connections where id = %s", (direct["conn_id"],))

@@ -11,6 +11,8 @@ import { InboundReceiveButton } from "./receive-inbound-dialog";
 
 export const metadata = { title: "Notas recebidas" };
 
+const fmtDoc = (v: string | null) => (v ?? "").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5").replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+
 const MANIFEST: Record<string, { label: string; tone: "neutral" | "success" | "warning" | "danger" }> = {
   PENDING: { label: "sem manifestação", tone: "warning" }, CIENCIA: { label: "ciência", tone: "neutral" }, CONFIRMADA: { label: "confirmada", tone: "success" },
   DESCONHECIDA: { label: "desconhecida", tone: "danger" }, NAO_REALIZADA: { label: "não realizada", tone: "danger" },
@@ -73,12 +75,12 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
               return (
                 <tr key={d.id}>
                   <td className="px-3 py-2 whitespace-nowrap">{d.issue_at ? fmtDate(d.issue_at.slice(0, 10)) : "—"}</td>
-                  <td className="px-3 py-2">{d.issuer_name ?? "—"}<span className="block text-[11px] text-muted">{d.issuer_cnpj}</span></td>
+                  <td className="px-3 py-2">{d.issuer_name ?? "—"}<span className="block text-[11px] text-muted">{fmtDoc(d.issuer_cnpj)}</span></td>
                   <td className="px-3 py-2 font-medium">{formatBRL(Number(d.amount ?? 0))}</td>
                   <td className="px-3 py-2">
                     <Badge tone={m.tone}>{m.label}</Badge>
                     {d.manifest_requested && d.manifest_requested !== d.manifest_status && !d.last_error && <span className="ml-1 text-[11px] text-muted">enviando…</span>}
-                    {d.last_error && <span className="block text-[11px] text-danger">{d.last_error}</span>}
+                    {d.last_error && !d.xml_downloaded && <span className="block text-[11px] text-danger">{d.last_error}</span>}
                   </td>
                   <td className="px-3 py-2">
                     {matchedReceipt ? (
@@ -108,7 +110,12 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                         </a>
                       </div>
                     ) : (
-                      <span className="text-xs text-muted">{d.manifest_status === "PENDING" ? "dê ciência" : "aguardando SEFAZ"}</span>
+                      d.manifest_status === "PENDING" ? <span className="text-xs text-muted">dê ciência para liberar o XML</span> : (
+                        <span className="text-xs text-muted">
+                          aguardando a SEFAZ liberar o XML (o sistema tenta de novo sozinho).
+                          {canPurch && <> Com pressa? Peça o XML ao fornecedor e <Link className="text-brand" href="/produtos/recebimento">importe no Recebimento</Link>.</>}
+                        </span>
+                      )
                     )}
                   </td>
                   <td className="px-3 py-2">

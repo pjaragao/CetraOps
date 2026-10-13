@@ -12,26 +12,25 @@ export interface CatalogRow {
   id: string; reference: string; name: string; gender: string;
   categoryId: string; category: string; collectionId: string; collection: string;
   colors: number; variants: number; priceMin: number | null; priceMax: number | null; stock: number;
-  backorder: boolean; site: "live" | "off" | null; ncm: string | null; photo: string | null;
+  backorder: boolean; site: "live" | "off" | null; photo: string | null;
 }
 export interface CatalogFilters { q: string; genero: string; categoria: string; colecao: string; estoque: string }
 
 const GENDER: Record<string, string> = { FEM: "Feminina", MASC: "Masculina", UNISSEX: "Unissex" };
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-type SortKey = "reference" | "name" | "gender" | "category" | "collection" | "variants" | "price" | "stock" | "backorder" | "site" | "ncm";
+type SortKey = "reference" | "name" | "gender" | "category" | "collection" | "variants" | "price" | "stock" | "backorder" | "site";
 const COLUMNS: { key: SortKey; label: string; get: (r: CatalogRow) => string | number }[] = [
   { key: "reference", label: "Referência", get: (r) => r.reference },
   { key: "name", label: "Produto", get: (r) => r.name },
   { key: "gender", label: "Linha", get: (r) => GENDER[r.gender] ?? r.gender },
   { key: "category", label: "Categoria", get: (r) => r.category },
   { key: "collection", label: "Coleção", get: (r) => r.collection },
-  { key: "variants", label: "Cores · variantes", get: (r) => r.variants },
+  { key: "variants", label: "Cores · var.", get: (r) => r.variants },
   { key: "price", label: "Preço", get: (r) => r.priceMin ?? -1 },
   { key: "stock", label: "Estoque", get: (r) => r.stock },
   { key: "backorder", label: "Encomenda", get: (r) => (r.backorder ? 1 : 0) },
   { key: "site", label: "Site", get: (r) => (r.site === "live" ? 2 : r.site === "off" ? 1 : 0) },
-  { key: "ncm", label: "NCM", get: (r) => r.ncm ?? "" },
 ];
 
 type Filters = CatalogFilters & { encomenda: string; site: string };
@@ -155,16 +154,16 @@ export function CatalogTable({ rows, categories, collections, initial, canWrite 
           <thead className="bg-surface-2 text-left text-xs text-muted">
             <tr>
               {canWrite && (
-                <th className="w-10 px-3 py-2">
+                <th className="w-8 px-2 py-2">
                   <input type="checkbox" checked={allChosen} onChange={toggleAll} disabled={visible.length === 0} aria-label="Marcar todos os produtos da lista"
                     ref={(el) => { if (el) el.indeterminate = chosen.length > 0 && !allChosen; }} />
                 </th>
               )}
-              <th className="px-3 py-2"><span className="sr-only">Foto</span></th>
+              <th className="px-2 py-2"><span className="sr-only">Foto</span></th>
               {COLUMNS.map((c) => {
                 const on = sort?.key === c.key;
                 return (
-                  <th key={c.key} className="whitespace-nowrap px-3 py-2 font-medium" aria-sort={on ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}>
+                  <th key={c.key} className="whitespace-nowrap px-2 py-2 font-medium" aria-sort={on ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}>
                     <button type="button" onClick={() => toggleSort(c.key)} className={cn("inline-flex items-center gap-1 hover:text-text", on && "text-text")}>
                       {c.label}{on ? (sort!.dir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-40" />}
                     </button>
@@ -179,34 +178,34 @@ export function CatalogTable({ rows, categories, collections, initial, canWrite 
               return (
                 <tr key={r.id} className={cn(on && "bg-brand/5")}>
                   {canWrite && (
-                    <td className="w-10 px-3 py-2">
+                    <td className="w-8 px-2 py-2">
                       <input type="checkbox" checked={on} onChange={() => {}} onClick={(e) => toggleRow(idx, e.shiftKey)} aria-label={`Marcar ${r.name}`} />
                     </td>
                   )}
-                  <td className="min-w-[104px] px-3 py-2">
+                  <td className="w-[88px] min-w-[88px] px-2 py-2">
                     <Link href={`/produtos/${r.id}`} className="block h-24 w-[72px] overflow-hidden rounded-lg bg-surface-2" aria-label={`Abrir ${r.name}`}>
                       {r.photo && <Image src={r.photo} alt="" width={72} height={96} unoptimized className="h-full w-full object-cover" />}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs">{r.reference}</td>
-                  <td className="min-w-[160px] px-3 py-2 font-medium"><Link href={`/produtos/${r.id}`} className="hover:underline">{r.name}</Link></td>
-                  <td className="px-3 py-2">{GENDER[r.gender] ?? r.gender}</td>
-                  <td className="px-3 py-2">{r.category || "—"}</td>
-                  <td className="px-3 py-2">{r.collection || "—"}</td>
-                  <td className="whitespace-nowrap px-3 py-2 tabular-nums">{r.colors} {r.colors === 1 ? "cor" : "cores"} · {r.variants}</td>
-                  <td className="whitespace-nowrap px-3 py-2">
+                  <td className="px-2 py-2 font-mono text-xs">{r.reference}</td>
+                  <td className="min-w-[140px] px-2 py-2 font-medium"><Link href={`/produtos/${r.id}`} className="hover:underline">{r.name}</Link></td>
+                  <td className="px-2 py-2">{GENDER[r.gender] ?? r.gender}</td>
+                  <td className="px-2 py-2">{r.category || "—"}</td>
+                  <td className="px-2 py-2">{r.collection || "—"}</td>
+                  <td className="whitespace-nowrap px-2 py-2 tabular-nums">{r.colors} {r.colors === 1 ? "cor" : "cores"} · {r.variants}</td>
+                  <td className="px-2 py-2">
                     {r.priceMin === null ? <span className="text-danger">sem preço</span>
-                      : r.priceMin === r.priceMax ? formatBRL(r.priceMin) : `${formatBRL(r.priceMin)} – ${formatBRL(r.priceMax ?? r.priceMin)}`}
+                      : r.priceMin === r.priceMax ? <span className="whitespace-nowrap">{formatBRL(r.priceMin)}</span>
+                        : <><span className="whitespace-nowrap">{formatBRL(r.priceMin)}</span> – <span className="whitespace-nowrap">{formatBRL(r.priceMax ?? r.priceMin)}</span></>}
                   </td>
-                  <td className="px-3 py-2 tabular-nums">{r.stock}</td>
-                  <td className="px-3 py-2">{r.backorder ? <Badge tone="success">aceita</Badge> : <span className="text-muted">não</span>}</td>
-                  <td className="px-3 py-2">{r.site ? (r.site === "live" ? <Badge tone="success">no site</Badge> : <Badge tone="neutral">fora do site</Badge>) : "—"}</td>
-                  <td className="px-3 py-2">{r.ncm ?? <span className="text-warning">faltando</span>}</td>
+                  <td className="px-2 py-2 tabular-nums">{r.stock}</td>
+                  <td className="whitespace-nowrap px-2 py-2">{r.backorder ? <Badge tone="success">aceita</Badge> : <span className="text-muted">não</span>}</td>
+                  <td className="whitespace-nowrap px-2 py-2">{r.site ? (r.site === "live" ? <Badge tone="success">no site</Badge> : <Badge tone="neutral">fora do site</Badge>) : "—"}</td>
                 </tr>
               );
             })}
             {visible.length === 0 && (
-              <tr><td colSpan={COLUMNS.length + (canWrite ? 2 : 1)} className="px-3 py-8 text-center text-sm text-muted">
+              <tr><td colSpan={COLUMNS.length + (canWrite ? 2 : 1)} className="px-2 py-8 text-center text-sm text-muted">
                 Nenhum produto com essa busca ou filtro.{filtersOn && <> <button type="button" onClick={() => setF(EMPTY)} className="text-brand hover:underline">Limpar filtros</button></>}
               </td></tr>
             )}

@@ -24,7 +24,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
 
   const [products, { data: cats }, { data: colls }] = await Promise.all([
     fetchAll((a, b) => supabase.schema("catalog").from("products")
-      .select("id, reference_code, name, gender, status, ncm, backorder, category_id, collection_id, categories(name), collections(name)")
+      .select("id, reference_code, name, gender, status, backorder, category_id, collection_id, categories(name), collections(name)")
       .order("name").order("id").range(a, b)),
     supabase.schema("catalog").from("categories").select("id, name").order("name"),
     supabase.schema("catalog").from("collections").select("id, name").order("name"),
@@ -61,12 +61,12 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
       id: p.id, reference: p.reference_code, name: p.name, gender: p.gender,
       categoryId: p.category_id ?? "", category: p.categories?.name ?? "", collectionId: p.collection_id ?? "", collection: p.collections?.name ?? "",
       colors: colors.get(p.id)?.size ?? 0, variants: nVar.get(p.id) ?? 0, priceMin: r?.[0] ?? null, priceMax: r?.[1] ?? null,
-      stock: qty.get(p.id) ?? 0, backorder: p.backorder, site: s ? (s.live ? "live" : "off") : null, ncm: p.ncm, photo: img ? cdnImage(img, 240) : null,
+      stock: qty.get(p.id) ?? 0, backorder: p.backorder, site: s ? (s.live ? "live" : "off") : null, photo: img ? cdnImage(img, 240) : null,
     };
   });
 
   return (
-    <>
+    <div data-wide>
       <PageHeader title="Catálogo" description="Modelos com fotos, cores e tamanhos. Os produtos da marca vêm do site oficial (Produtos › Site da marca); peças de outras marcas entram pela planilha."
         actions={<>
           <LinkButton href="/produtos/site">Site da marca</LinkButton>
@@ -78,6 +78,6 @@ export default async function ProdutosPage({ searchParams }: { searchParams: SP 
       ) : (
         <CatalogTable rows={rows} categories={cats ?? []} collections={colls ?? []} initial={initial} canWrite={can(session, "catalog.write")} />
       )}
-    </>
+    </div>
   );
 }

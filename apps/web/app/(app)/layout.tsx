@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             central={can(session, "ai.assistant")}
           />
         </Suspense>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 has-[[data-wide]]:max-w-[120rem] sm:px-6">{children}</main>
       </div>
       <CommandPalette nav={nav} central={can(session, "ai.assistant")} />
       {can(session, "ai.assistant") && <CentralLauncher />}

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
-import { Card, PageHeader } from "@/components/ui";
+import { Card, LinkButton, PageHeader } from "@/components/ui";
 import { CatalogImporter } from "./importer";
 
 export const metadata = { title: "Importar catálogo" };
@@ -13,7 +13,8 @@ export default async function ImportarPage() {
   const { data: locations } = await q;
   return (
     <>
-      <PageHeader title="Importar catálogo" description="Envie ou cole a planilha (CSV do Excel). Reimportar atualiza em vez de duplicar; a quantidade FIXA o saldo do local (não soma)." />
+      <PageHeader title="Importar catálogo" description="Envie ou cole a planilha (CSV do Excel). Reimportar atualiza em vez de duplicar; a quantidade FIXA o saldo do local (não soma)."
+        actions={<LinkButton href="/produtos/importar/pdf" variant="primary">Catálogo da marca (PDF)</LinkButton>} />
       <Card title="Formato (uma linha por variante: referência × cor × tamanho)" className="mb-4">
         <code className="block overflow-x-auto rounded-lg bg-surface-2 p-3 text-xs whitespace-pre">
 {`referencia;nome;genero;categoria;ncm;cor;tamanho;ean;preco;quantidade;custo;marca;colecao

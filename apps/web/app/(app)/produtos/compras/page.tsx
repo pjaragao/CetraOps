@@ -37,6 +37,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: SP }
         actions={<>
           <LinkButton href="/produtos/recebimento">Receber NF-e (XML)</LinkButton>
           <LinkButton href="/produtos/reposicao">Sugestão de reposição</LinkButton>
+          {can(session, "purch.write") && <LinkButton href="/produtos/compras/pdf">Pedido pelo PDF</LinkButton>}
           {can(session, "purch.write") && <LinkButton href="/produtos/compras/novo" variant="primary">Novo pedido</LinkButton>}
         </>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />

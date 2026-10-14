@@ -35,7 +35,7 @@ export async function searchBackorderable(q: string): Promise<BackorderHit[]> {
   return list.map((v, i) => ({ id: v.id, sku: v.sku, label: `${pname.get(v.product_id)} · ${v.color_id ? cname.get(v.color_id) ?? "" : "—"} · ${v.size}`, price: prices[i], available: avail.get(v.id) ?? 0 }));
 }
 
-export interface CostInfo { source: "LAST_COST" | "CATALOG_PRICE" | "ZERO"; cost: number }
+export interface CostInfo { source: "LAST_COST" | "WHOLESALE" | "CATALOG_PRICE" | "ZERO"; cost: number }
 /** De onde virá o custo da peça no pedido de compra (para avisar na hora de adicionar). */
 export async function backorderCost(variantId: string, storeId: string): Promise<CostInfo | null> {
   if (!uuid.safeParse(variantId).success || !uuid.safeParse(storeId).success) return null;

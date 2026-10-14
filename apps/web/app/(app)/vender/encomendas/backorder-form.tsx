@@ -12,6 +12,7 @@ interface Line extends BackorderHit { qty: number; cost: CostInfo | null }
 
 const COST_NOTE: Record<CostInfo["source"], string> = {
   LAST_COST: "custo no pedido de compra: último custo conhecido",
+  WHOLESALE: "custo no pedido de compra: preço de atacado da marca (catálogo/pedido em PDF)",
   CATALOG_PRICE: "sem custo conhecido: entra no pedido de compra pelo preço de catálogo (sem desconto) — confira",
   ZERO: "sem custo e sem preço: entra no pedido de compra com custo zero — ajuste antes de aprovar",
 };
@@ -63,7 +64,7 @@ export function BackorderForm({ storeId }: { storeId: string }) {
           {lines.map((l, i) => (
             <li key={l.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
               <span><span className="font-mono text-xs text-muted">{l.sku}</span> {l.label} {l.available > 0 && <span className="text-xs text-warning">(tem {l.available} na loja: o que couber fica reservado para ela e só o que falta vai ao pedido de compra)</span>}
-                {l.cost && <span className={`block text-xs ${l.cost.source === "LAST_COST" ? "text-muted" : "text-warning"}`}>{COST_NOTE[l.cost.source]}{l.cost.source !== "ZERO" ? ` (${formatBRL(l.cost.cost)})` : ""}</span>}</span>
+                {l.cost && <span className={`block text-xs ${l.cost.source === "LAST_COST" || l.cost.source === "WHOLESALE" ? "text-muted" : "text-warning"}`}>{COST_NOTE[l.cost.source]}{l.cost.source !== "ZERO" ? ` (${formatBRL(l.cost.cost)})` : ""}</span>}</span>
               <span className="flex items-center gap-2"><input type="number" min={1} max={50} value={l.qty} onChange={(e) => setLines((p) => p.map((x, j) => (j === i ? { ...x, qty: Math.max(1, Math.trunc(Number(e.target.value) || 1)) } : x)))} className={`${inputClass} w-16`} aria-label={`Quantidade de ${l.sku}`} />
                 <button type="button" onClick={() => setLines((p) => p.filter((_, j) => j !== i))} className="text-muted hover:text-danger" aria-label={`Remover ${l.sku}`}>×</button></span>
             </li>

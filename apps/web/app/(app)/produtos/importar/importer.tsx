@@ -36,6 +36,7 @@ function parseCsv(text: string): ImportRow[] {
 
 export function CatalogImporter({ locations, canStock }: { locations: { id: string; name: string }[]; canStock: boolean }) {
   const [text, setText] = useState("");
+  const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [result, setResult] = useState<Awaited<ReturnType<typeof importCatalog>> | null>(null);
   const [pending, start] = useTransition();
@@ -48,17 +49,17 @@ export function CatalogImporter({ locations, canStock }: { locations: { id: stri
     setRows((p) => p.map((r) => (r.price === "" && r.cost !== "" ? { ...r, price: String(suggestPrice(Number(r.cost), m)) } : r)));
   };
 
-  const onFile = async (f: File | undefined) => { if (f) { const t = await f.text(); setText(t); setRows(parseCsv(t)); } };
+  const onFile = async (f: File | undefined) => { if (f) { const t = await f.text(); setFileName(f.name); setText(t); setRows(parseCsv(t)); } };
 
   return (
     <div className="space-y-4">
       <Card>
         <input type="file" accept=".csv,.txt,text/csv" onChange={(e) => onFile(e.target.files?.[0])} className="mb-3 text-sm" aria-label="Arquivo CSV" />
-        <textarea value={text} onChange={(e) => { setText(e.target.value); setRows(parseCsv(e.target.value)); }} rows={8}
+        <textarea value={text} onChange={(e) => { setText(e.target.value); setFileName(""); setRows(parseCsv(e.target.value)); }} rows={8}
           placeholder="…ou cole aqui o conteúdo da planilha" className={`${inputClass} font-mono text-xs`} aria-label="Conteúdo CSV" />
       </Card>
       {rows.length > 0 && (
-        <Card title={`Prévia: ${rows.length} linhas`} action={<Button disabled={pending || (hasStock && (!canStock || !location))} onClick={() => start(async () => setResult(await importCatalog(rows, hasStock ? location : undefined)))}>{pending ? "Importando…" : "Importar"}</Button>}>
+        <Card title={`Prévia: ${rows.length} linhas`} action={<Button disabled={pending || (hasStock && (!canStock || !location))} onClick={() => start(async () => setResult(await importCatalog(rows, hasStock ? location : undefined, fileName || "planilha colada")))}>{pending ? "Importando…" : "Importar"}</Button>}>
           {hasStock && (
             <div className="mb-3 flex flex-wrap items-end gap-3 text-sm">
               {canStock ? (

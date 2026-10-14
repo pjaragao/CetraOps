@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
-import { getSession } from "@/lib/session";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;
 export type ActionResult = { ok: boolean; error?: string };
@@ -94,6 +93,13 @@ export async function setReceiptItem(itemId: string, patch: { variant_id?: strin
   return { ok: true };
 }
 
+/** Nota do item, para registrar a origem do que for cadastrado a partir dele ("NF-e 1234"). */
+async function itemDocument(supabase: Awaited<ReturnType<typeof createClient>>, receiptId: string | null): Promise<string> {
+  if (!receiptId) return "NF-e";
+  const { data } = await supabase.schema("purch").from("receipts").select("number").eq("id", receiptId).maybeSingle();
+  return data?.number ? `NF-e ${data.number}` : "NF-e";
+}
+
 const newProductSchema = z.object({
   reference_code: z.string().min(1).max(40), name: z.string().min(2).max(120), gender: z.enum(["FEM", "MASC", "UNISSEX"]),
   color: z.string().min(1).max(40), size: z.string().min(1).max(10), category: z.string().max(60).optional(), price: z.number().positive().optional(),
@@ -104,12 +110,14 @@ export async function createProductFromItem(itemId: string, input: z.input<typeo
   const parsed = newProductSchema.safeParse(input);
   if (!uuid.safeParse(itemId).success || !parsed.success) return { ok: false, error: parsed.success ? "Item inválido" : `Confira os campos: ${parsed.error.issues[0]?.path.join(".")}` };
   const supabase = await createClient();
-  const { data: item } = await supabase.schema("purch").from("receipt_items").select("id, cean, ncm").eq("id", itemId).maybeSingle();
+  const { data: item } = await supabase.schema("purch").from("receipt_items").select("id, receipt_id, cean, ncm").eq("id", itemId).maybeSingle();
   if (!item) return { ok: false, error: "Item não encontrado" };
   const p = parsed.data;
   const gtin = /^\d{8,14}$/.test(item.cean ?? "") ? item.cean : null;
+  const document = await itemDocument(supabase, item.receipt_id);
   const { data, error } = await supabase.schema("catalog").rpc("import_rows", {
-    p: [{ reference_code: p.reference_code, name: p.name, gender: p.gender, category: p.category ?? "", ncm: item.ncm ?? "", color: p.color, size: p.size, gtin: gtin ?? "", price: p.price ?? "" }] as unknown as Json,
+    p: [{ reference_code: p.reference_code, name: p.name, gender: p.gender, category: p.category ?? "", ncm: item.ncm ?? "", color: p.color, size: p.size, gtin: gtin ?? "", price: p.price ?? "",
+          source: "NFE", document }] as unknown as Json,
   });
   if (error) return { ok: false, error: friendly(error.message) };
   const res = data as unknown as { erros: { erro: string }[] };
@@ -134,33 +142,24 @@ const variantSchema = z.object({
 export async function addVariantFromItem(itemId: string, input: z.input<typeof variantSchema>): Promise<ActionResult> {
   const parsed = variantSchema.safeParse(input);
   if (!uuid.safeParse(itemId).success || !parsed.success) return { ok: false, error: parsed.success ? "Item inválido" : `Confira os campos: ${parsed.error.issues[0]?.path.join(".")}` };
-  const s = await getSession();
   const supabase = await createClient();
   const p = parsed.data;
-  const size = p.size.toUpperCase();
-  const [{ data: item }, { data: prod }] = await Promise.all([
-    supabase.schema("purch").from("receipt_items").select("id, cean, ncm").eq("id", itemId).maybeSingle(),
-    supabase.schema("catalog").from("products").select("id, reference_code, ncm").eq("id", p.product_id).maybeSingle(),
+  const [{ data: item }, { data: prod }, { data: color }] = await Promise.all([
+    supabase.schema("purch").from("receipt_items").select("id, receipt_id, cean, ncm").eq("id", itemId).maybeSingle(),
+    supabase.schema("catalog").from("products").select("id").eq("id", p.product_id).maybeSingle(),
+    supabase.schema("catalog").from("colors").select("id").ilike("name", p.color).maybeSingle(),
   ]);
   if (!item || !prod) return { ok: false, error: "Item ou produto não encontrado" };
-
-  let { data: color } = await supabase.schema("catalog").from("colors").select("id, code").ilike("name", p.color).maybeSingle();
-  if (!color) {
-    const code = (p.color_code || p.color.normalize("NFD").replace(/[^a-zA-Z0-9]/g, "").slice(0, 3)).toUpperCase();
-    const { data: created, error } = await supabase.schema("catalog").from("colors").insert({ org_id: s.orgId, name: p.color, code }).select("id, code").single();
-    if (error) return { ok: false, error: `Não foi possível cadastrar a cor: ${friendly(error.message)}` };
-    color = created;
-  }
-  let { data: variant } = await supabase.schema("catalog").from("variants").select("id").eq("product_id", prod.id).eq("color_id", color.id).eq("size", size).maybeSingle();
-  if (!variant) {
-    const gtin = /^\d{8,14}$/.test(item.cean ?? "") && !/^0+$/.test(item.cean ?? "") ? item.cean : null;
-    const sku = (p.sku || `${prod.reference_code}${color.code ?? ""}${size}`).toUpperCase();
-    const { data: created, error } = await supabase.schema("catalog").from("variants")
-      .insert({ org_id: s.orgId, product_id: prod.id, color_id: color.id, size, sku, gtin }).select("id").single();
-    if (error) return { ok: false, error: /duplicate|unique/i.test(error.message) ? `Já existe uma variação com o SKU ${sku} ou o mesmo código de barras: ajuste o SKU` : friendly(error.message) };
-    variant = created;
-  }
-  if (!prod.ncm && /^\d{8}$/.test(item.ncm ?? "")) await supabase.schema("catalog").from("products").update({ ncm: item.ncm }).eq("id", prod.id);
+  // cor existente pelo nome; cor nova entra com o código informado (ou as 3 primeiras letras). Origem: NF-e, com o número da nota.
+  const code = (p.color_code || p.color.normalize("NFD").replace(/[^a-zA-Z0-9]/g, "").slice(0, 3)).toUpperCase();
+  const { data, error } = await supabase.schema("catalog").rpc("apply_brand_items", {
+    p: [{ product_id: prod.id, ...(color ? { color_id: color.id } : { color_name: p.color, color_code: code }), size: p.size, sku: p.sku ?? "",
+          gtin: item.cean ?? "", ncm: item.ncm ?? "", source: "NFE", document: await itemDocument(supabase, item.receipt_id) }] as unknown as Json,
+  });
+  if (error) return { ok: false, error: friendly(error.message) };
+  const res = data as unknown as { items: { variant_id: string }[]; erros: { erro: string }[] };
+  const variant = res.items[0] ? { id: res.items[0].variant_id } : null;
+  if (!variant) return { ok: false, error: res.erros[0]?.erro ? `${res.erros[0].erro}: ajuste o SKU ou a cor` : "Não foi possível criar a variação" };
   return setReceiptItem(itemId, { variant_id: variant.id, learn: true });
 }
 

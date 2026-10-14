@@ -23,12 +23,13 @@ export type ImportRow = z.infer<typeof row>;
 
 type Result = { linhas: number; produtos: number; variantes: number; precos: number; estoque?: number; erros: { linha: number; erro: string }[] } | { error: string };
 
-export async function importCatalog(rows: ImportRow[], locationId?: string): Promise<Result> {
+/** `document`: nome do arquivo, guardado como origem do que for cadastrado (planilha). */
+export async function importCatalog(rows: ImportRow[], locationId?: string, document = ""): Promise<Result> {
   const parsed = z.array(row).max(5000).safeParse(rows);
   if (!parsed.success) return { error: "Planilha inválida: confira o cabeçalho e o tamanho dos campos (máx. 5.000 linhas)." };
   const supabase = await createClient();
   if (locationId !== undefined && !z.string().uuid().safeParse(locationId).success) return { error: "Escolha o local do estoque" };
-  const { data, error } = await supabase.schema("catalog").rpc("import_rows", { p: parsed.data, p_location: locationId });
+  const { data, error } = await supabase.schema("catalog").rpc("import_rows", { p: parsed.data.map((r) => ({ ...r, source: "PLANILHA", document: document.slice(0, 300) })), p_location: locationId });
   if (error) return { error: error.message };
   revalidatePath("/produtos");
   revalidatePath("/vender/pdv");

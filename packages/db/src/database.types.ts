@@ -941,13 +941,13 @@ isOneToOne: false
                   ]
                 },"colors": {
                   Row: {
-                    "code": string | null,"hex": string | null,"id": string,"name": string,"org_id": string
+                    "code": string | null,"hex": string | null,"id": string,"name": string,"org_id": string,"source": string,"source_at": string | null,"source_by": string | null,"source_ref": string | null
                   }
                   Insert: {
-                    "code"?: string | null,"hex"?: string | null,"id"?: string,"name": string,"org_id": string
+                    "code"?: string | null,"hex"?: string | null,"id"?: string,"name": string,"org_id": string,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Update: {
-                    "code"?: string | null,"hex"?: string | null,"id"?: string,"name"?: string,"org_id"?: string
+                    "code"?: string | null,"hex"?: string | null,"id"?: string,"name"?: string,"org_id"?: string,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Relationships: [
                     
@@ -994,13 +994,13 @@ isOneToOne: false
                   ]
                 },"prices": {
                   Row: {
-                    "id": string,"org_id": string,"price": number,"price_list_id": string,"product_id": string | null,"valid_from": string,"valid_to": string | null,"variant_id": string | null
+                    "id": string,"org_id": string,"price": number,"price_list_id": string,"product_id": string | null,"valid_from": string,"valid_to": string | null,"variant_id": string | null,"source": string,"source_at": string | null,"source_by": string | null,"source_ref": string | null
                   }
                   Insert: {
-                    "id"?: string,"org_id": string,"price": number,"price_list_id": string,"product_id"?: string | null,"valid_from"?: string,"valid_to"?: string | null,"variant_id"?: string | null
+                    "id"?: string,"org_id": string,"price": number,"price_list_id": string,"product_id"?: string | null,"valid_from"?: string,"valid_to"?: string | null,"variant_id"?: string | null,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Update: {
-                    "id"?: string,"org_id"?: string,"price"?: number,"price_list_id"?: string,"product_id"?: string | null,"valid_from"?: string,"valid_to"?: string | null,"variant_id"?: string | null
+                    "id"?: string,"org_id"?: string,"price"?: number,"price_list_id"?: string,"product_id"?: string | null,"valid_from"?: string,"valid_to"?: string | null,"variant_id"?: string | null,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Relationships: [
                     {
@@ -1025,13 +1025,13 @@ isOneToOne: false
                   ]
                 },"product_media": {
                   Row: {
-                    "bytes": number | null,"color_id": string | null,"content_hash": string | null,"id": string,"mirror_error": string | null,"mirror_tried_at": string | null,"mirrored_at": string | null,"org_id": string,"position": number,"product_id": string,"source_url": string | null,"storage_path": string
+                    "bytes": number | null,"color_id": string | null,"content_hash": string | null,"id": string,"mirror_error": string | null,"mirror_tried_at": string | null,"mirrored_at": string | null,"org_id": string,"position": number,"product_id": string,"source_url": string | null,"storage_path": string,"source": string,"source_at": string | null,"source_by": string | null,"source_ref": string | null
                   }
                   Insert: {
-                    "bytes"?: number | null,"color_id"?: string | null,"content_hash"?: string | null,"id"?: string,"mirror_error"?: string | null,"mirror_tried_at"?: string | null,"mirrored_at"?: string | null,"org_id": string,"position"?: number,"product_id": string,"source_url"?: string | null,"storage_path": string
+                    "bytes"?: number | null,"color_id"?: string | null,"content_hash"?: string | null,"id"?: string,"mirror_error"?: string | null,"mirror_tried_at"?: string | null,"mirrored_at"?: string | null,"org_id": string,"position"?: number,"product_id": string,"source_url"?: string | null,"storage_path": string,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Update: {
-                    "bytes"?: number | null,"color_id"?: string | null,"content_hash"?: string | null,"id"?: string,"mirror_error"?: string | null,"mirror_tried_at"?: string | null,"mirrored_at"?: string | null,"org_id"?: string,"position"?: number,"product_id"?: string,"source_url"?: string | null,"storage_path"?: string
+                    "bytes"?: number | null,"color_id"?: string | null,"content_hash"?: string | null,"id"?: string,"mirror_error"?: string | null,"mirror_tried_at"?: string | null,"mirrored_at"?: string | null,"org_id"?: string,"position"?: number,"product_id"?: string,"source_url"?: string | null,"storage_path"?: string,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Relationships: [
                     {
@@ -1050,13 +1050,13 @@ isOneToOne: false
                   ]
                 },"products": {
                   Row: {
-                    "activities": (string)[],"assortment_class": Database["catalog"]["Enums"]["assortment_class"],"backorder": boolean,"brand_id": string | null,"care": string | null,"category_id": string | null,"cest": string | null,"collection_id": string | null,"composition": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"description": string | null,"gender": Database["catalog"]["Enums"]["gender"],"id": string,"name": string,"ncm": string | null,"org_id": string,"origin": number,"product_kind": Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id": string | null,"size_grid_id": string | null,"status": Database["catalog"]["Enums"]["product_status"],"updated_at": string,"wholesale_cost": number | null,"wholesale_cost_at": string | null
+                    "activities": (string)[],"assortment_class": Database["catalog"]["Enums"]["assortment_class"],"backorder": boolean,"brand_id": string | null,"care": string | null,"category_id": string | null,"cest": string | null,"collection_id": string | null,"composition": string | null,"created_at": string,"custom_fields": NonNullable<Json>,"description": string | null,"gender": Database["catalog"]["Enums"]["gender"],"id": string,"name": string,"ncm": string | null,"org_id": string,"origin": number,"product_kind": Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id": string | null,"size_grid_id": string | null,"status": Database["catalog"]["Enums"]["product_status"],"updated_at": string,"wholesale_cost": number | null,"wholesale_cost_at": string | null,"source": string,"source_at": string | null,"source_by": string | null,"source_ref": string | null
                   }
                   Insert: {
-                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"backorder"?: boolean,"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender": Database["catalog"]["Enums"]["gender"],"id"?: string,"name": string,"ncm"?: string | null,"org_id": string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string,"wholesale_cost"?: number | null,"wholesale_cost_at"?: string | null
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"backorder"?: boolean,"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender": Database["catalog"]["Enums"]["gender"],"id"?: string,"name": string,"ncm"?: string | null,"org_id": string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code": string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string,"wholesale_cost"?: number | null,"wholesale_cost_at"?: string | null,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Update: {
-                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"backorder"?: boolean,"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender"?: Database["catalog"]["Enums"]["gender"],"id"?: string,"name"?: string,"ncm"?: string | null,"org_id"?: string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code"?: string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string,"wholesale_cost"?: number | null,"wholesale_cost_at"?: string | null
+                    "activities"?: (string)[],"assortment_class"?: Database["catalog"]["Enums"]["assortment_class"],"backorder"?: boolean,"brand_id"?: string | null,"care"?: string | null,"category_id"?: string | null,"cest"?: string | null,"collection_id"?: string | null,"composition"?: string | null,"created_at"?: string,"custom_fields"?: NonNullable<Json>,"description"?: string | null,"gender"?: Database["catalog"]["Enums"]["gender"],"id"?: string,"name"?: string,"ncm"?: string | null,"org_id"?: string,"origin"?: number,"product_kind"?: Database["catalog"]["Enums"]["product_kind"],"reference_code"?: string,"size_chart_id"?: string | null,"size_grid_id"?: string | null,"status"?: Database["catalog"]["Enums"]["product_status"],"updated_at"?: string,"wholesale_cost"?: number | null,"wholesale_cost_at"?: string | null,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Relationships: [
                     {
@@ -1090,6 +1090,20 @@ isOneToOne: false
       referencedRelation: "size_grids"
       referencedColumns: ["id"]
     }
+                  ]
+                },"source_log": {
+                  Row: {
+                    "action": string,"changes": Json | null,"created_at": string,"entity": string,"entity_id": string,"id": number,"member_id": string | null,"org_id": string,"product_id": string | null,"source": string,"source_ref": string | null
+                  }
+                  Insert: {
+                    "action": string,"changes"?: Json | null,"created_at"?: string,"entity": string,"entity_id": string,"id"?: never,"member_id"?: string | null,"org_id": string,"product_id"?: string | null,"source": string,"source_ref"?: string | null
+                  }
+                  Update: {
+                    "action"?: string,"changes"?: Json | null,"created_at"?: string,"entity"?: string,"entity_id"?: string,"id"?: never,"member_id"?: string | null,"org_id"?: string,"product_id"?: string | null,"source"?: string,"source_ref"?: string | null
+                  }
+                  Relationships: [
+                    
+                    
                   ]
                 },"site_items": {
                   Row: {
@@ -1179,13 +1193,13 @@ isOneToOne: false
                   ]
                 },"variants": {
                   Row: {
-                    "active": boolean,"color_id": string | null,"created_at": string,"gtin": string | null,"id": string,"org_id": string,"product_id": string,"size": string,"sku": string,"supplier_sku": string | null,"updated_at": string
+                    "active": boolean,"color_id": string | null,"created_at": string,"gtin": string | null,"id": string,"org_id": string,"product_id": string,"size": string,"sku": string,"supplier_sku": string | null,"updated_at": string,"source": string,"source_at": string | null,"source_by": string | null,"source_ref": string | null
                   }
                   Insert: {
-                    "active"?: boolean,"color_id"?: string | null,"created_at"?: string,"gtin"?: string | null,"id"?: string,"org_id": string,"product_id": string,"size": string,"sku": string,"supplier_sku"?: string | null,"updated_at"?: string
+                    "active"?: boolean,"color_id"?: string | null,"created_at"?: string,"gtin"?: string | null,"id"?: string,"org_id": string,"product_id": string,"size": string,"sku": string,"supplier_sku"?: string | null,"updated_at"?: string,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"color_id"?: string | null,"created_at"?: string,"gtin"?: string | null,"id"?: string,"org_id"?: string,"product_id"?: string,"size"?: string,"sku"?: string,"supplier_sku"?: string | null,"updated_at"?: string
+                    "active"?: boolean,"color_id"?: string | null,"created_at"?: string,"gtin"?: string | null,"id"?: string,"org_id"?: string,"product_id"?: string,"size"?: string,"sku"?: string,"supplier_sku"?: string | null,"updated_at"?: string,"source"?: string,"source_at"?: string | null,"source_by"?: string | null,"source_ref"?: string | null
                   }
                   Relationships: [
                     {
@@ -1216,6 +1230,9 @@ isOneToOne: false
                            },
 "finish_site_sync":
 { Args: { "p_error"?: string,"p_org": string,"p_run": number,"p_seen"?: Json,"p_stats": Json,"p_status": string }; Returns: undefined
+                           },
+"add_media":
+{ Args: { "p": Json }; Returns: number
                            },
 "apply_brand_items":
 { Args: { "p": Json }; Returns: Json

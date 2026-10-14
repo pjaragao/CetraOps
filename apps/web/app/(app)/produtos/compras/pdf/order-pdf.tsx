@@ -19,6 +19,7 @@ const STATUS: Record<LineStatus, { label: string; tone: "success" | "info" | "wa
 /** Pedido da marca em PDF → conferência das linhas → cadastro do que falta → editor do pedido de compra já preenchido. */
 export function OrderPdfImport({ opts, canCatalog }: { opts: Opts; canCatalog: boolean }) {
   const [order, setOrder] = useState<OrderPdf | null>(null);
+  const [fileName, setFileName] = useState("");
   const [checks, setChecks] = useState<LineCheck[]>([]);
   const [names, setNames] = useState<Record<string, { name: string; gender: "FEM" | "MASC" | "UNISSEX" }>>({});
   const [initial, setInitial] = useState<PoInitial | null>(null);
@@ -29,7 +30,7 @@ export function OrderPdfImport({ opts, canCatalog }: { opts: Opts; canCatalog: b
 
   const onFile = (f: File | undefined) => {
     if (!f) return;
-    setOrder(null); setChecks([]); setInitial(null); setNotice(null); setError(null);
+    setOrder(null); setChecks([]); setInitial(null); setNotice(null); setError(null); setFileName(f.name);
     start(async () => {
       try {
         setProgress("Lendo o PDF…");
@@ -60,7 +61,8 @@ export function OrderPdfImport({ opts, canCatalog }: { opts: Opts; canCatalog: b
 
   const prepare = () => order && start(async () => {
     setError(null);
-    const res = await prepareOrderItems({ lines: order.lines.map(({ code, model, colorCode, size, color, description, qty, unitCost }) => ({ code, model, colorCode, size, color, description, qty, unitCost })), newProducts: names });
+    const res = await prepareOrderItems({ lines: order.lines.map(({ code, model, colorCode, size, color, description, qty, unitCost }) => ({ code, model, colorCode, size, color, description, qty, unitCost })), newProducts: names,
+      document: [fileName, order.number && `pedido ${order.number}`].filter(Boolean).join(" · ") });
     if ("error" in res) { setError(res.error); return; }
     const created = [res.created.produtos && `${res.created.produtos} produto(s)`, res.created.cores && `${res.created.cores} cor(es)`, res.created.variantes && `${res.created.variantes} variação(ões)`].filter(Boolean).join(", ");
     setNotice({ ok: `${res.items.length} item(ns) no pedido${created ? ` · cadastrado(s): ${created}` : ""}. Escolha o fornecedor e confira antes de salvar.`, errors: res.errors });

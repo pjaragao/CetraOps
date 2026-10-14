@@ -60,6 +60,8 @@ export async function checkOrderLines(input: z.input<typeof lineSchema>[]): Prom
 
 const applySchema = z.object({
   lines: z.array(lineSchema.extend({ qty: z.number().positive().max(100000), unitCost: z.number().min(0).max(1000000) })).min(1).max(2000),
+  /** arquivo e número do pedido: ficam como origem do que for cadastrado */
+  document: z.string().trim().max(300),
   /** nome (e gênero) dos modelos que ainda não existem no catálogo */
   newProducts: z.record(z.string(), z.object({ name: z.string().trim().min(2).max(120), gender: z.enum(["FEM", "MASC", "UNISSEX"]) })),
 });
@@ -72,7 +74,7 @@ export async function prepareOrderItems(input: z.input<typeof applySchema>): Pro
   const parsed = applySchema.safeParse(input);
   if (!parsed.success) return { error: `Confira as linhas: ${parsed.error.issues[0]?.path.join(".")}` };
   const session = await getSession();
-  const { lines, newProducts } = parsed.data;
+  const { lines, newProducts, document } = parsed.data;
   const checks = await checkOrderLines(lines);
   if ("error" in checks) return checks;
 
@@ -88,6 +90,7 @@ export async function prepareOrderItems(input: z.input<typeof applySchema>): Pro
     const supabase = await createClient();
     const payload = toApply.map(({ l }) => ({
       reference: l.model, color_code: l.colorCode, color_name: l.color, size: l.size, supplier_sku: l.code, wholesale_cost: l.unitCost,
+      source: "PDF_PEDIDO", document,
       ...(l.model && newProducts[l.model] ? { name: newProducts[l.model].name, gender: newProducts[l.model].gender } : {}),
     }));
     const { data, error } = await supabase.schema("catalog").rpc("apply_brand_items", { p: payload as unknown as Json });

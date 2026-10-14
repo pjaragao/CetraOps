@@ -9,6 +9,7 @@ import { setBackorderAction } from "../../vender/encomendas/actions";
 import { str, type SP } from "@/lib/context";
 import { Badge, Button, Card, cn, LinkButton, PageHeader, Table } from "@/components/ui";
 import { photoUrl } from "@/lib/photos";
+import { ACTION_LABEL, ENTITY_LABEL, FIELD_LABEL, SOURCE_LABEL, SOURCE_TONE, fmtWhen, showValue } from "@/lib/catalog-source";
 
 export const metadata = { title: "Produto" };
 
@@ -21,15 +22,16 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
   const sp = await searchParams;
   const supabase = await createClient();
   const { data: p } = await supabase.schema("catalog").from("products")
-    .select("id, reference_code, name, description, composition, care, gender, status, ncm, custom_fields, size_chart_id, backorder, brands(name), categories(name), collections(name)")
+    .select("id, reference_code, name, description, composition, care, gender, status, ncm, custom_fields, size_chart_id, backorder, wholesale_cost, wholesale_cost_at, source, source_ref, source_by, source_at, brands(name), categories(name), collections(name)")
     .eq("id", id).maybeSingle();
   if (!p) notFound();
-  const [{ data: variants }, { data: media }, { data: site }, { data: chart }, { data: changes }] = await Promise.all([
-    supabase.schema("catalog").from("variants").select("id, sku, size, color_id, gtin, active").eq("product_id", id),
+  const [{ data: variants }, { data: media }, { data: site }, { data: chart }, { data: changes }, { data: history }] = await Promise.all([
+    supabase.schema("catalog").from("variants").select("id, sku, size, color_id, gtin, active, source, source_ref, source_by, source_at").eq("product_id", id),
     supabase.schema("catalog").from("product_media").select("color_id, storage_path, position").eq("product_id", id).order("position"),
     supabase.schema("catalog").from("site_items").select("color_id, url, available, removed_at, compare_at_price, tags, collections").eq("product_id", id),
     p.size_chart_id ? supabase.schema("catalog").from("size_charts").select("name, measurements").eq("id", p.size_chart_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.schema("catalog").from("price_changes").select("variant_id, old_price, new_price, changed_at, in_stock").eq("product_id", id).order("changed_at", { ascending: false }).limit(50),
+    supabase.schema("catalog").from("source_log").select("id, entity, entity_id, action, source, source_ref, member_id, changes, created_at").eq("product_id", id).order("created_at", { ascending: false }).limit(80),
   ]);
   const vids = (variants ?? []).map((v) => v.id);
   const [{ data: colors }, { data: stock }, prices] = await Promise.all([
@@ -49,6 +51,16 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
   const chartHtml = (chart?.measurements as { html?: string } | null)?.html;
   const sorted = [...(variants ?? [])].sort((a, b) => (cname.get(a.color_id ?? "") ?? "").localeCompare(cname.get(b.color_id ?? "") ?? "") || SIZE_ORDER.indexOf(a.size) - SIZE_ORDER.indexOf(b.size));
   const sku = new Map((variants ?? []).map((v) => [v.id, v.sku]));
+  // quem gravou (origem do produto, das variações e do histórico)
+  const memberIds = [...new Set([p.source_by, ...(variants ?? []).map((v) => v.source_by), ...(history ?? []).map((h) => h.member_id)].filter(Boolean) as string[])];
+  const { data: memberRows } = memberIds.length ? await supabase.schema("core").from("members").select("id, display_name").in("id", memberIds) : { data: [] as { id: string; display_name: string }[] };
+  const members = new Map((memberRows ?? []).map((m) => [m.id, m.display_name]));
+  const histLabel = (h: { entity: string; entity_id: string; changes: unknown }) => {
+    const c = (h.changes ?? {}) as Record<string, unknown>;
+    if (h.entity === "VARIANT") return sku.get(h.entity_id) ?? String(c.sku ?? "");
+    if (h.entity === "PRICE") return typeof c.price === "number" || typeof c.price === "string" ? formatBRL(Number(c.price)) : "";
+    return "";
+  };
 
   return (
     <>
@@ -63,6 +75,8 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
         <span>Encomenda: {p.backorder ? <Badge tone="success">aceita encomenda</Badge> : <Badge tone="neutral">não aceita</Badge>}</span>
         <span className="text-xs text-muted">Com encomenda liberada, a cliente pode pedir cor e tamanho que não estão na loja (Vender › Encomendas).</span>
+        <span className="text-xs">Origem: <Badge tone={SOURCE_TONE[p.source] ?? "neutral"}>{SOURCE_LABEL[p.source] ?? p.source}</Badge>{" "}
+          <span className="text-muted">{[p.source_at ? fmtWhen(p.source_at) : null, p.source_by ? members.get(p.source_by) : null, p.source_ref].filter(Boolean).join(" · ")}</span></span>
         {can(session, "catalog.write") && (
           <form action={setBackorderAction} className="ml-auto"><input type="hidden" name="product_ids" value={p.id} /><input type="hidden" name="enabled" value={p.backorder ? "0" : "1"} /><input type="hidden" name="back" value={`/produtos/${p.id}`} />
             <Button variant="secondary">{p.backorder ? "Desligar encomenda" : "Liberar encomenda"}</Button></form>
@@ -102,6 +116,7 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
               <div><dt className="text-xs text-muted">Composição</dt><dd>{p.composition ?? "—"}</dd></div>
               <div><dt className="text-xs text-muted">Cuidados</dt><dd>{p.care ?? "—"}</dd></div>
               {fit && <div><dt className="text-xs text-muted">Modelagem</dt><dd>{fit}</dd></div>}
+              {p.wholesale_cost != null && <div><dt className="text-xs text-muted">Preço de atacado da marca</dt><dd>{formatBRL(p.wholesale_cost)} <span className="text-xs text-muted">em {fmtWhen(p.wholesale_cost_at)}</span></dd></div>}
               <div><dt className="text-xs text-muted">NCM</dt><dd>{p.ncm ?? <span className="text-warning">faltando (cadastre para a NFC-e)</span>}</dd></div>
             </dl>
           </Card>
@@ -116,7 +131,7 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
       </div>
 
       <h2 className="mb-2 mt-6 text-sm font-semibold text-muted">Variantes</h2>
-      <Table head={["Cor", "Tamanho", "SKU", "EAN", "Preço", "Disponível na loja", "Fora da loja"]}>
+      <Table head={["Cor", "Tamanho", "SKU", "EAN", "Preço", "Disponível na loja", "Fora da loja", "Origem"]}>
         {sorted.map((v) => (
           <tr key={v.id} className={v.active ? "" : "opacity-50"}>
             <td className="px-3 py-2">{cname.get(v.color_id ?? "") ?? "—"}</td>
@@ -126,6 +141,8 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
             <td className="px-3 py-2">{price.get(v.id) != null ? formatBRL(price.get(v.id)!) : <span className="text-danger">sem preço</span>}</td>
             <td className="px-3 py-2 tabular-nums">{avail.get(v.id) ?? 0}</td>
             <td className="px-3 py-2 tabular-nums">{out.get(v.id) || ""}</td>
+            <td className="px-3 py-2 text-xs" title={v.source_ref ?? undefined}><Badge tone={SOURCE_TONE[v.source] ?? "neutral"}>{SOURCE_LABEL[v.source] ?? v.source}</Badge>
+              <span className="block text-muted">{[v.source_at ? fmtWhen(v.source_at) : null, v.source_by ? members.get(v.source_by) : null].filter(Boolean).join(" · ")}</span></td>
           </tr>
         ))}
       </Table>
@@ -143,6 +160,30 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
                 <td className="px-3 py-2 tabular-nums">{Number(c.in_stock)}</td>
               </tr>
             ))}
+          </Table>
+        </>
+      )}
+
+      {(history ?? []).length > 0 && (
+        <>
+          <h2 className="mb-2 mt-6 text-sm font-semibold text-muted">Origem e histórico do cadastro</h2>
+          <Table head={["Data", "O quê", "Origem", "Documento", "Usuário", "Mudanças"]}>
+            {(history ?? []).map((h) => {
+              const c = (h.changes ?? {}) as Record<string, unknown>;
+              const diff = h.action === "UPDATE"
+                ? Object.entries(c).map(([k, v]) => { const d = v as { de?: unknown; para?: unknown }; return `${FIELD_LABEL[k] ?? k}: ${showValue(d?.de)} → ${showValue(d?.para)}`; })
+                : [];
+              return (
+                <tr key={h.id}>
+                  <td className="px-3 py-2 whitespace-nowrap">{fmtWhen(h.created_at)}</td>
+                  <td className="px-3 py-2">{ENTITY_LABEL[h.entity] ?? h.entity} {ACTION_LABEL[h.action] ?? h.action} <span className="font-mono text-xs">{histLabel(h)}</span></td>
+                  <td className="px-3 py-2"><Badge tone={SOURCE_TONE[h.source] ?? "neutral"}>{SOURCE_LABEL[h.source] ?? h.source}</Badge></td>
+                  <td className="px-3 py-2 text-xs">{h.source_ref?.startsWith("http") ? <a href={h.source_ref} target="_blank" rel="noreferrer" className="text-brand">link no site</a> : h.source_ref ?? "—"}</td>
+                  <td className="px-3 py-2 text-xs">{h.member_id ? members.get(h.member_id) ?? "usuário" : <span className="text-muted">automático</span>}</td>
+                  <td className="px-3 py-2 text-xs">{diff.length ? diff.join(" · ") : "—"}</td>
+                </tr>
+              );
+            })}
           </Table>
         </>
       )}

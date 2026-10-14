@@ -16,6 +16,8 @@ const groupSchema = z.object({
   wholesale_cost: z.number().min(0).max(1000000).nullable(),
   price: z.number().min(0).max(1000000).nullable(),
   backorder: z.boolean(),
+  /** nome do arquivo: fica como origem */
+  document: z.string().trim().max(300),
 });
 export type CatalogGroupInput = z.input<typeof groupSchema>;
 export type GroupResult = { ok: true; product_id: string; color_id: string; created: number; errors: string[] } | { ok: false; error: string };
@@ -29,6 +31,7 @@ export async function applyCatalogGroup(input: CatalogGroupInput): Promise<Group
     ...("id" in g.product ? { product_id: g.product.id } : { reference: g.product.reference, name: g.product.name, gender: g.product.gender }),
     ...("id" in g.color ? { color_id: g.color.id } : { color_name: g.color.name, color_code: g.color.code }),
     composition: g.composition ?? "", wholesale_cost: g.wholesale_cost ?? "", price: g.price ?? "", backorder: g.backorder,
+    source: "PDF_CATALOGO", document: g.document,
   };
   const supabase = await createClient();
   const { data, error } = await supabase.schema("catalog").rpc("apply_brand_items", { p: g.sizes.map((size) => ({ ...base, size })) as unknown as Json });
@@ -49,31 +52,32 @@ export async function addCatalogPhotos(formData: FormData): Promise<{ ok: boolea
   const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
   const hashes = formData.getAll("hash").map(String);
   if (files.length !== hashes.length || files.length > 30) return { ok: false, error: "Fotos inválidas" };
+  const document = String(formData.get("document") ?? "").slice(0, 300);
   const s = await getSession();
   const supabase = await createClient();
   const [{ data: prod }, { data: color }, { data: existing }] = await Promise.all([
     supabase.schema("catalog").from("products").select("id, reference_code").eq("id", productId).maybeSingle(),
     supabase.schema("catalog").from("colors").select("id, code").eq("id", colorId).maybeSingle(),
-    supabase.schema("catalog").from("product_media").select("content_hash, position").eq("product_id", productId),
+    supabase.schema("catalog").from("product_media").select("content_hash").eq("product_id", productId),
   ]);
   if (!prod || !color) return { ok: false, error: "Produto ou cor não encontrados" };
   const known = new Set((existing ?? []).map((m) => m.content_hash).filter(Boolean));
-  let position = Math.max(-1, ...(existing ?? []).map((m) => m.position)) + 1;
-  let added = 0;
+  const items: { path: string; hash: string; bytes: number }[] = [];
   for (let i = 0; i < files.length; i++) {
     const f = files[i], hash = hashes[i];
     if (!/^[0-9a-f]{20}$/.test(hash) || known.has(hash)) continue;
     if (f.type !== "image/jpeg" || f.size > MAX_PHOTO) return { ok: false, error: "Foto fora do formato esperado (JPEG até 4 MB)" };
     const path = `${s.orgId}/${prod.reference_code}/${color.code ?? "sem-cor"}/${hash}.jpg`;
     const up = await supabase.storage.from("catalog-media").upload(path, f, { contentType: "image/jpeg", upsert: true, cacheControl: "31536000" });
-    if (up.error) return { ok: false, added, error: `Envio da foto: ${up.error.message}` };
-    const { error } = await supabase.schema("catalog").from("product_media").insert({
-      org_id: s.orgId, product_id: prod.id, color_id: color.id, storage_path: path, position: position++, content_hash: hash, bytes: f.size, mirrored_at: new Date().toISOString(),
-    });
-    if (error) return { ok: false, added, error: friendly(error.message) };
+    if (up.error) return { ok: false, error: `Envio da foto: ${up.error.message}` };
     known.add(hash);
-    added++;
+    items.push({ path, hash, bytes: f.size });
   }
+  // registro das fotos com a origem (catálogo em PDF, arquivo, usuário e data)
+  const { data: added, error } = items.length
+    ? await supabase.schema("catalog").rpc("add_media", { p: { product_id: prod.id, color_id: color.id, source: "PDF_CATALOGO", document, items } as unknown as Json })
+    : { data: 0, error: null };
+  if (error) return { ok: false, error: friendly(error.message) };
   revalidatePath(`/produtos/${prod.id}`);
-  return { ok: true, added };
+  return { ok: true, added: Number(added ?? 0) };
 }

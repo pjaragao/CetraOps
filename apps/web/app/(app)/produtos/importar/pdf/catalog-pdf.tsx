@@ -20,6 +20,7 @@ interface Row {
 /** Catálogo de atacado em PDF → modelo × cor (produto e cor escolhidos ou novos) → variações da grade, atacado, composição e fotos. */
 export function CatalogPdfImport({ products, colors, variantPairs, mediaPairs }: { products: Product[]; colors: Color[]; variantPairs: string[]; mediaPairs: string[] }) {
   const [rows, setRows] = useState<Row[]>([]);
+  const [fileName, setFileName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [backorder, setBackorder] = useState(false);
@@ -40,7 +41,7 @@ export function CatalogPdfImport({ products, colors, variantPairs, mediaPairs }:
 
   const onFile = (f: File | undefined) => {
     if (!f) return;
-    setRows([]); setError(null);
+    setRows([]); setError(null); setFileName(f.name);
     start(async () => {
       try {
         setProgress("Lendo o PDF…");
@@ -88,6 +89,7 @@ export function CatalogPdfImport({ products, colors, variantPairs, mediaPairs }:
         color: r.color === "NEW" ? { name: r.newColor, code: r.newCode } : { id: r.color },
         sizes: r.entry.sizes, composition: r.entry.composition, wholesale_cost: r.entry.price,
         price: r.entry.price && m > 0 ? suggestPrice(r.entry.price, m) : null, backorder,
+        document: `${fileName} · pág. ${r.entry.pages.join(", ")}`,
       });
       if (!res.ok) { set(r.key, { status: { tone: "danger", text: res.error } }); continue; }
       let text = `${res.created} variação(ões) nova(s)`;
@@ -95,7 +97,7 @@ export function CatalogPdfImport({ products, colors, variantPairs, mediaPairs }:
       if (pics.length) {
         set(r.key, { status: { tone: "info", text: `${text} · enviando ${pics.length} foto(s)…` } });
         const fd = new FormData();
-        fd.set("product_id", res.product_id); fd.set("color_id", res.color_id);
+        fd.set("product_id", res.product_id); fd.set("color_id", res.color_id); fd.set("document", `${fileName} · pág. ${r.entry.pages.join(", ")}`);
         for (const p of pics) { fd.append("file", new File([p.blob], `${p.hash}.jpg`, { type: "image/jpeg" })); fd.append("hash", p.hash); }
         const up = await addCatalogPhotos(fd);
         text += up.ok ? ` · ${up.added} foto(s)` : ` · fotos: ${up.error}`;

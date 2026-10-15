@@ -46,13 +46,9 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
   return (
     <>
       <PageHeader title="Notas recebidas"
-        actions={
-          <div className="flex flex-col items-end gap-2 text-right">
-            <p className="max-w-md text-sm text-muted">{`${(docs ?? []).length} nota(s) importada(s) — ${formatBRL(total)}. Cada nota alimenta estoque, contas a pagar e o pacote do contador.`}</p>
-            <SyncStatus active={Boolean(str(sp.wait)) || waiting} updatedAt={lastRunLabel} />
-          </div>
-        } />
-      <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+        description={`${(docs ?? []).length} nota(s) importada(s) — ${formatBRL(total)}. Cada nota alimenta estoque, contas a pagar e o pacote do contador.`}
+        actions={<SyncStatus active={Boolean(str(sp.wait)) || waiting} updatedAt={lastRunLabel} />} />
+      <Flash ok={str(sp.wait) ? undefined : str(sp.ok)} erro={str(sp.erro)} />
 
       <Card title="Notas emitidas contra o seu CNPJ (SEFAZ)" className="mb-5"
         action={canWrite ? <form action={syncDfeAction}><Button variant="secondary" className="px-2 py-1 text-xs">Buscar agora</Button></form> : undefined}>
@@ -72,7 +68,7 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                 <tr key={d.id}>
                   <td className="px-3 py-2">
                     <span className="font-medium">{d.issuer_name ?? "—"}</span>
-                    <span className="block text-[11px] text-muted">{fmtDoc(d.issuer_cnpj)} · emitida em {d.issue_at ? fmtDate(d.issue_at.slice(0, 10)) : "—"}</span>
+                    <span className="block text-[11px] text-muted">{fmtDoc(d.issuer_cnpj)}{d.issue_at ? ` · emitida em ${fmtDate(d.issue_at.slice(0, 10))}` : ""}</span>
                   </td>
                   <td className="px-3 py-2 font-medium whitespace-nowrap">{formatBRL(Number(d.amount ?? 0))}</td>
                   <td className="px-3 py-2">

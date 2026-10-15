@@ -44,28 +44,18 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
 
   return (
     <>
-      <PageHeader title="Notas recebidas" description={`NF-e de fornecedores importadas no recebimento — ${(docs ?? []).length} nota(s), ${formatBRL(total)}. Cada nota alimenta estoque, contas a pagar e o pacote do contador.`} />
+      <PageHeader title="Notas recebidas" description={`${(docs ?? []).length} nota(s) importada(s) — ${formatBRL(total)}. Cada nota alimenta estoque, contas a pagar e o pacote do contador.`} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
       {(str(sp.wait) || waiting) && <AutoRefresh />}
 
       <Card title="Notas emitidas contra o seu CNPJ (SEFAZ)" className="mb-5"
         action={canWrite ? <form action={syncDfeAction}><Button variant="secondary" className="px-2 py-1 text-xs">Buscar agora</Button></form> : undefined}>
         <p className="mb-3 text-xs text-muted">
-          A busca roda sozinha a cada 2 horas{lastRun ? ` (última: ${new Date(lastRun).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })})` : ""}.
-          A manifestação do destinatário tem efeito legal e é sempre decidida por uma pessoa: <b>ciência</b> libera o XML; <b>confirmar</b> reconhece a compra; <b>desconhecer</b> ou <b>não realizada</b> exigem justificativa (15 a 255 caracteres).
+          Busca automática a cada 2 horas{lastRun ? ` · última: ${new Date(lastRun).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}.
         </p>
-        {canWrite && (
-          <form action={fetchDfeByKeyAction} className="mb-3 flex flex-wrap items-end gap-2">
-            <label className="min-w-0 flex-1 text-xs text-muted">Buscar uma nota pela chave de acesso (44 dígitos do DANFE)
-              <input name="key" required inputMode="numeric" maxLength={60} placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000" className={`${inputClass} mt-1 font-mono`} />
-            </label>
-            <Button variant="secondary" className="px-3 py-2 text-xs">Buscar pela chave</Button>
-            <span className="w-full text-[11px] text-muted">A busca automática só traz notas emitidas depois do primeiro uso (regra da SEFAZ, sem notas retroativas). Para uma nota anterior, use a chave. Limite da SEFAZ: 20 consultas por hora.</span>
-          </form>
-        )}
         {syncError && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">A última busca falhou: {syncError}</p>}
         {(dfe ?? []).length === 0 ? <p className="text-sm text-muted">Nada por aqui ainda. Conecte a SEFAZ direta (certificado A1), o Focus NFe ou a Brasil NFe em Configurações › Integrações e use “Buscar agora”. Pela SEFAZ direta, a busca respeita a espera de 1 hora exigida quando não há nota nova.</p> : (
-          <Table head={["Emissão", "Fornecedor", "Valor", "Manifestação", "Entrada no Estoque", canWrite ? "Manifestar" : ""]}>
+          <Table head={["Fornecedor", "Valor", "Manifestação", "Entrada no Estoque", canWrite ? "Manifestar" : ""]}>
             {(dfe ?? []).map((d) => {
               const m = MANIFEST[d.manifest_status] ?? MANIFEST.PENDING;
               const conclusive = ["CONFIRMADA", "DESCONHECIDA", "NAO_REALIZADA"].includes(d.manifest_status);
@@ -74,9 +64,11 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
 
               return (
                 <tr key={d.id}>
-                  <td className="px-3 py-2 whitespace-nowrap">{d.issue_at ? fmtDate(d.issue_at.slice(0, 10)) : "—"}</td>
-                  <td className="px-3 py-2">{d.issuer_name ?? "—"}<span className="block text-[11px] text-muted">{fmtDoc(d.issuer_cnpj)}</span></td>
-                  <td className="px-3 py-2 font-medium">{formatBRL(Number(d.amount ?? 0))}</td>
+                  <td className="px-3 py-2">
+                    <span className="font-medium">{d.issuer_name ?? "—"}</span>
+                    <span className="block text-[11px] text-muted">{fmtDoc(d.issuer_cnpj)} · emitida em {d.issue_at ? fmtDate(d.issue_at.slice(0, 10)) : "—"}</span>
+                  </td>
+                  <td className="px-3 py-2 font-medium whitespace-nowrap">{formatBRL(Number(d.amount ?? 0))}</td>
                   <td className="px-3 py-2">
                     <Badge tone={m.tone}>{m.label}</Badge>
                     {d.manifest_requested && d.manifest_requested !== d.manifest_status && !d.last_error && <span className="ml-1 text-[11px] text-muted">enviando…</span>}
@@ -84,10 +76,10 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                   </td>
                   <td className="px-3 py-2">
                     {matchedReceipt ? (
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Badge tone="success">Importada</Badge>
                         <Link className="text-xs font-medium text-brand hover:underline" href={`/produtos/recebimento/${matchedReceipt.id}`}>
-                          Recebimento {matchedReceipt.number}
+                          {matchedReceipt.number}
                         </Link>
                       </div>
                     ) : d.xml_downloaded ? (
@@ -118,42 +110,69 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                       )
                     )}
                   </td>
-                  <td className="px-3 py-2">
-                    {canWrite && !conclusive && (
-                      <form action={manifestAction} className="flex flex-wrap items-center gap-1">
-                        <input type="hidden" name="id" value={d.id} />
-                        <select name="type" className={`${inputClass} w-36 py-1 text-xs`} aria-label="Manifestação" defaultValue={d.manifest_status === "PENDING" ? "CIENCIA" : "CONFIRMADA"}>
-                          {d.manifest_status === "PENDING" && <option value="CIENCIA">Ciência da operação</option>}
-                          <option value="CONFIRMADA">Confirmar operação</option>
-                          <option value="DESCONHECIDA">Desconheço a operação</option>
-                          <option value="NAO_REALIZADA">Operação não realizada</option>
-                        </select>
-                        <input name="reason" maxLength={255} placeholder="Justificativa (desconhecer / não realizada)" className={`${inputClass} w-56 py-1 text-xs`} aria-label="Justificativa" />
-                        <Button variant="secondary" className="px-2 py-1 text-xs">Enviar</Button>
-                      </form>
-                    )}
-                  </td>
+                  {canWrite && (
+                    <td className="px-3 py-2 align-top">
+                      {!conclusive && (
+                        <details className="group">
+                          <summary className="cursor-pointer text-xs font-medium text-brand hover:underline">
+                            {d.manifest_status === "PENDING" ? "Dar ciência / manifestar" : "Manifestar"}
+                          </summary>
+                          <form action={manifestAction} className="mt-2 flex flex-col gap-2">
+                            <input type="hidden" name="id" value={d.id} />
+                            <select name="type" className={`${inputClass} w-52 py-1 text-xs`} aria-label="Manifestação" defaultValue={d.manifest_status === "PENDING" ? "CIENCIA" : "CONFIRMADA"}>
+                              {d.manifest_status === "PENDING" && <option value="CIENCIA">Ciência da operação</option>}
+                              <option value="CONFIRMADA">Confirmar operação</option>
+                              <option value="DESCONHECIDA">Desconheço a operação</option>
+                              <option value="NAO_REALIZADA">Operação não realizada</option>
+                            </select>
+                            <input name="reason" maxLength={255} placeholder="Justificativa (só para desconhecer / não realizada)" className={`${inputClass} w-64 py-1 text-xs`} aria-label="Justificativa" />
+                            <Button variant="secondary" className="w-fit px-2 py-1 text-xs">Enviar</Button>
+                          </form>
+                        </details>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
           </Table>
         )}
+
+        <details className="mt-3 text-xs text-muted">
+          <summary className="cursor-pointer hover:text-brand">Como funciona a manifestação</summary>
+          <p className="mt-2">
+            A manifestação do destinatário tem efeito legal e é sempre decidida por uma pessoa: <b>ciência</b> libera o XML; <b>confirmar</b> reconhece a compra;
+            {" "}<b>desconhecer</b> ou <b>não realizada</b> exigem justificativa (15 a 255 caracteres).
+          </p>
+        </details>
+
+        {canWrite && (
+          <details className="mt-2 text-xs text-muted">
+            <summary className="cursor-pointer hover:text-brand">Nota não apareceu? Buscar pela chave de acesso</summary>
+            <form action={fetchDfeByKeyAction} className="mt-2 flex flex-wrap items-end gap-2">
+              <label className="min-w-0 flex-1 text-xs text-muted">Chave de acesso (44 dígitos do DANFE)
+                <input name="key" required inputMode="numeric" maxLength={60} placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000" className={`${inputClass} mt-1 font-mono`} />
+              </label>
+              <Button variant="secondary" className="px-3 py-2 text-xs">Buscar pela chave</Button>
+              <span className="w-full text-[11px]">A busca automática só traz notas emitidas depois do primeiro uso (regra da SEFAZ, sem notas retroativas). Para uma nota anterior, use a chave. Limite da SEFAZ: 20 consultas por hora.</span>
+            </form>
+          </details>
+        )}
       </Card>
       <h2 className="mb-2 text-sm font-semibold text-muted">Já importadas no recebimento</h2>
       {(docs ?? []).length === 0 ? <Empty title="Nenhuma nota recebida">Importe o XML em Produtos › Recebimento de NF-e.</Empty> : (
-        <Table head={["Nota", "Emissão", "Fornecedor", "Natureza", "Valor", "Situação", "Recebimento", "Chave"]}>
+        <Table head={["Nota", "Fornecedor", "Natureza", "Valor", "Situação", "Recebimento", "Chave"]}>
           {(docs ?? []).map((d) => {
             const r = d.receipt_id ? rmap.get(d.receipt_id) : undefined;
             return (
               <tr key={d.id}>
-                <td className="px-3 py-2 font-medium">{d.number}/{d.series}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{d.issue_at ? fmtDate(d.issue_at.slice(0, 10)) : "—"}</td>
-                <td className="px-3 py-2">{d.counterpart_name}<span className="block text-[11px] text-muted">{d.counterpart_cnpj}</span></td>
+                <td className="px-3 py-2 font-medium whitespace-nowrap">{d.number}/{d.series}<span className="block text-[11px] font-normal text-muted">{d.issue_at ? fmtDate(d.issue_at.slice(0, 10)) : "—"}</span></td>
+                <td className="px-3 py-2">{d.counterpart_name}<span className="block text-[11px] text-muted">{fmtDoc(d.counterpart_cnpj)}</span></td>
                 <td className="px-3 py-2">{d.operation_nature ?? "—"}</td>
                 <td className="px-3 py-2 font-medium">{formatBRL(Number((d.totals as Record<string, number> | null)?.vNF ?? 0))}</td>
                 <td className="px-3 py-2"><Badge tone={d.status === "AUTHORIZED" ? "success" : "neutral"}>{d.status === "AUTHORIZED" ? "autorizada" : d.status.toLowerCase()}</Badge></td>
                 <td className="px-3 py-2">{r ? <Link className="text-brand" href={`/produtos/recebimento/${r.id}`}>{r.number}</Link> : "—"}</td>
-                <td className="px-3 py-2 font-mono text-[10px] text-muted">{d.access_key}</td>
+                <td className="px-3 py-2 text-[10px] text-muted"><details><summary className="cursor-pointer hover:text-brand">ver chave</summary><span className="mt-1 block select-all break-all font-mono">{d.access_key}</span></details></td>
               </tr>
             );
           })}

@@ -17,7 +17,7 @@ export async function syncDfeAction() {
   const supabase = await createClient();
   const { error } = await supabase.schema("fiscal").rpc("request_dfe_sync");
   revalidatePath(LIST);
-  back(error ? { erro: friendly(error.message) } : { ok: "Busca pedida. As notas novas aparecem em instantes.", wait: "1" });
+  back(error ? { erro: friendly(error.message) } : { wait: "1" });
 }
 
 /** Manifestação do destinatário: tem efeito legal, por isso é sempre uma decisão da pessoa. */
@@ -26,7 +26,7 @@ export async function manifestAction(formData: FormData) {
   const reason = str(formData.get("reason"));
   const { error } = await supabase.schema("fiscal").rpc("request_manifest", { p_id: str(formData.get("id")), p_type: str(formData.get("type")), ...(reason ? { p_reason: reason } : {}) });
   revalidatePath(LIST);
-  back(error ? { erro: friendly(error.message) } : { ok: "Manifestação enviada à SEFAZ. O resultado aparece em instantes.", wait: "1" });
+  back(error ? { erro: friendly(error.message) } : { wait: "1" });
 }
 
 /** Dá entrada no estoque diretamente a partir da NF-e com XML já baixado pela SEFAZ. */
@@ -60,5 +60,5 @@ export async function fetchDfeByKeyAction(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.schema("fiscal").rpc("request_dfe_by_key", { p_key: str(formData.get("key")) });
   revalidatePath(LIST);
-  back(error ? { erro: friendly(error.message) } : { ok: "Consulta pela chave pedida à SEFAZ: a nota aparece em instantes.", wait: "1" });
+  back(error ? { erro: friendly(error.message) } : { wait: "1" });
 }

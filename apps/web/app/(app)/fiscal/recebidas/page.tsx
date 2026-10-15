@@ -3,11 +3,11 @@ import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { AutoRefresh } from "@/components/auto-refresh";
 import { Badge, Button, Card, Empty, PageHeader, Table, inputClass } from "@/components/ui";
 import { Flash, fmtDate } from "@/components/form";
 import { fetchDfeByKeyAction, manifestAction, syncDfeAction } from "./actions";
 import { InboundReceiveButton } from "./receive-inbound-dialog";
+import { SyncStatus } from "./sync-status";
 
 export const metadata = { title: "Notas recebidas" };
 
@@ -32,6 +32,7 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
   ]);
   const waiting = (dfe ?? []).some((d) => d.manifest_requested && d.manifest_requested !== d.manifest_status && !d.last_error);
   const lastRun = (states ?? []).map((x) => x.last_run_at).filter(Boolean).sort().pop();
+  const lastRunLabel = lastRun ? new Date(lastRun).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }) : null;
   const syncError = (states ?? []).find((x) => x.last_error)?.last_error;
   const { data: docs } = await supabase.schema("fiscal").from("documents")
     .select("id, number, series, access_key, issue_at, status, totals, counterpart_name, counterpart_cnpj, operation_nature, receipt_id")
@@ -44,9 +45,14 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
 
   return (
     <>
-      <PageHeader title="Notas recebidas" description={`${(docs ?? []).length} nota(s) importada(s) — ${formatBRL(total)}. Cada nota alimenta estoque, contas a pagar e o pacote do contador.`} />
+      <PageHeader title="Notas recebidas"
+        actions={
+          <div className="flex flex-col items-end gap-2 text-right">
+            <p className="max-w-md text-sm text-muted">{`${(docs ?? []).length} nota(s) importada(s) — ${formatBRL(total)}. Cada nota alimenta estoque, contas a pagar e o pacote do contador.`}</p>
+            <SyncStatus active={Boolean(str(sp.wait)) || waiting} updatedAt={lastRunLabel} />
+          </div>
+        } />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
-      {(str(sp.wait) || waiting) && <AutoRefresh />}
 
       <Card title="Notas emitidas contra o seu CNPJ (SEFAZ)" className="mb-5"
         action={canWrite ? <form action={syncDfeAction}><Button variant="secondary" className="px-2 py-1 text-xs">Buscar agora</Button></form> : undefined}>

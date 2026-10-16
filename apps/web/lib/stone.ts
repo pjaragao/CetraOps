@@ -93,6 +93,7 @@ export async function sendPosOrder(
       Authorization: getAuthHeader(secretKey),
       "Content-Type": "application/json",
       Accept: "application/json",
+      ServiceRefererName: process.env.STONE_SERVICE_REFERER_NAME || "6ace2e592a1b7b60ff68b0c7",   // identifica a parceria (Partner Hub da Stone)
     },
     body: JSON.stringify(payload),
     cache: "no-store",

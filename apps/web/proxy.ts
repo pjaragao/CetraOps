@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const isLogin = request.nextUrl.pathname.startsWith("/login");
   // públicos sem login: link curto e avisos de provedores (o aviso só pede uma conferência na API do provedor; não confia no corpo)
-  if (request.nextUrl.pathname.startsWith("/r/") || request.nextUrl.pathname.startsWith("/api/webhooks/")) return response;
+  if (request.nextUrl.pathname.startsWith("/r/") || request.nextUrl.pathname.startsWith("/api/webhooks/") || request.nextUrl.pathname === "/api/internal/stone-drain") return response;
 
   if (!data?.claims && !isLogin) {
     const url = request.nextUrl.clone();

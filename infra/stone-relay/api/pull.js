@@ -10,7 +10,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({ events });
     }
     if (req.method === "POST") {
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+      const raw = Buffer.isBuffer(req.body) ? req.body.toString() : req.body;
+      const body = typeof raw === "string" ? JSON.parse(raw || "{}") : raw || {};
       const n = Math.max(0, Math.min(50, Number(body.count) || 0));
       if (n > 0) await redis("RPOP", QUEUE, n);
       return res.status(200).json({ removed: n });

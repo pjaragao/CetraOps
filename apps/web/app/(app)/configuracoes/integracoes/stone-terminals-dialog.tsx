@@ -5,6 +5,7 @@ import { Edit2, Plus, Smartphone, Star, Trash2, X } from "lucide-react";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";
 import { saveStoneTerminalsAction, type StoneTerminal } from "../../vender/stone-actions";
+import { PosDevicesPanel } from "./pos-devices-panel";
 
 interface StoneTerminalsDialogProps {
   open: boolean;
@@ -303,6 +304,8 @@ function StoneTerminalsModal({
             </div>
           </div>
         </form>
+
+        <PosDevicesPanel />
 
         <div className="mt-4 flex justify-end">
           <Button variant="secondary" onClick={onClose} className="px-4 py-1.5 text-xs">

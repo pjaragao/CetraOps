@@ -28,9 +28,10 @@ export async function POST(request: Request) {
   for (const ev of events) {
     const id = ev.stone_order_id ?? "";
     if (!/^[A-Za-z0-9_-]{4,64}$/.test(id)) { done++; continue; }
-    const { data: row, error } = await admin.schema("sales").from("stone_pos_orders").select("org_id, status").eq("stone_order_id", id).maybeSingle();
+    const { data: row, error } = await admin.schema("sales").from("stone_pos_orders").select("org_id, status, source").eq("stone_order_id", id).maybeSingle();
     if (error) break;                                   // mantém na fila e tenta de novo no próximo ciclo
-    if (!row || row.status !== "PENDING") { done++; results.push({ id, skipped: row?.status ?? "desconhecida" }); continue; }
+    // cobrança do app da maquininha (DEEPLINK) não existe no Pagar.me: pula em vez de travar a fila
+    if (!row || row.status !== "PENDING" || row.source === "DEEPLINK") { done++; results.push({ id, skipped: row?.status ?? "desconhecida" }); continue; }
     const r = await syncStoneOrder(row.org_id, id);
     if (!r.ok) { results.push({ id, error: r.error }); break; }
     done++;

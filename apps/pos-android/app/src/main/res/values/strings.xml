@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PDV da Loja</string>
+    <!-- Contatos de suporte do app (a Stone exige que estejam visíveis): troque pelos telefones/e-mail reais antes da homologação -->
+    <string name="support_text">Suporte do sistema da loja: fale com a administração (WhatsApp e e-mail no cadastro da loja).</string>
+</resources>

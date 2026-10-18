@@ -9072,7 +9072,7 @@ isOneToOne: false
                   ]
                 },"stone_pos_orders": {
                   Row: {
-                    "amount": number,"auth_code": string | null,"card_brand": string | null,"created_at": string,"created_by": string | null,"display_name": string | null,"id": string,"installments": number,"method": string,"nsu": string | null,"order_id": string | null,"org_id": string,"raw_response": NonNullable<Json>,"status": string,"stone_order_id": string,"terminal_name": string | null,"terminal_serial": string,"updated_at": string
+                    "amount": number,"atk": string | null,"auth_code": string | null,"card_brand": string | null,"created_at": string,"created_by": string | null,"device_id": string | null,"display_name": string | null,"id": string,"installments": number,"itk": string | null,"method": string,"nsu": string | null,"order_id": string | null,"org_id": string,"raw_response": NonNullable<Json>,"source": string,"status": string,"stone_order_id": string,"terminal_name": string | null,"terminal_serial": string,"updated_at": string
                   }
                   Insert: {
                     "amount": number,"auth_code"?: string | null,"card_brand"?: string | null,"created_at"?: string,"created_by"?: string | null,"display_name"?: string | null,"id"?: string,"installments"?: number,"method": string,"nsu"?: string | null,"order_id"?: string | null,"org_id": string,"raw_response"?: NonNullable<Json>,"status"?: string,"stone_order_id": string,"terminal_name"?: string | null,"terminal_serial": string,"updated_at"?: string
@@ -9155,6 +9155,30 @@ isOneToOne: false
       } },
 "cancel_stone_pos_order":
 { Args: { "p_stone_order_id": string }; Returns: boolean
+                           },
+"close_stone_deeplink_charge":
+{ Args: { "p_charge": string,"p_device_token_hash": string,"p_raw"?: Json,"p_status": string }; Returns: Json
+                           },
+"confirm_stone_deeplink_charge":
+{ Args: { "p_atk": string,"p_auth_code": string,"p_brand": string,"p_charge": string,"p_device_token_hash": string,"p_installments": number,"p_itk": string,"p_paid_amount": number,"p_raw"?: Json }; Returns: Json
+                           },
+"create_pos_device_pairing":
+{ Args: { "p_code_hash": string,"p_device"?: string,"p_name": string,"p_store": string }; Returns: Json
+                           },
+"list_pos_devices":
+{ Args: never; Returns: Json
+                           },
+"open_stone_deeplink_charge":
+{ Args: { "p_amount": number,"p_device_token_hash": string,"p_installments": number,"p_method": string }; Returns: Json
+                           },
+"pair_pos_device":
+{ Args: { "p_app_version": string,"p_code_hash": string,"p_model": string,"p_serial": string,"p_token_hash": string }; Returns: Json
+                           },
+"pos_device_by_token":
+{ Args: { "p_app_version"?: string,"p_token_hash": string }; Returns: Json
+                           },
+"revoke_pos_device":
+{ Args: { "p_device": string }; Returns: boolean
                            },
 "cash_movement":
 { Args: { "p_amount": number,"p_reason": string,"p_session": string,"p_type": string }; Returns: undefined

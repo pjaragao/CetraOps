@@ -18,9 +18,10 @@ export async function POST(request: Request) {
   if (!/^[A-Za-z0-9_-]{4,64}$/.test(stoneOrderId)) return Response.json({ received: true, ignored: "sem ordem" });
 
   const admin = createAdminClient();
-  const { data: row, error } = await admin.schema("sales").from("stone_pos_orders").select("org_id, status").eq("stone_order_id", stoneOrderId).maybeSingle();
+  const { data: row, error } = await admin.schema("sales").from("stone_pos_orders").select("org_id, status, source").eq("stone_order_id", stoneOrderId).maybeSingle();
   if (error) return Response.json({ error: "falha ao consultar" }, { status: 500 });          // a Stone reenvia
   if (!row) return Response.json({ received: true, ignored: "ordem desconhecida" });
+  if (row.source === "DEEPLINK") return Response.json({ received: true, ignored: "cobrança do app da maquininha" });   // não existe no Pagar.me
   if (row.status !== "PENDING") return Response.json({ received: true, status: row.status });
 
   const res = await syncStoneOrder(row.org_id, stoneOrderId);

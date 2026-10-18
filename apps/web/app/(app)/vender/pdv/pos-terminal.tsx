@@ -16,9 +16,8 @@ import { CustomItemDialog } from "./custom-item-dialog";
 import { ItemDiscountDialog } from "./item-discount-dialog";
 import { GlobalDiscountDialog } from "./global-discount-dialog";
 
-export interface PosVariant { id: string; sku: string; size: string; gtin: string | null; price: number; available: number }
-/** backorder: produto liberado para encomenda (o tamanho sem estoque entra no carrinho como encomenda). */
-export interface PosProduct { key: string; name: string; reference: string; gender: string; color: string; backorder: boolean; variants: PosVariant[] }
+import type { PosProduct, PosVariant } from "@/lib/pos-types";
+export type { PosProduct, PosVariant };
 
 type Method = SaleInput["payments"][number]["method"];
 

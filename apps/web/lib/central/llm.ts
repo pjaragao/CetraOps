@@ -1,8 +1,11 @@
 import "server-only";
 
+import { completeViaHermes, hermesConfigured, isHermesModel } from "./hermes";
+
 /**
  * Cliente mínimo do OpenRouter (API compatível com chat completions + function calling) para a Central.
  * O modelo de cada tarefa vem do banco (ai.model_routes, via ai.assistant_route): troca-se na tela Modelos & custos, sem deploy.
+ * Modelo `hermes/...` vai para o Hermes exclusivo do CentralOps (LLM = AGY), ver ./hermes.ts.
  */
 
 export interface ToolCall {
@@ -49,7 +52,7 @@ export function env(name: string): string {
 }
 
 export function llmConfigured(): boolean {
-  return Boolean(env("OPENROUTER_KEY"));
+  return Boolean(env("OPENROUTER_KEY")) || hermesConfigured();
 }
 
 export function addUsage(total: Usage, data: { model?: string; usage?: Record<string, unknown> }) {
@@ -65,8 +68,31 @@ export function emptyUsage(): Usage {
   return { tokens_in: 0, tokens_out: 0, cache_read_tokens: 0, cost_usd: 0, model: null };
 }
 
-/** Uma chamada ao modelo. `tools` no formato de function calling; `jsonSchema` pede saída estruturada. */
-export async function complete(route: Route, messages: ChatMessage[], opts: { tools?: unknown[]; toolChoice?: "auto" | "none"; jsonSchema?: { name: string; schema: unknown }; usage: Usage; timeoutMs?: number }) {
+type CompleteOpts = { tools?: unknown[]; toolChoice?: "auto" | "none"; jsonSchema?: { name: string; schema: unknown }; usage: Usage; timeoutMs?: number };
+
+/** Uma chamada ao modelo. `tools` no formato de function calling; `jsonSchema` pede saída estruturada.
+ *  Principal e reservas podem misturar OpenRouter e Hermes: tenta primeiro o lado do modelo principal e, se falhar, o outro. */
+export async function complete(route: Route, messages: ChatMessage[], opts: CompleteOpts) {
+  const all = [route.model, ...(route.fallback_models ?? [])];
+  const hermes = all.filter(isHermesModel);
+  const openrouter = all.filter((m) => !isHermesModel(m));
+  const order = isHermesModel(route.model) ? (["hermes", "openrouter"] as const) : (["openrouter", "hermes"] as const);
+  let last: LlmError | null = null;
+  for (const side of order) {
+    const models = side === "hermes" ? hermes : openrouter;
+    if (!models.length || (side === "hermes" ? !hermesConfigured() : !env("OPENROUTER_KEY"))) continue;
+    try {
+      const r = { ...route, model: models[0], fallback_models: models.slice(1) };
+      return side === "hermes" ? await completeViaHermes(r, messages, opts) : await completeViaOpenRouter(r, messages, opts);
+    } catch (e) {
+      if (!(e instanceof LlmError)) throw e;
+      last = e;
+    }
+  }
+  throw last ?? new LlmError("IA não configurada neste servidor (CENTRALOPS_OPENROUTER_KEY ou CENTRALOPS_HERMES_LLM_KEY)", false);
+}
+
+async function completeViaOpenRouter(route: Route, messages: ChatMessage[], opts: CompleteOpts) {
   const key = env("OPENROUTER_KEY");
   if (!key) throw new LlmError("IA não configurada neste servidor (CENTRALOPS_OPENROUTER_KEY)", false);
   const params = route.params ?? {};

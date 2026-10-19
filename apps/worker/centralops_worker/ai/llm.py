@@ -1,6 +1,6 @@
-"""Chamadas de IA "em volume" (classificar, extrair, resumir, estilo, embeddings): direto no OpenRouter, sem passar pelo Hermes (plano §1.1).
+"""Chamadas de IA "em volume" (classificar, extrair, resumir, estilo, embeddings): direto no OpenRouter, sem passar pelo Hermes concierge (plano §1.1).
 O modelo vem da tabela `ai.model_routes` (troca na tela Modelos & custos, sem deploy); cada chamada vira uma linha em `ai.runs` com custo e
-respeita o orçamento diário da rota."""
+respeita o orçamento diário da rota. Modelo `hermes/...` vai para o Hermes exclusivo do CentralOps (LLM = AGY, ver hermes_llm.py)."""
 from __future__ import annotations
 
 import json
@@ -13,6 +13,7 @@ from psycopg_pool import AsyncConnectionPool
 
 from ..adapters.errors import PermanentError, TransientError
 from ..db import fetch_one
+from .hermes_llm import HermesLLM, is_hermes
 
 
 def _check(resp: httpx.Response) -> None:
@@ -39,8 +40,8 @@ def parse_json_content(content: str | None) -> dict[str, Any]:
 
 
 class LLM:
-    def __init__(self, pool: AsyncConnectionPool, http: httpx.AsyncClient, base: str, api_key: str) -> None:
-        self._pool, self._http, self._base, self._key = pool, http, base.rstrip("/"), api_key
+    def __init__(self, pool: AsyncConnectionPool, http: httpx.AsyncClient, base: str, api_key: str, hermes: HermesLLM | None = None) -> None:
+        self._pool, self._http, self._base, self._key, self._hermes = pool, http, base.rstrip("/"), api_key, hermes
 
     async def route(self, org_id: str, task: str) -> dict[str, Any]:
         row = await fetch_one(self._pool, "select primary_model, fallback_models, params, provider_prefs, daily_budget_usd, active from ai.model_routes where org_id = %s and task = %s", (org_id, task))
@@ -70,17 +71,9 @@ class LLM:
     async def complete_json(self, org_id: str, task: str, messages: list[dict[str, str]], schema_name: str, schema: dict[str, Any]) -> dict[str, Any]:
         """Uma resposta estruturada (JSON schema) pela rota `task`."""
         route = await self.route(org_id, task)
-        params = route.get("params") or {}
-        body: dict[str, Any] = {"model": route["primary_model"], "messages": messages,
-                                "response_format": {"type": "json_schema", "json_schema": {"name": schema_name, "strict": True, "schema": schema}},
-                                **{k: v for k, v in params.items() if k in ("temperature", "max_tokens", "reasoning")}}
-        if route.get("fallback_models"):
-            body["models"] = [route["primary_model"], *route["fallback_models"]]
-        if route.get("provider_prefs"):
-            body["provider"] = route["provider_prefs"]
         t0 = time.monotonic()
         try:
-            data = await self._post("/chat/completions", body)
+            data = await self._complete(route, messages, schema_name, schema)
             result = parse_json_content(((data.get("choices") or [{}])[0].get("message") or {}).get("content"))
         except (TransientError, PermanentError) as e:
             await self._log(org_id, task, route["primary_model"], {}, t0, "ERROR", str(e)[:300])
@@ -88,9 +81,36 @@ class LLM:
         await self._log(org_id, task, data.get("model") or route["primary_model"], data.get("usage") or {}, t0, "OK")
         return result
 
+    async def _complete(self, route: dict[str, Any], messages: list[dict[str, str]], schema_name: str, schema: dict[str, Any]) -> dict[str, Any]:
+        """Principal e reservas podem misturar OpenRouter e Hermes: tenta o lado do principal e, se falhar, o outro."""
+        models = [route["primary_model"], *(route.get("fallback_models") or [])]
+        groups = {"hermes": [m for m in models if is_hermes(m)], "openrouter": [m for m in models if not is_hermes(m)]}
+        last: Exception | None = None
+        for side in (("hermes", "openrouter") if is_hermes(models[0]) else ("openrouter", "hermes")):
+            group = groups[side]
+            if not group or not (self._hermes if side == "hermes" else self._key):
+                continue
+            try:
+                if side == "hermes":
+                    return await self._hermes.chat(group[0], messages, json_schema=(schema_name, schema))  # type: ignore[union-attr]
+                params = route.get("params") or {}
+                body: dict[str, Any] = {"model": group[0], "messages": messages,
+                                        "response_format": {"type": "json_schema", "json_schema": {"name": schema_name, "strict": True, "schema": schema}},
+                                        **{k: v for k, v in params.items() if k in ("temperature", "max_tokens", "reasoning")}}
+                if len(group) > 1:
+                    body["models"] = group
+                if route.get("provider_prefs"):
+                    body["provider"] = route["provider_prefs"]
+                return await self._post("/chat/completions", body)
+            except (TransientError, PermanentError) as e:
+                last = e
+        raise last or PermanentError("IA não configurada neste servidor (CENTRALOPS_OPENROUTER_KEY ou CENTRALOPS_HERMES_LLM_KEY)")
+
     async def embed(self, org_id: str, texts: list[str]) -> tuple[list[list[float]], str]:
         """Um vetor por texto (dimensão fixa da rota `embeddings`) e o modelo usado."""
         route = await self.route(org_id, "embeddings")
+        if is_hermes(route["primary_model"]) or not self._key:
+            raise PermanentError("Embeddings precisam de um modelo do OpenRouter (o Hermes não gera vetores): ajuste a rota em Modelos & custos")
         params = route.get("params") or {}
         body: dict[str, Any] = {"model": route["primary_model"], "input": texts}
         if params.get("dimensions"):

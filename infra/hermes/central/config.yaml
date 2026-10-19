@@ -1,0 +1,60 @@
+# Hermes exclusivo do CentralOps ("centralops-hermes"): é só o MOTOR DE LINGUAGEM da Central e das rotas de IA marcadas como
+# `hermes/agy` em Inteligência › Modelos & custos. O LLM é o AGY (Antigravity CLI) pelo shim OpenAI-compatível do host
+# (systemd --user agy-shim, 172.26.0.1:8787, o mesmo dos bots). Sem ferramentas, memória ou skills: as ferramentas do
+# CentralOps continuam rodando no próprio CentralOps (protocolo TOOL_CALL em texto, ver apps/web/lib/central/hermes.ts e
+# apps/worker/centralops_worker/ai/hermes_llm.py), com RLS e auditoria de sempre.
+# Cópia de trabalho: ~/centralops-hermes/data/config.yaml (segredos no .env de lá, nunca aqui).
+
+model:
+  default: gemini-flash-latest
+  provider: agy
+  api_mode: chat_completions
+
+providers:
+  agy:
+    base_url: http://172.26.0.1:8787/v1
+    key_env: AGY_SHIM_TOKEN
+    api_mode: chat_completions
+
+agent:
+  max_turns: 2                 # sem ferramentas: uma chamada ao modelo por requisição (+1 de folga)
+  reasoning_effort: low
+  verbose: false
+
+platform_toolsets:
+  api_server: []               # lista vazia explícita = nenhuma ferramenta do Hermes (terminal, arquivos, web...)
+  cli: []
+
+memory:
+  memory_enabled: false        # o CentralOps manda o histórico inteiro em cada requisição; nada fica guardado aqui
+  user_profile_enabled: false
+
+skills:
+  guard_agent_created: true
+  write_approval: true
+
+compression:
+  enabled: false               # o CentralOps controla o tamanho do contexto
+
+display:
+  show_reasoning: false
+  streaming: false
+
+streaming:
+  enabled: false
+
+stt:
+  enabled: false
+
+telemetry:
+  shared_metrics:
+    enabled: false
+
+updates:
+  pre_update_backup: false
+
+timezone: America/Sao_Paulo
+
+tools:
+  tool_search:
+    enabled: "off"

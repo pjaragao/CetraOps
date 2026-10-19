@@ -1,0 +1,40 @@
+# Hermes exclusivo do CentralOps (LLM = AGY). Roda no homelab FORA do Coolify, como os bots (luisa-bot, sie-joy-bot):
+#   mkdir -p ~/centralops-hermes/data && cp infra/hermes/central/docker-compose.yml ~/centralops-hermes/
+#   cp infra/hermes/central/{config.yaml,SOUL.md} ~/centralops-hermes/data/   # + data/.env (ver README.md)
+#   cd ~/centralops-hermes && docker compose up -d
+# O web e o worker do CentralOps falam com ele pela rede services_internal: http://centralops-hermes:8642/v1
+services:
+  centralops-hermes:
+    image: nousresearch/hermes-agent@sha256:fe1e23dd140a8af4bfd39df1210ea5f3c8205f853d7f93c53bc7eb38c39407ff
+    container_name: centralops-hermes
+    restart: unless-stopped
+    command: gateway run
+    env_file: ./data/.env
+    environment:
+      - TZ=America/Sao_Paulo
+      - HERMES_UID=1000
+      - HERMES_GID=1000
+    volumes:
+      - ./data:/opt/data
+    ports:
+      - "127.0.0.1:8648:8642"      # só para teste local; o CentralOps usa a rede interna
+    networks:
+      - services_internal
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    labels:
+      paulojr.stack: "centralops-hermes"
+      paulojr.type: "llm"
+      paulojr.origin: "dockerhub"
+
+networks:
+  services_internal:
+    external: true

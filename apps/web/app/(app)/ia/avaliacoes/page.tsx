@@ -68,7 +68,7 @@ export default async function AvaliacoesPage({ searchParams }: { searchParams: S
       {canWrite && (
         <Card title="Rodar avaliação" className="mt-4">
           <form action={requestEvalAction} className="flex flex-wrap items-end gap-2">
-            <Field label="Modelos (slugs do OpenRouter, separados por vírgula, até 4)" className="min-w-72 flex-1">
+            <Field label="Modelos (slugs do OpenRouter ou hermes/agy, separados por vírgula, até 4)" className="min-w-72 flex-1">
               <input name="models" required defaultValue={route?.primary_model ?? ""} className={inputClass} placeholder="provedor/modelo-a, provedor/modelo-b" />
             </Field>
             <Button disabled={running}>{running ? "Avaliação em andamento…" : "Rodar avaliação"}</Button>

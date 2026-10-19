@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     openrouter_key: str = ""
     hermes_base: str = "http://hermes:8642/v1"
     hermes_key: str = ""
+    # Hermes exclusivo do CentralOps (LLM = AGY) como modelo `hermes/...` das rotas — não é o Hermes "concierge" de cima
+    hermes_llm_base: str = "http://centralops-hermes:8642/v1"
+    hermes_llm_key: str = ""
     agent_ctx_secret: str = "dev-only-change-me"          # HS256 do token de contexto (compartilhado com o MCP)
     ai_max_replies_per_hour: int = 12
     autopilot_min_confidence: float = 0.75

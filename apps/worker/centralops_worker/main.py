@@ -14,6 +14,7 @@ from psycopg_pool import AsyncConnectionPool
 
 from . import queues
 from .ai.agent import AgentClient, FallbackAgent, HermesAgent, OpenRouterAgent
+from .ai.hermes_llm import HermesLLM
 from .ai.llm import LLM
 from .config import Settings, get_settings
 from .db import make_pool
@@ -58,7 +59,8 @@ def build_agent(settings: Settings, deps_pool: AsyncConnectionPool, http: httpx.
     """Hermes é o padrão quando configurado; o Plano B (laço de ferramentas aqui, direto no OpenRouter) cobre a falha do Hermes.
     Só com o OpenRouter configurado (sem Hermes), o Plano B é o único caminho."""
     hermes = HermesAgent(http, settings.hermes_base, settings.hermes_key) if settings.hermes_key else None
-    direct = OpenRouterAgent(deps_pool, http, settings.openrouter_base, settings.openrouter_key) if settings.openrouter_key else None
+    hermes_llm = HermesLLM(http, settings.hermes_llm_base, settings.hermes_llm_key) if settings.hermes_llm_key else None
+    direct = OpenRouterAgent(deps_pool, http, settings.openrouter_base, settings.openrouter_key, hermes=hermes_llm) if settings.openrouter_key or hermes_llm else None
     if hermes and direct:
         return FallbackAgent(hermes, direct)
     return hermes or direct
@@ -71,7 +73,8 @@ async def main_async(once: bool) -> None:
     pool = make_pool(settings)
     await pool.open(wait=True)
     async with httpx.AsyncClient() as http:
-        llm = LLM(pool, http, settings.openrouter_base, settings.openrouter_key) if settings.openrouter_key else None
+        hermes_llm = HermesLLM(http, settings.hermes_llm_base, settings.hermes_llm_key) if settings.hermes_llm_key else None
+        llm = LLM(pool, http, settings.openrouter_base, settings.openrouter_key, hermes_llm) if settings.openrouter_key or hermes_llm else None
         deps = Deps(pool=pool, settings=settings, http=http, agent=build_agent(settings, pool, http), llm=llm)
         names = settings.queues or list(HANDLERS)
         unknown = [q for q in names if q not in HANDLERS]

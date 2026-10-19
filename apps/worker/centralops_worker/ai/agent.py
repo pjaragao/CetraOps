@@ -16,6 +16,7 @@ from centralops_agent_contract import schemas_for
 
 from ..adapters.errors import PermanentError, TransientError
 from ..db import call_fn
+from .hermes_llm import HermesLLM, is_hermes
 
 
 @dataclass
@@ -57,15 +58,33 @@ def _classify(resp: httpx.Response) -> None:
 
 
 class OpenRouterAgent:
-    """Plano B (e caminho de desenvolvimento): chama o OpenRouter com function calling e executa as ferramentas no banco."""
+    """Plano B (e caminho de desenvolvimento): chama o OpenRouter com function calling e executa as ferramentas no banco.
+    Modelo `hermes/...` na rota vai para o Hermes exclusivo do CentralOps (LLM = AGY), com as ferramentas emuladas em texto (hermes_llm.py)."""
 
-    def __init__(self, pool: AsyncConnectionPool, http: httpx.AsyncClient, base: str, api_key: str, max_steps: int = 6) -> None:
-        self._pool, self._http, self._base, self._key, self._max_steps = pool, http, base.rstrip("/"), api_key, max_steps
+    def __init__(self, pool: AsyncConnectionPool, http: httpx.AsyncClient, base: str, api_key: str, max_steps: int = 6, hermes: HermesLLM | None = None) -> None:
+        self._pool, self._http, self._base, self._key, self._max_steps, self._hermes = pool, http, base.rstrip("/"), api_key, max_steps, hermes
 
     async def _chat(self, inp: AgentInput, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
-        body: dict[str, Any] = {"model": model, "messages": messages, "tools": tools, **{k: v for k, v in inp.params.items() if k in ("temperature", "max_tokens", "reasoning")}}
-        if inp.fallback_models:
-            body["models"] = [model, *inp.fallback_models]
+        """Principal e reservas podem misturar OpenRouter e Hermes: tenta o lado do principal e, se falhar, o outro."""
+        models = [model, *inp.fallback_models]
+        groups = {"hermes": [m for m in models if is_hermes(m)], "openrouter": [m for m in models if not is_hermes(m)]}
+        last: Exception | None = None
+        for side in (("hermes", "openrouter") if is_hermes(model) else ("openrouter", "hermes")):
+            group = groups[side]
+            if not group or not (self._hermes if side == "hermes" else self._key):
+                continue
+            try:
+                if side == "hermes":
+                    return await self._hermes.chat(group[0], messages, tools=tools)  # type: ignore[union-attr]
+                return await self._chat_openrouter(inp, group, messages, tools)
+            except (TransientError, PermanentError) as e:
+                last = e
+        raise last or PermanentError("IA não configurada neste servidor (CENTRALOPS_OPENROUTER_KEY ou CENTRALOPS_HERMES_LLM_KEY)")
+
+    async def _chat_openrouter(self, inp: AgentInput, models: list[str], messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
+        body: dict[str, Any] = {"model": models[0], "messages": messages, "tools": tools, **{k: v for k, v in inp.params.items() if k in ("temperature", "max_tokens", "reasoning")}}
+        if len(models) > 1:
+            body["models"] = models
         if inp.provider_prefs:
             body["provider"] = inp.provider_prefs           # zdr / data_collection: deny
         try:

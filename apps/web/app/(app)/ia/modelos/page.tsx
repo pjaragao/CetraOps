@@ -6,11 +6,22 @@ import { can, requirePerm } from "@/lib/session";
 import { Button, inputClass, PageHeader } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { str, type SP } from "@/lib/context";
+import { HERMES_MODELS, HERMES_UNSUPPORTED, isHermesModel } from "@/lib/central/hermes";
 
 export const metadata = { title: "Modelos de IA" };
 
 /** O que cada rota faz, o que ela exige do modelo e como escolher (texto para quem não é técnico). */
 const TASKS: Record<string, { label: string; what: string; pick: string }> = {
+  assistant: {
+    label: "Central (chatbot do CentralOps)",
+    what: "O chat da Central dentro do sistema: responde a equipe, consulta vendas, estoque e finanças pelas ferramentas e prepara ações para a pessoa confirmar.",
+    pick: "Modelo bom em português e em usar ferramentas. O Hermes do CentralOps (AGY) não tem custo por token, mas é mais lento (10 a 60 s por passo).",
+  },
+  vision_extract: {
+    label: "Leitura de documentos",
+    what: "Lê fotos e PDFs enviados à Central (boleto, nota, comprovante, contrato) e devolve os campos para conferência.",
+    pick: "Precisa de um modelo com visão (imagem e PDF) que responda em JSON.",
+  },
   conversation: {
     label: "Atendimento ao cliente",
     what: "Responde clientes no WhatsApp e Instagram, consulta estoque, preço e políticas pelas ferramentas e decide se envia, deixa rascunho ou chama uma pessoa. É a rota que fala com a cliente: erro aqui aparece para ela.",
@@ -57,10 +68,20 @@ async function saveRoute(formData: FormData) {
   "use server";
   const session = await requirePerm("ai.write");
   const supabase = await createClient();
-  const fallback = String(formData.get("fallback_models") || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const task = String(formData.get("task") || "");
+  let primary = String(formData.get("primary_model")).trim();
+  let fallback = String(formData.get("fallback_models") || "").split(",").map((s) => s.trim()).filter(Boolean);
+  // "Usar Hermes": o Hermes vira o principal e o modelo de antes fica como primeira reserva (se o Hermes cair, a rota continua)
+  if (formData.get("use_hermes")) {
+    fallback = [primary, ...fallback].filter((m) => m && !isHermesModel(m));
+    primary = String(formData.get("use_hermes"));
+  }
+  if (HERMES_UNSUPPORTED[task] && [primary, ...fallback].some(isHermesModel)) {
+    redirect(`/ia/modelos?erro=${encodeURIComponent(`Hermes não serve nesta rota: ${HERMES_UNSUPPORTED[task]}`)}`);
+  }
   const { error } = await supabase.schema("ai").from("model_routes").update({
-    primary_model: String(formData.get("primary_model")).trim(),
-    fallback_models: fallback,
+    primary_model: primary,
+    fallback_models: [...new Set(fallback)].filter((m) => m !== primary),
     daily_budget_usd: Number(formData.get("daily_budget_usd") || 0) || null,
     active: formData.get("active") === "on",
     updated_by: session.memberId,
@@ -82,8 +103,20 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
 
   return (
     <>
-      <PageHeader title="Modelos & custos" description="Cada tarefa usa um modelo do OpenRouter escolhido aqui, sem deploy. Rotas com dado de cliente exigem ZDR (sem retenção)." />
+      <PageHeader title="Modelos & custos" description="Cada tarefa usa um modelo do OpenRouter ou o Hermes do CentralOps (hermes/agy), escolhido aqui, sem deploy. Rotas com dado de cliente exigem ZDR (sem retenção)." />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+      <datalist id="model-options">
+        {HERMES_MODELS.map((m) => <option key={m.slug} value={m.slug} label={m.label} />)}
+        {[...new Set((routes ?? []).flatMap((r) => [r.primary_model, ...r.fallback_models]))].filter((m) => !isHermesModel(m)).map((m) => <option key={m} value={m} />)}
+      </datalist>
+      <div className="mb-4 rounded-xl border border-border bg-surface p-3 text-sm">
+        <p className="font-medium">Hermes do CentralOps (AGY)</p>
+        <p className="mt-0.5 text-xs text-muted">
+          Instância exclusiva do Hermes cujo modelo é o AGY (Gemini Flash pelo Antigravity), sem custo por token. Escolha <code>hermes/agy</code> como modelo principal ou reserva de qualquer rota,
+          ou use o botão <b>Usar Hermes</b> da linha (o modelo atual vira reserva). É mais lento que o OpenRouter (10 a 60 s por chamada) e não lê imagens nem gera embeddings.
+          Na rota de atendimento ao cliente ele precisa passar nas <Link className="underline" href="/ia/avaliacoes">Avaliações da IA</Link> como qualquer modelo.
+        </p>
+      </div>
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
         <table className="w-full text-sm">
           <thead className="bg-surface-2 text-left text-xs text-muted">
@@ -104,12 +137,23 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
                       <p className="mt-1"><b>Privacidade e requisitos:</b> {r.provider_prefs && (r.provider_prefs as { zdr?: boolean }).zdr ? "sem retenção de dados (ZDR)" : "sem exigência de ZDR"}{r.requires_tools ? " · precisa usar ferramentas" : ""}{r.requires_json_schema ? " · precisa responder em JSON" : ""}</p>
                     </details>
                   </td>
-                  <td className="px-3 py-2"><input form={f} name="primary_model" defaultValue={r.primary_model} disabled={!editable} className={`${inputClass} min-w-52`} aria-label={`Modelo de ${t?.label ?? r.task}`} /></td>
-                  <td className="px-3 py-2"><input form={f} name="fallback_models" defaultValue={r.fallback_models.join(", ")} disabled={!editable} className={`${inputClass} min-w-40`} aria-label="Reservas" /></td>
+                  <td className="px-3 py-2">
+                    <input form={f} name="primary_model" defaultValue={r.primary_model} disabled={!editable} list={HERMES_UNSUPPORTED[r.task] ? undefined : "model-options"} className={`${inputClass} min-w-52`} aria-label={`Modelo de ${t?.label ?? r.task}`} />
+                    {isHermesModel(r.primary_model) && <p className="mt-1 text-xs text-muted">Hermes do CentralOps · AGY</p>}
+                    {HERMES_UNSUPPORTED[r.task] && <p className="mt-1 max-w-52 text-xs text-muted">Sem Hermes: {HERMES_UNSUPPORTED[r.task]}</p>}
+                  </td>
+                  <td className="px-3 py-2"><input form={f} name="fallback_models" defaultValue={r.fallback_models.join(", ")} disabled={!editable} list={HERMES_UNSUPPORTED[r.task] ? undefined : "model-options"} className={`${inputClass} min-w-40`} aria-label="Reservas" /></td>
                   <td className="px-3 py-2"><input form={f} name="daily_budget_usd" defaultValue={r.daily_budget_usd ?? ""} disabled={!editable} className={`${inputClass} w-20`} aria-label="Orçamento diário" /></td>
                   <td className="px-3 py-2"><input form={f} type="checkbox" name="active" defaultChecked={r.active} disabled={!editable} aria-label="Ativa" /></td>
                   <td className="px-3 py-2">
-                    <form id={f} action={saveRoute}><input type="hidden" name="id" value={r.id} />{editable && <Button variant="secondary" className="px-2 py-1 text-xs">Salvar</Button>}</form>
+                    <form id={f} action={saveRoute} className="flex flex-col gap-1">
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="task" value={r.task} />
+                      {editable && <Button variant="secondary" className="px-2 py-1 text-xs">Salvar</Button>}
+                      {editable && !HERMES_UNSUPPORTED[r.task] && !isHermesModel(r.primary_model) && (
+                        <Button variant="secondary" name="use_hermes" value={HERMES_MODELS[0].slug} className="px-2 py-1 text-xs" title="Hermes do CentralOps (AGY) como principal; o modelo atual vira reserva">Usar Hermes</Button>
+                      )}
+                    </form>
                   </td>
                 </tr>
               );

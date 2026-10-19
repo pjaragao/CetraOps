@@ -16,6 +16,7 @@ import httpx
 from ..adapters.errors import PermanentError, TransientError
 from ..ai import guardrails
 from ..ai.agent import OpenRouterAgent
+from ..ai.hermes_llm import HermesLLM, is_hermes
 from ..config import Settings
 from ..db import call_fn, fetch_all, fetch_one
 from ..deps import Deps
@@ -117,7 +118,9 @@ async def run_case(settings: Settings, http: httpx.AsyncClient, org_id: str, cas
         conv_id, msg_id = await _prepare(pool, org_id, case, persona_id)
         # o modelo candidato entra só neste sandbox; a rota de verdade não muda
         await fetch_one(pool, "update ai.model_routes set primary_model = %s, fallback_models = '{}', daily_budget_usd = null, active = true where org_id = %s and task = 'conversation' returning id", (model, org_id))
-        deps = Deps(pool=pool, settings=settings, http=http, agent=OpenRouterAgent(pool, http, settings.openrouter_base, settings.openrouter_key))  # type: ignore[arg-type]
+        deps = Deps(pool=pool, settings=settings, http=http, agent=OpenRouterAgent(
+            pool, http, settings.openrouter_base, settings.openrouter_key,
+            hermes=HermesLLM(http, settings.hermes_llm_base, settings.hermes_llm_key) if settings.hermes_llm_key else None))  # type: ignore[arg-type]
         t0 = time.monotonic()
         try:
             await router.handle(deps, QueueMessage("conversation_router", 0, 1, {"conversation_id": conv_id, "message_id": msg_id}))
@@ -166,8 +169,10 @@ ProgressFn = Callable[[str], Awaitable[None]]
 async def run_suite(settings: Settings, http: httpx.AsyncClient, pool: Any, org_id: str, models: list[str], *, suite: str = "conversation",
                     request_id: str | None = None, persona_id: str | None = None, progress: ProgressFn | None = None) -> list[str]:
     """Roda todos os casos ativos em cada modelo e grava um lote por modelo. Devolve os ids dos lotes."""
-    if not settings.openrouter_key:
+    if not settings.openrouter_key and any(not is_hermes(m) for m in models):
         raise PermanentError("OpenRouter não configurado (CENTRALOPS_OPENROUTER_KEY)")
+    if not settings.hermes_llm_key and any(is_hermes(m) for m in models):
+        raise PermanentError("Hermes do CentralOps não configurado (CENTRALOPS_HERMES_LLM_KEY)")
     cases = await load_cases(pool, org_id, suite)
     if not cases:
         raise PermanentError("nenhum caso de teste ativo")

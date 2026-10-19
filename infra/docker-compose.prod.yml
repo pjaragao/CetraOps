@@ -46,6 +46,8 @@ services:
       NODE_ENV: production
       # Central (assistente de IA da equipe): o laço roda no servidor web com o JWT de quem usa; as chaves nunca vão ao navegador
       CENTRALOPS_OPENROUTER_KEY: ${CENTRALOPS_OPENROUTER_KEY:-}
+      CENTRALOPS_HERMES_LLM_BASE: ${CENTRALOPS_HERMES_LLM_BASE:-http://centralops-hermes:8642/v1}
+      CENTRALOPS_HERMES_LLM_KEY: ${CENTRALOPS_HERMES_LLM_KEY:-}
       CENTRALOPS_GROQ_KEY: ${CENTRALOPS_GROQ_KEY:-}
     networks: [edge, centralops]
     healthcheck:
@@ -85,6 +87,8 @@ services:
       CENTRALOPS_HERMES_BASE: ${CENTRALOPS_HERMES_BASE:-http://hermes:8642/v1}
       CENTRALOPS_HERMES_KEY: ${CENTRALOPS_HERMES_KEY:-}
       CENTRALOPS_OPENROUTER_KEY: ${CENTRALOPS_OPENROUTER_KEY:-}
+      CENTRALOPS_HERMES_LLM_BASE: ${CENTRALOPS_HERMES_LLM_BASE:-http://centralops-hermes:8642/v1}
+      CENTRALOPS_HERMES_LLM_KEY: ${CENTRALOPS_HERMES_LLM_KEY:-}
       CENTRALOPS_FOCUS_API_BASE: ${CENTRALOPS_FOCUS_API_BASE:-https://api.focusnfe.com.br}
       CENTRALOPS_FOCUS_TOKEN: ${CENTRALOPS_FOCUS_TOKEN:-}
       CENTRALOPS_GROQ_KEY: ${CENTRALOPS_GROQ_KEY:-}

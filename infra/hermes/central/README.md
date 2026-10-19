@@ -11,14 +11,20 @@ worker ────────┘   (rede services_internal)        └─▶ a
 
 ## Como usar no CentralOps
 
-Inteligência › **Modelos & custos**: em qualquer rota, escolha `hermes/agy` como modelo principal ou reserva, ou clique em
-**Usar Hermes** (o modelo atual vira reserva). Principal e reservas podem misturar Hermes e OpenRouter: se um lado falhar, o outro tenta.
+Inteligência › **Modelos & custos**: o seletor (com busca) de qualquer rota lista cada modelo do AGY em cada nível de pensamento
+(`hermes/agy/<id do agy models>`, ex.: `hermes/agy/claude-sonnet-5-5-high`) e o padrão `hermes/agy` (Gemini Flash mais novo, baixo).
+Também dá para clicar em **Usar Hermes** (o modelo atual vira reserva). Principal e reservas podem misturar Hermes e OpenRouter: se um lado falhar, o outro tenta.
 
 - Ferramentas: o API server do Hermes ignora `tools`, então o CentralOps descreve as ferramentas no prompt e o modelo pede uma por
   linha `TOOL_CALL {...}` (`apps/web/lib/central/hermes.ts`, `apps/worker/centralops_worker/ai/hermes_llm.py`). A ferramenta roda
   no CentralOps, com a sessão/RLS (Central) ou o ctx assinado (atendimento) de sempre.
 - JSON: o schema vai no prompt e a resposta é validada como antes.
-- **Não serve** para `embeddings` (não gera vetores) nem `vision_extract` (o shim só passa texto): a tela bloqueia.
+- Modelo escolhido: o CentralOps manda `provider: "agy"` + `model: <id>`; o Hermes repassa ao shim, que roda esse id no `agy`
+  (ids fora do catálogo, como o alias `gemini-flash-latest` dos bots, seguem a resolução padrão).
+- Imagem e PDF (`vision_extract`, anexos da Central): a imagem vai como `image_url` pelo Hermes; o API do Hermes recusa PDF, então o
+  web sobe o arquivo para o shim (`POST /v1/files`, 15 min em memória) e manda `[[agy-file:<id>]]`. O shim grava os anexos na pasta
+  temporária da execução e o `agy` abre esses arquivos (somente leitura, `--sandbox`).
+- **Não serve** para `embeddings` (não gera vetores): a tela bloqueia.
 - Atendimento ao cliente (`conversation`): precisa passar nas Avaliações da IA como qualquer modelo (`hermes/agy` é aceito lá).
 - Latência: 5 a 60 s por chamada (o AGY é um CLI). O shim roda até `AGY_SHIM_PARALLEL` (2) chamadas ao mesmo tempo, dividido com os bots.
 
@@ -28,6 +34,8 @@ Inteligência › **Modelos & custos**: em qualquer rota, escolha `hermes/agy` c
 |---|---|
 | `CENTRALOPS_HERMES_LLM_KEY` | `API_SERVER_KEY` de `~/centralops-hermes/data/.env` |
 | `CENTRALOPS_HERMES_LLM_BASE` | opcional; padrão `http://centralops-hermes:8642/v1` |
+| `CENTRALOPS_AGY_SHIM_TOKEN` | (só web) `AGY_SHIM_TOKEN` do shim: necessário para PDF e para o catálogo ao vivo |
+| `CENTRALOPS_AGY_SHIM_URL` | opcional; padrão `http://172.26.0.1:8787/v1` |
 
 Sem a chave, as rotas `hermes/*` caem nas reservas do OpenRouter (se houver).
 

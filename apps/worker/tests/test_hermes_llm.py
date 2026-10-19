@@ -9,7 +9,7 @@ import respx
 
 from centralops_worker.adapters.errors import TransientError
 from centralops_worker.ai.agent import AgentInput, OpenRouterAgent
-from centralops_worker.ai.hermes_llm import HermesLLM, parse_reply, to_hermes_messages
+from centralops_worker.ai.hermes_llm import HermesLLM, agy_model_id, parse_reply, to_hermes_messages
 
 TOOLS = [{"type": "function", "function": {"name": "search_catalog", "description": "Busca produtos", "parameters": {"type": "object", "properties": {"q": {"type": "string"}}}}}]
 
@@ -78,3 +78,20 @@ async def test_hermes_transient_without_fallback_raises() -> None:
         h = HermesLLM(http, "http://hermes.test/v1", "k")
         with pytest.raises(TransientError):
             await h.chat("hermes/agy", [{"role": "user", "content": "oi"}])
+
+
+def test_agy_model_id() -> None:
+    assert agy_model_id("hermes/agy/claude-sonnet-5-5-high") == "claude-sonnet-5-5-high"
+    assert agy_model_id("hermes/agy") is None and agy_model_id("hermes/agy/") is None and agy_model_id("openai/gpt-4.1") is None
+
+
+@respx.mock
+async def test_chosen_agy_model_goes_to_hermes_with_provider() -> None:
+    route = respx.post("http://hermes.test/v1/chat/completions").mock(return_value=httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]}))
+    async with httpx.AsyncClient() as http:
+        h = HermesLLM(http, "http://hermes.test/v1", "k")
+        await h.chat("hermes/agy/gemini-4-argon-high", [{"role": "user", "content": "oi"}])
+        await h.chat("hermes/agy", [{"role": "user", "content": "oi"}])
+    first, second = (json.loads(c.request.content) for c in route.calls)
+    assert first["provider"] == "agy" and first["model"] == "gemini-4-argon-high"
+    assert "provider" not in second and "model" not in second

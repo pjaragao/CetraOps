@@ -31,6 +31,12 @@ def is_hermes(model: str) -> bool:
     return model.startswith(PREFIX)
 
 
+def agy_model_id(model: str) -> str | None:
+    """`hermes/agy/<id do agy>` → id concreto do `agy models` (ex.: claude-sonnet-5-5-high); `hermes/agy` → None (padrão da instância)."""
+    prefix = PREFIX + "agy/"
+    return (model[len(prefix):] or None) if model.startswith(prefix) else None
+
+
 def _text(content: Any) -> str:
     if content is None:
         return ""
@@ -128,7 +134,9 @@ class HermesLLM:
 
     async def chat(self, model: str, messages: list[dict[str, Any]], *, tools: list[dict[str, Any]] | None = None,
                    json_schema: tuple[str, dict[str, Any]] | None = None, timeout: float = 180) -> dict[str, Any]:
-        body = {"stream": False, "messages": to_hermes_messages(messages, tools, json_schema)}
+        body: dict[str, Any] = {"stream": False, "messages": to_hermes_messages(messages, tools, json_schema)}
+        if agy_model_id(model):      # `provider` explícito faz o Hermes repassar o `model` ao shim, que roda esse id no agy
+            body |= {"provider": "agy", "model": agy_model_id(model)}
         try:
             resp = await self._http.post(f"{self._base}/chat/completions", json=body, headers={"Authorization": f"Bearer {self._key}"}, timeout=timeout)
         except (httpx.TimeoutException, httpx.TransportError) as e:

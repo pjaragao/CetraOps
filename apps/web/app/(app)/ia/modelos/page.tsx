@@ -6,7 +6,8 @@ import { can, requirePerm } from "@/lib/session";
 import { Button, inputClass, PageHeader } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { str, type SP } from "@/lib/context";
-import { HERMES_MODELS, HERMES_UNSUPPORTED, isHermesModel } from "@/lib/central/hermes";
+import { HERMES_DEFAULT, HERMES_UNSUPPORTED, hermesModelOptions, isHermesModel } from "@/lib/central/hermes";
+import { ModelPicker, type ModelOption } from "@/components/model-picker";
 
 export const metadata = { title: "Modelos de IA" };
 
@@ -20,7 +21,7 @@ const TASKS: Record<string, { label: string; what: string; pick: string }> = {
   vision_extract: {
     label: "Leitura de documentos",
     what: "Lê fotos e PDFs enviados à Central (boleto, nota, comprovante, contrato) e devolve os campos para conferência.",
-    pick: "Precisa de um modelo com visão (imagem e PDF) que responda em JSON.",
+    pick: "Precisa de um modelo com visão (imagem e PDF) que responda em JSON. O Hermes do CentralOps (AGY) lê imagem e PDF, sem custo por token.",
   },
   conversation: {
     label: "Atendimento ao cliente",
@@ -100,20 +101,22 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
     supabase.schema("ai").from("model_route_changes").select("id, task, changed_at, after").order("changed_at", { ascending: false }).limit(10),
   ]);
   const editable = can(session, "ai.write");
+  // opções do seletor: cada modelo do AGY em cada nível de pensamento + os modelos do OpenRouter já usados nas rotas
+  const hermesOptions: ModelOption[] = await hermesModelOptions();
+  const used = [...new Set((routes ?? []).flatMap((r) => [r.primary_model, ...r.fallback_models]))];
+  const openrouterOptions: ModelOption[] = used.filter((m) => !isHermesModel(m)).sort().map((m) => ({ id: m, label: m, group: "OpenRouter (já usados nas rotas)" }));
+  const unknownHermes: ModelOption[] = used.filter((m) => isHermesModel(m) && !hermesOptions.some((o) => o.id === m)).map((m) => ({ id: m, label: m, hint: "não está mais no catálogo do AGY", group: "Hermes do CentralOps · AGY (sem custo por token)" }));
+  const allOptions = [...hermesOptions, ...unknownHermes, ...openrouterOptions];
 
   return (
     <>
       <PageHeader title="Modelos & custos" description="Cada tarefa usa um modelo do OpenRouter ou o Hermes do CentralOps (hermes/agy), escolhido aqui, sem deploy. Rotas com dado de cliente exigem ZDR (sem retenção)." />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
-      <datalist id="model-options">
-        {HERMES_MODELS.map((m) => <option key={m.slug} value={m.slug} label={m.label} />)}
-        {[...new Set((routes ?? []).flatMap((r) => [r.primary_model, ...r.fallback_models]))].filter((m) => !isHermesModel(m)).map((m) => <option key={m} value={m} />)}
-      </datalist>
       <div className="mb-4 rounded-xl border border-border bg-surface p-3 text-sm">
         <p className="font-medium">Hermes do CentralOps (AGY)</p>
         <p className="mt-0.5 text-xs text-muted">
-          Instância exclusiva do Hermes cujo modelo é o AGY (Gemini Flash pelo Antigravity), sem custo por token. Escolha <code>hermes/agy</code> como modelo principal ou reserva de qualquer rota,
-          ou use o botão <b>Usar Hermes</b> da linha (o modelo atual vira reserva). É mais lento que o OpenRouter (10 a 60 s por chamada) e não lê imagens nem gera embeddings.
+          Instância exclusiva do Hermes cujo modelo é o AGY (Antigravity), sem custo por token: Gemini, Claude e GPT-OSS, cada um com nível de pensamento baixo, médio ou alto.
+          Busque no seletor de qualquer rota (ex.: &quot;sonnet alto&quot;, &quot;flash&quot;, &quot;agy&quot;) para usar como modelo principal ou reserva, ou use o botão <b>Usar Hermes</b> da linha (o modelo atual vira reserva). Lê imagens e PDF; é mais lento que o OpenRouter (10 a 60 s por chamada) e não gera embeddings.
           Na rota de atendimento ao cliente ele precisa passar nas <Link className="underline" href="/ia/avaliacoes">Avaliações da IA</Link> como qualquer modelo.
         </p>
       </div>
@@ -138,11 +141,11 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
                     </details>
                   </td>
                   <td className="px-3 py-2">
-                    <input form={f} name="primary_model" defaultValue={r.primary_model} disabled={!editable} list={HERMES_UNSUPPORTED[r.task] ? undefined : "model-options"} className={`${inputClass} min-w-52`} aria-label={`Modelo de ${t?.label ?? r.task}`} />
-                    {isHermesModel(r.primary_model) && <p className="mt-1 text-xs text-muted">Hermes do CentralOps · AGY</p>}
+                    <ModelPicker form={f} name="primary_model" defaultValue={r.primary_model} disabled={!editable} options={HERMES_UNSUPPORTED[r.task] ? openrouterOptions : allOptions} className="min-w-60" ariaLabel={`Modelo de ${t?.label ?? r.task}`} />
+                    {isHermesModel(r.primary_model) && <p className="mt-1 text-xs text-muted">Hermes do CentralOps · AGY · {r.primary_model}</p>}
                     {HERMES_UNSUPPORTED[r.task] && <p className="mt-1 max-w-52 text-xs text-muted">Sem Hermes: {HERMES_UNSUPPORTED[r.task]}</p>}
                   </td>
-                  <td className="px-3 py-2"><input form={f} name="fallback_models" defaultValue={r.fallback_models.join(", ")} disabled={!editable} list={HERMES_UNSUPPORTED[r.task] ? undefined : "model-options"} className={`${inputClass} min-w-40`} aria-label="Reservas" /></td>
+                  <td className="px-3 py-2"><ModelPicker multiple form={f} name="fallback_models" defaultValue={r.fallback_models} disabled={!editable} options={HERMES_UNSUPPORTED[r.task] ? openrouterOptions : allOptions} className="min-w-52" ariaLabel="Reservas" /></td>
                   <td className="px-3 py-2"><input form={f} name="daily_budget_usd" defaultValue={r.daily_budget_usd ?? ""} disabled={!editable} className={`${inputClass} w-20`} aria-label="Orçamento diário" /></td>
                   <td className="px-3 py-2"><input form={f} type="checkbox" name="active" defaultChecked={r.active} disabled={!editable} aria-label="Ativa" /></td>
                   <td className="px-3 py-2">
@@ -151,7 +154,7 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
                       <input type="hidden" name="task" value={r.task} />
                       {editable && <Button variant="secondary" className="px-2 py-1 text-xs">Salvar</Button>}
                       {editable && !HERMES_UNSUPPORTED[r.task] && !isHermesModel(r.primary_model) && (
-                        <Button variant="secondary" name="use_hermes" value={HERMES_MODELS[0].slug} className="px-2 py-1 text-xs" title="Hermes do CentralOps (AGY) como principal; o modelo atual vira reserva">Usar Hermes</Button>
+                        <Button variant="secondary" name="use_hermes" value={HERMES_DEFAULT} className="px-2 py-1 text-xs" title="Hermes do CentralOps (AGY) como principal; o modelo atual vira reserva">Usar Hermes</Button>
                       )}
                     </form>
                   </td>

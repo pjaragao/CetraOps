@@ -25,7 +25,8 @@ Também dá para clicar em **Usar Hermes** (o modelo atual vira reserva). Princi
   web sobe o arquivo para o shim (`POST /v1/files`, 15 min em memória) e manda `[[agy-file:<id>]]`. O shim grava os anexos na pasta
   temporária da execução e o `agy` abre esses arquivos (somente leitura, `--sandbox`).
 - **Não serve** para `embeddings` (não gera vetores): a tela bloqueia.
-- Atendimento ao cliente (`conversation`): precisa passar nas Avaliações da IA como qualquer modelo (`hermes/agy` é aceito lá).
+- Atendimento ao cliente (`conversation`): os modelos `hermes/agy*` estão liberados sem avaliação (migration 20261019000100;
+  `core.settings` `ai_eval_gate.exempt_prefixes`, `[]` volta a exigir). Os outros modelos continuam passando pelo portão.
 - Latência: 5 a 60 s por chamada (o AGY é um CLI). O shim roda até `AGY_SHIM_PARALLEL` (2) chamadas ao mesmo tempo, dividido com os bots.
 
 ## Variáveis (Coolify, app CetraOps → web e worker)

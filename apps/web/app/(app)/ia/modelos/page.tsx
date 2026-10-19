@@ -117,7 +117,7 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
         <p className="mt-0.5 text-xs text-muted">
           Instância exclusiva do Hermes cujo modelo é o AGY (Antigravity), sem custo por token: Gemini, Claude e GPT-OSS, cada um com nível de pensamento baixo, médio ou alto.
           Busque no seletor de qualquer rota (ex.: &quot;sonnet alto&quot;, &quot;flash&quot;, &quot;agy&quot;) para usar como modelo principal ou reserva, ou use o botão <b>Usar Hermes</b> da linha (o modelo atual vira reserva). Lê imagens e PDF; é mais lento que o OpenRouter (10 a 60 s por chamada) e não gera embeddings.
-          Na rota de atendimento ao cliente ele precisa passar nas <Link className="underline" href="/ia/avaliacoes">Avaliações da IA</Link> como qualquer modelo.
+          Na rota de atendimento ao cliente os modelos do AGY estão liberados sem avaliação (os demais modelos continuam precisando passar nas <Link className="underline" href="/ia/avaliacoes">Avaliações da IA</Link>).
         </p>
       </div>
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">

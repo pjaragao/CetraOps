@@ -63,7 +63,7 @@ export default async function AvaliacoesPage({ searchParams }: { searchParams: S
           </ul>
         </details>
       )}
-      <p className="mt-2 text-xs text-muted">Modelo de atendimento atual: {route?.primary_model ?? "—"}. Para entrar na rota, o modelo precisa de uma avaliação dos últimos 30 dias com pelo menos 8 casos, nenhuma resposta sem fundamento e 90% de aprovação.</p>
+      <p className="mt-2 text-xs text-muted">Modelo de atendimento atual: {route?.primary_model ?? "—"}. Para entrar na rota, o modelo precisa de uma avaliação dos últimos 30 dias com pelo menos 8 casos, nenhuma resposta sem fundamento e 90% de aprovação. Os modelos do AGY (hermes/agy…) estão liberados sem avaliação; avaliar continua útil para comparar.</p>
 
       {canWrite && (
         <Card title="Rodar avaliação" className="mt-4">

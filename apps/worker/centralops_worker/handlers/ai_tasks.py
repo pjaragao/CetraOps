@@ -1,7 +1,8 @@
 """Fila `ai_tasks`: tarefas de IA sob demanda disparadas por telas e rotinas do sistema.
 OUTREACH_DRAFT  redige a primeira DM da prospecção assistida (a vendedora revisa e envia pelo app oficial).
 EVAL_RUN        roda as avaliações da IA de atendimento nos modelos pedidos (sandbox; grava um lote por modelo).
-CONVERSATION_SUMMARY  resume a conversa encerrada (2 linhas), marca temas e sentimento e aponta pergunta sem resposta na base."""
+CONVERSATION_SUMMARY  resume a conversa encerrada (2 linhas), marca temas e sentimento e aponta pergunta sem resposta na base.
+RECEIPT_MATCH   sugere como ligar os itens da NF-e recebida ao catálogo (ver receipt_ai.py)."""
 from __future__ import annotations
 
 import json
@@ -16,6 +17,7 @@ from ..db import brand_name, call_fn, fetch_all, fetch_one
 from ..deps import Deps
 from ..evals.runner import run_suite
 from ..runner import RetryLater
+from .receipt_ai import receipt_match
 
 log = logging.getLogger("centralops_worker.ai_tasks")
 
@@ -134,5 +136,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         await _eval_run(deps, msg)
     elif action == "CONVERSATION_SUMMARY":
         await _conversation_summary(deps, msg.payload)
+    elif action == "RECEIPT_MATCH":
+        await receipt_match(deps, msg.payload)
     else:
         log.warning("ação de IA desconhecida: %s", action)

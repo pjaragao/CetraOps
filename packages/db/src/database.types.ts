@@ -8378,13 +8378,13 @@ isOneToOne: false
                   ]
                 },"receipt_items": {
                   Row: {
-                    "cean": string | null,"cfop": string | null,"description": string | null,"id": string,"item_total": number,"landed_unit_cost": number | null,"match_confidence": number | null,"match_status": string,"movement_id": number | null,"n_item": number,"ncm": string | null,"org_id": string,"qty_counted": number | null,"qty_nfe": number,"receipt_id": string,"supplier_cprod": string | null,"unit": string | null,"unit_cost_nfe": number | null,"variant_id": string | null
+                    "cean": string | null,"cfop": string | null,"description": string | null,"id": string,"item_total": number,"landed_unit_cost": number | null,"match_confidence": number | null,"match_status": string,"movement_id": number | null,"n_item": number,"ncm": string | null,"org_id": string,"qty_counted": number | null,"qty_nfe": number,"receipt_id": string,"supplier_cprod": string | null,"unit": string | null,"unit_cost_nfe": number | null,"variant_id": string | null,"ai_suggested_at": string | null,"ai_suggestion": Json | null
                   }
                   Insert: {
-                    "cean"?: string | null,"cfop"?: string | null,"description"?: string | null,"id"?: string,"item_total": number,"landed_unit_cost"?: number | null,"match_confidence"?: number | null,"match_status"?: string,"movement_id"?: number | null,"n_item": number,"ncm"?: string | null,"org_id": string,"qty_counted"?: number | null,"qty_nfe": number,"receipt_id": string,"supplier_cprod"?: string | null,"unit"?: string | null,"unit_cost_nfe"?: number | null,"variant_id"?: string | null
+                    "cean"?: string | null,"cfop"?: string | null,"description"?: string | null,"id"?: string,"item_total": number,"landed_unit_cost"?: number | null,"match_confidence"?: number | null,"match_status"?: string,"movement_id"?: number | null,"n_item": number,"ncm"?: string | null,"org_id": string,"qty_counted"?: number | null,"qty_nfe": number,"receipt_id": string,"supplier_cprod"?: string | null,"unit"?: string | null,"unit_cost_nfe"?: number | null,"variant_id"?: string | null,"ai_suggested_at"?: string | null,"ai_suggestion"?: Json | null
                   }
                   Update: {
-                    "cean"?: string | null,"cfop"?: string | null,"description"?: string | null,"id"?: string,"item_total"?: number,"landed_unit_cost"?: number | null,"match_confidence"?: number | null,"match_status"?: string,"movement_id"?: number | null,"n_item"?: number,"ncm"?: string | null,"org_id"?: string,"qty_counted"?: number | null,"qty_nfe"?: number,"receipt_id"?: string,"supplier_cprod"?: string | null,"unit"?: string | null,"unit_cost_nfe"?: number | null,"variant_id"?: string | null
+                    "cean"?: string | null,"cfop"?: string | null,"description"?: string | null,"id"?: string,"item_total"?: number,"landed_unit_cost"?: number | null,"match_confidence"?: number | null,"match_status"?: string,"movement_id"?: number | null,"n_item"?: number,"ncm"?: string | null,"org_id"?: string,"qty_counted"?: number | null,"qty_nfe"?: number,"receipt_id"?: string,"supplier_cprod"?: string | null,"unit"?: string | null,"unit_cost_nfe"?: number | null,"variant_id"?: string | null,"ai_suggested_at"?: string | null,"ai_suggestion"?: Json | null
                   }
                   Relationships: [
                     {
@@ -8397,13 +8397,13 @@ isOneToOne: false
                   ]
                 },"receipts": {
                   Row: {
-                    "checked_at": string | null,"checked_by": string | null,"created_at": string,"created_by": string | null,"credit_id": string | null,"document_id": string | null,"entry_id": string | null,"id": string,"landed_total": number | null,"legal_entity_id": string,"location_id": string,"nf_total": number,"notes": string | null,"number": string,"org_id": string,"po_id": string | null,"post_ref": string | null,"posted_at": string | null,"posted_by": string | null,"shortage_total": number,"status": string,"store_id": string | null,"supplier_party_id": string,"title_id": string | null
+                    "checked_at": string | null,"checked_by": string | null,"created_at": string,"created_by": string | null,"credit_id": string | null,"document_id": string | null,"entry_id": string | null,"id": string,"landed_total": number | null,"legal_entity_id": string,"location_id": string,"nf_total": number,"notes": string | null,"number": string,"org_id": string,"po_id": string | null,"post_ref": string | null,"posted_at": string | null,"posted_by": string | null,"shortage_total": number,"status": string,"store_id": string | null,"supplier_party_id": string,"title_id": string | null,"ai_note": string | null,"ai_status": string | null
                   }
                   Insert: {
-                    "checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"credit_id"?: string | null,"document_id"?: string | null,"entry_id"?: string | null,"id"?: string,"landed_total"?: number | null,"legal_entity_id": string,"location_id": string,"nf_total": number,"notes"?: string | null,"number": string,"org_id": string,"po_id"?: string | null,"post_ref"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"shortage_total"?: number,"status"?: string,"store_id"?: string | null,"supplier_party_id": string,"title_id"?: string | null
+                    "checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"credit_id"?: string | null,"document_id"?: string | null,"entry_id"?: string | null,"id"?: string,"landed_total"?: number | null,"legal_entity_id": string,"location_id": string,"nf_total": number,"notes"?: string | null,"number": string,"org_id": string,"po_id"?: string | null,"post_ref"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"shortage_total"?: number,"status"?: string,"store_id"?: string | null,"supplier_party_id": string,"title_id"?: string | null,"ai_note"?: string | null,"ai_status"?: string | null
                   }
                   Update: {
-                    "checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"credit_id"?: string | null,"document_id"?: string | null,"entry_id"?: string | null,"id"?: string,"landed_total"?: number | null,"legal_entity_id"?: string,"location_id"?: string,"nf_total"?: number,"notes"?: string | null,"number"?: string,"org_id"?: string,"po_id"?: string | null,"post_ref"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"shortage_total"?: number,"status"?: string,"store_id"?: string | null,"supplier_party_id"?: string,"title_id"?: string | null
+                    "checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"credit_id"?: string | null,"document_id"?: string | null,"entry_id"?: string | null,"id"?: string,"landed_total"?: number | null,"legal_entity_id"?: string,"location_id"?: string,"nf_total"?: number,"notes"?: string | null,"number"?: string,"org_id"?: string,"po_id"?: string | null,"post_ref"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"shortage_total"?: number,"status"?: string,"store_id"?: string | null,"supplier_party_id"?: string,"title_id"?: string | null,"ai_note"?: string | null,"ai_status"?: string | null
                   }
                   Relationships: [
                     {
@@ -8714,6 +8714,8 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"apply_ai_suggestions": { Args: { "p_items"?: string[]; "p_receipt": string }; Returns: Json }
+"request_ai_match": { Args: { "p_all"?: boolean; "p_receipt": string }; Returns: undefined }
 "set_receipt_item":
 { Args: { "p": Json,"p_item": string }; Returns: {
               "cean": string | null,

@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { formatBRL } from "@centralops/domain";
 import { Badge, Button, inputClass } from "@/components/ui";
-import { addVariantFromItem, createProductFromItem, setReceiptItem } from "../../compras/actions";
+import { addVariantFromItem, applyAiSuggestions, createProductFromItem, setReceiptItem } from "../../compras/actions";
 import { MATCH_LABEL } from "../../compras/labels";
 import { VariantPicker } from "../../compras/variant-picker";
 
@@ -11,6 +11,9 @@ export interface ConferenceItem {
   id: string; n_item: number; cprod: string | null; cean: string | null; description: string | null; ncm: string | null;
   qty_nfe: number; qty_counted: number | null; item_total: number; landed_unit_cost: number | null;
   match_status: string; match_confidence: number | null; variant: { id: string; sku: string; label: string; product_id?: string } | null;
+  /** Sugestão da IA ainda não aplicada (acao, rótulo, confiança, motivo). */
+  ai: { acao: string; rotulo: string; confianca: number; motivo: string } | null;
+  receipt_id: string;
 }
 
 export interface CatalogOptions {
@@ -93,6 +96,15 @@ function Row({ item, editable, options }: { item: ConferenceItem; editable: bool
           <Badge tone={m.tone}>{m.label}{item.match_confidence != null && item.match_status === "SUGGESTED" ? ` ${Math.round(item.match_confidence * 100)}%` : ""}</Badge>
           {item.variant ? <span><span className="font-mono text-xs text-muted">{item.variant.sku}</span> <span className="text-xs">{item.variant.label}</span></span> : <span className="text-xs text-danger">escolha o produto</span>}
         </div>
+        {item.ai && (
+          <div className={`mt-1.5 rounded-lg border px-2 py-1 text-xs ${item.ai.acao === "trocar" ? "border-warning/50 bg-warning/5" : item.ai.acao === "indefinido" ? "border-border text-muted" : "border-brand/40 bg-brand/5"}`}>
+            <span className="font-medium">IA{item.ai.confianca ? ` ${Math.round(item.ai.confianca * 100)}%` : ""}:</span> {item.ai.rotulo}
+            {item.ai.motivo && item.ai.acao !== "indefinido" && <span className="text-muted"> — {item.ai.motivo}</span>}
+            {editable && item.ai.acao !== "indefinido" && !(item.ai.acao === "vincular" && item.match_status === "SUGGESTED") && (
+              <Button type="button" variant="secondary" className="ml-2 px-2 py-0.5 text-xs" disabled={pending} onClick={() => run(() => applyAiSuggestions(item.receipt_id, [item.id]))}>Aplicar</Button>
+            )}
+          </div>
+        )}
         {editable && (
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <VariantPicker className="w-64" placeholder={item.variant ? "Trocar produto…" : "Buscar SKU, EAN ou nome"} onPick={(v) => run(() => setReceiptItem(item.id, { variant_id: v.id, learn: true }))} />

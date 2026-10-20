@@ -6,7 +6,8 @@ import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
 import { Badge, Button, Card, inputClass, LinkButton, PageHeader, Stat } from "@/components/ui";
 import { Field, Flash, fmtDate } from "@/components/form";
-import { acceptSuggestionsAction, confirmReceiptAction, countAllAction, discardReceiptAction, postReceiptAction, reverseReceiptAction } from "../../compras/actions";
+import { acceptSuggestionsAction, applyAiSuggestionsAction, confirmReceiptAction, requestAiMatchAction, countAllAction, discardReceiptAction, postReceiptAction, reverseReceiptAction } from "../../compras/actions";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { RECEIPT_STATUS } from "../../compras/labels";
 import { resolveItems } from "../../compras/options";
 import { ConferenceTable, type CatalogOptions, type ConferenceItem } from "./conference";
@@ -50,7 +51,9 @@ export default async function RecebimentoPage({ params, searchParams }: { params
     qty_counted: r.qty_counted == null ? null : Number(r.qty_counted), item_total: Number(r.item_total), landed_unit_cost: r.landed_unit_cost == null ? null : Number(r.landed_unit_cost),
     match_status: r.match_status, match_confidence: r.match_confidence == null ? null : Number(r.match_confidence),
     variant: r.variant_id && lmap.get(r.variant_id) ? { id: r.variant_id, sku: lmap.get(r.variant_id)!.sku, label: lmap.get(r.variant_id)!.label, product_id: productOf.get(r.variant_id) } : null,
+    ai: (r.ai_suggestion as ConferenceItem["ai"]) ?? null, receipt_id: id,
   }));
+  const aiPending = items.filter((i) => i.ai && i.ai.acao !== "indefinido").length;
 
   const st = RECEIPT_STATUS[rc.status] ?? { label: rc.status, tone: "neutral" as const };
   const canWrite = can(session, "purch.write");
@@ -75,6 +78,15 @@ export default async function RecebimentoPage({ params, searchParams }: { params
         <Stat label={rc.status === "POSTED" ? "Faltas viraram crédito" : "Faltas apuradas"} value={formatBRL(rc.status === "POSTED" ? rc.shortage_total : shortage)} tone={(rc.status === "POSTED" ? Number(rc.shortage_total) : shortage) > 0 ? "warning" : undefined} hint="abate no pagamento ao fornecedor" />
       </div>
 
+      {editable && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm" data-print-hide>
+          <span className="font-medium">Sugestão da IA</span>
+          <span className="text-muted">{rc.ai_status === "QUEUED" ? "na fila…" : rc.ai_status === "RUNNING" ? "analisando os itens…" : rc.ai_note ?? "ainda não rodou para esta nota"}</span>
+          {aiPending > 0 && <form action={applyAiSuggestionsAction}><input type="hidden" name="receipt_id" value={id} /><Button>Aplicar {aiPending} sugestão(ões) da IA</Button></form>}
+          <form action={requestAiMatchAction}><input type="hidden" name="receipt_id" value={id} /><input type="hidden" name="all" value="1" /><Button variant="secondary" disabled={rc.ai_status === "QUEUED" || rc.ai_status === "RUNNING"}>Sugerir com IA (revisar tudo)</Button></form>
+          {(rc.ai_status === "QUEUED" || rc.ai_status === "RUNNING") && <AutoRefresh every={10000} times={30} />}
+        </div>
+      )}
       {editable && (
         <div className="mb-3 flex flex-wrap items-center gap-2" data-print-hide>
           {suggested > 0 && <form action={acceptSuggestionsAction}><input type="hidden" name="receipt_id" value={id} /><Button variant="secondary">Confirmar {suggested} sugestão(ões)</Button></form>}

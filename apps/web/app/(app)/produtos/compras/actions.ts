@@ -163,6 +163,34 @@ export async function addVariantFromItem(itemId: string, input: z.input<typeof v
   return setReceiptItem(itemId, { variant_id: variant.id, learn: true });
 }
 
+/** Pede (de novo) a sugestão da IA para os itens da nota; "revisar tudo" inclui os itens já ligados (aponta vínculo suspeito). */
+export async function requestAiMatchAction(formData: FormData) {
+  const id = str(formData.get("receipt_id"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("purch").rpc("request_ai_match", { p_receipt: id, p_all: formData.get("all") === "1" });
+  revalidatePath(`/produtos/recebimento/${id}`);
+  redirect(`/produtos/recebimento/${id}?${error ? `erro=${encodeURIComponent(friendly(error.message))}` : "ok=" + encodeURIComponent("A IA está analisando os itens: atualize em alguns instantes")}`);
+}
+
+/** Aplica as sugestões da IA (todas ou um item): cria o que falta no catálogo (um produto por referência) e liga os itens. */
+export async function applyAiSuggestions(receiptId: string, itemIds?: string[]): Promise<ActionResult> {
+  if (!uuid.safeParse(receiptId).success || (itemIds && !itemIds.every((i) => uuid.safeParse(i).success))) return { ok: false, error: "Dados inválidos" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("purch").rpc("apply_ai_suggestions", { p_receipt: receiptId, ...(itemIds ? { p_items: itemIds } : {}) });
+  if (error) return { ok: false, error: friendly(error.message) };
+  const r = data as unknown as { aplicadas: number; erros: { n_item: number; erro: string }[] };
+  revalidatePath(`/produtos/recebimento/${receiptId}`);
+  revalidatePath("/produtos", "layout");
+  if (r.erros.length) return { ok: false, error: `${r.aplicadas} aplicada(s); item ${r.erros[0].n_item}: ${friendly(r.erros[0].erro)}${r.erros.length > 1 ? ` (+${r.erros.length - 1})` : ""}` };
+  return { ok: true };
+}
+
+export async function applyAiSuggestionsAction(formData: FormData) {
+  const id = str(formData.get("receipt_id"));
+  const r = await applyAiSuggestions(id);
+  redirect(`/produtos/recebimento/${id}?${r.ok ? "ok=" + encodeURIComponent("Sugestões da IA aplicadas: confira e conte os itens") : "erro=" + encodeURIComponent(r.error ?? "Erro")}`);
+}
+
 export async function acceptSuggestionsAction(formData: FormData) {
   const id = str(formData.get("receipt_id"));
   const supabase = await createClient();

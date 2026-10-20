@@ -247,13 +247,17 @@ const novaCliente = z.object({
 
 const proporVenda = tool({
   name: "propor_venda",
-  description: "Prepara uma venda no PDV (loja ativa) e mostra o cartão para a pessoa confirmar. Use variant_id de buscar_produto e party_id de buscar_cliente; para cliente nova, use nova_cliente (com CPF, se ela informou). Os valores são calculados pelo banco.",
+  description: "Prepara uma venda no PDV (loja ativa) e mostra o cartão para a pessoa confirmar. Use variant_id de buscar_produto e party_id de buscar_cliente; para cliente nova, use nova_cliente (com CPF, se ela informou). Item avulso (fora do catálogo/estoque, ex.: \"um item avulso de 100 reais\", serviço, ajuste): item com descricao e preco, sem variant_id — não procure no catálogo. Os valores são calculados pelo banco.",
   perms: ["sales.write"],
   status: "Montando a venda…",
   input: z.object({
     party_id: id.optional(),
     nova_cliente: novaCliente.optional(),
-    itens: z.array(z.object({ variant_id: id, qtd: z.number().int().min(1).max(20).default(1) })).min(1).max(20),
+    itens: z.array(z.union([
+      z.object({ variant_id: id, qtd: z.number().int().min(1).max(20).default(1) }),
+      z.object({ descricao: z.string().trim().min(1).max(200).describe("item avulso: o que é"), preco: z.number().min(0).max(100000).describe("preço unitário em reais"),
+                 qtd: z.number().int().min(1).max(20).default(1), ncm: z.string().regex(/^\d{8}$/).optional().describe("opcional; sem ele vale o NCM padrão da matriz fiscal") }),
+    ])).min(1).max(20),
     pagamento: z.object({
       forma: z.enum(Object.keys(PAYMENT_METHODS) as [PaymentKey, ...PaymentKey[]]),
       parcelas: z.number().int().min(1).max(12).optional(),
@@ -289,14 +293,15 @@ const proporVenda = tool({
     }
 
     const { data: quote, error } = await ctx.supabase.schema("sales").rpc("quote_order", {
-      p: { store_id: store.id, coupon_code: a.cupom ?? null, items: a.itens.map((i) => ({ variant_id: i.variant_id, qty: i.qtd })) } as never,
+      p: { store_id: store.id, coupon_code: a.cupom ?? null,
+           items: a.itens.map((i) => ("variant_id" in i ? { variant_id: i.variant_id, qty: i.qtd } : { description: i.descricao, unit_price: i.preco, qty: i.qtd, ncm: i.ncm ?? null })) } as never,
     });
     dbError(error);
-    const q = quote as unknown as { items: { variant_id: string; name: string; color: string | null; size: string; qty: number; unit_price: number; total: number; available: number }[];
+    const q = quote as unknown as { items: { variant_id: string | null; custom?: boolean; description?: string; ncm?: string | null; name: string; color: string | null; size: string | null; qty: number; unit_price: number; total: number; available: number | null }[];
                                      subtotal: number; total: number; coupon: { code: string; discount: number } | null; warnings: string[] };
-    const short = q.items.filter((i) => Number(i.available) < Number(i.qty));
+    const short = q.items.filter((i) => !i.custom && Number(i.available) < Number(i.qty));
     if (short.length) {
-      const { data: bo } = await ctx.supabase.schema("catalog").from("variants").select("id, products!inner(backorder)").in("id", short.map((i) => i.variant_id));
+      const { data: bo } = await ctx.supabase.schema("catalog").from("variants").select("id, products!inner(backorder)").in("id", short.map((i) => i.variant_id!));
       const canOrder = (bo ?? []).some((v) => (v.products as unknown as { backorder: boolean } | null)?.backorder);
       fail(`Sem estoque suficiente na loja: ${short.map((i) => `${i.name} ${i.color ?? ""} ${i.size} (disponível ${Number(i.available)})`).join("; ")}. ` +
            (canOrder ? "O produto aceita encomenda: ofereça propor_encomenda (a cliente paga e a peça é pedida ao fornecedor)." : "Ofereça outro tamanho/cor ou o avise-me."));
@@ -315,16 +320,16 @@ const proporVenda = tool({
 
     const lines: ActionLine[] = [
       { label: "Cliente", value: partyLabel },
-      ...q.items.map((i) => ({ label: `${i.qty}× ${i.name}${i.color ? ` · ${i.color}` : ""} · ${i.size}`, value: formatBRL(i.total) })),
+      ...q.items.map((i) => ({ label: i.custom ? `${i.qty}× ${i.name} · avulso` : `${i.qty}× ${i.name}${i.color ? ` · ${i.color}` : ""} · ${i.size}`, value: formatBRL(i.total) })),
       ...(q.coupon ? [{ label: `Cupom ${q.coupon.code}`, value: `−${formatBRL(q.coupon.discount)}` }] : []),
       { label: "Pagamento", value: `${pay.label}${installments > 1 ? ` em ${installments}x` : ""}${amount > total ? ` (recebe ${formatBRL(amount)}, troco ${formatBRL(amount - total)})` : ""}` },
       { label: "Loja", value: `${store.name}${session ? "" : " · caixa fechado"}` },
       ...(cpfOnInvoice ? [{ label: "NFC-e", value: "com o CPF da cliente (sai sem CPF se ela não tiver no cadastro)" }] : []),
     ];
     const args = { store_id: store.id, party_id: partyId, new_party: newParty, cash_session_id: session?.id ?? null, coupon_code: coupon, cpf_on_invoice: cpfOnInvoice,
-                   items: q.items.map((i) => ({ variant_id: i.variant_id, qty: i.qty })), payments };
+                   items: q.items.map((i) => (i.custom ? { description: i.description, unit_price: Number(i.unit_price), qty: i.qty, ...(i.ncm ? { ncm: i.ncm } : {}) } : { variant_id: i.variant_id, qty: i.qty })), payments };
     const r = await propose(ctx, "venda_pdv", args, quote as Record<string, unknown>, { title: `Venda — ${formatBRL(total)}`, lines, total, warnings });
-    return { ...r, total, itens: q.items.map((i) => ({ produto: i.name, cor: i.color, tamanho: i.size, qtd: i.qty, total: Number(i.total) })), cupom_aplicado: q.coupon };
+    return { ...r, total, itens: q.items.map((i) => (i.custom ? { avulso: i.name, qtd: i.qty, total: Number(i.total) } : { produto: i.name, cor: i.color, tamanho: i.size, qtd: i.qty, total: Number(i.total) })), cupom_aplicado: q.coupon };
   },
 });
 

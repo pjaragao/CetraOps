@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Maximize2, Plus, Sparkles, X } from "lucide-react";
+import { History, Maximize2, Plus, Sparkles, X } from "lucide-react";
 import { ASSISTANT_NAME } from "@centralops/domain";
 import { cn } from "@/components/ui";
 import { CentralChat } from "./central-chat";
+import { CentralHistory } from "./central-history";
 
 const KEY = "centralops:central-thread";
 const EVENT = "centralops:central-thread";
@@ -29,6 +30,7 @@ export function CentralLauncher() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+  const [history, setHistory] = useState(false);
   const threadId = useSyncExternalStore(subscribe, readThread, () => null);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function CentralLauncher() {
     const onOpen = (e: Event) => {
       setOpen(true);
       const text = (e as CustomEvent<{ text?: string }>).detail?.text?.trim();
-      if (text) setPending(text);
+      if (text) { setPending(text); setHistory(false); }
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("centralops:central", onOpen);
@@ -58,11 +60,13 @@ export function CentralLauncher() {
         <header className="flex items-center gap-2 border-b border-border px-3 py-2">
           <Sparkles size={16} className="text-brand" />
           <p className="flex-1 text-sm font-semibold">{ASSISTANT_NAME}</p>
-          <button onClick={() => writeThread(null)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2" title="Nova conversa" aria-label="Nova conversa"><Plus size={16} /></button>
+          <button onClick={() => setHistory((h) => !h)} className={cn("rounded-lg p-1.5 text-muted hover:bg-surface-2", history && "bg-surface-2 text-brand")} title="Minhas conversas" aria-label="Minhas conversas" aria-pressed={history}><History size={16} /></button>
+          <button onClick={() => { writeThread(null); setHistory(false); }} className="rounded-lg p-1.5 text-muted hover:bg-surface-2" title="Nova conversa" aria-label="Nova conversa"><Plus size={16} /></button>
           <Link href={threadId ? `/central?c=${threadId}` : "/central"} onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2" title="Tela cheia e histórico" aria-label="Abrir em tela cheia"><Maximize2 size={16} /></Link>
           <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2" aria-label="Fechar"><X size={16} /></button>
         </header>
-        {open && <CentralChat threadId={threadId} onThread={writeThread} pendingMessage={pending} onPendingSent={() => setPending(null)} />}
+        {open && history && <CentralHistory current={threadId} onOpen={(id) => { writeThread(id); setHistory(false); }} />}
+        {open && !history && <CentralChat threadId={threadId} onThread={writeThread} pendingMessage={pending} onPendingSent={() => setPending(null)} />}
       </aside>
     </>
   );

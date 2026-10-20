@@ -75,12 +75,24 @@ function ActionCard({ action: initial }: { action: ActionCardData }) {
   );
 }
 
-/** Um cartão da Central. `onPick` manda a escolha da pessoa de volta à conversa (com o id entre colchetes). */
-export function CentralCard({ card, onPick }: { card: Card; onPick?: (text: string) => void }) {
+/** Um cartão da Central. `onPick` manda a escolha da pessoa de volta à conversa (com o id entre colchetes);
+ *  `picked` são os ids que a pessoa já escolheu na mensagem seguinte (o cartão de escolha recolhe para a opção escolhida). */
+export function CentralCard({ card, onPick, picked }: { card: Card; onPick?: (text: string) => void; picked?: Set<string> }) {
   switch (card.kind) {
     case "acao":
       return <ActionCard action={card.action} />;
-    case "clientes":
+    case "clientes": {
+      const chosen = card.items.length > 1 ? card.items.find((p) => picked?.has(p.party_id)) : undefined;
+      if (chosen) {
+        return (
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm">
+            <Check size={14} className="shrink-0 text-brand" />
+            <span className="min-w-0 flex-1 truncate"><span className="font-medium">{chosen.name}</span>
+              <span className="text-xs text-muted"> · {[chosen.city, chosen.phone_last4 && `tel. …${chosen.phone_last4}`].filter(Boolean).join(" · ") || "cliente escolhida"}</span></span>
+            <Link href={`/clientes/${chosen.party_id}`} className="rounded-lg p-1 text-muted hover:bg-surface-2" aria-label={`Abrir ficha de ${chosen.name}`}><ExternalLink size={14} /></Link>
+          </div>
+        );
+      }
       return (
         <Frame title={card.title}>
           <ul className="divide-y divide-border">
@@ -101,6 +113,7 @@ export function CentralCard({ card, onPick }: { card: Card; onPick?: (text: stri
           </ul>
         </Frame>
       );
+    }
     case "ficha":
       return (
         <Frame title={card.name} href={card.href}>
@@ -136,7 +149,7 @@ export function CentralCard({ card, onPick }: { card: Card; onPick?: (text: stri
                           disabled={!onPick}
                           onClick={() => onPick?.(`Quero ${p.name}${v.color ? ` ${v.color}` : ""} tamanho ${v.size} [variant_id=${v.variant_id}]`)}
                           title={`${v.sku} · ${v.price !== null ? formatBRL(v.price) : "sem preço"} · ${v.available} disponível`}
-                          className={cn("min-w-10 rounded-lg border px-2 py-1 text-xs font-medium",
+                          className={cn("min-w-10 rounded-lg border px-2 py-1 text-xs font-medium", picked?.has(v.variant_id) && "ring-2 ring-brand",
                             v.available > 0 ? "border-border hover:border-brand hover:text-brand"
                               : p.backorder ? "border-dashed border-amber-400 text-amber-700 hover:border-brand dark:text-amber-300"
                               : "border-dashed border-border text-muted/60 line-through")}

@@ -34,7 +34,7 @@ export interface ThreadSummary { id: string; title: string | null; updated_at: s
 
 export async function listCentralThreads(): Promise<ThreadSummary[]> {
   const supabase = await createClient();
-  const { data } = await supabase.schema("ai").from("assistant_threads").select("id, title, updated_at").is("archived_at", null).order("updated_at", { ascending: false }).limit(30);
+  const { data } = await supabase.schema("ai").from("assistant_threads").select("id, title, updated_at").is("archived_at", null).order("updated_at", { ascending: false }).limit(200);
   return data ?? [];
 }
 

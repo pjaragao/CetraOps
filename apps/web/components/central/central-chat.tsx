@@ -28,6 +28,11 @@ const SUGGESTIONS = [
   "Como está o caixa?",
 ];
 
+/** Ids que a pessoa escolheu num cartão ("É esta: Fulana [party_id=…]"): vão para a IA, mas não aparecem no balão. */
+const PICK_ID = /\s*\[([a-z_]+_id)=([0-9a-f-]{36})\]/gi;
+const pickedIds = (text: string) => new Set([...text.matchAll(PICK_ID)].map((m) => m[2]));
+const shownText = (text: string) => text.replace(PICK_ID, "").trim();
+
 let seq = 0;
 const localId = () => `local-${Date.now()}-${seq++}`;
 
@@ -181,20 +186,24 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
               </div>
             </div>
           )}
-          {messages.map((m) => (
+          {messages.map((m, idx) => {
+            const next = messages.slice(idx + 1).find((x) => x.role === "user");
+            const picked = next ? pickedIds(next.text) : undefined;
+            return (
             <div key={m.id} className={cn("flex flex-col gap-2", m.role === "user" ? "items-end" : "items-stretch")}>
               {m.role === "user" ? (
-                <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-sm whitespace-pre-wrap text-brand-contrast">{m.text}</p>
+                <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-sm whitespace-pre-wrap text-brand-contrast">{shownText(m.text)}</p>
               ) : (
                 <>
-                  {m.cards.map((c, i) => <CentralCard key={i} card={c} onPick={busy ? undefined : send} />)}
+                  {m.cards.map((c, i) => <CentralCard key={i} card={c} picked={picked} onPick={busy || picked?.size ? undefined : send} />)}
                   {m.text && <p className="text-sm whitespace-pre-wrap">{m.text}</p>}
                   {m.pending && <p className="flex items-center gap-2 text-xs text-muted"><Loader2 size={13} className="animate-spin" />{m.status ?? "Pensando…"}</p>}
                   {m.mode === "search" && <p className="text-[11px] text-muted">modo busca (sem IA)</p>}
                 </>
               )}
             </div>
-          ))}
+            );
+          })}
           <div ref={bottom} />
         </div>
       </div>

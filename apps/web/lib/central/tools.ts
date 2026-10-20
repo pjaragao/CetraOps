@@ -5,6 +5,7 @@ import type { Session } from "@/lib/session";
 import type { ActionLine, PersonHit, ProductHit, TitleRow } from "./cards";
 import { GESTAO_TOOLS } from "./tools-gestao";
 import { LOJA_TOOLS } from "./tools-loja";
+import { COMPRAS_TOOLS } from "./tools-compras";
 import { photoUrl } from "@/lib/photos";
 import { checkPicked, date, dbError, fail, fmtDate, id, openSession, propose, storeOf, tool, ToolError, type ToolCtx, type ToolDef } from "./tool-kit";
 
@@ -571,7 +572,7 @@ const proporFecharCaixa = tool({
 export const TOOLS: ToolDef[] = [
   buscarCliente, fichaCliente, buscarProduto, contas, saldos, vendas, caixa, listaDoDia, navegar,
   proporVenda, proporCadastro, proporReserva, proporAviseMe, proporTarefa, proporContaPagar, proporBaixa, proporAbrirCaixa, proporFecharCaixa,
-  ...LOJA_TOOLS, ...GESTAO_TOOLS,
+  ...LOJA_TOOLS, ...GESTAO_TOOLS, ...COMPRAS_TOOLS,
 ];
 
 export function allowedTools(session: Session): ToolDef[] {

@@ -167,6 +167,64 @@ const reposicao = tool({
   },
 });
 
+const resumoEstoque = tool({
+  name: "resumo_estoque",
+  description: "Visão geral do estoque da loja ativa (ou de todas): quantas variantes estão cadastradas, quantas têm saldo, total de peças e reservadas, peças por categoria, produtos com mais peças e a última movimentação. Use para perguntas gerais como \"como está o estoque\" ou \"o que tem no estoque\"; para uma peça específica use buscar_produto.",
+  perms: ["inv.read"],
+  status: "Somando o estoque…",
+  input: z.object({}),
+  async run(_a, ctx) {
+    const store = ctx.session.stores.find((s) => s.id === ctx.storeId) ?? null;
+    let locQuery = ctx.supabase.schema("inv").from("locations").select("id, name");
+    if (store) locQuery = locQuery.eq("store_id", store.id);
+    const { data: locs, error: le } = await locQuery;
+    dbError(le);
+    const locIds = (locs ?? []).map((l) => l.id);
+    const escopo = store ? store.name : "todas as lojas";
+    const { count: cadastradas } = await ctx.supabase.schema("catalog").from("variants").select("id", { count: "exact", head: true }).eq("active", true);
+    if (!locIds.length) return { escopo, variantes_cadastradas: cadastradas ?? 0, aviso: "nenhum local de estoque cadastrado para esta loja" };
+    const { data: levels, error } = await ctx.supabase.schema("inv").from("stock_levels").select("variant_id, on_hand, reserved").in("location_id", locIds).neq("on_hand", 0).limit(10000);
+    dbError(error);
+    const { data: last } = await ctx.supabase.schema("inv").from("movements").select("occurred_at, movement_type").in("location_id", locIds).order("occurred_at", { ascending: false }).limit(1);
+    const rows = levels ?? [];
+    const unidades = rows.reduce((t, r) => t + Number(r.on_hand), 0);
+    const reservadas = rows.reduce((t, r) => t + Number(r.reserved ?? 0), 0);
+    const ultima = last?.[0] ? { data: fmtDate(last[0].occurred_at), tipo: last[0].movement_type } : null;
+    if (!rows.length) {
+      ctx.addCard({ kind: "lista", title: `Estoque de ${escopo}`, items: [{ title: "Nenhuma peça com saldo", detail: `${cadastradas ?? 0} variantes cadastradas no catálogo${ultima ? ` · última movimentação em ${ultima.data}` : " · nenhuma movimentação registrada"}`, href: "/produtos/estoque" }] });
+      return { escopo, variantes_cadastradas: cadastradas ?? 0, skus_com_saldo: 0, unidades: 0, ultima_movimentacao: ultima,
+               aviso: ultima ? "estoque zerado: todas as peças já saíram" : "estoque vazio: o catálogo está cadastrado, mas nenhuma entrada de mercadoria foi registrada (recebimento de compra ou contagem)" };
+    }
+    // nome, tamanho e categoria das variantes com saldo (em lotes, para não estourar a URL)
+    const info = new Map<string, { produto: string; categoria: string; tamanho: string }>();
+    const ids = [...new Set(rows.map((r) => r.variant_id))];
+    for (let i = 0; i < ids.length; i += 300) {
+      const { data: vs, error: ve } = await ctx.supabase.schema("catalog").from("variants").select("id, size, products!inner(name, categories(name))").in("id", ids.slice(i, i + 300));
+      dbError(ve);
+      for (const v of vs ?? []) {
+        const p = v.products as unknown as { name: string; categories: { name: string } | null };
+        info.set(v.id, { produto: p.name, categoria: p.categories?.name ?? "Sem categoria", tamanho: v.size });
+      }
+    }
+    const sum = (key: "produto" | "categoria") => {
+      const m = new Map<string, number>();
+      for (const r of rows) { const k = info.get(r.variant_id)?.[key] ?? "?"; m.set(k, (m.get(k) ?? 0) + Number(r.on_hand)); }
+      return [...m.entries()].sort((a, b) => b[1] - a[1]);
+    };
+    const porCategoria = sum("categoria");
+    const porProduto = sum("produto");
+    const negativos = rows.filter((r) => Number(r.on_hand) < 0).length;
+    ctx.addCard({ kind: "lista", title: `Estoque de ${escopo}: ${unidades} peça(s) em ${rows.length} SKU(s)`, items: porCategoria.slice(0, 10).map(([c, q]) => ({ title: `${c}: ${q} peça(s)`, detail: "", href: "/produtos/estoque" })) });
+    return {
+      escopo, variantes_cadastradas: cadastradas ?? 0, skus_com_saldo: rows.length, unidades, reservadas, disponiveis: unidades - reservadas,
+      por_categoria: porCategoria.slice(0, 12).map(([categoria, pecas]) => ({ categoria, pecas })),
+      produtos_com_mais_pecas: porProduto.slice(0, 8).map(([produto, pecas]) => ({ produto, pecas })),
+      ...(negativos ? { skus_com_saldo_negativo: negativos } : {}),
+      ultima_movimentacao: ultima,
+    };
+  },
+});
+
 const curvaAbc = tool({
   name: "curva_abc",
   description: "Curva ABC das vendas: o que mais vende (A = 80% da receita), por produto, tamanho ou categoria.",
@@ -350,4 +408,4 @@ const proporCampanha = tool({
   },
 });
 
-export const GESTAO_TOOLS: ToolDef[] = [resumoDoDia, dre, fluxoCaixa, fechamento, simples, obrigacoes, reposicao, curvaAbc, escala, ferias, conversas, sugestoes, contarPublico, proporCampanha];
+export const GESTAO_TOOLS: ToolDef[] = [resumoDoDia, dre, fluxoCaixa, fechamento, simples, obrigacoes, resumoEstoque, reposicao, curvaAbc, escala, ferias, conversas, sugestoes, contarPublico, proporCampanha];

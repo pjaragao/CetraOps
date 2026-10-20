@@ -263,16 +263,43 @@ const proporVenda = tool({
       forma: z.enum(Object.keys(PAYMENT_METHODS) as [PaymentKey, ...PaymentKey[]]),
       parcelas: z.number().int().min(1).max(12).optional(),
       valor_recebido: z.number().positive().optional().describe("só no dinheiro, quando há troco"),
-    }),
+    }).optional().describe("obrigatório, a não ser que o cartão complementado já tenha"),
     cupom: z.string().max(40).optional(),
     cpf_na_nota: z.boolean().optional().describe("CPF da cliente na NFC-e"),
+    complementar_acao_id: id.optional().describe("acao_id de um cartão de venda ainda não confirmado: as peças novas SOMAM ao carrinho dele (mesma peça soma a quantidade) e cliente/pagamento/cupom vêm dele se não forem informados"),
   }),
-  async run(a, ctx) {
+  async run(input, ctx) {
     const store = await storeOf(ctx);
     const warnings: string[] = [];
+    const a = { ...input, itens: [...input.itens] };
+    let inheritedParty: Record<string, unknown> | null = null;
+    if (a.complementar_acao_id) {
+      // carrinho em montagem: soma ao cartão aberto (ex.: mais uma peça bipada) e o cartão antigo é cancelado pelo novo
+      const { data: prev } = await ctx.supabase.schema("ai").from("assistant_actions").select("args, status, tool").eq("id", a.complementar_acao_id).maybeSingle();
+      if (!prev || prev.tool !== "venda_pdv" || prev.status !== "PROPOSED") fail("Esse cartão de venda não está mais aberto: monte a venda de novo com todas as peças.");
+      const g = prev!.args as { party_id?: string | null; new_party?: Record<string, unknown> | null; coupon_code?: string | null; cpf_on_invoice?: boolean;
+                                items: { variant_id?: string; qty: number; description?: string; unit_price?: number; ncm?: string }[]; payments?: { method: string; amount: number; installments: number }[] };
+      const merged: typeof a.itens = g.items.map((i) => (i.variant_id ? { variant_id: i.variant_id, qtd: i.qty } : { descricao: i.description!, preco: Number(i.unit_price), qtd: i.qty, ...(i.ncm ? { ncm: i.ncm } : {}) }));
+      for (const n of a.itens) {
+        const same = "variant_id" in n ? merged.find((m) => "variant_id" in m && m.variant_id === n.variant_id) : undefined;
+        if (same) same.qtd += n.qtd; else merged.push(n);
+      }
+      a.itens = merged;
+      if (!a.party_id && !a.nova_cliente) { a.party_id = g.party_id ?? undefined; inheritedParty = g.new_party ?? null; }
+      a.cupom ??= g.coupon_code ?? undefined;
+      a.cpf_na_nota ??= g.cpf_on_invoice;
+      if (!a.pagamento && g.payments?.[0]) {
+        const key = (Object.keys(PAYMENT_METHODS) as PaymentKey[]).find((k) => PAYMENT_METHODS[k].method === g.payments![0].method);
+        if (key) a.pagamento = { forma: key, ...(g.payments[0].installments > 1 ? { parcelas: g.payments[0].installments } : {}) };
+      }
+      ctx.proposals.set("venda_pdv", a.complementar_acao_id);
+    }
+    if (!a.pagamento) fail("Falta a forma de pagamento: pergunte à pessoa (as peças já estão anotadas na conversa).");
+    const pagamento = a.pagamento!;
     let partyId = a.party_id ?? null;
     let partyLabel = "sem identificar";
-    let newParty: Record<string, unknown> | null = null;
+    let newParty: Record<string, unknown> | null = inheritedParty;
+    if (inheritedParty) partyLabel = `${String(inheritedParty.display_name ?? "cliente nova")} (cadastro novo)`;
     if (partyId) {
       const { data } = await ctx.supabase.schema("crm").from("parties").select("display_name").eq("id", partyId).maybeSingle();
       if (!data) fail("Cliente não encontrada");
@@ -309,12 +336,12 @@ const proporVenda = tool({
     }
     warnings.push(...q.warnings);
     const coupon = q.coupon ? a.cupom : null;
-    const pay = PAYMENT_METHODS[a.pagamento.forma];
+    const pay = PAYMENT_METHODS[pagamento.forma];
     const total = Number(q.total);
     const session = await openSession(ctx, store.id);
-    if (!session && a.pagamento.forma === "dinheiro") warnings.push("O caixa está fechado: abra o caixa para receber em dinheiro.");
-    const amount = a.pagamento.forma === "dinheiro" && a.pagamento.valor_recebido && a.pagamento.valor_recebido > total ? a.pagamento.valor_recebido : total;
-    const installments = a.pagamento.forma === "credito" ? a.pagamento.parcelas ?? 1 : 1;
+    if (!session && pagamento.forma === "dinheiro") warnings.push("O caixa está fechado: abra o caixa para receber em dinheiro.");
+    const amount = pagamento.forma === "dinheiro" && pagamento.valor_recebido && pagamento.valor_recebido > total ? pagamento.valor_recebido : total;
+    const installments = pagamento.forma === "credito" ? pagamento.parcelas ?? 1 : 1;
     const payments = [{ method: pay.method, amount, installments, acquirer: ["DEBIT", "CREDIT"].includes(pay.method) ? "STONE" : null,
                         anticipation_mode: pay.method === "CREDIT" ? "D1" : null }];
     const cpfOnInvoice = Boolean(a.cpf_na_nota);

@@ -76,7 +76,7 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages]);
 
-  const send = useCallback(async (raw: string, document?: ReadDocument) => {
+  const send = useCallback(async (raw: string, document?: ReadDocument, codes?: string[]) => {
     const text = raw.trim();
     if (!text || busy) return;
     setInput("");
@@ -86,7 +86,7 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
     setMessages((m) => [...m, { id: localId(), role: "user", text, cards: [] }, reply]);
     const patch = (fn: (m: UiMessage) => UiMessage) => setMessages((all) => all.map((m) => (m.id === reply.id ? fn(m) : m)));
     try {
-      const resp = await fetch("/api/central", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ threadId, message: text, path: pathname, document: document ?? null }) });
+      const resp = await fetch("/api/central", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ threadId, message: text, path: pathname, document: document ?? null, codes: codes ?? null }) });
       if (!resp.ok || !resp.body) {
         const err = (await resp.json().catch(() => ({}))) as { error?: string };
         patch((m) => ({ ...m, pending: false, status: null, text: err.error ?? "A Central não respondeu." }));
@@ -155,7 +155,7 @@ export function CentralChat({ threadId: initialThread, onThread, autoFocus = tru
     }
     const nfe = kinds.find((c) => c.kind === "NFE_KEY");
     if (nfe) { void send(`Chave de NF-e bipada: ${parseNfeKey(nfe.value)?.key ?? nfe.value}. Quero receber essa nota.`); return; }
-    void send(`Códigos bipados: ${summarizeCodes(codes)}`);
+    void send(`Códigos bipados: ${summarizeCodes(codes)}`, undefined, codes.map((c) => c.value));
   };
 
   const fileInput = useRef<HTMLInputElement>(null);

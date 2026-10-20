@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { runCentral } from "@/lib/central/agent";
 import type { CentralEvent } from "@/lib/central/cards";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const body = z.object({
   threadId: z.string().uuid().nullish(),
@@ -16,6 +16,7 @@ const body = z.object({
     fields: z.record(z.string(), z.union([z.string().max(500), z.number(), z.null()])),
     checks: z.array(z.string().max(300)).max(10),
   }).nullish(),
+  codes: z.array(z.string().trim().min(1).max(64)).max(50).nullish(),
 });
 
 /** Conversa com a Central: responde em Server-Sent Events (status, cartões, texto) enquanto as ferramentas rodam. */
@@ -31,13 +32,18 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      const emit = (e: CentralEvent) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
+      let closed = false;
+      const emit = (e: CentralEvent) => { if (!closed) controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`)); };
+      // sinal de vida: com o AGY uma etapa pode levar mais de 30 s sem nenhum evento, e proxy (nginx: 60 s) corta conexão parada
+      const ping = setInterval(() => { if (!closed) controller.enqueue(encoder.encode(": ping\n\n")); }, 15_000);
       try {
-        await runCentral({ supabase, session, threadId: parsed.data.threadId ?? null, message: parsed.data.message, path: parsed.data.path ?? null, document: parsed.data.document ?? null, emit });
+        await runCentral({ supabase, session, threadId: parsed.data.threadId ?? null, message: parsed.data.message, path: parsed.data.path ?? null, document: parsed.data.document ?? null, codes: parsed.data.codes ?? null, emit });
       } catch (e) {
         emit({ type: "error", text: `A Central falhou: ${(e as Error).message}` });
         emit({ type: "done", mode: "search" });
       } finally {
+        clearInterval(ping);
+        closed = true;
         controller.close();
       }
     },

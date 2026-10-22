@@ -77,7 +77,7 @@ export async function TitlesView({ direction, sp }: { direction: "PAYABLE" | "RE
     <>
       <PageHeader title={direction === "PAYABLE" ? "Contas a pagar" : "Contas a receber"}
         description={direction === "PAYABLE"
-          ? "Rascunho → aprovado → pago. Selecione várias parcelas para pagar de uma vez (um Pix, vários títulos), com juros, multa e desconto. Clique no título para ver o detalhe, editar ou anexar."
+          ? "Rascunho → aprovado → pago. Marque várias parcelas para aprovar ou pagar de uma vez (um Pix, vários títulos), com juros, multa e desconto. Clique no título para ver o detalhe, editar ou anexar."
           : "Recebíveis de cartão (com taxa esperada), Pix, boletos B2B e lançamentos manuais. Um repasse da adquirente baixa várias parcelas de uma vez."} />
       {str(sp.erro) && <p className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{str(sp.erro)}</p>}
       {str(sp.ok) && <p className="mb-3 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">{str(sp.ok)}</p>}
@@ -125,7 +125,7 @@ export async function TitlesView({ direction, sp }: { direction: "PAYABLE" | "RE
 
       {error && <p className="mb-3 text-sm text-danger">Não foi possível carregar: {error.message}</p>}
       {list.length === 0 ? <Empty title={situacao === "" ? "Nada em aberto" : "Nada encontrado"} /> : (
-        <TitlesTable direction={direction} rows={list} canWrite={can(session, "fin.write")} canApprove={can(session, "fin.approve")} back={base} />
+        <TitlesTable direction={direction} rows={list} canWrite={can(session, "fin.write")} canApprove={can(session, "fin.approve")} back={base} paged={(count ?? 0) > PAGE} />
       )}
       <Pager path={base} params={params} page={page} pageSize={PAGE} total={count ?? 0} />
     </>

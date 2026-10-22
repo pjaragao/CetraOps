@@ -68,7 +68,7 @@ export default async function ReposicaoPage({ searchParams }: { searchParams: SP
       )}
 
       {list.length === 0 ? <Empty title="Sem histórico de vendas neste local e período">Assim que houver vendas, a sugestão aparece aqui.</Empty> : (
-        <Table head={["Produto", "Tam.", "Estoque", "A receber", "Vendidas", "Vel./dia", "Cobertura", "Alvo", "Sugerido", "Último custo"]}>
+        <Table head={["Produto", "Tam.", "Estoque", "A receber", "Vendidas", "Vel./dia", "Cobertura", "Alvo", "Sugerido", "Último custo"]} totals={[2, 3, 4, 8]} noTotal={[9]}>
           {list.map((r) => (
             <tr key={r.variant_id}>
               <td className="px-3 py-2"><span className="font-medium">{r.product_name}</span> <span className="text-xs text-muted">{r.color}</span><span className="block font-mono text-[11px] text-muted">{r.sku}</span></td>

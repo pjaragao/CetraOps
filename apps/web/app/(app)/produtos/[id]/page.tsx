@@ -131,7 +131,7 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
       </div>
 
       <h2 className="mb-2 mt-6 text-sm font-semibold text-muted">Variantes</h2>
-      <Table head={["Cor", "Tamanho", "SKU", "EAN", "Preço", "Disponível na loja", "Fora da loja", "Origem"]}>
+      <Table head={["Cor", "Tamanho", "SKU", "EAN", "Preço", "Disponível na loja", "Fora da loja", "Origem"]} totals={[5, 6]}>
         {sorted.map((v) => (
           <tr key={v.id} className={v.active ? "" : "opacity-50"}>
             <td className="px-3 py-2">{cname.get(v.color_id ?? "") ?? "—"}</td>
@@ -150,7 +150,7 @@ export default async function ProdutoPage({ params, searchParams }: { params: Pr
       {(changes ?? []).length > 0 && (
         <>
           <h2 className="mb-2 mt-6 text-sm font-semibold text-muted">Mudanças de preço no site</h2>
-          <Table head={["Data", "SKU", "Antes", "Agora", "Em estoque"]}>
+          <Table head={["Data", "SKU", "Antes", "Agora", "Em estoque"]} noTotal={[2, 3]}>
             {(changes ?? []).map((c, i) => (
               <tr key={i}>
                 <td className="px-3 py-2 whitespace-nowrap">{new Date(c.changed_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}</td>

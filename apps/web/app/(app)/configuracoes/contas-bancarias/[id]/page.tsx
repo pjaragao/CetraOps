@@ -4,13 +4,11 @@ import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Button, Card, inputClass, PageHeader, Stat, Table } from "@/components/ui";
-import { Field, Flash, fmtDate } from "@/components/form";
-import { updateBankAccountAction } from "../actions";
+import { Badge, Card, PageHeader, Stat, Table } from "@/components/ui";
+import { Flash, fmtDate } from "@/components/form";
+import { BankAccountForm, KIND_LABEL } from "../bank-account-form";
 
 export const metadata = { title: "Conta bancária" };
-
-const KIND_LABEL: Record<string, string> = { CHECKING: "Conta corrente", CASH_DRAWER: "Caixa (gaveta)", ACQUIRER_BALANCE: "Saldo na adquirente", INVESTMENT: "Aplicação" };
 
 export default async function ContaBancariaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SP }) {
   const session = await requirePerm("fin.read");
@@ -26,6 +24,7 @@ export default async function ContaBancariaPage({ params, searchParams }: { para
     supabase.schema("core").from("stores").select("id, name").order("name"),
     supabase.schema("fin").from("chart_accounts").select("id, code, name").eq("kind", "ANALYTIC").eq("group", "ASSET").like("code", "1.1.1.%").is("archived_at", null).order("code"),
   ]);
+  const { data: allEntities } = await supabase.schema("core").from("legal_entities").select("id, razao_social, nome_fantasia").order("razao_social");
   const hasMoves = (count ?? 0) > 0;
   const canWrite = can(session, "fin.write") || can(session, "core.admin");
   const acc = (accounts ?? []).find((a) => a.id === b.chart_account_id);
@@ -66,21 +65,11 @@ export default async function ContaBancariaPage({ params, searchParams }: { para
         </div>
       </div>
       {canWrite && (
-        <Card className="mt-4" title="Editar">
-          <form action={updateBankAccountAction} className="grid gap-3 sm:grid-cols-6">
-            <input type="hidden" name="id" value={b.id} />
-            <Field label="Nome" className="sm:col-span-2"><input name="name" required minLength={2} maxLength={80} defaultValue={b.name} className={inputClass} /></Field>
-            <Field label="Banco (código)"><input name="bank_code" defaultValue={b.bank_code ?? ""} maxLength={4} className={inputClass} /></Field>
-            <Field label="Agência"><input name="agency" defaultValue={b.agency ?? ""} maxLength={10} className={inputClass} /></Field>
-            <Field label="Conta" className="sm:col-span-2"><input name="number" defaultValue={b.number ?? ""} maxLength={20} className={inputClass} /></Field>
-            <Field label="Chaves Pix" hint="Separe por vírgula" className="sm:col-span-3"><input name="pix_keys" defaultValue={(b.pix_keys ?? []).join(", ")} className={inputClass} /></Field>
-            <Field label="Loja (caixa)" className="sm:col-span-1"><select name="store_id" defaultValue={b.store_id ?? ""} className={inputClass}><option value="">—</option>{(stores ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
-            <Field label="Conta do plano" hint={hasMoves ? "Já tem movimentos: não muda" : undefined} className="sm:col-span-2">
-              <select name="chart_account_id" defaultValue={b.chart_account_id ?? ""} disabled={hasMoves} className={inputClass}><option value="">—</option>{(accounts ?? []).map((a) => <option key={a.id} value={a.id}>{a.code} · {a.name}</option>)}</select>
-            </Field>
-            <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" name="active" defaultChecked={b.active} /> Conta ativa (para desativar, o saldo precisa estar zerado)</label>
-            <div className="sm:col-span-3 sm:text-right"><Button>Salvar conta</Button></div>
-          </form>
+        <Card className="mt-4" title="Editar conta">
+          {/* o mesmo formulário da "Nova conta"; o que não muda mais aparece travado, com o motivo */}
+          <BankAccountForm account={{ ...b, opening_balance: Number(b.opening_balance) }} hasMoves={hasMoves}
+            entities={(allEntities ?? []).map((e) => ({ id: e.id, label: e.nome_fantasia ?? e.razao_social }))}
+            accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))} stores={(stores ?? []).map((x) => ({ id: x.id, label: x.name }))} />
         </Card>
       )}
     </>

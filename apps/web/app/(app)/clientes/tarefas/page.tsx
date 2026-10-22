@@ -51,16 +51,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: SP }
 
       {canWrite && (
         <Card title="Nova tarefa" className="mb-4">
-          <form action={createTaskAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <input type="hidden" name="ver" value={ver} />
-            <Field label="O que fazer" className="lg:col-span-2"><input name="title" required minLength={2} maxLength={140} className={inputClass} placeholder="Mandar fotos do look que ela gostou" /></Field>
-            <Field label="Cliente (opcional)"><input name="party" className={inputClass} placeholder="Nome ou telefone" /></Field>
-            <Field label="Tipo"><select name="type" defaultValue="FOLLOW_UP" className={inputClass}>{Object.entries(TYPE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
-            <Field label="Quando"><div className="flex gap-2"><input name="due_date" type="date" className={inputClass} /><input name="due_time" type="time" className={`${inputClass} max-w-[7rem]`} /></div></Field>
-            <Field label="Responsável"><select name="assignee" defaultValue={session.memberId} className={inputClass}>{(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}</select></Field>
-            <Field label="Mensagem pronta (opcional)" className="sm:col-span-2"><input name="suggested_message" maxLength={600} className={inputClass} placeholder="Oi! Separei o look que você gostou 💛" /></Field>
-            <div className="sm:col-span-2 lg:col-span-4"><Button>Criar tarefa</Button></div>
-          </form>
+          <TaskForm members={members ?? []} ver={ver} defaultAssignee={session.memberId} />
         </Card>
       )}
 
@@ -83,15 +74,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: SP }
                       {canWrite && t.status === "OPEN" && (
                         <details className="mt-1">
                           <summary className="cursor-pointer text-xs text-brand">Editar / atribuir</summary>
-                          <form action={updateTaskAction} className="mt-2 grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-6">
-                            <input type="hidden" name="id" value={t.id} /><input type="hidden" name="ver" value={ver} />
-                            <Field label="Título" className="sm:col-span-3"><input name="title" required minLength={2} maxLength={140} defaultValue={t.title} className={inputClass} /></Field>
-                            <Field label="Responsável" className="sm:col-span-3"><select name="assignee" defaultValue={t.assignee_member_id ?? ""} className={inputClass}><option value="">— sem responsável —</option>{(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}</select></Field>
-                            <Field label="Tipo" className="sm:col-span-2"><select name="type" defaultValue={TYPE[t.type] ? t.type : ""} className={inputClass}>{!TYPE[t.type] && <option value="">{SYSTEM_TYPE[t.type] ?? t.type}</option>}{Object.entries(TYPE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
-                            <Field label="Prazo" className="sm:col-span-4"><div className="flex gap-2"><input name="due_date" type="date" defaultValue={t.due_at ? dayKey(t.due_at) : ""} className={inputClass} /><input name="due_time" type="time" defaultValue={t.due_at ? new Date(t.due_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }) : ""} className={`${inputClass} max-w-[7rem]`} /></div></Field>
-                            <Field label="Mensagem pronta" className="sm:col-span-6"><textarea name="suggested_message" rows={2} maxLength={600} defaultValue={t.suggested_message ?? ""} className={inputClass} /></Field>
-                            <div className="sm:col-span-6"><Button variant="secondary" className="px-3 py-1.5 text-xs">Salvar tarefa</Button></div>
-                          </form>
+                          <div className="mt-2 rounded-lg border border-border p-3"><TaskForm members={members ?? []} ver={ver} task={t} /></div>
                         </details>
                       )}
                     </div>
@@ -115,5 +98,46 @@ export default async function TarefasPage({ searchParams }: { searchParams: SP }
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Tarefa — o mesmo formulário cria e edita. Na edição, a cliente e o tipo de tarefa automática (régua, retomada…) ficam travados:
+ * a tarefa nasceu ligada a eles.
+ */
+function TaskForm({ members, ver, task: t, defaultAssignee }: {
+  members: { id: string; display_name: string }[]; ver: string; defaultAssignee?: string;
+  task?: { id: string; title: string; type: string; party_id: string | null; parties: { display_name: string } | null; assignee_member_id: string | null; due_at: string | null; suggested_message: string | null };
+}) {
+  const system = !!t && !TYPE[t.type];
+  return (
+    <form action={t ? updateTaskAction : createTaskAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <input type="hidden" name="ver" value={ver} />
+      {t && <input type="hidden" name="id" value={t.id} />}
+      <Field label="O que fazer" className="lg:col-span-2"><input name="title" required minLength={2} maxLength={140} defaultValue={t?.title} className={inputClass} placeholder="Mandar fotos do look que ela gostou" /></Field>
+      <Field label="Cliente (opcional)" hint={t ? "Não muda depois de criada" : undefined}>
+        {t ? <input value={t.parties?.display_name ?? "Sem cliente"} disabled className={inputClass} /> : <input name="party" className={inputClass} placeholder="Nome ou telefone" />}
+      </Field>
+      <Field label="Tipo" hint={system ? "Tarefa automática: o tipo não muda" : undefined}>
+        <select name="type" defaultValue={system ? "" : (t?.type ?? "FOLLOW_UP")} disabled={system} className={inputClass}>
+          {system && <option value="">{SYSTEM_TYPE[t!.type] ?? t!.type}</option>}
+          {Object.entries(TYPE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </Field>
+      <Field label="Quando">
+        <div className="flex gap-2">
+          <input name="due_date" type="date" defaultValue={t?.due_at ? dayKey(t.due_at) : ""} className={inputClass} />
+          <input name="due_time" type="time" defaultValue={t?.due_at ? new Date(t.due_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }) : ""} className={`${inputClass} max-w-[7rem]`} />
+        </div>
+      </Field>
+      <Field label="Responsável">
+        <select name="assignee" defaultValue={t ? (t.assignee_member_id ?? "") : defaultAssignee} className={inputClass}>
+          {t && <option value="">— sem responsável —</option>}
+          {members.map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}
+        </select>
+      </Field>
+      <Field label="Mensagem pronta (opcional)" className="sm:col-span-2"><textarea name="suggested_message" rows={2} maxLength={600} defaultValue={t?.suggested_message ?? ""} className={inputClass} placeholder="Oi! Separei o look que você gostou 💛" /></Field>
+      <div className="sm:col-span-2 lg:col-span-4"><Button variant={t ? "secondary" : "primary"}>{t ? "Salvar tarefa" : "Criar tarefa"}</Button></div>
+    </form>
   );
 }

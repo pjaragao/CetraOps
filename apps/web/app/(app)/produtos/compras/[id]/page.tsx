@@ -62,7 +62,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
         <Stat label="Peças recebidas" value={[...recv.values()].reduce((s, v) => s + v, 0)} />
         <Stat label="Criado em" value={fmtDate(po.created_at.slice(0, 10))} hint={po.approved_at ? `aprovado em ${fmtDate(po.approved_at.slice(0, 10))}` : undefined} />
       </div>
-      <Table head={["Produto", "Pedido", "Recebido", "Saldo", "Custo unit.", "Total"]}>
+      <Table head={["Produto", "Pedido", "Recebido", "Saldo", "Custo unit.", "Total"]} totals={[1, 2, 3]}>
         {items.map((i) => {
           const r = recv.get(i.variant_id) ?? 0;
           return (

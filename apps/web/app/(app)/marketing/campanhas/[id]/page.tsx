@@ -139,7 +139,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
         <div className="space-y-4">
           <Card title="Oferta"><p className="text-sm">{OFFER_MODES[offer?.mode ?? "NONE"].label}{offer?.value ? ` · ${offer.kind === "PERCENT" ? `${offer.value}%` : formatBRL(offer.value)}` : ""}{offer?.code ? ` · código ${offer.code}` : ""}{r ? ` · ${r.coupons.used} de ${r.coupons.issued} cupons usados · desconto dado ${formatBRL(r.cost.discount)}` : ""}</p></Card>
           {(coupons ?? []).length > 0 && (
-            <Table head={["Código", "Desconto", "Validade", "Origem"]}>
+            <Table head={["Código", "Desconto", "Validade", "Origem"]} totals={false}>
               {(coupons ?? []).map((cp) => <tr key={cp.id}><td className="px-3 py-1.5 font-mono text-xs">{cp.code}</td><td className="px-3 py-1.5 text-xs">{cp.kind === "PERCENT" ? `${cp.value}%` : formatBRL(cp.value)}</td><td className="px-3 py-1.5 text-xs">{cp.valid_to ? when(cp.valid_to) : "—"}</td><td className="px-3 py-1.5 text-xs">{cp.source}</td></tr>)}
             </Table>
           )}

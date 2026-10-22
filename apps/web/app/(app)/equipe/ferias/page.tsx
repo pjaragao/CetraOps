@@ -4,7 +4,7 @@ import { can, requirePerm } from "@/lib/session";
 import { str, todayIsoSP, type SP } from "@/lib/context";
 import { Badge, Button, Card, Empty, inputClass, PageHeader, Table } from "@/components/ui";
 import { Field, Flash, fmtDate } from "@/components/form";
-import { approveVacationAction, cancelVacationAction, payVacationAction, scheduleVacationAction } from "../actions";
+import { approveManyVacationsAction, approveVacationAction, cancelVacationAction, payVacationAction, scheduleVacationAction } from "../actions";
 
 export const metadata = { title: "Férias" };
 
@@ -69,9 +69,9 @@ export default async function FeriasPage({ searchParams }: { searchParams: SP })
 
       <h2 className="mt-6 mb-2 text-sm font-semibold text-muted">Próximas férias</h2>
       {(vacs ?? []).length === 0 ? <Empty title="Nenhuma férias programada" /> : (
-        <Table head={["Colaborador", "Período", "Dias", "Pagamento até", "Situação", ""]}>
+        <Table head={["Colaborador", "Período", "Dias", "Pagamento até", "Situação", ""]} bulk={canWrite ? [{ label: "Aprovar", tone: "primary", action: approveManyVacationsAction }] : undefined}>
           {(vacs ?? []).map((v) => (
-            <tr key={v.id}>
+            <tr key={v.id} data-select={v.status === "PLANNED" ? v.id : undefined}>
               <td className="px-3 py-2"><Link className="text-brand" href={`/equipe/${v.employee_id}`}>{name.get(v.employee_id) ?? "—"}</Link></td>
               <td className="px-3 py-2 whitespace-nowrap">{fmtDate(v.start_date)} a {fmtDate(v.end_date)}</td>
               <td className="px-3 py-2">{v.days}{v.sell_days > 0 ? ` + ${v.sell_days} vendidos` : ""}{v.double_pay && <Badge tone="danger">em dobro</Badge>}</td>

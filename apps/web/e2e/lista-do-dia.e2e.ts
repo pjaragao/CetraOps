@@ -9,10 +9,12 @@ test.describe("lista do dia e avise-me", () => {
     await login(page, "vendedora");
     const msg = `Oi! Separei o look E2E ${Date.now() % 100000} 💛`;
     await page.goto("/clientes/tarefas");
-    await page.locator("input[name=title]").fill("Mandar o look E2E");
-    await page.locator("input[name=party]").fill("Cliente Teste");
-    await page.locator("input[name=suggested_message]").fill(msg);
-    await page.getByRole("button", { name: "Criar tarefa" }).click();
+    // o formulário de criação é o mesmo da edição (que fica dentro de cada tarefa): mira o de "Criar tarefa"
+    const form = page.locator("form", { has: page.getByRole("button", { name: "Criar tarefa" }) });
+    await form.locator("[name=title]").fill("Mandar o look E2E");
+    await form.locator("[name=party]").fill("Cliente Teste");
+    await form.locator("[name=suggested_message]").fill(msg);
+    await form.getByRole("button", { name: "Criar tarefa" }).click();
     await expect(page.getByText("Tarefa criada.")).toBeVisible({ timeout: 15_000 });
 
     await page.goto("/inicio");

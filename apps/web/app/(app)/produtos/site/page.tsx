@@ -72,7 +72,7 @@ export default async function SitePage({ searchParams }: { searchParams: SP }) {
         <Link href={`/produtos/site?estoque=${soEstoque ? "todos" : "com"}`} className="text-xs text-brand">{soEstoque ? "ver todas (inclusive sem estoque)" : "só peças com estoque"}</Link>
       </div>
       {(changes ?? []).length === 0 ? <Empty title="Nenhuma mudança de preço registrada" /> : (
-        <Table head={["Data", "Produto", "SKU", "Antes", "Agora", "Diferença", "Em estoque"]}>
+        <Table head={["Data", "Produto", "SKU", "Antes", "Agora", "Diferença", "Em estoque"]} noTotal={[3, 4, 5]}>
           {(changes ?? []).map((c, i) => {
             const diff = c.old_price != null ? Number(c.new_price) - Number(c.old_price) : null;
             return (

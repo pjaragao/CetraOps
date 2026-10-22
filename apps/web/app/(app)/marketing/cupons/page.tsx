@@ -45,7 +45,7 @@ export default async function CuponsPage({ searchParams }: { searchParams: SP })
       </nav>
       {hiddenPersonal > 0 && <p className="mb-2 text-xs text-muted">{hiddenPersonal} cupom(ns) pessoal(is) ocultos: <Link className="text-brand" href="/marketing/cupons?tipo=pessoal">ver</Link>.</p>}
       {coupons.length === 0 ? <Empty title="Nenhum cupom neste filtro" /> : (
-        <Table head={["Código", "Desconto", "Regras", "Usos", "Desconto dado", "Validade", "Situação", ""]}>
+        <Table head={["Código", "Desconto", "Regras", "Usos", "Desconto dado", "Validade", "Situação", ""]} noTotal={[1]}>
           {coupons.map((c) => {
             const s = stat.get(c.id) ?? { n: 0, total: 0 };
             return (

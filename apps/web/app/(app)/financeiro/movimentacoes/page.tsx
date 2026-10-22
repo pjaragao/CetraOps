@@ -102,7 +102,7 @@ export default async function MovimentacoesPage({ searchParams }: { searchParams
       </form>
 
       {(txs ?? []).length === 0 ? <Empty title="Sem movimentos" /> : (
-        <Table head={["Data", "Conta", "Tipo", "Descrição", "Valor", "Conciliação", ""]}>
+        <Table head={["Data", "Conta", "Tipo", "Descrição", "Valor", "Conciliação", ""]} totalLabel={(count ?? 0) > PAGE ? "Total da página" : undefined}>
           {(txs ?? []).map((t) => {
             const s = t.settlement_id ? sett.get(t.settlement_id) : undefined;
             return (

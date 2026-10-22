@@ -4,11 +4,11 @@ import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, getSession } from "@/lib/session";
 import { isoFromNow, str, type SP } from "@/lib/context";
-import { Badge, Button, Card, inputClass, PageHeader } from "@/components/ui";
+import { Badge, Button, Card, inputClass, Narrow, PageHeader } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
 import { ReimbursementForm, type ItemDraft } from "../reimbursement-form";
 import { DOC_KIND, STATUS } from "../labels";
-import { cancelReimbursementAction, classifyItemAction, decideReimbursementAction, submitReimbursementAction, uploadAttachmentAction } from "../actions";
+import { cancelReimbursementAction, classifyItemAction, decideReimbursementAction } from "../actions";
 
 export const metadata = { title: "Reembolso" };
 
@@ -32,7 +32,7 @@ export default async function ReembolsoPage({ params, searchParams }: { params: 
   const paths = (items ?? []).map((i) => i.attachment_path).filter(Boolean) as string[];
   const signed = paths.length ? (await supabase.storage.from("fin-docs").createSignedUrls(paths, 3600)).data ?? [] : [];
   const urlOf = new Map(signed.filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl]));
-  const [{ data: accounts }, { data: ccs }] = approver || editable && can(session, "fin.read")
+  const [{ data: accounts }, { data: ccs }] = approver || can(session, "fin.read")
     ? await Promise.all([
         supabase.schema("fin").from("chart_accounts").select("id, code, name").eq("kind", "ANALYTIC").or("group.in.(EXPENSE,COGS,FINANCIAL)").is("archived_at", null).order("code"),
         supabase.schema("core").from("cost_centers").select("id, code, name").is("archived_at", null).order("code"),
@@ -44,20 +44,40 @@ export default async function ReembolsoPage({ params, searchParams }: { params: 
     id: i.id, spent_on: i.spent_on, description: i.description, document_kind: i.document_kind, document_number: i.document_number ?? "", access_key: i.access_key ?? "",
     supplier_doc: i.supplier_doc ?? "", supplier_name: i.supplier_name ?? "", amount: String(i.amount).replace(".", ","), no_document_reason: i.no_document_reason ?? "",
     chart_account_id: i.chart_account_id, cost_center_id: i.cost_center_id,
+    attachment: i.attachment_path ? { name: i.attachment_name ?? "comprovante", url: urlOf.get(i.attachment_path) ?? null } : null,
   }));
+  const statusLine = (
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      <Badge tone={STATUS[r.status]?.tone ?? "neutral"}>{STATUS[r.status]?.label ?? r.status}</Badge>
+      <span className="text-lg font-semibold tabular-nums">{formatBRL(Number(r.total))}</span>
+      {r.due_date && <span className="text-sm text-muted">pagamento previsto {fmtDate(r.due_date)}</span>}
+      {r.title_id && can(session, "fin.read") && <Link href="/financeiro/pagar" className="text-sm text-brand">ver na conta a pagar</Link>}
+    </div>
+  );
+  const rejected = r.status === "REJECTED" && r.reject_reason && <p className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">Recusado: {r.reject_reason}. Corrija e envie de novo.</p>;
+
+  // rascunho ou recusado: a mesma tela da criação, já preenchida (comprovantes dentro de cada despesa)
+  if (editable) {
+    return (
+      <Narrow>
+        <PageHeader title={`Reembolso ${r.number}`} description={`${person?.display_name ?? "—"} · ajuste o que precisar, confira os comprovantes e envie para aprovação.`}
+          actions={<Link href="/financeiro/reembolsos" className="text-sm text-brand">Voltar aos reembolsos</Link>} />
+        <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+        {statusLine}
+        {rejected}
+        <Card><ReimbursementForm id={r.id} purpose={r.purpose} items={drafts} today={today} /></Card>
+        <form action={cancelReimbursementAction} className="mt-3 text-right"><input type="hidden" name="id" value={r.id} /><Button variant="ghost" className="text-danger">Cancelar reembolso</Button></form>
+      </Narrow>
+    );
+  }
 
   return (
     <>
       <PageHeader title={`Reembolso ${r.number}`} description={`${person?.display_name ?? "—"} · ${r.purpose}`}
         actions={<Link href="/financeiro/reembolsos" className="text-sm text-brand">Voltar aos reembolsos</Link>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Badge tone={STATUS[r.status]?.tone ?? "neutral"}>{STATUS[r.status]?.label ?? r.status}</Badge>
-        <span className="text-lg font-semibold tabular-nums">{formatBRL(Number(r.total))}</span>
-        {r.due_date && <span className="text-sm text-muted">pagamento previsto {fmtDate(r.due_date)}</span>}
-        {r.title_id && can(session, "fin.read") && <Link href="/financeiro/pagar" className="text-sm text-brand">ver na conta a pagar</Link>}
-      </div>
-      {r.status === "REJECTED" && r.reject_reason && <p className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">Recusado: {r.reject_reason}. Corrija e envie de novo.</p>}
+      {statusLine}
+      {rejected}
 
       <div className="space-y-3">
         {(items ?? []).map((i) => (
@@ -76,13 +96,6 @@ export default async function ReembolsoPage({ params, searchParams }: { params: 
                 ) : <Badge tone={i.no_document_reason ? "neutral" : "warning"}>sem comprovante</Badge>}
               </div>
             </div>
-            {editable && (
-              <form action={uploadAttachmentAction} className="mt-2 flex flex-wrap items-center gap-2">
-                <input type="hidden" name="reimbursement_id" value={r.id} /><input type="hidden" name="item_id" value={i.id} />
-                <input type="file" name="file" accept="image/*,application/pdf" capture="environment" aria-label={`Comprovante da despesa ${i.position}`} className="text-xs" />
-                <Button variant="secondary" className="px-2 py-1 text-xs">{i.attachment_path ? "Trocar comprovante" : "Anexar comprovante"}</Button>
-              </form>
-            )}
             {approver && (
               <form action={classifyItemAction} className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <input type="hidden" name="reimbursement_id" value={r.id} /><input type="hidden" name="item_id" value={i.id} />
@@ -94,13 +107,6 @@ export default async function ReembolsoPage({ params, searchParams }: { params: 
           </Card>
         ))}
       </div>
-
-      {editable && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <form action={submitReimbursementAction}><input type="hidden" name="id" value={r.id} /><Button>Enviar para aprovação</Button></form>
-          <form action={cancelReimbursementAction}><input type="hidden" name="id" value={r.id} /><Button variant="ghost">Cancelar reembolso</Button></form>
-        </div>
-      )}
 
       {approver && (
         <Card className="mt-4" title="Decisão">
@@ -121,10 +127,8 @@ export default async function ReembolsoPage({ params, searchParams }: { params: 
         </Card>
       )}
 
-      {editable && (
-        <Card className="mt-6" title="Editar despesas">
-          <ReimbursementForm id={r.id} purpose={r.purpose} items={drafts} today={today} />
-        </Card>
+      {r.status === "SUBMITTED" && (mine || can(session, "fin.write")) && (
+        <form action={cancelReimbursementAction} className="mt-4"><input type="hidden" name="id" value={r.id} /><Button variant="ghost" className="text-danger">Cancelar reembolso</Button></form>
       )}
     </>
   );

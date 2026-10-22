@@ -4,7 +4,7 @@ import { can, requirePerm } from "@/lib/session";
 import { str, todayIsoSP, type SP } from "@/lib/context";
 import { Badge, Button, Card, Empty, inputClass, PageHeader, Table } from "@/components/ui";
 import { Field, Flash, fmtMonth } from "@/components/form";
-import { approveStatementAction, generateStatementsAction, reopenStatementAction } from "../actions";
+import { approveManyStatementsAction, approveStatementAction, generateStatementsAction, reopenStatementAction } from "../actions";
 
 export const metadata = { title: "Metas e comissões" };
 
@@ -30,7 +30,6 @@ export default async function ComissoesPage({ searchParams }: { searchParams: SP
   const pname = new Map((parties ?? []).map((p) => [p.id, p.display_name]));
   const byMember = new Map((stm ?? []).map((s) => [s.member_id, s]));
   const planValue = (plan?.value ?? {}) as { base?: string; rates_by_channel?: Record<string, number>; tiers?: { from: number; to?: number; bonus?: number; pct_over?: number }[] };
-  const total = (stm ?? []).reduce((a, s) => a + Number(s.total), 0);
 
   return (
     <>
@@ -45,11 +44,12 @@ export default async function ComissoesPage({ searchParams }: { searchParams: SP
       )}
 
       {(emps ?? []).length === 0 ? <Empty title="Nenhum colaborador comissionado">Marque “Recebe comissão” na admissão e vincule o colaborador a um acesso ao sistema.</Empty> : (
-        <Table head={["Vendedora", "Vendas creditadas", "Base das faixas", "Comissão", "Bônus", "Total", "Situação", ""]}>
+        <Table head={["Vendedora", "Vendas creditadas", "Base das faixas", "Comissão", "Bônus", "Total", "Situação", ""]} totalLabel="Total do mês"
+          bulk={canWrite ? [{ label: "Aprovar", tone: "primary", action: approveManyStatementsAction, hidden: { mes: ym } }] : undefined}>
           {(emps ?? []).map((e) => {
             const s = e.member_id ? byMember.get(e.member_id) : undefined;
             return (
-              <tr key={e.id}>
+              <tr key={e.id} data-select={s?.status === "DRAFT" ? s.id : undefined}>
                 <td className="px-3 py-2 font-medium">{pname.get(e.party_id)}{!e.member_id && <span className="block text-xs text-warning">sem acesso vinculado</span>}</td>
                 <td className="px-3 py-2">{s ? formatBRL(s.sales_amount) : "—"}</td><td className="px-3 py-2">{s ? formatBRL(s.base_amount) : "—"}</td>
                 <td className="px-3 py-2">{s ? formatBRL(s.commission) : "—"}</td><td className="px-3 py-2">{s ? formatBRL(s.bonus) : "—"}</td>
@@ -64,7 +64,6 @@ export default async function ComissoesPage({ searchParams }: { searchParams: SP
           })}
         </Table>
       )}
-      <p className="mt-2 text-sm text-muted">Total do mês: <b>{formatBRL(total)}</b></p>
 
       <Card className="mt-4" title="Plano vigente">
         <p className="text-sm text-muted">Base das faixas: <b>{planValue.base === "INDIVIDUAL_REVENUE" ? "faturamento individual" : "faturamento da loja"}</b> · taxas por canal: {Object.entries(planValue.rates_by_channel ?? {}).map(([k, v]) => `${k} ${v}%`).join(" · ") || "—"}</p>

@@ -73,7 +73,7 @@ export function CatalogImporter({ locations, canStock }: { locations: { id: stri
               )}
             </div>
           )}
-          <Table head={["Ref.", "Nome", "Linha", "Cor", "Tam.", "EAN", "Preço", "Qtd", "Custo"]}>
+          <Table head={["Ref.", "Nome", "Linha", "Cor", "Tam.", "EAN", "Preço", "Qtd", "Custo"]} noTotal={[8]}>
             {rows.slice(0, 50).map((r, i) => (
               <tr key={i}><td className="px-3 py-1.5">{r.reference_code}</td><td className="px-3 py-1.5">{r.name}</td><td className="px-3 py-1.5">{r.gender}</td>
                 <td className="px-3 py-1.5">{r.color}</td><td className="px-3 py-1.5">{r.size}</td><td className="px-3 py-1.5">{r.gtin}</td><td className="px-3 py-1.5">{r.price}</td><td className="px-3 py-1.5">{r.qty}</td><td className="px-3 py-1.5">{r.cost}</td></tr>

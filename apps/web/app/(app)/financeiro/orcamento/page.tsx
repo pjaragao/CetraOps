@@ -106,7 +106,7 @@ export default async function OrcamentoPage({ searchParams }: { searchParams: SP
           </div>
           <Card title={`Orçado × realizado · ${from.split("-").reverse().join("/")} a ${to.split("-").reverse().join("/")}`}>
             {compare.length === 0 ? <p className="text-sm text-muted">Sem valores no período.</p> : (
-              <Table head={["Conta", "Orçado", "Realizado", "Diferença", "%", "Farol"]}>
+              <Table head={["Conta", "Orçado", "Realizado", "Diferença", "%", "Farol"]} totals={false}>
                 {compare.map((c) => {
                   const f = farol(nature.get(c.account_id) ?? "DEBIT", c.budget, c.actual);
                   const diff = c.actual - c.budget;
@@ -119,7 +119,7 @@ export default async function OrcamentoPage({ searchParams }: { searchParams: SP
                     </tr>
                   );
                 })}
-                <tr className="bg-surface-2 font-medium"><td className="px-3 py-2">Resultado</td><td className="px-3 py-2">{formatBRL(resBudget)}</td><td className="px-3 py-2">{formatBRL(resActual)}</td><td className="px-3 py-2">{formatBRL(resActual - resBudget)}</td><td colSpan={2} /></tr>
+                <tr data-pin className="bg-surface-2 font-medium"><td className="px-3 py-2">Resultado</td><td className="px-3 py-2">{formatBRL(resBudget)}</td><td className="px-3 py-2">{formatBRL(resActual)}</td><td className="px-3 py-2">{formatBRL(resActual - resBudget)}</td><td colSpan={2} /></tr>
               </Table>
             )}
           </Card>

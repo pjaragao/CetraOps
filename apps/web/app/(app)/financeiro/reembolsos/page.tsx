@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, getSession } from "@/lib/session";
-import { str, type SP } from "@/lib/context";
+import { isoFromNow, str, type SP } from "@/lib/context";
 import { Badge, cn, Empty, LinkButton, PageHeader, Table } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { STATUS } from "./labels";
+import { approveManyReimbursementsAction, cancelManyReimbursementsAction, rejectManyReimbursementsAction, submitManyReimbursementsAction } from "./actions";
 
 export const metadata = { title: "Reembolsos" };
 
@@ -17,6 +18,7 @@ export default async function ReembolsosPage({ searchParams }: { searchParams: S
   const sp = await searchParams;
   const filtro = str(sp.filtro) ?? (can(session, "fin.approve") ? "aprovar" : "meus");
   const supabase = await createClient();
+  const today = isoFromNow(-3).slice(0, 10);
   let q = supabase.schema("fin").from("reimbursements").select("id, number, purpose, status, total, created_at, submitted_at, due_date, party_id, requester_member_id").order("created_at", { ascending: false }).limit(200);
   if (filtro === "aprovar") q = q.eq("status", "SUBMITTED");
   else if (filtro === "meus" || !seeAll) q = q.eq("requester_member_id", session.memberId);
@@ -24,6 +26,17 @@ export default async function ReembolsosPage({ searchParams }: { searchParams: S
   const ids = [...new Set((rows ?? []).map((r) => r.party_id))];
   const { data: people } = ids.length ? await supabase.schema("crm").from("parties").select("id, display_name").in("id", ids) : { data: [] as { id: string; display_name: string }[] };
   const who = new Map((people ?? []).map((p) => [p.id, p.display_name]));
+  // o que cada linha permite fazer em lote (as mesmas regras do banco: quem pediu não aprova o próprio, salvo superusuário)
+  const canApprove = can(session, "fin.approve"), canWrite = can(session, "fin.write");
+  const tagsOf = (r: { status: string; requester_member_id: string | null }) => {
+    const mine = r.requester_member_id === session.memberId;
+    return [
+      r.status === "SUBMITTED" && canApprove && (!mine || session.isSuperuser) && "aprovar",
+      ["DRAFT", "REJECTED"].includes(r.status) && (mine || canWrite) && "enviar",
+      ["DRAFT", "SUBMITTED", "REJECTED"].includes(r.status) && (mine || canWrite) && "cancelar",
+    ].filter(Boolean).join(" ");
+  };
+  const keep = { filtro };
   const tabs = [...(can(session, "fin.approve") ? [["aprovar", "Para aprovar"]] : []), ["meus", "Meus"], ...(seeAll ? [["todos", "Todos"]] : [])];
 
   return (
@@ -35,9 +48,16 @@ export default async function ReembolsosPage({ searchParams }: { searchParams: S
         {tabs.map(([k, l]) => <Link key={k} href={`/financeiro/reembolsos?filtro=${k}`} className={cn("rounded-full border px-3 py-1 text-sm", filtro === k ? "border-brand bg-brand/10 text-brand" : "border-border hover:bg-surface-2")}>{l}</Link>)}
       </div>
       {(rows ?? []).length === 0 ? <Empty title="Nenhum reembolso aqui">Pagou algo da loja do seu bolso? Crie um reembolso e anexe a nota.</Empty> : (
-        <Table head={["Número", "Pessoa", "Do que é", "Total", "Situação", "Data"]}>
+        <Table head={["Número", "Pessoa", "Do que é", "Total", "Situação", "Data"]} bulk={[
+          { label: "Aprovar", tag: "aprovar", tone: "primary", action: approveManyReimbursementsAction, hidden: keep,
+            fields: [{ name: "due_date", label: "Pagar até (vazio: em 5 dias)", type: "date", min: today }] },
+          { label: "Recusar", tag: "aprovar", tone: "danger", action: rejectManyReimbursementsAction, hidden: keep,
+            fields: [{ name: "reason", label: "Motivo da recusa (vai para cada pessoa)", required: true, minLength: 5 }] },
+          { label: "Enviar para aprovação", tag: "enviar", tone: "primary", action: submitManyReimbursementsAction, hidden: keep },
+          { label: "Cancelar", tag: "cancelar", action: cancelManyReimbursementsAction, hidden: keep, confirm: "Cancelar {n} reembolso(s)? Não dá para desfazer." },
+        ]}>
           {(rows ?? []).map((r) => (
-            <tr key={r.id}>
+            <tr key={r.id} data-select={tagsOf(r) ? r.id : undefined} data-tags={tagsOf(r)}>
               <td className="px-3 py-2 font-mono text-xs"><Link href={`/financeiro/reembolsos/${r.id}`} className="text-brand">{r.number}</Link></td>
               <td className="px-3 py-2 text-sm">{who.get(r.party_id) ?? "—"}</td>
               <td className="px-3 py-2 text-sm">{r.purpose}</td>

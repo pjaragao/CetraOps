@@ -38,7 +38,8 @@ export default async function UsuarioPage({ params, searchParams }: { params: Pr
         <form action={updateUserAction} className="grid gap-3 sm:grid-cols-2">
           <input type="hidden" name="id" value={u.id} />
           <Field label="Nome"><input name="display_name" required minLength={2} defaultValue={u.display_name} className={inputClass} /></Field>
-          <div />
+          {/* mesmos campos da criação; e-mail e senha não mudam por aqui (a senha tem a troca própria abaixo) */}
+          <Field label="E-mail de acesso" hint="Não muda depois de criado"><input value={u.email ?? ""} disabled className={inputClass} /></Field>
           <AccessFields roles={roles} stores={stores} value={u} />
           <div className="sm:col-span-2"><Button>Salvar acessos</Button></div>
         </form>

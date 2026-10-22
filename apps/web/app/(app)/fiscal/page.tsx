@@ -66,7 +66,7 @@ export default async function FiscalPage({ searchParams }: { searchParams: SP })
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Faixas do Anexo I">
-          <Table head={["Faixa", "Até (RBT12)", "Nominal", "Dedução"]}>
+          <Table head={["Faixa", "Até (RBT12)", "Nominal", "Dedução"]} totals={false}>
             {(brackets ?? []).map((x) => (
               <tr key={x.bracket} className={b?.bracket === x.bracket ? "bg-brand/5 font-medium" : ""}>
                 <td className="px-3 py-1.5">{x.bracket}</td><td className="px-3 py-1.5">{formatBRL(x.max_rbt12)}</td>

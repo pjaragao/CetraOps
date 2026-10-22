@@ -7,6 +7,7 @@ import { parseStatement } from "@centralops/domain";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
+import { bulkFlash, bulkIds, runBulk } from "@/lib/bulk";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;
 
@@ -65,9 +66,23 @@ export async function approveTitle(formData: FormData) {
   if (formData.get("back")) back(back_, { ok: "Título aprovado" });
 }
 
+/** Aprovação em lote na lista de contas a pagar: chegam as parcelas marcadas; aprova cada título uma vez. */
+export async function approveManyTitlesAction(formData: FormData) {
+  const supabase = await createClient();
+  const back_ = String(formData.get("back") || "/financeiro/pagar");
+  const ids = bulkIds(formData);
+  const { data } = ids.length ? await supabase.schema("fin").from("v_installments").select("title_id, title_number").in("installment_id", ids) : { data: [] };
+  const titles = new Map((data ?? []).map((r) => [r.title_id as string, r.title_number as string]));
+  const r = await runBulk([...titles.keys()], (id) => supabase.schema("fin").rpc("approve_title", { p_title: id }), (id) => titles.get(id) ?? "");
+  revalidatePath("/financeiro", "layout");
+  back(back_, bulkFlash(r, (n) => `${n} título(s) aprovado(s): já podem ser pagos`));
+}
+
 const updateTitleSchema = z.object({
   id: uuid, description: z.string().min(2).max(200), document_kind: z.string().max(40).optional(), document_number: z.string().max(60).optional(),
   party_id: z.string().optional(), competence_date: date.optional(), chart_account_id: z.string().optional(), cost_center_id: z.string().optional(),
+  allocation_template_id: optUuid,
+  lines: z.array(z.object({ chart_account_id: uuid, cost_center_id: optUuid, amount: z.number().positive() })).max(30).optional(),
   installments: z.array(z.object({ due_date: date, amount: z.number().positive(), barcode: z.string().max(120).optional() })).min(1).max(60).optional(),
 });
 
@@ -334,6 +349,7 @@ export async function createBankAccountAction(formData: FormData) {
     kind: String(formData.get("kind")), bank_code: String(formData.get("bank_code") || "") || null, agency: String(formData.get("agency") || "") || null,
     number: String(formData.get("number") || "") || null, chart_account_id: String(formData.get("account") || "") || null,
     store_id: String(formData.get("store") || "") || null, opening_balance: opening, opening_date: String(formData.get("opening_date") || "") || null,
+    pix_keys: String(formData.get("pix_keys") || "").split(/[,\n]/).map((x) => x.trim()).filter(Boolean),
   });
   revalidatePath("/configuracoes/contas-bancarias");
   back("/configuracoes/contas-bancarias", error ? { erro: friendly(error.message) } : { ok: "Conta criada" });

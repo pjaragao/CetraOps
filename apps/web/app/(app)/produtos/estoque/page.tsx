@@ -55,7 +55,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: SP }
         </>} />
       <form className="mb-4"><input name="q" defaultValue={q} placeholder="Produto, referência ou SKU" className={`${inputClass} max-w-sm`} aria-label="Buscar" /></form>
       {matrix.size === 0 ? <Empty title="Sem estoque registrado">O saldo entra pela importação do catálogo com quantidade, pela contagem (Produtos › Contagem) ou pelo recebimento de NF-e.</Empty> : (
-        <Table head={["Produto", "Cor", ...cols, "Total", "Fora da loja"]} searchPlaceholder="Filtrar produto, referência ou cor">
+        <Table head={["Produto", "Cor", ...cols, "Total", "Fora da loja"]} totals={cols.map((_, i) => i + 2).concat(cols.length + 2, cols.length + 3)} searchPlaceholder="Filtrar produto, referência ou cor">
               {[...matrix.entries()].map(([k, m]) => {
                 const total = [...m.sizes.values()].reduce((a, s) => a + s.av, 0);
                 return (

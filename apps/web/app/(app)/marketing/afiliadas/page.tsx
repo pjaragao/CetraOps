@@ -60,7 +60,7 @@ export default async function AfiliadosPage({ searchParams }: { searchParams: SP
       )}
 
       {(affiliates ?? []).length === 0 ? <Empty title="Nenhuma afiliada ainda">Cadastre a primeira trainer abaixo: o cupom e o link/QR são criados juntos.</Empty> : (
-        <Table head={["Afiliada", "Cupom", "Link & QR", "Desconto", "Comissão", "Pagamento", "Situação", canFin ? `Comissão ${mes}` : "", ""]}>
+        <Table head={["Afiliada", "Cupom", "Link & QR", "Desconto", "Comissão", "Pagamento", "Situação", canFin ? `Comissão ${mes}` : "", ""]} noTotal={[3, 4]}>
           {(affiliates ?? []).map((a) => {
             const st = STATUS[a.status] ?? STATUS.ACTIVE;
             const s = byAff.get(a.id);

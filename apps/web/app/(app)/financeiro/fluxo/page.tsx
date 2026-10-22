@@ -69,7 +69,7 @@ export default async function FluxoPage({ searchParams }: { searchParams: SP }) 
         <div>
           <h2 className="mb-2 text-sm font-semibold text-muted">Por semana</h2>
           {weeks.length === 0 ? <Empty title="Sem dados" /> : (
-            <Table head={["Semana", "Entradas", "Saídas", "Saldo final"]}>
+            <Table head={["Semana", "Entradas", "Saídas", "Saldo final"]} noTotal={[3]}>
               {weeks.map((w) => (
                 <tr key={w.label}>
                   <td className="px-3 py-2 whitespace-nowrap">{w.label}</td><td className="px-3 py-2 text-success">{formatBRL(w.inn)}</td>

@@ -42,6 +42,28 @@ test.describe("reembolsos", () => {
     await expect(page.getByText(new RegExp(`Reembolso REE-\\d{4}-\\d+ — ${purpose}`))).toBeVisible({ timeout: 20_000 });
   });
 
+  test("aprovação em grupo: sócio marca vários na lista e aprova de uma vez", async ({ page }) => {
+    test.setTimeout(150_000);
+    const tag = `Lote E2E ${Date.now() % 100000}`;
+    await login(page, "vendedora");
+    for (const n of [1, 2]) {
+      await newReimbursement(page, `${tag} ${n}`, { reason: "Pagamento no balcão, sem nota" });
+      await page.getByRole("button", { name: "Enviar para aprovação" }).click();
+      await expect(page.getByText(/Enviado para aprovação/)).toBeVisible({ timeout: 20_000 });
+    }
+    await page.context().clearCookies();
+    await login(page, "socio");
+    await page.goto("/financeiro/reembolsos?filtro=aprovar");
+    await page.getByLabel("Buscar na lista").fill(tag);
+    await expect(page.locator("tfoot tr").first()).toContainText("R$ 165,00");   // 2 × 82,50 no rodapé
+    await page.getByLabel("Selecionar todas as linhas visíveis").check();
+    const bar = page.getByRole("region", { name: "Ações em lote" });
+    await expect(bar).toContainText("2 selecionado(s)");
+    await bar.getByRole("button", { name: "Aprovar (2)" }).click();
+    await bar.getByRole("button", { name: "Confirmar: Aprovar (2)" }).click();
+    await expect(page.getByText("2 reembolso(s) aprovado(s)")).toBeVisible({ timeout: 30_000 });
+  });
+
   test("comprovante: foto anexada fica no Storage e abre pelo link", async ({ page }) => {
     test.skip(!!process.env.CI, "O Storage do Supabase não sobe no CI");
     test.setTimeout(90_000);
@@ -50,8 +72,8 @@ test.describe("reembolsos", () => {
     // PNG de 1x1 pixel
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
     await page.getByLabel("Comprovante da despesa 1").setInputFiles({ name: "nota.png", mimeType: "image/png", buffer: png });
-    await page.getByRole("button", { name: "Anexar comprovante" }).click();
-    await expect(page.getByText("Comprovante anexado")).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Salvar rascunho" }).click();     // o comprovante sobe junto com o rascunho
+    await expect(page.getByText(/Reembolso salvo/)).toBeVisible({ timeout: 20_000 });
     const link = page.getByRole("link", { name: /Ver comprovante \(nota\.png\)/ });
     await expect(link).toBeVisible();
     const res = await page.request.get((await link.getAttribute("href"))!);

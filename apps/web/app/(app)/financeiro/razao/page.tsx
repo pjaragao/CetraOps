@@ -39,7 +39,7 @@ export default async function RazaoPage({ searchParams }: { searchParams: SP }) 
     const c = list.reduce((a, r) => a + Number(r.credit), 0);
     body = error ? <p className="text-danger">{error.message}</p> : list.length === 0 ? <Empty title="Sem lançamentos no período" /> : (
       <>
-        <Table head={["Conta", "Nome", "Grupo", "Saldo inicial", "Débitos", "Créditos", "Saldo final"]}>
+        <Table head={["Conta", "Nome", "Grupo", "Saldo inicial", "Débitos", "Créditos", "Saldo final"]} noTotal={[3, 6]}>
           {list.map((r) => (
             <tr key={r.account_id}>
               <td className="px-3 py-1.5 whitespace-nowrap"><Link className="text-brand" href={q({ aba: "razao", conta: r.account_id })}>{r.code}</Link></td>
@@ -65,7 +65,7 @@ export default async function RazaoPage({ searchParams }: { searchParams: SP }) 
           <Button variant="secondary">Ver razão</Button>
         </form>
         {!conta ? <Empty title="Escolha uma conta" /> : (rows ?? []).length === 0 ? <Empty title="Sem movimento no período" /> : (
-          <Table head={["Data", "Lançamento", "Histórico", "Centro de custo", "Débito", "Crédito", "Saldo"]}>
+          <Table head={["Data", "Lançamento", "Histórico", "Centro de custo", "Débito", "Crédito", "Saldo"]} noTotal={[6]}>
             {(rows ?? []).map((r, i) => (
               <tr key={i}>
                 <td className="px-3 py-1.5 whitespace-nowrap">{r.entry_date.split("-").reverse().join("/")}</td>

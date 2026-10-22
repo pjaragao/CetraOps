@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
+import { bulkFlash, bulkIds, runBulk } from "@/lib/bulk";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;
 
@@ -418,4 +419,21 @@ export async function approveStatementAction(formData: FormData) {
 
 export async function reopenStatementAction(formData: FormData) {
   return call("comm", "reopen_statement", { p_statement: str(formData.get("statement_id")) }, "/equipe/comissoes", "Extrato reaberto", { mes: str(formData.get("mes")) });
+}
+
+// ---------------------------------------------------------------------
+// Em lote (tabelas com seleção)
+// ---------------------------------------------------------------------
+export async function approveManyStatementsAction(formData: FormData) {
+  const supabase = await createClient();
+  const r = await runBulk(bulkIds(formData), (id) => supabase.schema("comm").rpc("approve_statement", { p_statement: id }));
+  revalidatePath("/equipe", "layout");
+  back("/equipe/comissoes", { mes: str(formData.get("mes")) || undefined, ...bulkFlash(r, (n) => `${n} extrato(s) aprovado(s): entram na próxima folha`) });
+}
+
+export async function approveManyVacationsAction(formData: FormData) {
+  const supabase = await createClient();
+  const r = await runBulk(bulkIds(formData), (id) => supabase.schema("hr").rpc("approve_vacation", { p_vacation: id }));
+  revalidatePath("/equipe", "layout");
+  back("/equipe/ferias", bulkFlash(r, (n) => `${n} férias aprovada(s)`));
 }

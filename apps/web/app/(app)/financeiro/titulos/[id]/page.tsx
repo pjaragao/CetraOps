@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
-import { str, type SP } from "@/lib/context";
+import { str, todayIsoSP, type SP } from "@/lib/context";
 import { Badge, Button, Card, inputClass, PageHeader, Table } from "@/components/ui";
 import { Flash, fmtDate } from "@/components/form";
 import { approveTitle, cancelTitle, rescheduleAction } from "../../actions";
-import { TitleEditForm } from "./title-edit-form";
+import { TitleForm } from "../../title-form";
 
 export const metadata = { title: "Título" };
 
@@ -36,6 +36,7 @@ export default async function TituloPage({ params, searchParams }: { params: Pro
     supabase.schema("fin").from("chart_accounts").select("id, code, name").eq("kind", "ANALYTIC").is("archived_at", null).order("code"),
     supabase.schema("core").from("cost_centers").select("id, code, name").order("code"),
   ]);
+  const { data: templates } = await supabase.schema("fin").from("allocation_templates").select("id, name").eq("active", true).order("name");
   const instIds = (inst ?? []).map((i) => i.id);
   const { data: sl } = instIds.length ? await supabase.schema("fin").from("settlement_lines").select("settlement_id, installment_id, kind, amount").in("installment_id", instIds) : { data: [] as { settlement_id: string; installment_id: string | null; kind: string; amount: number }[] };
   const sids = [...new Set((sl ?? []).map((l) => l.settlement_id))];
@@ -56,7 +57,6 @@ export default async function TituloPage({ params, searchParams }: { params: Pro
   const list = t.direction === "PAYABLE" ? "/financeiro/pagar" : "/financeiro/receber";
   const origin = ORIGIN[t.origin_type] ?? [t.origin_type, () => null];
   const originHref = t.origin_id ? origin[1](t.origin_id) : origin[1]("");
-  const distinctLines = new Set((lines ?? []).map((l) => `${l.chart_account_id}|${l.cost_center_id ?? ""}`));
 
   return (
     <>
@@ -139,19 +139,23 @@ export default async function TituloPage({ params, searchParams }: { params: Pro
       )}
 
       {canWrite && t.status !== "CANCELLED" && (
-        <Card className="mt-6" title="Editar">
-          <p className="mb-3 text-xs text-muted">
-            {full ? "Sem pagamento ainda: dá para mudar tudo. Se o título já estava aprovado, a contabilização é refeita com os dados novos."
-              : settled ? "Este título já tem pagamento: só a descrição e o documento mudam aqui (o vencimento das parcelas em aberto muda na tabela acima). Para mudar valores, estorne a baixa antes."
-              : `Gerado por ${origin[0].toLowerCase()}: corrija valores e classificação pela origem. Aqui mudam a descrição, o documento e o vencimento.`}
-          </p>
-          <TitleEditForm full={full}
-            title={{ id: t.id, description: t.description, document_kind: t.document_kind, document_number: t.document_number, party_id: t.party_id, competence_date: t.competence_date,
-                     chart_account_id: t.chart_account_id, cost_center_id: t.cost_center_id, split: distinctLines.size > 1,
-                     installments: (inst ?? []).map((i) => ({ due_date: i.due_date, amount: Number(i.amount), barcode: i.barcode })) }}
+        <Card className="mt-6" title="Editar lançamento">
+          {/* o mesmo formulário do "Novo lançamento"; o que não pode mais mudar aparece travado, com o motivo */}
+          <TitleForm direction={t.direction as "PAYABLE" | "RECEIVABLE"} today={todayIsoSP()}
+            lock={full ? null : settled
+              ? "Este título já tem pagamento/baixa: aqui só mudam a descrição e o documento (o vencimento das parcelas em aberto muda na tabela de parcelas). Para mudar valores, favorecido ou classificação, estorne a baixa em Movimentações."
+              : `Gerado por ${origin[0].toLowerCase()}: valores e classificação se corrigem pela origem. Aqui mudam a descrição, o documento e o vencimento (na tabela de parcelas).`}
+            edit={{ id: t.id, store_id: t.store_id, party_id: t.party_id, receiver_party_id: t.receiver_party_id, description: t.description,
+                    document_kind: t.document_kind, document_number: t.document_number, competence_date: t.competence_date,
+                    chart_account_id: t.chart_account_id, cost_center_id: t.cost_center_id,
+                    lines: (lines ?? []).map((l) => ({ chart_account_id: l.chart_account_id, cost_center_id: l.cost_center_id, amount: Number(l.amount) })),
+                    installments: (inst ?? []).map((i) => ({ due_date: i.due_date, amount: Number(i.amount), barcode: i.barcode })) }}
+            stores={session.stores.map((s) => ({ id: s.id, name: s.name, legal_entity_id: s.legal_entity_id }))}
             parties={(parties ?? []).map((p) => ({ id: p.id, label: p.display_name, hint: p.cnpj ? `CNPJ ${p.cnpj}` : undefined }))}
             accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))}
-            costCenters={(ccs ?? []).map((c) => ({ id: c.id, label: `${c.code} · ${c.name}` }))} />
+            costCenters={(ccs ?? []).map((c) => ({ id: c.id, label: `${c.code} · ${c.name}` }))}
+            templates={(templates ?? []).map((x) => ({ id: x.id, label: x.name }))} />
+          {full && <p className="mt-2 text-xs text-muted">Sem pagamento ainda: dá para mudar tudo. Se o título já estava aprovado, a contabilização é refeita com os dados novos.</p>}
         </Card>
       )}
     </>

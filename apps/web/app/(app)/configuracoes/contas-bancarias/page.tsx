@@ -2,13 +2,11 @@ import Link from "next/link";
 import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
-import { str, todayIsoSP, type SP } from "@/lib/context";
-import { Badge, Button, Card, inputClass, PageHeader, Table } from "@/components/ui";
-import { createBankAccountAction } from "../../financeiro/actions";
+import { str, type SP } from "@/lib/context";
+import { Badge, Card, PageHeader, Table } from "@/components/ui";
+import { BankAccountForm, KIND_LABEL } from "./bank-account-form";
 
 export const metadata = { title: "Contas bancárias" };
-
-const KIND_LABEL: Record<string, string> = { CHECKING: "Conta corrente", CASH_DRAWER: "Caixa (gaveta)", ACQUIRER_BALANCE: "Saldo na adquirente", INVESTMENT: "Aplicação" };
 
 export default async function ContasBancariasPage({ searchParams }: { searchParams: SP }) {
   await requirePerm("core.admin");
@@ -36,20 +34,8 @@ export default async function ContasBancariasPage({ searchParams }: { searchPara
         ))}
       </Table>
       <Card className="mt-4" title="Nova conta">
-        <form action={createBankAccountAction} className="grid gap-2 sm:grid-cols-6">
-          <label className="text-xs text-muted sm:col-span-2">Nome<input name="name" required className={inputClass} placeholder="Ex.: BTG Pactual Empresas" maxLength={80} /></label>
-          <label className="text-xs text-muted">Tipo<select name="kind" className={inputClass} defaultValue="CHECKING">{Object.entries(KIND_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-          <label className="text-xs text-muted sm:col-span-2">Empresa (CNPJ)<select name="entity" required className={inputClass}>{(entities ?? []).map((e) => <option key={e.id} value={e.id}>{e.nome_fantasia ?? e.razao_social}</option>)}</select></label>
-          <label className="text-xs text-muted">Conta do plano<select name="account" required className={inputClass}><option value="">…</option>{(accounts ?? []).map((a) => <option key={a.id} value={a.id}>{a.code} · {a.name}</option>)}</select></label>
-          <label className="text-xs text-muted">Banco (código)<input name="bank_code" className={inputClass} placeholder="077, 208, 323" maxLength={4} /></label>
-          <label className="text-xs text-muted">Agência<input name="agency" className={inputClass} maxLength={10} /></label>
-          <label className="text-xs text-muted">Conta<input name="number" className={inputClass} maxLength={20} /></label>
-          <label className="text-xs text-muted">Loja (caixa)<select name="store" className={inputClass}><option value="">—</option>{(stores ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-          <label className="text-xs text-muted">Saldo de abertura (R$)<input name="opening" className={inputClass} inputMode="decimal" placeholder="0,00" /></label>
-          <label className="text-xs text-muted">Data do saldo<input name="opening_date" type="date" defaultValue={todayIsoSP()} className={inputClass} /></label>
-          <div className="self-end"><Button>Criar conta</Button></div>
-        </form>
-        <p className="mt-2 text-xs text-muted">O saldo de abertura entra na conta e deve ser lançado no razão pelo contador (lançamento manual) contra o capital ou o saldo anterior.</p>
+        <BankAccountForm entities={(entities ?? []).map((e) => ({ id: e.id, label: e.nome_fantasia ?? e.razao_social }))}
+          accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))} stores={(stores ?? []).map((x) => ({ id: x.id, label: x.name }))} />
       </Card>
     </>
   );

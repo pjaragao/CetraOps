@@ -58,7 +58,7 @@ test.describe("usuários e permissões", () => {
     await page.getByRole("button", { name: "Cadastrar pessoa" }).click();
     await expect(page).toHaveURL(/\/cadastros\/[0-9a-f-]{36}/, { timeout: 20_000 });
     await page.locator("input[name=roles][value=SHAREHOLDER]").check();
-    await page.getByRole("button", { name: "Salvar papéis" }).click();
+    await page.getByRole("button", { name: "Salvar cadastro" }).click();
     await expect(page.getByText(/Não dá acesso ao sistema/)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Esta pessoa não entra no sistema.")).toBeVisible();
     await page.getByRole("link", { name: "Dar acesso ao sistema" }).click();

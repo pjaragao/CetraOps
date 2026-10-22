@@ -55,22 +55,48 @@ export async function createPartyAction(_prev: State, formData: FormData): Promi
   return redirect(`/cadastros/${(data as unknown as { id: string }).id}?ok=${encodeURIComponent("Cadastro criado")}`);
 }
 
-export async function updateIdentityAction(formData: FormData) {
-  const id = str(formData.get("id"));
-  const p: Record<string, string> = { display_name: str(formData.get("display_name")) };
-  if (formData.has("legal_name")) p.legal_name = str(formData.get("legal_name"));
-  if (formData.has("cnpj")) p.cnpj = str(formData.get("cnpj"));
-  if (formData.has("ie")) p.ie = str(formData.get("ie"));
-  if (formData.has("birth_date")) p.birth_date = str(formData.get("birth_date"));
-  if (formData.has("gender")) p.gender = str(formData.get("gender"));
+const editSchema = z.object({
+  id: z.string().uuid(), kind: z.enum(["PERSON", "COMPANY"]), display_name: z.string().min(2).max(120), legal_name: z.string().max(160).optional(),
+  cnpj: z.string().regex(/^\d{14}$/).optional(), ie: z.string().max(20).optional(), birth_date: z.string().max(10).optional(), gender: z.string().max(1).optional(),
+  instagram_handle: z.string().max(31), tags: z.array(z.string()).max(10), notes: z.string().max(500), roles: z.array(z.string()).max(8).optional(),
+  cpf: z.string().regex(/^\d{11}$/).optional(),
+  add_contacts: z.array(z.object({ type: z.enum(["WHATSAPP", "PHONE", "EMAIL"]), value: z.string().min(1).max(120), primary: z.boolean() })).max(5),
+  remove_contacts: z.array(z.string().uuid()).max(50),
+  address: z.object({ id: z.string().uuid().optional(), label: z.string().max(40).optional(), cep: z.string(), street: z.string(), number: z.string(), complement: z.string(), district: z.string(), city: z.string(), uf: z.string() }).optional(),
+});
+
+/**
+ * Edição pelo mesmo formulário da criação: identidade, CPF, Instagram/etiquetas/observações, papéis, contatos (sai/entra) e endereço principal.
+ * Cada parte vai pela RPC que já valida aquela regra; para no primeiro erro (o formulário mantém o que foi digitado).
+ */
+export async function updatePartyAction(_prev: State, formData: FormData): Promise<State> {
+  let raw: unknown;
+  try { raw = JSON.parse(String(formData.get("payload") ?? "")); } catch { return { ok: false, error: "Dados inválidos" }; }
+  const parsed = editSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: `Confira o cadastro: ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}` };
+  const d = parsed.data;
   const supabase = await createClient();
-  const { error } = await supabase.schema("crm").rpc("update_party_identity", { p_party: id, p: p as Json });
-  const cpf = str(formData.get("cpf")).replace(/\D/g, "");   // em branco = mantém o CPF atual
-  if (!error && cpf) {
-    const { error: e } = await supabase.schema("crm").rpc("set_cpf", { p_party: id, p_cpf: cpf });
-    go(`/cadastros/${id}`, e, "Identidade e CPF atualizados");
+  const crm = supabase.schema("crm");
+  const fail = (e: { message: string } | null) => (e ? { ok: false, error: friendly(e.message) } as const : null);
+
+  const identity: Record<string, string> = { display_name: d.display_name };
+  if (d.kind === "COMPANY") { identity.legal_name = d.legal_name ?? ""; identity.ie = d.ie ?? ""; if (d.cnpj) identity.cnpj = d.cnpj; }
+  else { identity.birth_date = d.birth_date ?? ""; identity.gender = d.gender ?? ""; }
+  let r = fail((await crm.rpc("update_party_identity", { p_party: d.id, p: identity as Json })).error);
+  if (r) return r;
+  if (d.cpf) { r = fail((await crm.rpc("set_cpf", { p_party: d.id, p_cpf: d.cpf })).error); if (r) return r; }
+  r = fail((await crm.rpc("update_profile", { p_party: d.id, p: { instagram_handle: d.instagram_handle, tags: d.tags, notes: d.notes } as Json })).error);
+  if (r) return r;
+  if (d.roles) { r = fail((await crm.rpc("set_party_roles", { p_party: d.id, p_roles: d.roles })).error); if (r) return r; }
+  for (const c of d.remove_contacts) { r = fail((await crm.rpc("remove_contact", { p_id: c })).error); if (r) return r; }
+  for (const c of d.add_contacts) { r = fail((await crm.rpc("add_contact", { p_party: d.id, p_type: c.type, p_value: c.value, p_primary: c.primary })).error); if (r) return r; }
+  if (d.address && (d.address.cep || d.address.street)) {
+    r = fail((await crm.rpc("save_address", { p: { party_id: d.id, ...d.address, id: d.address.id ?? null, label: d.address.label ?? "", is_default: true } as Json })).error);
+    if (r) return r;
   }
-  go(`/cadastros/${id}`, error, "Identidade atualizada");
+  const registry = (raw as { registry?: unknown }).registry;
+  if (registry && typeof registry === "object") await crm.rpc("save_registry", { p_party: d.id, p_data: registry as Json });   // retrato da Receita do CNPJ novo
+  return go(`/cadastros/${d.id}`, null, "Cadastro salvo");
 }
 
 /** CPF completo, só com a permissão de dados sensíveis; o banco registra a consulta em audit.log. */
@@ -80,20 +106,6 @@ export async function revealCpfAction(_prev: State, formData: FormData): Promise
   if (error) return { ok: false, error: friendly(error.message) };
   if (!data) return { ok: false, error: "Este cadastro não tem CPF" };
   return { ok: true, message: data.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") };
-}
-
-export async function addContactAction(formData: FormData) {
-  const id = str(formData.get("id"));
-  const supabase = await createClient();
-  const { error } = await supabase.schema("crm").rpc("add_contact", { p_party: id, p_type: str(formData.get("type")) as "PHONE", p_value: str(formData.get("value")), p_primary: formData.get("primary") === "on" });
-  go(`/cadastros/${id}`, error, "Contato adicionado");
-}
-
-export async function removeContactAction(formData: FormData) {
-  const id = str(formData.get("id"));
-  const supabase = await createClient();
-  const { error } = await supabase.schema("crm").rpc("remove_contact", { p_id: str(formData.get("contact_id")) });
-  go(`/cadastros/${id}`, error, "Contato removido");
 }
 
 export async function saveAddressAction(formData: FormData) {
@@ -112,13 +124,6 @@ export async function deleteAddressAction(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.schema("crm").rpc("delete_address", { p_id: str(formData.get("address_id")) });
   go(`/cadastros/${id}`, error, "Endereço removido");
-}
-
-export async function setRolesAction(formData: FormData) {
-  const id = str(formData.get("id"));
-  const supabase = await createClient();
-  const { error } = await supabase.schema("crm").rpc("set_party_roles", { p_party: id, p_roles: formData.getAll("roles").map(String) });
-  go(`/cadastros/${id}`, error, "Papéis atualizados");
 }
 
 export async function addRelationAction(formData: FormData) {

@@ -1,23 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EDITABLE_ROLES, PARTY_ROLE_LABEL, RELATION_OPTIONS, relativeLabel } from "@centralops/domain";
+import { RELATION_OPTIONS, relativeLabel } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Button, Card, Empty, inputClass, LinkButton, PageHeader } from "@/components/ui";
+import { Button, Card, Empty, inputClass, LinkButton, Narrow, PageHeader } from "@/components/ui";
 import { Field, Flash } from "@/components/form";
-import { addContactAction, addRelationAction, deleteAddressAction, mergePartiesAction, removeContactAction, removeRelationAction, saveAddressAction, setRolesAction, updateIdentityAction } from "../actions";
+import { addRelationAction, deleteAddressAction, mergePartiesAction, removeRelationAction, saveAddressAction } from "../actions";
+import { PartyForm } from "../novo/party-form";
 import { AddressForm } from "./address-form";
 import { RegistryCard } from "./registry-card";
 import { PayeeCard } from "./payee-card";
-import { CpfReveal } from "./cpf-reveal";
 import type { CnpjData } from "@centralops/domain";
 
 export const metadata = { title: "Cadastro" };
 
 interface Access { member_id: string; email: string; status: string; must_change_password: boolean; roles: string[]; superuser: boolean }
 
-const CONTACT_LABEL: Record<string, string> = { PHONE: "Telefone", WHATSAPP: "WhatsApp", EMAIL: "E-mail", INSTAGRAM: "Instagram", TELEGRAM: "Telegram", TIKTOK: "TikTok" };
 const fmtCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 const fmtCep = (c: string | null) => (c ? c.replace(/^(\d{5})(\d{3})$/, "$1-$2") : "");
 
@@ -44,7 +43,9 @@ export default async function CadastroPage({ params, searchParams }: { params: P
   ]);
   const { data: accounts } = company ? await supabase.schema("fin").from("chart_accounts").select("id, code, name").eq("kind", "ANALYTIC").is("archived_at", null).order("code") : { data: [] as { id: string; code: string; name: string }[] };
   const access = isAdmin && !company ? ((await supabase.schema("core").rpc("party_access", { p_party: id })).data as unknown as Access | null) : null;
-  const myRoles = new Set((roles ?? []).map((r) => r.role));
+  const myRoles = new Set<string>((roles ?? []).map((r) => r.role));
+  const main = (addresses ?? []).find((a) => a.is_default) ?? (addresses ?? [])[0];
+  const others = (addresses ?? []).filter((a) => a.id !== main?.id);
 
   return (
     <>
@@ -52,52 +53,22 @@ export default async function CadastroPage({ params, searchParams }: { params: P
         actions={<div className="flex gap-2"><LinkButton href={`/clientes/${p.id}`}>Ficha comercial</LinkButton><LinkButton href={company ? "/cadastros/empresas" : "/cadastros/pessoas"}>Voltar</LinkButton></div>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* o mesmo formulário do "Novo cadastro", já preenchido; o que não muda aqui aparece travado, com o motivo */}
+      <Narrow>
+        <PartyForm company={company} canReadDocs={can(session, "ai.assistant")} readOnly={!canWrite} edit={{
+          id, display_name: p.display_name, legal_name: p.legal_name, cnpj: p.cnpj, ie: p.ie, birth_date: p.birth_date, gender: p.gender,
+          instagram_handle: p.instagram_handle, tags: p.tags ?? [], notes: (p.preferences as { notes?: string } | null)?.notes ?? "", roles: [...myRoles],
+          cpfMasked: (cpfMasked as string | null) ?? null, canSensitive,
+          contacts: (contacts ?? []).map((c) => ({ id: c.id, type: c.type, value_display: c.value_display, is_primary: c.is_primary })),
+          address: main ? { id: main.id, label: main.label, cep: fmtCep(main.cep), street: main.street ?? "", number: main.number ?? "", complement: main.complement ?? "", district: main.district ?? "", city: main.city ?? "", uf: main.uf ?? "" } : null,
+        }} />
+      </Narrow>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {company && <RegistryCard id={id} hasCnpj={Boolean(p.cnpj)} registry={(p.registry as unknown as CnpjData | null) ?? null} registryAt={p.registry_at} canWrite={canWrite} />}
 
-        {company && <PayeeCard id={id} kind={p.payee_kind} account={p.default_chart_account_id} notes={(p.preferences as { notes?: string } | null)?.notes ?? null}
+        {company && <PayeeCard id={id} kind={p.payee_kind} account={p.default_chart_account_id} notes={null}
           accounts={(accounts ?? []).map((a) => ({ id: a.id, label: `${a.code} · ${a.name}` }))} canWrite={canWrite} />}
-
-        <Card title="Identidade">
-          {!company && cpfMasked && (canSensitive ? <CpfReveal id={id} masked={cpfMasked} /> : <p className="mb-3 text-sm"><span className="text-xs text-muted">CPF</span> <span className="font-mono">{cpfMasked}</span></p>)}
-          <form action={updateIdentityAction} className="space-y-3">
-            <input type="hidden" name="id" value={id} />
-            <Field label={company ? "Nome fantasia" : "Nome"}><input name="display_name" required minLength={2} maxLength={120} defaultValue={p.display_name} disabled={!canWrite} className={inputClass} /></Field>
-            {company ? (
-              <>
-                <Field label="Razão social"><input name="legal_name" maxLength={160} defaultValue={p.legal_name ?? ""} disabled={!canWrite} className={inputClass} /></Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="CNPJ"><input name="cnpj" defaultValue={p.cnpj ? fmtCnpj(p.cnpj) : ""} disabled={!canWrite} className={inputClass} /></Field>
-                  <Field label="Inscrição estadual" hint="Só números, ou ISENTO"><input name="ie" defaultValue={p.ie ?? ""} maxLength={20} disabled={!canWrite} className={inputClass} /></Field>
-                </div>
-              </>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={cpfMasked ? "Trocar CPF" : "CPF"} className="col-span-2" hint={cpfMasked
-                  ? (canSensitive ? "Deixe em branco para manter o atual" : "Trocar um CPF já cadastrado exige a permissão de dados sensíveis")
-                  : "Opcional. Fica criptografado; depois de salvo aparece só o final"}>
-                  <input name="cpf" inputMode="numeric" maxLength={14} placeholder="000.000.000-00" autoComplete="off" disabled={!canWrite || (Boolean(cpfMasked) && !canSensitive)} className={inputClass} />
-                </Field>
-                <Field label="Nascimento"><input type="date" name="birth_date" defaultValue={p.birth_date ?? ""} disabled={!canWrite} className={inputClass} /></Field>
-                <Field label="Gênero"><select name="gender" defaultValue={p.gender ?? ""} disabled={!canWrite} className={inputClass}><option value="">—</option><option value="F">Feminino</option><option value="M">Masculino</option><option value="O">Outro</option></select></Field>
-              </div>
-            )}
-            {canWrite && <Button variant="secondary">Salvar identidade</Button>}
-          </form>
-        </Card>
-
-        <Card title="Papéis">
-          <form action={setRolesAction} className="space-y-3">
-            <input type="hidden" name="id" value={id} />
-            <div className="grid gap-1.5 text-sm sm:grid-cols-2">
-              {EDITABLE_ROLES.map((r) => <label key={r} className="flex items-center gap-1.5"><input type="checkbox" name="roles" value={r} defaultChecked={myRoles.has(r)} disabled={!canWrite} />{PARTY_ROLE_LABEL[r]}</label>)}
-            </div>
-            {myRoles.has("SHAREHOLDER") && <p className="text-xs text-muted">Sócio(a) da empresa é o vínculo societário (pró-labore, distribuição de lucros). Não dá acesso ao sistema: o acesso fica no quadro “Acesso ao sistema”.</p>}
-            {myRoles.has("EMPLOYEE") && <p className="text-xs text-muted"><Badge tone="info">Colaboradora (RH)</Badge> vem da admissão e não se altera aqui.</p>}
-            {!company && !myRoles.has("EMPLOYEE") && can(session, "hr.write") && <p className="text-xs"><Link href={`/equipe/novo?pessoa=${id}`} className="text-brand">Admitir como colaborador(a)</Link> <span className="text-muted">— usa este mesmo cadastro, sem criar outro.</span></p>}
-            {canWrite && <Button variant="secondary">Salvar papéis</Button>}
-          </form>
-        </Card>
 
         {isAdmin && !company && (
           <Card title="Acesso ao sistema">
@@ -113,45 +84,26 @@ export default async function CadastroPage({ params, searchParams }: { params: P
                 <LinkButton href={`/configuracoes/usuarios?pessoa=${id}#novo`}>Dar acesso ao sistema</LinkButton>
               </div>
             )}
+            {!myRoles.has("EMPLOYEE") && can(session, "hr.write") && <p className="mt-3 text-xs"><Link href={`/equipe/novo?pessoa=${id}`} className="text-brand">Admitir como colaborador(a)</Link> <span className="text-muted">— usa este mesmo cadastro, sem criar outro.</span></p>}
           </Card>
         )}
 
-        <Card title="Contatos">
-          {(contacts ?? []).length === 0 ? <p className="text-sm text-muted">Nenhum contato.</p> : (
-            <ul className="space-y-1.5 text-sm">{(contacts ?? []).map((c) => (
-              <li key={c.id} className="flex items-center justify-between gap-2">
-                <span><span className="text-xs text-muted">{CONTACT_LABEL[c.type] ?? c.type}</span> {c.value_display}{c.is_primary && <span className="ml-1"><Badge tone="brand">principal</Badge></span>}</span>
-                {canWrite && <form action={removeContactAction}><input type="hidden" name="id" value={id} /><input type="hidden" name="contact_id" value={c.id} /><Button variant="ghost" className="px-2 py-1 text-xs text-danger" aria-label={`Remover ${c.value_display}`}>Remover</Button></form>}
-              </li>
-            ))}</ul>
-          )}
-          {canWrite && (
-            <form action={addContactAction} className="mt-3 flex flex-wrap items-end gap-2">
-              <input type="hidden" name="id" value={id} />
-              <select name="type" className={`${inputClass} w-36`} aria-label="Tipo de contato" defaultValue="WHATSAPP"><option value="WHATSAPP">WhatsApp</option><option value="PHONE">Telefone</option><option value="EMAIL">E-mail</option><option value="INSTAGRAM">Instagram</option></select>
-              <input name="value" required className={`${inputClass} w-56`} placeholder="Número, e-mail ou @" aria-label="Contato" />
-              <label className="flex items-center gap-1 pb-2 text-xs"><input type="checkbox" name="primary" /> principal</label>
-              <Button variant="secondary">Adicionar</Button>
-            </form>
-          )}
-        </Card>
-
-        <Card title="Endereços">
-          {(addresses ?? []).length === 0 ? <p className="text-sm text-muted">Nenhum endereço.</p> : (
-            <ul className="space-y-2 text-sm">{(addresses ?? []).map((a) => (
+        <Card title="Outros endereços">
+          {others.length === 0 ? <p className="text-sm text-muted">Só o endereço principal (no formulário acima).</p> : (
+            <ul className="space-y-2 text-sm">{others.map((a) => (
               <li key={a.id} className="rounded-lg border border-border p-2">
                 <div className="flex items-start justify-between gap-2">
                   <span>{a.label && <b>{a.label} · </b>}{[a.street, a.number, a.complement].filter(Boolean).join(", ")}<span className="block text-xs text-muted">{[a.district, a.city && `${a.city}${a.uf ? `/${a.uf}` : ""}`, fmtCep(a.cep)].filter(Boolean).join(" · ")}</span></span>
-                  <span className="flex items-center gap-1">
-                    {a.is_default ? <Badge tone="brand">principal</Badge> : canWrite && (
+                  {canWrite && (
+                    <span className="flex items-center gap-1">
                       <form action={saveAddressAction}>
                         <input type="hidden" name="id" value={id} /><input type="hidden" name="address_id" value={a.id} /><input type="hidden" name="label" value={a.label ?? ""} /><input type="hidden" name="is_default" value="on" />
                         {(["cep", "street", "number", "complement", "district", "city", "uf"] as const).map((k) => <input key={k} type="hidden" name={`a_${k}`} value={a[k] ?? ""} />)}
                         <Button variant="ghost" className="px-2 py-1 text-xs">Tornar principal</Button>
                       </form>
-                    )}
-                    {canWrite && <form action={deleteAddressAction}><input type="hidden" name="id" value={id} /><input type="hidden" name="address_id" value={a.id} /><Button variant="ghost" className="px-2 py-1 text-xs text-danger">Remover</Button></form>}
-                  </span>
+                      <form action={deleteAddressAction}><input type="hidden" name="id" value={id} /><input type="hidden" name="address_id" value={a.id} /><Button variant="ghost" className="px-2 py-1 text-xs text-danger">Remover</Button></form>
+                    </span>
+                  )}
                 </div>
               </li>
             ))}</ul>

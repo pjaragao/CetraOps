@@ -17,8 +17,14 @@ test.describe("cadastros", () => {
     await expect(page.getByLabel("Logradouro")).toHaveValue("Rua Esteves Júnior", { timeout: 10_000 });
     await page.getByRole("button", { name: "Cadastrar pessoa" }).click();
     await expect(page).toHaveURL(/\/cadastros\/[0-9a-f-]{36}/, { timeout: 20_000 });
-    await expect(page.getByText("Rua Esteves Júnior")).toBeVisible();
+    // a ficha abre no mesmo formulário da criação, já preenchido
+    await expect(page.getByLabel("Logradouro").first()).toHaveValue("Rua Esteves Júnior");
+    await expect(page.getByLabel("Nome completo")).toHaveValue(`Mãe E2E ${n}`);
     const maeUrl = page.url().split("?")[0];
+    await page.getByLabel("Etiquetas").fill("mae-e2e");
+    await page.getByRole("button", { name: "Salvar cadastro" }).click();
+    await expect(page.getByText("Cadastro salvo")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByLabel("Etiquetas")).toHaveValue("mae-e2e");
 
     // filha, vinculada à mãe
     await page.goto("/cadastros/novo?tipo=pessoa");

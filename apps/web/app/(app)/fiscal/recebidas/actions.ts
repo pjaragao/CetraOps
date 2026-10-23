@@ -62,3 +62,45 @@ export async function fetchDfeByKeyAction(formData: FormData) {
   revalidatePath(LIST);
   back(error ? { erro: friendly(error.message) } : { wait: "1" });
 }
+
+// ---- destino da nota (triagem da IA, confirmada pela pessoa) ----
+
+type State = { ok: boolean; error?: string } | null;
+const notePath = (key: string) => `/fiscal/recebidas/nota/${key}`;
+
+/** Confirma o destino: patrimônio/despesa (conta a pagar em rascunho, classificada), paga por reembolso ou sem lançamento. */
+export async function applyDfeDestinationAction(_prev: State, formData: FormData): Promise<State> {
+  let p: { id?: string; key?: string } & Record<string, unknown>;
+  try { p = JSON.parse(str(formData.get("payload"))); } catch { return { ok: false, error: "Dados inválidos" }; }
+  const { id, key, ...rest } = p;
+  if (!id || !key) return { ok: false, error: "Nota não identificada" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("fiscal").rpc("apply_dfe_destination", { p_id: id, p: rest as never });
+  if (error) return { ok: false, error: friendly(error.message) };
+  const r = data as { destination: string; title_number: string | null };
+  revalidatePath(LIST);
+  revalidatePath("/financeiro", "layout");
+  const ok = r.destination === "REIMBURSED" ? "Nota ligada ao(s) reembolso(s): nenhuma conta nova foi criada."
+    : r.destination === "PAYABLE" ? `Nota ligada à conta a pagar ${r.title_number}: nenhuma conta nova foi criada.`
+    : r.destination === "PAID" ? "Nota ligada ao pagamento que já saiu do banco: nenhuma conta nova foi criada."
+    : r.destination === "IGNORED" ? "Nota marcada como sem lançamento."
+    : `Conta a pagar ${r.title_number} criada em rascunho, já classificada. Aprove em Contas a pagar.`;
+  redirect(`${notePath(key)}?ok=${encodeURIComponent(ok)}`);
+}
+
+export async function reopenDfeDestinationAction(formData: FormData) {
+  const key = str(formData.get("key"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("fiscal").rpc("reopen_dfe_destination", { p_id: str(formData.get("id")) });
+  revalidatePath(LIST);
+  revalidatePath("/financeiro", "layout");
+  redirect(`${notePath(key)}?${new URLSearchParams(error ? { erro: friendly(error.message) } : { ok: "Destino desfeito: escolha de novo." })}`);
+}
+
+export async function requestDfeTriageAction(formData: FormData) {
+  const key = str(formData.get("key"));
+  const supabase = await createClient();
+  const { error } = await supabase.schema("fiscal").rpc("request_dfe_triage", { p_id: str(formData.get("id")) });
+  revalidatePath(LIST);
+  redirect(`${notePath(key)}?${new URLSearchParams(error ? { erro: friendly(error.message) } : { ok: "A IA está analisando a nota de novo." })}`);
+}

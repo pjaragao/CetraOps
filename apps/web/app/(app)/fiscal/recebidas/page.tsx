@@ -8,6 +8,7 @@ import { Flash, fmtDate } from "@/components/form";
 import { fetchDfeByKeyAction, manifestAction, syncDfeAction } from "./actions";
 import { InboundReceiveButton } from "./receive-inbound-dialog";
 import { SyncStatus } from "./sync-status";
+import { DESTINATION_LABEL } from "@/lib/nfe-view";
 
 export const metadata = { title: "Notas recebidas" };
 
@@ -26,11 +27,16 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
   const canPurch = can(session, "purch.write");
   const supabase = await createClient();
   const [{ data: dfe }, { data: states }, { data: locations }] = await Promise.all([
-    supabase.schema("fiscal").from("inbound_dfe").select("id, access_key, issuer_name, issuer_cnpj, amount, issue_at, manifest_status, manifest_requested, xml_downloaded, last_error, document_id, legal_entity_id").order("issue_at", { ascending: false }).limit(100),
+    supabase.schema("fiscal").from("inbound_dfe").select("id, access_key, issuer_name, issuer_cnpj, amount, issue_at, manifest_status, manifest_requested, xml_downloaded, last_error, document_id, legal_entity_id, triage_status, triage, destination, destination_title_id").order("issue_at", { ascending: false }).limit(100),
     supabase.schema("fiscal").from("dfe_sync_state").select("last_run_at, last_found, last_error"),
     supabase.schema("inv").from("locations").select("id, name, legal_entity_id").in("kind", ["SALES_FLOOR", "BACKROOM"]).order("name"),
   ]);
-  const waiting = (dfe ?? []).some((d) => d.manifest_requested && d.manifest_requested !== d.manifest_status && !d.last_error);
+  const waiting = (dfe ?? []).some((d) => (d.manifest_requested && d.manifest_requested !== d.manifest_status && !d.last_error)
+    || (!d.destination && !d.document_id && (d.triage_status === "QUEUED" || d.triage_status === "RUNNING")));   // a IA ainda analisando
+  const dfeByKey = new Map((dfe ?? []).map((d) => [d.access_key, d]));
+  const titleIds = (dfe ?? []).map((d) => d.destination_title_id).filter(Boolean) as string[];
+  const { data: titles } = titleIds.length ? await supabase.schema("fin").from("titles").select("id, number").in("id", titleIds) : { data: [] as { id: string; number: string }[] };
+  const titleNo = new Map((titles ?? []).map((t) => [t.id, t.number]));
   const lastRun = (states ?? []).map((x) => x.last_run_at).filter(Boolean).sort().pop();
   const lastRunLabel = lastRun ? new Date(lastRun).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }) : null;
   const syncError = (states ?? []).find((x) => x.last_error)?.last_error;
@@ -57,7 +63,7 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
         </p>
         {syncError && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">A última busca falhou: {syncError}</p>}
         {(dfe ?? []).length === 0 ? <p className="text-sm text-muted">Nada por aqui ainda. Conecte a SEFAZ direta (certificado A1), o Focus NFe ou a Brasil NFe em Configurações › Integrações e use “Buscar agora”. Pela SEFAZ direta, a busca respeita a espera de 1 hora exigida quando não há nota nova.</p> : (
-          <Table head={["Fornecedor", "Valor", "Manifestação", "Entrada no Estoque", canWrite ? "Manifestar" : ""]}>
+          <Table head={["Fornecedor", "Valor", "Manifestação", "Destino", canWrite ? "Manifestar" : ""]}>
             {(dfe ?? []).map((d) => {
               const m = MANIFEST[d.manifest_status] ?? MANIFEST.PENDING;
               const conclusive = ["CONFIRMADA", "DESCONHECIDA", "NAO_REALIZADA"].includes(d.manifest_status);
@@ -77,16 +83,33 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                     {d.last_error && !d.xml_downloaded && <span className="block text-[11px] text-danger">{d.last_error}</span>}
                   </td>
                   <td className="px-3 py-2">
-                    {matchedReceipt ? (
+                    {d.destination ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone={DESTINATION_LABEL[d.destination]?.tone ?? "neutral"}>{DESTINATION_LABEL[d.destination]?.label ?? d.destination}</Badge>
+                        {d.destination_title_id && <Link className="text-xs font-medium text-brand hover:underline" href={`/financeiro/titulos/${d.destination_title_id}`}>{titleNo.get(d.destination_title_id) ?? "conta a pagar"}</Link>}
+                        <Link className="text-xs text-muted hover:text-brand" href={`/fiscal/recebidas/nota/${d.access_key}`}>ver nota</Link>
+                      </div>
+                    ) : matchedReceipt ? (
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge tone="success">Importada</Badge>
                         <Link className="text-xs font-medium text-brand hover:underline" href={`/produtos/recebimento/${matchedReceipt.id}`}>
                           {matchedReceipt.number}
                         </Link>
+                        <Link className="text-xs text-muted hover:text-brand" href={`/fiscal/recebidas/nota/${d.access_key}`}>ver nota</Link>
                       </div>
                     ) : d.xml_downloaded ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        {canPurch && (
+                        {(() => {
+                          const t = d.triage as { destino?: string; confianca?: number } | null;
+                          if (d.triage_status === "QUEUED" || d.triage_status === "RUNNING") return <span className="text-xs text-muted">IA analisando o destino…</span>;
+                          if (!t?.destino || t.destino === "STOCK") return t?.destino === "STOCK" ? <Badge tone="info">IA: mercadoria</Badge> : null;
+                          return (
+                            <Link href={`/fiscal/recebidas/nota/${d.access_key}`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-brand-contrast hover:opacity-90">
+                              IA: {DESTINATION_LABEL[t.destino]?.label ?? t.destino} · confirmar
+                            </Link>
+                          );
+                        })()}
+                        {canPurch && ((d.triage as { destino?: string } | null)?.destino ?? "STOCK") === "STOCK" && (
                           <InboundReceiveButton
                             dfe={{
                               id: d.id,
@@ -99,6 +122,7 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                             locations={locations ?? []}
                           />
                         )}
+                        <Link className="text-xs text-muted hover:text-brand" href={`/fiscal/recebidas/nota/${d.access_key}`}>ver nota</Link>
                         <a className="text-xs text-muted hover:text-brand" href={`/fiscal/recebidas/xml/${d.id}`} title="Baixar arquivo XML para arquivo/backup">
                           baixar XML
                         </a>
@@ -161,9 +185,9 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
           </details>
         )}
       </Card>
-      <h2 className="mb-2 text-sm font-semibold text-muted">Já importadas no recebimento</h2>
-      {(docs ?? []).length === 0 ? <Empty title="Nenhuma nota recebida">Importe o XML em Produtos › Recebimento de NF-e.</Empty> : (
-        <Table head={["Nota", "Fornecedor", "Natureza", "Valor", "Situação", "Recebimento", "Chave"]}>
+      <h2 className="mb-2 text-sm font-semibold text-muted">Notas lançadas</h2>
+      {(docs ?? []).length === 0 ? <Empty title="Nenhuma nota lançada">Mercadoria entra pelo recebimento (Produtos › Recebimento de NF-e); patrimônio e despesa, pelo destino da nota acima.</Empty> : (
+        <Table head={["Nota", "Fornecedor", "Natureza", "Valor", "Situação", "Destino", ""]}>
           {(docs ?? []).map((d) => {
             const r = d.receipt_id ? rmap.get(d.receipt_id) : undefined;
             return (
@@ -173,8 +197,9 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
                 <td className="px-3 py-2">{d.operation_nature ?? "—"}</td>
                 <td className="px-3 py-2 font-medium">{formatBRL(Number((d.totals as Record<string, number> | null)?.vNF ?? 0))}</td>
                 <td className="px-3 py-2"><Badge tone={d.status === "AUTHORIZED" ? "success" : "neutral"}>{d.status === "AUTHORIZED" ? "autorizada" : d.status.toLowerCase()}</Badge></td>
-                <td className="px-3 py-2">{r ? <Link className="text-brand" href={`/produtos/recebimento/${r.id}`}>{r.number}</Link> : "—"}</td>
-                <td className="px-3 py-2 text-[10px] text-muted"><details><summary className="cursor-pointer hover:text-brand">ver chave</summary><span className="mt-1 block select-all break-all font-mono">{d.access_key}</span></details></td>
+                <td className="px-3 py-2">{r ? <>estoque · <Link className="text-brand" href={`/produtos/recebimento/${r.id}`}>{r.number}</Link></>
+                  : (() => { const x = dfeByKey.get(d.access_key ?? ""); return x?.destination ? <Badge tone={DESTINATION_LABEL[x.destination]?.tone ?? "neutral"}>{DESTINATION_LABEL[x.destination]?.label ?? x.destination}</Badge> : "—"; })()}</td>
+                <td className="px-3 py-2">{d.access_key && <Link className="text-xs text-brand" href={`/fiscal/recebidas/nota/${d.access_key}`}>ver nota</Link>}</td>
               </tr>
             );
           })}

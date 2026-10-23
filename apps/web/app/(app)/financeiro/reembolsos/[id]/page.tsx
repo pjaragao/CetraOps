@@ -38,6 +38,10 @@ export default async function ReembolsoPage({ params, searchParams }: { params: 
         supabase.schema("core").from("cost_centers").select("id, code, name").is("archived_at", null).order("code"),
       ])
     : [{ data: [] as { id: string; code: string; name: string }[] }, { data: [] as { id: string; code: string; name: string }[] }];
+  // NF-e recebida ligada a este reembolso (destino "paga por reembolso" na tela da nota)
+  const { data: nfes } = can(session, "fiscal.read")
+    ? await supabase.schema("fiscal").from("inbound_dfe").select("access_key, issuer_name, amount").contains("reimbursement_ids", [id])
+    : { data: [] as { access_key: string; issuer_name: string | null; amount: number | null }[] };
   const accLabel = new Map((accounts ?? []).map((a) => [a.id, `${a.code} · ${a.name}`]));
   const today = isoFromNow(-3).slice(0, 10);
   const drafts: ItemDraft[] = (items ?? []).map((i) => ({
@@ -52,6 +56,7 @@ export default async function ReembolsoPage({ params, searchParams }: { params: 
       <span className="text-lg font-semibold tabular-nums">{formatBRL(Number(r.total))}</span>
       {r.due_date && <span className="text-sm text-muted">pagamento previsto {fmtDate(r.due_date)}</span>}
       {r.title_id && can(session, "fin.read") && <Link href="/financeiro/pagar" className="text-sm text-brand">ver na conta a pagar</Link>}
+      {(nfes ?? []).map((n) => <Link key={n.access_key} href={`/fiscal/recebidas/nota/${n.access_key}`} className="text-sm text-brand">NF-e de {n.issuer_name ?? "fornecedor"} ({formatBRL(Number(n.amount ?? 0))})</Link>)}
     </div>
   );
   const rejected = r.status === "REJECTED" && r.reject_reason && <p className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">Recusado: {r.reject_reason}. Corrija e envie de novo.</p>;

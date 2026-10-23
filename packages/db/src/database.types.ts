@@ -4557,13 +4557,13 @@ isOneToOne: false
                   ]
                 },"inbound_dfe": {
                   Row: {
-                    "access_key": string,"amount": number | null,"created_at": string,"document_id": string | null,"id": string,"issue_at": string | null,"issuer_cnpj": string | null,"issuer_name": string | null,"last_error": string | null,"legal_entity_id": string,"manifest_reason": string | null,"manifest_requested": string | null,"manifest_requested_by": string | null,"manifest_status": string,"nsu": string | null,"org_id": string,"updated_at": string,"xml": string | null,"xml_downloaded": boolean
+                    "access_key": string,"amount": number | null,"cash_transaction_id": string | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"destination": string | null,"destination_note": string | null,"destination_title_id": string | null,"document_id": string | null,"id": string,"issue_at": string | null,"issuer_cnpj": string | null,"issuer_name": string | null,"last_error": string | null,"legal_entity_id": string,"manifest_reason": string | null,"manifest_requested": string | null,"manifest_requested_by": string | null,"manifest_status": string,"nsu": string | null,"org_id": string,"reimbursement_ids": string[],"statement_line_id": string | null,"triage": Json | null,"triage_at": string | null,"triage_note": string | null,"triage_status": string | null,"updated_at": string,"xml": string | null,"xml_downloaded": boolean
                   }
                   Insert: {
-                    "access_key": string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"last_error"?: string | null,"legal_entity_id": string,"manifest_reason"?: string | null,"manifest_requested"?: string | null,"manifest_requested_by"?: string | null,"manifest_status"?: string,"nsu"?: string | null,"org_id": string,"updated_at"?: string,"xml"?: string | null,"xml_downloaded"?: boolean
+                    "access_key": string,"amount"?: number | null,"cash_transaction_id"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"destination"?: string | null,"destination_note"?: string | null,"destination_title_id"?: string | null,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"last_error"?: string | null,"legal_entity_id": string,"manifest_reason"?: string | null,"manifest_requested"?: string | null,"manifest_requested_by"?: string | null,"manifest_status"?: string,"nsu"?: string | null,"org_id": string,"reimbursement_ids"?: string[],"statement_line_id"?: string | null,"triage"?: Json | null,"triage_at"?: string | null,"triage_note"?: string | null,"triage_status"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_downloaded"?: boolean
                   }
                   Update: {
-                    "access_key"?: string,"amount"?: number | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"last_error"?: string | null,"legal_entity_id"?: string,"manifest_reason"?: string | null,"manifest_requested"?: string | null,"manifest_requested_by"?: string | null,"manifest_status"?: string,"nsu"?: string | null,"org_id"?: string,"updated_at"?: string,"xml"?: string | null,"xml_downloaded"?: boolean
+                    "access_key"?: string,"amount"?: number | null,"cash_transaction_id"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"destination"?: string | null,"destination_note"?: string | null,"destination_title_id"?: string | null,"document_id"?: string | null,"id"?: string,"issue_at"?: string | null,"issuer_cnpj"?: string | null,"issuer_name"?: string | null,"last_error"?: string | null,"legal_entity_id"?: string,"manifest_reason"?: string | null,"manifest_requested"?: string | null,"manifest_requested_by"?: string | null,"manifest_status"?: string,"nsu"?: string | null,"org_id"?: string,"reimbursement_ids"?: string[],"statement_line_id"?: string | null,"triage"?: Json | null,"triage_at"?: string | null,"triage_note"?: string | null,"triage_status"?: string | null,"updated_at"?: string,"xml"?: string | null,"xml_downloaded"?: boolean
                   }
                   Relationships: [
                     {
@@ -4687,6 +4687,9 @@ isOneToOne: false
 "process_notaas_webhook":
 { Args: { "p": Json }; Returns: Json
                            },
+"apply_dfe_destination":
+{ Args: { "p": Json,"p_id": string }; Returns: Json
+                           },
 "record_cancellation":
 { Args: { "p": Json,"p_document": string }; Returns: undefined
                            },
@@ -4698,6 +4701,12 @@ isOneToOne: false
                            },
 "request_cancellation":
 { Args: { "p_document": string,"p_reason": string }; Returns: undefined
+                           },
+"reopen_dfe_destination":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"request_dfe_triage":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "request_dfe_by_key":
 { Args: { "p_key": string }; Returns: undefined

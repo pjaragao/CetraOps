@@ -28,7 +28,8 @@ android {
         // Esquema de retorno dos Deeplinks da Stone (pagamento, cancelamento, impressão)
         manifestPlaceholders["returnScheme"] = "cetraopspdv"
         buildConfigField("String", "RETURN_SCHEME", "\"cetraopspdv\"")
-        buildConfigField("String", "DEFAULT_SERVER", "\"${project.findProperty("pdvServerUrl") ?: ""}\"")
+        // endereço público do sistema: o relay da Vercel repassa /api/pos/* ao homelab (infra/stone-relay); -PpdvServerUrl=… troca
+        buildConfigField("String", "DEFAULT_SERVER", "\"${project.findProperty("pdvServerUrl") ?: "https://stone-relay-seven.vercel.app"}\"")
     }
 
     signingConfigs {

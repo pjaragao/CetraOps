@@ -21,3 +21,4 @@ export * from "./assistant";
 export * from "./readers";
 export * from "./campaigns";
 export * from "./brand-pdf";
+export * from "./report-spec";

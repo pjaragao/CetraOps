@@ -1734,6 +1734,17 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"saved_reports": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"created_by": string | null,"dataset": string,"description": string | null,"id": string,"org_id": string,"prompt": string | null,"spec": Json,"title": string,"updated_at": string,"updated_by": string | null
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"dataset": string,"description"?: string | null,"id"?: string,"org_id": string,"prompt"?: string | null,"spec": Json,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"dataset"?: string,"description"?: string | null,"id"?: string,"org_id"?: string,"prompt"?: string | null,"spec"?: Json,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: []
                 },"stores": {
                   Row: {
                     "address": NonNullable<Json>,"area_m2": number | null,"business_hours": NonNullable<Json>,"closed_at": string | null,"code": string,"cost_center_id": string | null,"created_at": string,"fiscal_mode": string,"format": Database["core"]["Enums"]["store_format"],"host_partner_party_id": string | null,"id": string,"legal_entity_id": string,"name": string,"opened_at": string | null,"org_id": string,"status": Database["core"]["Enums"]["store_status"],"updated_at": string
@@ -1797,6 +1808,18 @@ isOneToOne: false
                            },
 "next_number":
 { Args: { "p_doc_type": string,"p_org": string }; Returns: string
+                           },
+"report_archive":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"report_catalog":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"report_run":
+{ Args: { "p_from"?: string,"p_spec": Json,"p_store"?: string,"p_to"?: string }; Returns: Json
+                           },
+"report_save":
+{ Args: { "p": Json }; Returns: string
                            },
 "notify":
 { Args: { "p_kind": string,"p_member"?: string,"p_org": string,"p_payload"?: Json,"p_perm"?: string,"p_title": string }; Returns: number

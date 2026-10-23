@@ -9,6 +9,11 @@ export interface NavItem {
   ready?: boolean; // false = tela prevista em sprint futuro (mostra aviso honesto)
 }
 
+/**
+ * Clicar na área abre a página inicial dela (href). Quando essa página é uma visão geral ou um índice (Marketing, Financeiro,
+ * Relatórios), ela não se repete como subitem; quando é uma tela de trabalho com nome próprio (Caixa de entrada, Catálogo,
+ * Colaboradores…), o subitem fica, para a pessoa saber onde está.
+ */
 export interface NavArea {
   key: string;
   label: string;
@@ -68,7 +73,6 @@ export const NAV: NavArea[] = [
   {
     key: "marketing", label: "Marketing", href: "/marketing", icon: "Megaphone", permission: "crm.read",
     items: [
-      { label: "Visão geral", href: "/marketing", ready: true },
       { label: "Campanhas", href: "/marketing/campanhas", ready: true },
       { label: "Públicos", href: "/marketing/publicos", ready: true },
       { label: "Cupons", href: "/marketing/cupons", ready: true },
@@ -97,7 +101,6 @@ export const NAV: NavArea[] = [
   {
     key: "financeiro", label: "Financeiro", href: "/financeiro", icon: "Landmark", permission: "fin.read",
     items: [
-      { label: "Visão geral", href: "/financeiro", ready: true },
       { label: "Contas a pagar", href: "/financeiro/pagar", ready: true },
       { label: "Contas a receber", href: "/financeiro/receber", ready: true },
       { label: "Movimentações", href: "/financeiro/movimentacoes", ready: true },
@@ -149,7 +152,6 @@ export const NAV: NavArea[] = [
   {
     key: "relatorios", label: "Relatórios", href: "/relatorios", icon: "BarChart3", permission: "sales.read",
     items: [
-      { label: "Todos os relatórios", href: "/relatorios", ready: true },
       { label: "Vendas", href: "/relatorios/vendas", ready: true },
       { label: "Curva ABC", href: "/relatorios/curva-abc", ready: true },
       { label: "Vendas recuperadas", href: "/relatorios/vendas-recuperadas", ready: true },

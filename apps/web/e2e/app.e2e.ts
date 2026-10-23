@@ -98,7 +98,7 @@ test.describe("fiscal e financeiro", () => {
     await login(page, "socio");
     await page.goto("/relatorios");
     await expect(page.getByRole("heading", { name: "Relatórios" })).toBeVisible();
-    await page.getByRole("link", { name: /Abrir relatório/ }).first().click();
+    await page.getByRole("main").getByRole("link", { name: /Receita, descontos, ticket médio/ }).click();
     await expect(page).toHaveURL(/\/relatorios\/vendas/);
     await page.getByLabel("Agrupar por").selectOption("seller");
     await page.getByRole("button", { name: "Atualizar" }).click();

@@ -171,6 +171,7 @@ export const NAV: NavArea[] = [
       { label: "Usuários & permissões", href: "/configuracoes/usuarios", ready: true },
       { label: "Perfis de acesso", href: "/configuracoes/perfis", ready: true },
       { label: "Integrações", href: "/configuracoes/integracoes", ready: true },
+      { label: "Plantão do sistema", href: "/configuracoes/plantao", ready: true },
     ],
   },
 ];

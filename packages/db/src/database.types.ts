@@ -1821,6 +1821,11 @@ isOneToOne: false
 "report_save":
 { Args: { "p": Json }; Returns: string
                            },
+"ops_status":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "area": string,"cause": string | null,"detail": string,"href": string | null,"item": string,"n": number,"since": string | null
+            }[]
+                           },
 "notify":
 { Args: { "p_kind": string,"p_member"?: string,"p_org": string,"p_payload"?: Json,"p_perm"?: string,"p_title": string }; Returns: number
                            },

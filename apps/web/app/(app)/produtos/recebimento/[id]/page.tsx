@@ -64,11 +64,16 @@ export default async function RecebimentoPage({ params, searchParams }: { params
   const uncounted = items.filter((i) => i.qty_counted == null).length;
   const shortage = items.reduce((s, i) => s + (i.qty_counted != null && i.qty_counted < i.qty_nfe ? Math.round(i.item_total * (i.qty_nfe - i.qty_counted) / i.qty_nfe * 100) / 100 : 0), 0);
   const totals = (doc?.totals ?? {}) as Record<string, number>;
+  // etiquetas das peças da nota: a quantidade contada (ou a da nota, se ainda não contou), somando linhas da mesma peça
+  const labelQty = new Map<string, number>();
+  for (const i of items) if (i.variant) labelQty.set(i.variant.id, (labelQty.get(i.variant.id) ?? 0) + Math.max(0, Math.round(i.qty_counted ?? i.qty_nfe)));
+  const labelLines = [...labelQty].filter(([, q]) => q > 0).map(([v, q]) => `${v}:${Math.min(q, 500)}`);
+  const labelTotal = [...labelQty.values()].reduce((a, q) => a + q, 0);
 
   return (
     <>
       <PageHeader title={`Recebimento ${rc.number}`} description={`NF-e ${doc?.number ?? ""}/${doc?.series ?? ""} · ${supplier?.display_name ?? ""} · entrada em ${loc?.name ?? ""}`}
-        actions={<><Badge tone={st.tone}>{st.label}</Badge>{po && <LinkButton href={`/produtos/compras/${po.id}`}>Pedido {po.number}</LinkButton>}<LinkButton href="/produtos/recebimento">Voltar</LinkButton></>} />
+        actions={<><Badge tone={st.tone}>{st.label}</Badge>{po && <LinkButton href={`/produtos/compras/${po.id}`}>Pedido {po.number}</LinkButton>}{labelLines.length > 0 && <LinkButton href={`/imprimir/etiquetas?i=${labelLines.join(",")}`}>Etiquetas desta nota ({labelTotal})</LinkButton>}<LinkButton href="/produtos/recebimento">Voltar</LinkButton></>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

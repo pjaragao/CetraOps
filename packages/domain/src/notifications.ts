@@ -44,6 +44,9 @@ const KINDS: Record<string, (p: Payload) => NotificationView> = {
   CUSTOMER_AT_RISK: (p) => ({ label: "Cliente em risco", tone: "warning", href: str(p.party_id) ? `/clientes/${str(p.party_id)}` : "/clientes/ciclo-de-vida" }),
   PAYMENT_LINK_REQUESTED: (p) => ({ label: "Link de pagamento", tone: "info", href: str(p.order_id) ? `/vender/pedidos/${str(p.order_id)}` : "/vender/pedidos" }),
   BRIEFING: () => ({ label: "Resumo do dia", tone: "info", href: "/inicio" }),
+  OPS_WATCH: () => ({ label: "Plantão do sistema", tone: "warning", href: "/configuracoes/plantao" }),
+  MONTH_CLOSE: (p) => ({ label: "Fechamento do mês", tone: "warning",
+    href: str(p.competencia) ? `/financeiro/fechamento?mes=${str(p.competencia)!.slice(0, 7)}${str(p.legal_entity_id) ? `&entity=${str(p.legal_entity_id)}` : ""}` : "/financeiro/fechamento" }),
 };
 
 export function describeNotification(kind: string, payload: Payload | null | undefined): NotificationView {

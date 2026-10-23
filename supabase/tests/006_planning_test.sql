@@ -90,7 +90,7 @@ select is((select amount from fin.dre(date '2026-08-01', date '2026-08-31', '000
 select throws_ok($$ select fin.run_allocation_batch('00000000-0000-4000-8000-0000000000e1', date '2026-08-01') $$, 'P0091', null, 'não aplica o rateio duas vezes');
 
 -- ---------- Fechamento ----------
-select is((select count(*)::int from fin.closing_checklist('00000000-0000-4000-8000-0000000000e1', date '2026-08-01')), 9, 'checklist com 9 verificações');
+select is((select count(*)::int from fin.closing_checklist('00000000-0000-4000-8000-0000000000e1', date '2026-08-01')), 12, 'checklist com 12 verificações (notas recebidas, recebimentos e reembolsos desde 23/10/2026)');
 select lives_ok($$ select fin.create_title(jsonb_build_object('direction', 'PAYABLE', 'legal_entity_id', '00000000-0000-4000-8000-0000000000e1',
   'description', 'Fatura pendente de aprovação', 'competence_date', '2026-08-20', 'chart_account_id', (select id from fin.chart_accounts where code = '7.2.99'),
   'installments', jsonb_build_array(jsonb_build_object('due_date', '2026-09-20', 'amount', 80)))) $$, 'título de agosto em rascunho');

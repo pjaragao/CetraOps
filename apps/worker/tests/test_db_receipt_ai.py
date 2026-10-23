@@ -67,6 +67,7 @@ async def test_receipt_import_queues_ai_and_suggestions_are_checked_and_applied(
     assert rows[1]["ai_suggestion"]["acao"] == "vincular" and rows[1]["match_status"] == "SUGGESTED" and rows[1]["variant_id"] == vs[0]["id"]
     assert rows[2]["ai_suggestion"]["acao"] == "novo_produto" and rows[2]["ai_suggestion"]["reference"] == "T076"
     assert rows[3]["ai_suggestion"]["name"] == rows[2]["ai_suggestion"]["name"] == "Legging Teste"     # mesma referência → mesmo nome
+    assert rows[2]["ai_suggestion"]["price"] == 240 and "venda R$ 240,00" in rows[2]["ai_suggestion"]["rotulo"]   # custo 100 × 2,4
     assert rows[4]["ai_suggestion"]["acao"] == "nova_variante" and rows[4]["ai_suggestion"]["product_id"] == PROD   # referência existente vira variação
     assert rows[5]["ai_suggestion"]["acao"] == "trocar"                                         # vínculo suspeito apontado, não trocado sozinho
     assert rows[5]["variant_id"] == vs[0]["id"]
@@ -83,6 +84,8 @@ async def test_receipt_import_queues_ai_and_suggestions_are_checked_and_applied(
                                         (select coll.name from catalog.products p3 join catalog.collections coll on coll.id = p3.collection_id where p3.reference_code = 'T076') as coll
                                  from catalog.products where reference_code = 'T076'""")
     assert n and n["p"] == 1 and n["v"] == 2 and n["coll"] == "Verão 27"                       # um produto, duas variações, com a coleção
+    pr = await fetch_one(pool, "select pr.price from catalog.prices pr join catalog.products p on p.id = pr.product_id where p.reference_code = 'T076'")
+    assert pr and float(pr["price"]) == 240                                                     # o produto novo já nasce com preço de venda
     left = await fetch_one(pool, "select count(*) filter (where variant_id is null) as sem, count(*) filter (where ai_suggestion is not null) as pend from purch.receipt_items where receipt_id = %s", (rc,))
     assert left and left["sem"] == 0 and left["pend"] == 0
     five = await fetch_one(pool, "select variant_id::text from purch.receipt_items where receipt_id = %s and n_item = 5", (rc,))

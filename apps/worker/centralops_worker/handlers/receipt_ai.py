@@ -5,11 +5,15 @@ peça que já existe (vincular), nova cor/tamanho de um produto existente (nova_
 agrupando pela referência — cores e tamanhos do mesmo modelo são variações de UM produto — e com a coleção quando der para saber.
 A resposta da IA é conferida aqui contra o catálogo (ids que não vieram dos candidatos são descartados; referência que já existe vira
 nova_variante; cor/tamanho que já existe vira vincular) e fica em purch.receipt_items.ai_suggestion. Aplicar é com a pessoa
-(purch.apply_ai_suggestions, na tela do recebimento). Peça existente em item ainda sem vínculo também vira SUGGESTED (fluxo de sempre)."""
+(purch.apply_ai_suggestions, na tela do recebimento). Peça existente em item ainda sem vínculo também vira SUGGESTED (fluxo de sempre).
+Produto novo já sai com o preço de venda sugerido: custo da nota × markup (core.settings 'catalog.pricing', padrão 2,40 como no plano de
+negócios), arredondado para cima no passo da loja (padrão R$ 2, como os preços que já estão no catálogo). A pessoa vê o preço no rótulo antes de aplicar."""
 from __future__ import annotations
 
 import logging
+import math
 import re
+from decimal import Decimal
 from typing import Any
 
 from ..adapters.errors import PermanentError, TransientError
@@ -47,6 +51,24 @@ Regras:
 4. Use só ids que aparecem nas listas. Coleção e categoria: prefira as que já existem; deixe null se não souber.
 5. confianca de 0 a 1. motivo curto em português.
 Responda só o JSON pedido, um objeto por item, com o mesmo n."""
+
+DEFAULT_MARKUP, DEFAULT_STEP = Decimal("2.4"), Decimal("2")
+
+
+def suggest_price(cost: Any, markup: Decimal = DEFAULT_MARKUP, step: Decimal = DEFAULT_STEP) -> float | None:
+    """Preço de venda = custo × markup, para cima no passo (153 × 2,4 = 367,20 → 368). Sem custo, sem preço."""
+    try:
+        c = Decimal(str(cost))
+    except Exception:
+        return None
+    if c <= 0 or markup <= 0 or step <= 0:
+        return None
+    return float(math.ceil(c * markup / step) * step)
+
+
+def _brl(v: float) -> str:
+    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 
 _SIZE = re.compile(r"^(XXG|XG|GG|PP|P|M|G|U|UN|UNICO|TU|3[4-9]|4[0-8])$", re.I)
 
@@ -87,7 +109,8 @@ def _label(s: dict[str, Any], var: dict[str, dict[str, Any]], prod: dict[str, di
         return f"Nova cor/tamanho em {p.get('reference_code', s.get('reference', ''))} {p.get('name', '')}: {s.get('color')} {s.get('size')}"
     if a == "novo_produto":
         coll = f" (coleção {s['collection']})" if s.get("collection") else ""
-        return f"Produto novo {s.get('reference')} — {s.get('name')}{coll}: {s.get('color')} {s.get('size')}"
+        price = f" · venda {_brl(s['price'])}" if s.get("price") else ""
+        return f"Produto novo {s.get('reference')} — {s.get('name')}{coll}: {s.get('color')} {s.get('size')}{price}"
     return s.get("motivo") or "sem sugestão"
 
 
@@ -104,7 +127,7 @@ async def receipt_match(deps: Deps, p: dict[str, Any]) -> None:
         await finish("FAILED", "IA não configurada neste servidor")
         return
     await finish("RUNNING", "analisando os itens")
-    items = await fetch_all(deps.pool, """select ri.id, ri.n_item, ri.supplier_cprod, ri.cean, ri.description, ri.qty_nfe, ri.variant_id, ri.match_status, ri.match_confidence
+    items = await fetch_all(deps.pool, """select ri.id, ri.n_item, ri.supplier_cprod, ri.cean, ri.description, ri.qty_nfe, ri.unit_cost_nfe, ri.variant_id, ri.match_status, ri.match_confidence
                                           from purch.receipt_items ri where ri.receipt_id = %s order by ri.n_item""", (receipt_id,))
     review_all = bool(p.get("all"))
     targets = [i for i in items if review_all or i["variant_id"] is None or (i["match_status"] == "SUGGESTED" and float(i["match_confidence"] or 0) < 0.85)]
@@ -132,6 +155,12 @@ async def receipt_match(deps: Deps, p: dict[str, Any]) -> None:
         where v.product_id::text = any(%s) and v.active order by v.product_id, c.name, v.size limit 1500""", (pids,)) if pids else []
     colls = [r["name"] for r in await fetch_all(deps.pool, "select name from catalog.collections where org_id = %s order by created_at desc limit 40", (org,))]
     cats = [r["name"] for r in await fetch_all(deps.pool, "select name from catalog.categories where org_id = %s order by name limit 80", (org,))]
+    pricing = await fetch_one(deps.pool, "select value from core.settings where org_id = %s and key = 'catalog.pricing'", (org,))
+    pv = pricing["value"] if pricing and isinstance(pricing["value"], dict) else {}
+    try:
+        markup, step = Decimal(str(pv.get("markup", DEFAULT_MARKUP))), Decimal(str(pv.get("round_to", DEFAULT_STEP)))
+    except Exception:
+        markup, step = DEFAULT_MARKUP, DEFAULT_STEP
     prod_by_id = {r["id"]: r for r in prods}
     var_by_id = {r["id"]: {**r, "product": prod_by_id.get(r["product_id"], {}).get("name", "")} for r in variants}
     by_ref = {r["reference_code"].upper(): r for r in prods}
@@ -165,6 +194,7 @@ async def receipt_match(deps: Deps, p: dict[str, Any]) -> None:
 
     # confere a resposta contra o catálogo e normaliza
     new_names: dict[str, str] = {}
+    new_prices: dict[str, float | None] = {}
     counts = {"vincular": 0, "trocar": 0, "nova_variante": 0, "novo_produto": 0, "outros": 0}
     for i in targets:
         s = suggestions.get(i["n_item"])
@@ -185,8 +215,9 @@ async def receipt_match(deps: Deps, p: dict[str, Any]) -> None:
                     out = {"acao": "vincular", "variant_id": same["id"]} if same else {"acao": "nova_variante", "product_id": prod["id"], "color": color, "size": size}
                 elif ref and (s.get("nome") or "").strip():
                     name = new_names.setdefault(ref, re.sub(r"\s+", " ", s["nome"]).strip())   # mesma referência → mesmo nome
+                    price = new_prices.setdefault(ref, suggest_price(i["unit_cost_nfe"], markup, step))   # um preço por produto
                     out = {"acao": "novo_produto", "reference": ref, "name": name, "gender": s.get("genero") or "FEM", "category": s.get("categoria"),
-                           "collection": s.get("colecao"), "color": color, "size": size}
+                           "collection": s.get("colecao"), "color": color, "size": size, "price": price}
             if out is not None:
                 if out["acao"] == "vincular" and cur_var:
                     out = None if out["variant_id"] == cur_var else {**out, "acao": "trocar"}

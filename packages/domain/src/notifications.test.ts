@@ -17,6 +17,12 @@ describe("notificações", () => {
     expect(describeNotification("PAYMENT_LINK_REQUESTED", {}).href).toBe("/vender/pedidos");
   });
 
+  it("plantão e fechamento do mês levam à tela certa", () => {
+    expect(describeNotification("OPS_WATCH", { n: 2 }).href).toBe("/configuracoes/plantao");
+    expect(describeNotification("MONTH_CLOSE", { competencia: "2026-09-01", legal_entity_id: "e1" }).href).toBe("/financeiro/fechamento?mes=2026-09&entity=e1");
+    expect(describeNotification("MONTH_CLOSE", {}).href).toBe("/financeiro/fechamento");
+  });
+
   it("tipo desconhecido ou payload vazio não quebra", () => {
     expect(describeNotification("NOVO_TIPO", null)).toEqual({ label: "Aviso", tone: "info", href: "/notificacoes" });
     expect(describeNotification("NEW_MESSAGE", undefined).href).toBe("/atendimento");

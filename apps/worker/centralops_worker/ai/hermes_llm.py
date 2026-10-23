@@ -133,7 +133,7 @@ class HermesLLM:
         self._http, self._base, self._key = http, base.rstrip("/"), api_key
 
     async def chat(self, model: str, messages: list[dict[str, Any]], *, tools: list[dict[str, Any]] | None = None,
-                   json_schema: tuple[str, dict[str, Any]] | None = None, timeout: float = 180) -> dict[str, Any]:
+                   json_schema: tuple[str, dict[str, Any]] | None = None, timeout: float = 180) -> dict[str, Any]:  # noqa: ASYNC109 (timeout por chamada, repassado ao httpx)
         body: dict[str, Any] = {"stream": False, "messages": to_hermes_messages(messages, tools, json_schema)}
         if agy_model_id(model):      # `provider` explícito faz o Hermes repassar o `model` ao shim, que roda esse id no agy
             body |= {"provider": "agy", "model": agy_model_id(model)}

@@ -37,5 +37,5 @@ test("empresa nova: o CNPJ preenche o cadastro e a ficha mostra os dados da Rece
   await expect(page.getByRole("heading", { name: "Dados da Receita" })).toBeVisible();
   await expect(page.getByText("situação: Ativa")).toBeVisible();
   await expect(page.getByText(/261234567 \(SC\)/)).toBeVisible();
-  await expect(page.getByText("Rua Esteves Júnior")).toBeVisible();
+  await expect(page.getByLabel("Logradouro").first()).toHaveValue("Rua Esteves Júnior");   // a ficha abre no formulário, já preenchido
 });

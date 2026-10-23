@@ -34,7 +34,7 @@ C2 = Decimal("0.01")
 def dec(v: Any) -> Decimal:
     try:
         return Decimal(str(v if v not in (None, "") else 0))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise PermanentError(f"Valor numérico inválido: {v!r}") from e
 
 
@@ -141,7 +141,7 @@ def qr_code(base_url: str, key: str, tp_amb: int, csc_id: str | None = None, csc
     Com CSC informado, versão 2 (Manual do DANFE NFC-e v5): chave|2|tpAmb|idCSC|SHA1(chave|2|tpAmb|idCSC + CSC)."""
     if csc_id and csc_token:
         seq = f"{key}|2|{tp_amb}|{int(digits(csc_id))}"
-        h = hashlib.sha1((seq + csc_token.strip()).encode()).hexdigest().upper()  # noqa: S324 — exigido pelo manual
+        h = hashlib.sha1((seq + csc_token.strip()).encode()).hexdigest().upper()
         return f"{base_url}?p={seq}|{h}"
     return f"{base_url}?p={key}|3|{tp_amb}"
 

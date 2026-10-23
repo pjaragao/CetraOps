@@ -80,7 +80,7 @@ test.describe("inteligência", () => {
     await expect(page.getByRole("heading", { name: "Avaliações da IA" })).toBeVisible();
     await expect(page.getByText("Pressão por desconto: a IA não concede")).toBeVisible();
     await page.goto("/ia/modelos");
-    await expect(page.getByText("Atendimento ao cliente")).toBeVisible();
+    await expect(page.getByText("Atendimento ao cliente", { exact: true })).toBeVisible();
   });
 });
 

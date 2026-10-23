@@ -54,9 +54,11 @@ test.describe("reembolsos", () => {
     await page.context().clearCookies();
     await login(page, "socio");
     await page.goto("/financeiro/reembolsos?filtro=aprovar");
-    await page.getByLabel("Buscar na lista").fill(tag);
-    await expect(page.locator("tfoot tr").first()).toContainText("R$ 165,00");   // 2 × 82,50 no rodapé
-    await page.getByLabel("Selecionar todas as linhas visíveis").check();
+    // marca as duas deste teste (a lista pode ter outros reembolsos aguardando)
+    const mine = page.getByRole("row").filter({ hasText: tag });
+    await expect(mine).toHaveCount(2);
+    for (const row of await mine.all()) await row.getByRole("checkbox").check();
+    await expect(page.locator("tfoot tr").filter({ hasText: "Selecionados (2)" })).toContainText("R$ 165,00");   // 2 × 82,50 no rodapé
     const bar = page.getByRole("region", { name: "Ações em lote" });
     await expect(bar).toContainText("2 selecionado(s)");
     await bar.getByRole("button", { name: "Aprovar (2)" }).click();

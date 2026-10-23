@@ -82,7 +82,7 @@ class A1Certificate:
         return base64.b64encode(self.cert.public_bytes(serialization.Encoding.DER)).decode()
 
     def sign_sha1(self, data: bytes) -> bytes:
-        return self.key.sign(data, padding.PKCS1v15(), hashes.SHA1())  # noqa: S303 — algoritmo exigido pelo leiaute da NF-e
+        return self.key.sign(data, padding.PKCS1v15(), hashes.SHA1())
 
     def ssl_context(self) -> ssl.SSLContext:
         """Contexto TLS com autenticação do cliente (o certificado A1) e as raízes ICP-Brasil somadas às do sistema."""

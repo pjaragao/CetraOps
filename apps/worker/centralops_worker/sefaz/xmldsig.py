@@ -27,7 +27,7 @@ def sign(root: etree._Element, ref_id: str, cert: A1Certificate) -> etree._Eleme
     signed = next((e for e in doc.iter() if e.get("Id") == ref_id), None)
     if signed is None:
         raise ValueError(f"elemento com Id={ref_id} não encontrado")
-    digest = base64.b64encode(hashlib.sha1(c14n(signed)).digest()).decode()  # noqa: S324 — exigido pelo leiaute
+    digest = base64.b64encode(hashlib.sha1(c14n(signed)).digest()).decode()
 
     sig = etree.SubElement(doc, f"{{{DS}}}Signature", nsmap={None: DS})
     si = etree.SubElement(sig, f"{{{DS}}}SignedInfo")

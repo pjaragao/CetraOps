@@ -7,12 +7,15 @@ export function SyncStatus({ active, updatedAt, every = 3000, times = 10 }: { ac
   const router = useRouter();
   const pathname = usePathname();
   const [busy, setBusy] = useState(active);
+  const [wasActive, setWasActive] = useState(active);
   const done = useRef(0);
 
-  useEffect(() => { if (active) { done.current = 0; setBusy(true); } }, [active]);
+  // novo pedido de busca (active voltou a true): recomeça a acompanhar, ajustando o estado na própria renderização
+  if (active !== wasActive) { setWasActive(active); if (active) setBusy(true); }
 
   useEffect(() => {
     if (!busy) return;
+    done.current = 0;
     const id = setInterval(() => {
       done.current += 1;
       if (done.current > times) { clearInterval(id); setBusy(false); router.replace(pathname); return; }

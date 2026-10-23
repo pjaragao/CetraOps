@@ -9,7 +9,7 @@ test.describe("links rastreados", () => {
     const address = page.getByPlaceholder("55 48 99999-0000");
     if (await address.isVisible()) {
       await address.fill("55 48 99999-0000");
-      await page.getByRole("button", { name: "Salvar" }).first().click();
+      await page.getByRole("button", { name: "Salvar", exact: true }).first().click();   // não o "Salvar URL" do endereço público
       await expect(page.getByText("Endereço do canal salvo")).toBeVisible();
     }
     const code = `e2e-${Date.now() % 100000}`;
@@ -19,9 +19,9 @@ test.describe("links rastreados", () => {
     await page.getByRole("button", { name: "Criar link" }).click();
     await expect(page.getByText("Link criado")).toBeVisible({ timeout: 20_000 });
     const row = page.getByRole("row").filter({ hasText: code });
-    await expect(row.getByRole("button", { name: "Copiar link" })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Copiar", exact: true })).toBeVisible();
 
-    const href = await row.getByRole("link", { name: "QR (PNG)" }).getAttribute("href");
+    const href = await row.getByRole("link", { name: "QR", exact: true }).getAttribute("href");
     const qr = await page.request.get(href!);
     expect(qr.status()).toBe(200);
     expect(qr.headers()["content-type"]).toBe("image/png");

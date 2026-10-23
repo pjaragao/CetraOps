@@ -326,7 +326,7 @@ async def _company_name(deps: Deps, cnpj: str) -> str | None:
         if r.status_code != 200:
             return None
         return str(r.json().get("razao_social") or "").strip() or None
-    except Exception:  # noqa: BLE001 — só um enfeite: sem nome a nota segue com o CNPJ
+    except Exception:
         return None
 
 

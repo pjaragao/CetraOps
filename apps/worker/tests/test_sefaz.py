@@ -77,6 +77,7 @@ def _verify_signature(xml: str, ref_id: str, cert: A1Certificate) -> None:
     sem comentários nem prefixos) + verificação RSA-SHA1 do cryptography, como faria a SEFAZ a partir do texto."""
     import hashlib
     import xml.etree.ElementTree as ET
+
     from cryptography.hazmat.primitives.asymmetric import padding
 
     ds = "{http://www.w3.org/2000/09/xmldsig#}"
@@ -121,7 +122,7 @@ def test_ssl_context_loads_client_certificate(cert: A1Certificate) -> None:
 def test_access_key_check_digit() -> None:
     k = nfce.access_key(42, dt.datetime(2026, 10, 1), CNPJ, 65, 1, 123, 1, 12345678)
     assert len(k) == 44 and k.startswith("422610" + CNPJ + "65001000000123" + "1" + "12345678")
-    total = sum(int(c) * w for c, w in zip(reversed(k[:43]), [2, 3, 4, 5, 6, 7, 8, 9] * 6))
+    total = sum(int(c) * w for c, w in zip(reversed(k[:43]), [2, 3, 4, 5, 6, 7, 8, 9] * 6, strict=False))
     assert int(k[-1]) == (0 if total % 11 < 2 else 11 - total % 11)
 
 
@@ -152,7 +153,7 @@ def test_production_keeps_item_name_and_qr_v2_with_csc(cert: A1Certificate) -> N
     b = _build(cert, tp_amb=1, csc_id="000001", csc_token="0123456789ABCDEF")
     root = etree.fromstring(b.xml.encode())
     _schema("nfe_v4.00.xsd").assertValid(root)
-    assert root.findtext(".//{%s}det/{%s}prod/{%s}xProd" % (NFE, NFE, NFE)) == "Top Fitness Preto M"
+    assert root.findtext(f".//{{{NFE}}}det/{{{NFE}}}prod/{{{NFE}}}xProd") == "Top Fitness Preto M"
     qr = root.findtext(f".//{{{NFE}}}qrCode")
     m = re.fullmatch(r"https://sat\.sef\.sc\.gov\.br/nfce/consulta\?p=(\d{44})\|2\|1\|1\|([0-9A-F]{40})", qr)
     assert m and m.group(1) == b.access_key

@@ -61,9 +61,9 @@ describe("período e menu", () => {
     expect(keys).not.toContain("financeiro");
     expect(keys).not.toContain("configuracoes");
   });
-  it("quem só pede reembolso vê Financeiro apenas com Reembolsos", () => {
+  it("quem só pede reembolso vê Financeiro com Reembolsos e a Caixa de documentos (foto do cupom vira reembolso)", () => {
     const fin = visibleNav(new Set(["sales.read", "fin.reimburse"]), false).find((a) => a.key === "financeiro");
-    expect(fin?.items.map((i) => i.label)).toEqual(["Reembolsos"]);
+    expect(fin?.items.map((i) => i.label)).toEqual(["Reembolsos", "Caixa de documentos"]);
     expect(fin?.href).toBe("/financeiro/reembolsos");
   });
   it("o financeiro vê Reembolsos junto com o resto", () => {

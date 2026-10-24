@@ -113,6 +113,7 @@ export const NAV: NavArea[] = [
       { label: "Orçamento", href: "/financeiro/orcamento", ready: true },
       { label: "Fechamento mensal", href: "/financeiro/fechamento", ready: true },
       { label: "Reembolsos", href: "/financeiro/reembolsos", ready: true, permission: "fin.read|fin.reimburse" },
+      { label: "Caixa de documentos", href: "/financeiro/documentos", ready: true, permission: "fin.write|fin.reimburse|purch.write" },
     ],
   },
   {

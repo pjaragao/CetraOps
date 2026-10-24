@@ -3812,6 +3812,17 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"doc_inbox": {
+                  Row: {
+                    "checks": Json,"created_at": string,"decided_at": string | null,"decided_by": string | null,"destination": string,"destination_reason": string | null,"duplicate": Json | null,"fields": Json,"file_name": string | null,"id": string,"kind": string,"label": string,"member_id": string | null,"mime": string | null,"org_id": string,"sha256": string,"status": string,"storage_path": string | null,"target_href": string | null,"target_id": string | null,"target_label": string | null,"target_type": string | null,"xml": string | null
+                  }
+                  Insert: {
+                    "checks"?: Json,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"destination": string,"destination_reason"?: string | null,"duplicate"?: Json | null,"fields"?: Json,"file_name"?: string | null,"id"?: string,"kind": string,"label"?: string,"member_id"?: string | null,"mime"?: string | null,"org_id": string,"sha256": string,"status"?: string,"storage_path"?: string | null,"target_href"?: string | null,"target_id"?: string | null,"target_label"?: string | null,"target_type"?: string | null,"xml"?: string | null
+                  }
+                  Update: {
+                    "checks"?: Json,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"destination"?: string,"destination_reason"?: string | null,"duplicate"?: Json | null,"fields"?: Json,"file_name"?: string | null,"id"?: string,"kind"?: string,"label"?: string,"member_id"?: string | null,"mime"?: string | null,"org_id"?: string,"sha256"?: string,"status"?: string,"storage_path"?: string | null,"target_href"?: string | null,"target_id"?: string | null,"target_label"?: string | null,"target_type"?: string | null,"xml"?: string | null
+                  }
+                  Relationships: []
                 },"reimbursements": {
                   Row: {
                     "created_at": string,"decided_at": string | null,"decided_by": string | null,"due_date": string | null,"id": string,"legal_entity_id": string,"number": string,"org_id": string,"party_id": string,"purpose": string,"reject_reason": string | null,"requester_member_id": string | null,"status": string,"store_id": string | null,"submitted_at": string | null,"title_id": string | null,"total": number,"updated_at": string
@@ -4141,6 +4152,15 @@ isOneToOne: false
                            },
 "close_month":
 { Args: { "p_competence": string,"p_entity": string,"p_force"?: boolean }; Returns: undefined
+                           },
+"doc_inbox_add":
+{ Args: { "p": Json }; Returns: Database["fin"]["Tables"]["doc_inbox"]["Row"]
+                           },
+"doc_inbox_confirm":
+{ Args: { "p"?: Json,"p_id": string }; Returns: Database["fin"]["Tables"]["doc_inbox"]["Row"]
+                           },
+"doc_inbox_discard":
+{ Args: { "p_id": string }; Returns: string
                            },
 "closing_checklist":
 { Args: { "p_competence": string,"p_entity": string }; Returns: {

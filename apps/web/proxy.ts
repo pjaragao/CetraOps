@@ -32,7 +32,8 @@ export async function proxy(request: NextRequest) {
   if (!data?.claims && !isLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", request.nextUrl.pathname);
+    url.search = "";   // o destino vai inteiro no next (com ?id=… da notificação), não solto nos parâmetros do login
+    url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
   // Sessão válida mas sem vínculo com a empresa (?erro=sem-acesso): deixa a tela de login aparecer para trocar de conta

@@ -22,7 +22,7 @@ select ok(exists (select 1 from cron.job where jobname = 'centralops-ops-watch')
 -- ---------- Causa provável ----------
 select alike(private.explain_error('Brasil NFe 404: serviço não encontrado'), '%endereço da API%', '404 → endereço da API');
 select alike(private.explain_error('Stone/Pagar.me: credencial recusada'), '%credencial%', 'credencial recusada → gerar outra');
-select alike(private.explain_error('job startup timeout'), '%rotinas começando%', 'falha do pg_cron explicada');
+select alike(private.explain_error('job startup timeout'), '%relógio do servidor%', 'falha do pg_cron explicada (salto de relógio)');
 select is(private.explain_error('algo inédito'), null, 'erro desconhecido fica sem causa (não inventa)');
 
 -- ---------- Preparação (dono do banco) ----------

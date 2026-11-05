@@ -23,6 +23,24 @@ describe("notificações", () => {
     expect(describeNotification("MONTH_CLOSE", {}).href).toBe("/financeiro/fechamento");
   });
 
+  it("o href do payload (tela exata) vence o destino padrão, mas só caminho interno", () => {
+    expect(describeNotification("INTEGRATION_ERROR", { href: "/produtos/site" }).href).toBe("/produtos/site");
+    expect(describeNotification("INTEGRATION_ERROR", { access_key: "352610" }).href).toBe("/fiscal/recebidas/nota/352610");
+    expect(describeNotification("INTEGRATION_ERROR", { order_id: "o-1" }).href).toBe("/vender/pedidos/o-1");
+    expect(describeNotification("BACKORDER_ARRIVED", { order_id: "o-2", href: "/vender/pedidos/o-2" }).href).toBe("/vender/pedidos/o-2");
+    expect(describeNotification("INTEGRATION_ERROR", { href: "//evil.com" }).href).toBe("/configuracoes/integracoes");
+    expect(describeNotification("INTEGRATION_ERROR", { href: "/\\evil.com" }).href).toBe("/configuracoes/integracoes");
+    expect(describeNotification("INTEGRATION_ERROR", { href: "https://evil.com" }).href).toBe("/configuracoes/integracoes");
+  });
+
+  it("tipos gerados pelo banco têm destino próprio (não voltam para a lista)", () => {
+    expect(describeNotification("LOAN_OVERDUE", { loan_id: "l-1" }).href).toBe("/vender/malinhas/l-1");
+    expect(describeNotification("PRICE_CHANGED", { count: 3 }).href).toBe("/produtos/site");
+    expect(describeNotification("STORE_CLOSED", { store_id: "s" }).href).toBe("/vender/rotina");
+    expect(describeNotification("TEMPLATE_STATUS", { template_id: "t" }).href).toBe("/atendimento/templates");
+    expect(describeNotification("REIMBURSEMENT_SUBMITTED", {}).href).toBe("/financeiro/reembolsos");
+  });
+
   it("tipo desconhecido ou payload vazio não quebra", () => {
     expect(describeNotification("NOVO_TIPO", null)).toEqual({ label: "Aviso", tone: "info", href: "/notificacoes" });
     expect(describeNotification("NEW_MESSAGE", undefined).href).toBe("/atendimento");

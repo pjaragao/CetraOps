@@ -27,6 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   });
   const link = error ? null : (data as unknown as ResolvedLink | null);
   const dest = link ? linkDestination(link) : null;
-  if (!dest) return NextResponse.redirect(new URL("/", req.url), 302);
+  // Location relativo: atrás do proxy o req.url é o endereço interno do contêiner (0.0.0.0:3000)
+  if (!dest) return new NextResponse(null, { status: 302, headers: { location: "/", "cache-control": "no-store" } });
   return NextResponse.redirect(dest, { status: 302, headers: { "cache-control": "no-store", "referrer-policy": "no-referrer" } });
 }

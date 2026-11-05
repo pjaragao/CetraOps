@@ -55,6 +55,25 @@ updates:
 
 timezone: America/Sao_Paulo
 
+auxiliary:
+  compression:
+    provider: agy
+    model: gemini-flash-latest
+    reasoning_effort: low
+  title_generation:
+    provider: agy
+    model: gemini-flash-latest
+    reasoning_effort: low
+  memory_query_rewrite:
+    provider: agy
+    model: gemini-flash-latest
+    reasoning_effort: low
+  profile_describer:
+    provider: agy
+    model: gemini-flash-latest
+    reasoning_effort: low
+
 tools:
   tool_search:
     enabled: "off"
+_config_version: 51

@@ -5,7 +5,7 @@
 # O web e o worker do CentralOps falam com ele pela rede services_internal: http://centralops-hermes:8642/v1
 services:
   centralops-hermes:
-    image: nousresearch/hermes-agent@sha256:fe1e23dd140a8af4bfd39df1210ea5f3c8205f853d7f93c53bc7eb38c39407ff
+    image: nousresearch/hermes-agent@sha256:9c5561579f3ffdf333401797094ac3a743738d6c25d40f4331c7bf77b694238d
     container_name: centralops-hermes
     restart: unless-stopped
     command: gateway run
@@ -30,6 +30,12 @@ services:
     mem_limit: 1g
     cpus: 1.0
     pids_limit: 256
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/health', timeout=3)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     labels:
       paulojr.stack: "centralops-hermes"
       paulojr.type: "llm"

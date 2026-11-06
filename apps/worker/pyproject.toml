@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Worker do CentralOps: consome as filas pgmq (mensagens, envio, fiscal, IA) e executa os jobs agendados"
 requires-python = ">=3.12"
 dependencies = [
-  "psycopg[binary,pool]>=3.2",
+  "psycopg[binary,pool]>=3.3.7",
   "httpx>=0.27",
   "pydantic>=2.8",
   "pydantic-settings>=2.4",

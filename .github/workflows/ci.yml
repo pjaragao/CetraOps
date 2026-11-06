@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4          # a versão vem do campo packageManager do package.json
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -71,7 +71,7 @@ jobs:
       - name: Servidor MCP (contra o Postgres local)
         run: uv run --package centralops-mcp pytest apps/agent/mcp_server/tests -q
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Funções de webhook (HMAC, chaves de idempotência)
@@ -89,7 +89,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm

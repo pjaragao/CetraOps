@@ -1,85 +1,129 @@
-# CentralOps — ERP de varejo + plataforma omnichannel com IA
+<div align="center">
 
-**CentralOps** é a central de operações de lojas de moda: do balcão ao financeiro, com IA em todas as áreas. Foi desenhado para lojas físicas (inclusive no modelo *shop-in-shop*, dentro de uma academia parceira) e para a expansão em rede.
-São duas frentes sobre uma fundação comum:
+# 🛒 CentralOps (CetraOps)
 
-- **ERP de varejo** — PDV, estoque por grade, NFC-e, financeiro com partidas dobradas e rateio na baixa, conciliação, compras com NF-e, RH integrado à folha/contábil/fiscal, fiscal (Simples/DAS/eSocial).
-- **Omnichannel + IA** — inbox única (WhatsApp, Instagram, Telegram), agente de IA com ferramentas seguras (Hermes Agent / OpenRouter), troca IA ↔ humano a qualquer momento, CRM integrado às compras.
+### Retail ERP + omnichannel inbox + AI agents, built on Postgres
 
-> O sistema antigo (protótipo em Python/JSON) foi congelado em [`legacy/`](legacy) e **não é publicado**. As decisões da reconstrução estão em [`docs/adr`](docs/adr).
+*Everything a fashion store needs, from the point of sale to the ledger, with an AI assistant that works through safe, audited tools.*
 
-## Arquitetura
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres-Supabase%20%C2%B7%20pgmq%20%C2%B7%20RLS-3ECF8E?logo=supabase&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-agent%20tools-8A2BE2)
+![Tests](https://img.shields.io/badge/pgTAP-~1,700%20tests-brightgreen)
 
-```text
-apps/web            Next.js 16 (App Router) + TypeScript + Tailwind — Server Components com o JWT do usuário (RLS), Server Actions → RPCs SQL
-  lib/central/       Central (assistente de IA da equipe): laço de ferramentas no servidor com o JWT de quem usa, cartões de confirmação, leitura de documentos
-apps/worker         Python (psycopg 3 async): consome as filas pgmq — normalizador, roteador de conversas, envio, fiscal, mídia, notificações
-apps/agent/
-  contract/         contrato do agente: token de contexto (JWT), perfis de ferramentas, esquemas — compartilhado pelo worker e pelo MCP
-  mcp_server/       servidor MCP (StreamableHTTP) com as 16 ferramentas do agente; chama agent.call_tool como a role agent_rpc
-supabase/
-  migrations/       todo o modelo de dados e as regras de negócio (funções SQL transacionais); schemas por domínio
-  functions/        Edge Functions de ingresso de webhooks (Meta, Telegram): validam assinatura, gravam e enfileiram
-  seed/ · tests/    seeds de configuração/desenvolvimento e testes pgTAP
-packages/db         tipos TypeScript gerados do banco   ·   packages/domain  regras compartilhadas (dinheiro, comissão, rateio, menu)
-infra/              compose de produção (Coolify/Traefik), hardening da VPS, backups, runbook
-legacy/             sistema antigo (congelado)   ·   primeira_unidade_joy/ e plano_de_expansao/  documentos de negócio de terceiros (fora do produto)
+</div>
+
+---
+
+## What is it?
+
+**CentralOps** is the operations hub for fashion retail stores, including a *shop-in-shop* model inside a partner gym and
+network expansion. It has two fronts sharing one foundation:
+
+- **Retail ERP**: point of sale, size-grid inventory, NFC-e (Brazilian fiscal receipts), double-entry accounting with cost
+  allocation at settlement, bank reconciliation, purchasing with NF-e, HR tied to payroll/accounting/tax, and tax compliance
+  (Simples Nacional / DAS / eSocial).
+- **Omnichannel + AI**: a single inbox (WhatsApp, Instagram, Telegram), an AI agent with safe tools (Hermes Agent /
+  OpenRouter), instant AI ↔ human handover, and a CRM linked to purchases.
+
+> The original prototype (Python/JSON) was frozen and is not published. Reconstruction decisions are recorded in
+> [`docs/adr`](docs/adr).
+
+## 🧠 Design principles
+
+1. **Postgres is the system of record and the bus.** Invariants live in transactional SQL functions; external effects go
+   through an outbox / `pgmq` queues. Row-Level Security is on every table.
+2. **The agent is not a system of record.** It is called statelessly; history, memory and orders live in the database.
+   Every agent call goes through `agent.call_tool` under a restricted role (`agent_rpc`) with a signed context token.
+3. **Humans stay in control.** Confirmation cards for sensitive actions; AI ↔ human takeover at any time.
+4. **Everything is tested close to the data**: ~1,700 pgTAP tests (RLS, ledger, inventory, HR, tax, message pipeline,
+   privileges, cron) plus Python, Edge and TypeScript suites, all run in CI.
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    subgraph Channels
+      WA[WhatsApp] --- IG[Instagram] --- TG[Telegram]
+    end
+    Channels -- webhooks --> EF[Edge Functions<br/>verify signature, store, enqueue]
+    EF --> PG[(Postgres<br/>schemas by domain · RLS · pgmq)]
+    PG <--> W[Python worker<br/>normalizer · router · sender<br/>fiscal · media · notifications]
+    PG <--> WEB[Next.js 16 web app<br/>Server Components with user JWT<br/>Server Actions → SQL RPCs]
+    W --> AG[AI agent<br/>Hermes / OpenRouter]
+    AG -- MCP, 16 tools --> MCP[MCP server<br/>agent.call_tool as agent_rpc]
+    MCP --> PG
+    WEB --> CEN[Central: team AI assistant<br/>tool loop with the user's JWT]
 ```
 
-Princípios: **o Postgres é o sistema de registro e o barramento** (invariantes em funções SQL transacionais; efeitos externos por outbox/pgmq); o **agente não é sistema de registro** (chamado sem estado; histórico, memória e pedidos vivem no banco); tudo é **idempotente** (webhooks, envios, pedidos, notas); a política de **janela das plataformas** é aplicada no servidor.
+```text
+apps/web            Next.js 16 (App Router) + TypeScript + Tailwind
+  lib/central/       "Central", the team's AI assistant: server-side tool loop with the caller's JWT, confirmation cards, document reading
+apps/worker         Python (psycopg 3 async): consumes pgmq queues
+apps/agent/
+  contract/         agent contract: context token (JWT), tool profiles, schemas (shared by worker and MCP)
+  mcp_server/       MCP server (StreamableHTTP) exposing the agent's 16 tools
+supabase/
+  migrations/       the whole data model and business rules (transactional SQL functions)
+  functions/        webhook-ingest Edge Functions (Meta, Telegram)
+  seed/ · tests/    configuration and fictional dev seeds · pgTAP tests
+packages/db         TypeScript types generated from the database
+packages/domain     shared rules (money, commission, allocation, menu)
+infra/              production compose (Coolify/Traefik), VPS hardening, backups, runbook
+```
 
-## Começando (Windows/macOS/Linux)
+## 📦 Modules
 
-Requisitos: Node 22, pnpm 10 (`corepack enable`), [uv](https://docs.astral.sh/uv/), Docker.
+| Area | Status |
+|---|---|
+| **Sell**: multi-payment POS, remote orders, reservations and VIP closet, exchanges/returns, deliveries, cash register, coupons | ✅ ready |
+| **Products & Inventory**: size-grid catalog, ledger-style stock, import, purchasing, NF-e receiving with grid conferencing, replenishment | ✅ ready |
+| **Finance**: payables/receivables, settlement with **allocation at payment**, general ledger, P&L, cash flow, recurring entries, budget, monthly close, contracts | ✅ ready |
+| **Tax**: Simples/DAS, obligations, eSocial, received notes, **issued notes** (NFC-e via worker/Focus NFe: resend, cancel, paid sales without a note) | ✅ ready |
+| **Settings**: integrations (credentials in Vault, tested by the worker), bank accounts, chart of accounts, allocations, card fees | ✅ ready |
+| **Team (HR)**: hiring, schedules, time clock, vacations, payroll, termination, commissions, access, tied to finance/accounting/tax | ✅ ready |
+| **Customer service**: inbox, AI drafts, Pilot / Copilot / Human modes, send window | 🟡 core ready |
+| **Central (team AI)**: chat on every screen (top bar, Ctrl+/, Ctrl+K) with text, voice, camera (barcode, boleto, Pix, DANFE) and photo/PDF reading (IDs, boleto, invoices). Queries customers, products, stock, accounts, cash, P&L, cash flow | ✅ ready |
+| **Intelligence**: per-task model routing, costs | 🟡 partial |
+| **Customers / Marketing**: 360° profile, coupons | 🟡 partial |
+
+## 🚀 Getting started
+
+Requirements: Node 22, pnpm 10 (`corepack enable`), [uv](https://docs.astral.sh/uv/), Docker.
 
 ```bash
 pnpm install
-npx supabase start                # Postgres + Auth + Realtime + Storage + Edge runtime locais (portas 553xx)
-npx supabase db reset             # migrations + seeds (config + dados FICTÍCIOS de desenvolvimento)
-cp .env.example .env              # e preencha o necessário
-pnpm --filter @centralops/web dev        # http://localhost:3000  (usuários de teste: supabase/seed/90_dev_demo.sql)
-pnpm worker                       # worker (consome as filas)
+npx supabase start                # local Postgres + Auth + Realtime + Storage + Edge runtime
+npx supabase db reset             # migrations + seeds (config + FICTIONAL dev data)
+cp .env.example .env              # fill in what you need
+pnpm --filter @centralops/web dev        # http://localhost:3000 (test users: supabase/seed/90_dev_demo.sql)
+pnpm worker                       # worker that consumes the queues
 ```
 
-Sem as chaves da IA o sistema funciona: conversas em modo IA caem para atendimento humano (o rascunho exige `CENTRALOPS_OPENROUTER_KEY` ou `CENTRALOPS_HERMES_KEY`) e a Central responde em modo busca. Para a Central conversar, o servidor web precisa de `CENTRALOPS_OPENROUTER_KEY` (e de `CENTRALOPS_GROQ_KEY` para o microfone).
+Without AI keys the system still works: AI conversations fall back to human handling and the team assistant answers in
+search mode. Drafting requires `CENTRALOPS_OPENROUTER_KEY` or `CENTRALOPS_HERMES_KEY`.
 
-## Testes e qualidade
+## ✅ Tests and quality
 
-| Comando | O que roda |
+| Command | What it runs |
 |---|---|
-| `npx supabase test db` | pgTAP — ~1.700 testes: RLS, ledger, estoque, RH, fiscal, pipeline de mensagens, agente, privilégios, cron |
-| `pnpm test:py` | contrato do agente + worker + servidor MCP (contra o Postgres local; cada teste roda numa transação revertida) |
-| `pnpm test:edge` | funções de webhook (HMAC, chaves de idempotência) — Node 22 executa o mesmo TypeScript do Deno |
-| `pnpm exec turbo run typecheck lint test` | TypeScript: tipos, ESLint e Vitest |
+| `npx supabase test db` | pgTAP: ~1,700 tests (RLS, ledger, inventory, HR, tax, message pipeline, agent, privileges, cron) |
+| `pnpm test:py` | agent contract + worker + MCP server (against local Postgres; each test runs in a rolled-back transaction) |
+| `pnpm test:edge` | webhook functions (HMAC, idempotency keys) |
+| `pnpm exec turbo run typecheck lint test` | TypeScript types, ESLint, Vitest |
 | `pnpm lint:py` | Ruff |
-| `npx supabase db lint --local --level error` | verificação das funções PL/pgSQL |
+| `npx supabase db lint --local --level error` | PL/pgSQL function checks |
 
-O **CI** (`.github/workflows/ci.yml`) roda tudo isso em cada PR e constrói as imagens Docker; **Release** (tag `vX.Y.Z`) publica, aplica as migrations em produção **com aprovação manual** e implanta no Coolify. Veja [`infra/README.md`](infra/README.md).
+**CI** (`.github/workflows/ci.yml`) runs all of it on every PR and builds the Docker images. **Release** (tag `vX.Y.Z`)
+publishes, applies migrations to production **behind a manual approval** and deploys to Coolify. See
+[`infra/README.md`](infra/README.md).
 
-## Módulos
+---
 
-Menu por tarefa, protegido por permissões (RBAC + RLS em todas as tabelas):
+<div align="center">
 
-| Área | Situação |
-|---|---|
-| **Vender** — PDV multi-pagamento, pedidos remotos, reservas e Armário VIP, trocas/devoluções, entregas, caixa, cupons | pronto |
-| **Produtos & Estoque** — catálogo com grade, estoque em livro-razão, importação, compras, recebimento de NF-e com conferência de grade, reposição | pronto |
-| **Financeiro** — títulos, baixa com **rateio na liquidação**, razão contábil, DRE, fluxo de caixa, recorrentes, orçamento, fechamento mensal, contratos | pronto |
-| **Fiscal** — apuração do Simples/DAS, obrigações, eSocial, notas recebidas, **notas emitidas** (NFC-e pelo worker/Focus NFe: reenviar, cancelar com justificativa, vendas pagas sem nota) | pronto |
-| **Configurações** — **integrações** (credenciais no Vault, teste pelo worker, canais de atendimento), contas bancárias, plano de contas, rateios, taxas de cartão | pronto |
-| **Equipe (RH)** — admissão, escalas, ponto, férias, folha, rescisão, comissões, acessos — integrados ao financeiro, contábil e fiscal | pronto |
-| **Atendimento** — inbox, rascunhos da IA, modos Piloto/Copiloto/Humano, janela de envio | núcleo pronto (automações, templates e desempenho: em construção) |
-| **Central (IA da equipe)** — conversa em todas as telas (barra do topo, Ctrl+/, Ctrl+K) com texto, voz, câmera (código de barras, boleto, Pix, DANFE) e foto/PDF (RG, CNH, CIN, boleto, nota). Consulta clientes, produtos, estoque, contas, caixa, DRE, fluxo de caixa, DAS, reposição, escala e alertas; prepara venda (com cliente nova e CPF na nota), cadastro, reserva, avise-me, tarefa, conta a pagar, baixa e caixa em cartões que a pessoa confirma; resumo do dia no Início. Ver [plano](docs/plano-ia-integrada.md) e [ADR-0008](docs/adr/0008-central-assistente-com-identidade-do-usuario.md) | pronto (etapas 0 a 3; a etapa 4 está no plano) |
-| **Inteligência** — rotas de modelos por tarefa, custos | parcial (personas, base de conhecimento, sugestões: em construção) |
-| **Clientes / Marketing** — ficha 360°, cupons | parcial (funis, tarefas, campanhas, eventos: em construção) |
+Built by **Paulo Aragão Jr** · [GitHub](https://github.com/pjaragao) · [LinkedIn](https://www.linkedin.com/in/paulojrarj)
 
-## Documentos de negócio de terceiros (fora do produto)
-
-Estas pastas são documentos de negócio de um cliente (plano de negócios, expansão e contrato). **Não fazem parte do CentralOps**, não são publicadas e não foram renomeadas:
-
-- [`primeira_unidade_joy/`](primeira_unidade_joy) — Plano de Negócios (12 abas), descritivo de CNAEs e 10 notas técnicas (premissas, DRE, cenários, tributário, operação do PDV, riscos, remuneração).
-- [`plano_de_expansao/`](plano_de_expansao) — dossiê de expansão high-ticket (mapeamento de academias, modelos Shop-in-Shop/Consignação/Drops, planejamento tributário e societário).
-- [`scripts/`](scripts) — gerador do Excel, validador de fórmulas e compiladores de PDF.
-- [`PROJECT_INSTRUCTIONS.md`](PROJECT_INSTRUCTIONS.md) — regra de ouro: **toda mudança de premissa deve refletir no Excel e nos `.md`**.
-
-> Decisões de negócio que viram configuração do sistema (não constantes no código): a licença de espaço do parceiro anfitrião é **patrocínio + licença de espaço** (não aluguel); faixa 1 do Simples (Anexo I) é 4%; taxas de cartão por modalidade/parcelas/antecipação; pró-labore dos sócios entra no DRE.
+</div>

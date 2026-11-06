@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
       # Só o Postgres e o GoTrue (o seed cria usuários em auth.users); o resto da stack não é necessário para os testes
@@ -94,7 +94,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
       # O app precisa de Auth e da API (PostgREST); estúdio, e-mail, logs, storage e funções ficam de fora

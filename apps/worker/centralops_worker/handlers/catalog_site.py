@@ -20,6 +20,7 @@ log = logging.getLogger("centralops_worker.catalog_site")
 
 
 MEDIA_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
+COOLDOWN_S = 3600                      # depois de um 429 que não passou, o site fica 1 h sem ser chamado
 MAX_PHOTO_WIDTH = 1600                 # o CDN da Shopify redimensiona pelo parâmetro width; a web pede miniaturas ao imgproxy
 
 
@@ -60,9 +61,9 @@ async def mirror_media(deps: Deps, org_id: str, limit: int = 400) -> dict[str, i
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     p = msg.payload
     org_id, kind = p["org_id"], p.get("kind", "FULL")
-    if kind in ("FULL", "MEDIA"):
-        # leitura do site + cópia das fotos leva minutos: a mensagem não pode voltar à fila no meio (outro worker refaria o trabalho)
-        await queues.set_visibility(deps.pool, msg.queue, msg.msg_id, 1800)
+    # leitura do site leva minutos (e mais ainda esperando o site liberar): a mensagem não pode voltar à fila no meio, senão outra
+    # cópia começa a cada minuto e o site nunca sai do 429 (foi o que aconteceu com PRICES em 05/11/2026)
+    await queues.set_visibility(deps.pool, msg.queue, msg.msg_id, 1800)
     if kind == "MEDIA":
         res = await mirror_media(deps, org_id, int(p.get("limit") or 1000))
         log.info("fotos do catálogo: %s", res)
@@ -72,6 +73,12 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     if not cfg.get("enabled"):
         return
     base, source = str(cfg.get("base_url") or "https://siewear.com"), str(cfg.get("source") or "SIEWEAR")
+    # o site bloqueou há pouco: não bate de novo (cada pedido durante o bloqueio o prolonga); a próxima janela agendada tenta
+    blocked = await fetch_one(deps.pool, "select finished_at from catalog.site_sync_runs where org_id = %s and status = 'ERROR' and error like '%%429%%'"
+                              " and finished_at > now() - make_interval(secs => %s) order by finished_at desc limit 1", (org_id, COOLDOWN_S))
+    if blocked:
+        log.info("site em 429 desde %s: %s pulado até o fim da pausa", blocked["finished_at"], kind)
+        return
     run_id = await call_fn(deps.pool, "catalog.start_site_sync", org_id, kind)
     stats: dict[str, Any] = {}
     try:
@@ -113,6 +120,11 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         if deps.settings.supabase_service_key:
             stats.update(await mirror_media(deps, org_id, 1000))
         await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "OK", stats, None, [i["external_id"] for i in items])
+    except site.RateLimited as e:
+        # bloqueio do site: uma nova tentativa só depois da pausa (a mensagem some; FULL e PRICES voltam pelo agendamento)
+        await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "ERROR", stats, f"temporário: {e} (pausa de {COOLDOWN_S // 60} min)", None)
+        if msg.read_ct < 2:
+            raise RetryLater(COOLDOWN_S + 60, str(e)) from e
     except TransientError as e:
         await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "ERROR", stats, f"temporário: {e}", None)
         if msg.read_ct < 3:

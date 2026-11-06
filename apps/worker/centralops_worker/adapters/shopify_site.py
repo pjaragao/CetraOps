@@ -22,14 +22,42 @@ from .errors import PermanentError, TransientError
 
 SKU_RE = re.compile(r"^(\d{5})(\d{3})(.+)$")
 UA = {"User-Agent": "CentralOps catalog sync (+https://siewear.com)", "Accept": "application/json"}
-MAX_ATTEMPTS = 6
+MAX_ATTEMPTS = 4         # timeout, rede e 5xx
+MAX_429 = 2              # 429: espera o Retry-After uma vez; se continuar, desiste e deixa para a próxima janela (insistir prolonga o bloqueio)
 BACKOFF_S = 5.0          # 5, 10, 15… segundos
+MIN_INTERVAL_S = 1.5     # intervalo mínimo entre dois pedidos ao site (a leitura completa faz dezenas; sem pausa o site passa a responder 429)
 LINES = ("Activewear", "everyday", "inspiré")
 CATEGORY_FIX = {"Shorts": "Short", "Leggings": "Legging", "Tops": "Top", "Calças": "Calça", "Blusas": "Blusa"}
 
+_last_request = 0.0
+_lock = asyncio.Lock()
+
+
+class RateLimited(TransientError):
+    """O site respondeu 429 de novo depois de esperar o Retry-After: parar e tentar bem mais tarde."""
+
+
+async def _pace() -> None:
+    global _last_request
+    async with _lock:
+        loop = asyncio.get_running_loop()
+        wait = _last_request + MIN_INTERVAL_S - loop.time()
+        if wait > 0:
+            await asyncio.sleep(wait)
+        _last_request = loop.time()
+
+
+def _retry_after(r: httpx.Response) -> int:
+    try:
+        return max(0, int(float(r.headers.get("Retry-After") or 0)))
+    except ValueError:
+        return 0
+
 
 async def _get(http: httpx.AsyncClient, url: str, as_json: bool = True) -> Any:
+    limited = 0
     for attempt in range(MAX_ATTEMPTS):
+        await _pace()
         try:
             # a página HTML muda conforme o Accept: para ela, pede HTML (com application/json a loja omite os apps, como o guia de tamanho)
             r = await http.get(url, headers={**UA, "Accept": "application/json" if as_json else "text/html"}, timeout=40, follow_redirects=True)
@@ -38,10 +66,17 @@ async def _get(http: httpx.AsyncClient, url: str, as_json: bool = True) -> Any:
                 raise TransientError(f"site: {e}") from e
             await asyncio.sleep(BACKOFF_S * (attempt + 1))
             continue
-        if r.status_code == 429 or r.status_code >= 500:            # o site limita a frequência: espera e tenta de novo
+        if r.status_code == 429:                                      # o site limita a frequência
+            limited += 1
+            wait = _retry_after(r)
+            if limited >= MAX_429 or wait > 300:
+                raise RateLimited("site 429", status=429, retry_after=wait or None)
+            await asyncio.sleep(max(wait, 30))
+            continue
+        if r.status_code >= 500:
             if attempt == MAX_ATTEMPTS - 1:
                 raise TransientError(f"site {r.status_code}", status=r.status_code)
-            await asyncio.sleep(max(float(r.headers.get("Retry-After") or 0), BACKOFF_S * (attempt + 1)))
+            await asyncio.sleep(BACKOFF_S * (attempt + 1))
             continue
         if r.status_code >= 400:
             raise PermanentError(f"site {r.status_code} em {url}", status=r.status_code)
@@ -60,7 +95,7 @@ async def fetch_products(http: httpx.AsyncClient, base: str) -> list[dict[str, A
     return out
 
 
-async def fetch_collections(http: httpx.AsyncClient, base: str, pause: float = 1.0) -> tuple[dict[int, list[str]], dict[int, str]]:
+async def fetch_collections(http: httpx.AsyncClient, base: str, pause: float = 0.5) -> tuple[dict[int, list[str]], dict[int, str]]:
     """{id do produto: [títulos das coleções]} e {id da coleção: título}."""
     cols: list[dict[str, Any]] = []
     for page in range(1, 11):

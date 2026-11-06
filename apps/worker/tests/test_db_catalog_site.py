@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import pytest
 import respx
 
 from centralops_worker import queues
@@ -18,6 +19,35 @@ BASE = "https://loja.test"
 FIX = Path(__file__).parent / "fixtures"
 PRODUCTS = json.loads((FIX / "siewear_products.json").read_text())["products"]
 CHART_HTML = (FIX / "siewear_sizechart.html").read_text()
+
+
+@pytest.fixture(autouse=True)
+def _no_pause(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    """Sem as pausas reais (intervalo entre pedidos e Retry-After); devolve as esperas pedidas."""
+    waits: list[float] = []
+
+    async def fake_sleep(s: float) -> None:
+        waits.append(s)
+
+    monkeypatch.setattr(site, "MIN_INTERVAL_S", 0.0)
+    monkeypatch.setattr(site.asyncio, "sleep", fake_sleep)
+    return waits
+
+
+@respx.mock
+async def test_429_waits_retry_after_once_then_gives_up(_no_pause: list[float]) -> None:
+    route = respx.get(f"{BASE}/products.json").mock(return_value=httpx.Response(429, headers={"Retry-After": "60"}))
+    async with httpx.AsyncClient() as http:
+        with pytest.raises(site.RateLimited) as e:
+            await site._get(http, f"{BASE}/products.json")
+    assert route.call_count == 2 and _no_pause == [60] and e.value.retry_after == 60     # não fica batendo a cada minuto
+
+
+@respx.mock
+async def test_429_that_clears_continues() -> None:
+    respx.get(f"{BASE}/products.json").mock(side_effect=[httpx.Response(429, headers={"Retry-After": "5"}), httpx.Response(200, json={"products": []})])
+    async with httpx.AsyncClient() as http:
+        assert await site._get(http, f"{BASE}/products.json") == {"products": []}
 
 
 def test_build_items_groups_by_model_and_reads_texts() -> None:
@@ -101,6 +131,26 @@ async def test_full_sync_then_price_change_alerts_only_stocked_items(pool: Any, 
 
 async def _price(pool: Any, variant_id: Any) -> Any:
     return (await fetch_one(pool, "select catalog.current_price(%s) as p", (variant_id,)))["p"]
+
+
+@respx.mock
+async def test_rate_limit_pauses_the_site_for_an_hour(pool: Any, deps: Any) -> None:
+    await fetch_one(pool, """insert into core.settings (org_id, key, value) values (%s, 'catalog_site', %s)
+                             on conflict (org_id, key) do update set value = excluded.value returning key""",
+                    (ORG, json.dumps({"enabled": True, "base_url": BASE, "source": "TESTSITE"})))
+    route = respx.get(f"{BASE}/products.json").mock(return_value=httpx.Response(429, headers={"Retry-After": "60"}))
+    try:
+        await catalog_site.handle(deps, queues.QueueMessage("catalog_sync", 1, 1, {"org_id": ORG, "kind": "PRICES"}))
+    except Exception as e:                                             # 1ª vez: devolve para a fila só depois da pausa
+        assert getattr(e, "delay_s", 0) > 3600
+    run = await fetch_one(pool, "select status, error from catalog.site_sync_runs order by id desc limit 1")
+    assert run["status"] == "ERROR" and "429" in run["error"]
+    calls = route.call_count
+    # outra rodada (agendada ou repetida) dentro da pausa nem chama o site nem cria rodada nova
+    await catalog_site.handle(deps, queues.QueueMessage("catalog_sync", 2, 1, {"org_id": ORG, "kind": "FULL"}))
+    assert route.call_count == calls
+    assert (await fetch_one(pool, "select error from catalog.site_sync_runs order by id desc limit 1"))["error"] == run["error"]
+    await fetch_one(pool, "update catalog.site_sync_runs set finished_at = now() - interval '2 hours' where error like '%%429%%' returning id")
 
 
 @respx.mock

@@ -5,7 +5,7 @@ description = "Servidor MCP do CentralOps: expõe ao Hermes as ferramentas segur
 requires-python = ">=3.12"
 dependencies = [
   "mcp>=2.2",
-  "psycopg[binary,pool]>=3.2",
+  "psycopg[binary,pool]>=3.3.7",
   "pyjwt>=2.9",
   "pydantic>=2.8",
   "pydantic-settings>=2.4",

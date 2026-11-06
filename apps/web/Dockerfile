@@ -4,7 +4,7 @@
 #     --build-arg NEXT_PUBLIC_SUPABASE_URL=https://<projeto>.supabase.co --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key> .
 # As variáveis NEXT_PUBLIC_* são embutidas no bundle em tempo de build (a chave anon é pública por desenho; a service role NUNCA entra aqui).
 
-FROM node:22-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH COREPACK_ENABLE_DOWNLOAD_PROMPT=0 NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable
 WORKDIR /repo
@@ -28,7 +28,7 @@ ENV NODE_OPTIONS="--max-old-space-size=2048" NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @centralops/web build
 
 # 3) execução: só o servidor standalone, sem root e com o sistema de arquivos pronto para somente-leitura
-FROM node:22-bookworm-slim AS runtime
+FROM node:25-bookworm-slim AS runtime
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 RUN useradd --system --uid 10001 --no-create-home app

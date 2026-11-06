@@ -129,6 +129,30 @@ async def test_full_sync_then_price_change_alerts_only_stocked_items(pool: Any, 
     assert note and "Casaqueto Liora" in note["title"] and "418" in note["title"]
 
 
+@respx.mock
+async def test_full_sync_rotates_collections_and_reuses_charts(pool: Any, deps: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    await fetch_one(pool, """insert into core.settings (org_id, key, value) values (%s, 'catalog_site', %s)
+                             on conflict (org_id, key) do update set value = excluded.value returning key""",
+                    (ORG, json.dumps({"enabled": True, "base_url": BASE, "source": "TESTSITE"})))
+    _mock_site(PRODUCTS)
+    monkeypatch.setattr(catalog_site, "COLLECTIONS_PER_RUN", 1)
+    calls = lambda part: sum(1 for c in respx.calls if part in str(c.request.url))  # noqa: E731
+    product_pages = lambda: sum(1 for c in respx.calls if c.request.url.path.startswith("/products/"))  # noqa: E731
+    await catalog_site.handle(deps, queues.QueueMessage("catalog_sync", 1, 1, {"org_id": ORG, "kind": "FULL"}))
+    pages = product_pages()
+    assert calls("/collections/feminino/") == 1 and calls("/collections/masculino/") == 0 and 1 <= pages <= catalog_site.CHART_PAGES
+    # 2ª rodada: relê só a outra coleção, mantém a lida antes (vinda do banco) e não busca o guia de novo
+    await catalog_site.handle(deps, queues.QueueMessage("catalog_sync", 2, 1, {"org_id": ORG, "kind": "FULL"}))
+    assert calls("/collections/feminino/") == 1 and calls("/collections/masculino/") == 1
+    assert product_pages() == pages
+    cols = await fetch_one(pool, "select array_agg(distinct c order by c) as c from catalog.site_items si, unnest(si.collections) c where si.source = 'TESTSITE'")
+    assert cols["c"] == ["feminino", "masculino"]
+    run = await fetch_one(pool, "select status, stats from catalog.site_sync_runs order by id desc limit 1")
+    assert run["status"] == "OK" and run["stats"]["collections_refreshed"] == 1 and run["stats"]["size_charts"] == 2
+    prod = await fetch_one(pool, "select s.name from catalog.products p join catalog.size_charts s on s.id = p.size_chart_id where p.reference_code = '18320'")
+    assert prod["name"] == "Site: Feminino"
+
+
 async def _price(pool: Any, variant_id: Any) -> Any:
     return (await fetch_one(pool, "select catalog.current_price(%s) as p", (variant_id,)))["p"]
 

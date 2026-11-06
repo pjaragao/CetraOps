@@ -4,7 +4,9 @@ As fotos do site são copiadas para o bucket público do catálogo, para não de
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -12,7 +14,7 @@ import httpx
 from .. import queues
 from ..adapters import shopify_site as site
 from ..adapters.errors import PermanentError, TransientError
-from ..db import call_fn, fetch_one
+from ..db import call_fn, fetch_all, fetch_one
 from ..deps import Deps
 from ..runner import RetryLater
 
@@ -20,6 +22,9 @@ log = logging.getLogger("centralops_worker.catalog_site")
 
 
 MEDIA_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
+COLLECTIONS_PER_RUN = 16               # coleções relidas por rodada completa (4 por dia → as ~140 do site em ~2 dias)
+CHARTS_EVERY_S = 20 * 3600             # guias de tamanho mudam pouco: relê no máximo 1× por dia
+CHART_PAGES = 3                        # páginas de produto tentadas para achar o guia
 COOLDOWN_S = 3600                      # depois de um 429 que não passou, o site fica 1 h sem ser chamado
 MAX_PHOTO_WIDTH = 1600                 # o CDN da Shopify redimensiona pelo parâmetro width; a web pede miniaturas ao imgproxy
 
@@ -58,6 +63,54 @@ async def mirror_media(deps: Deps, org_id: str, limit: int = 400) -> dict[str, i
     return {"photos_copied": done, "photos_failed": failed, "photos_pending": max(0, len(pending) - done - failed)}
 
 
+def _now() -> str:
+    return datetime.now(UTC).isoformat()
+
+
+def _older_than(iso: str | None, seconds: int) -> bool:
+    try:
+        return not iso or (datetime.now(UTC) - datetime.fromisoformat(iso)).total_seconds() > seconds
+    except ValueError:
+        return True
+
+
+async def _load_state(deps: Deps, org_id: str) -> dict[str, Any]:
+    row = await fetch_one(deps.pool, "select value from core.settings where org_id = %s and key = 'catalog_site_state'", (org_id,))
+    return dict((row or {}).get("value") or {})
+
+
+async def _save_state(deps: Deps, org_id: str, state: dict[str, Any]) -> None:
+    await fetch_one(deps.pool, """insert into core.settings (org_id, key, value) values (%s, 'catalog_site_state', %s)
+                                  on conflict (org_id, key) do update set value = excluded.value returning key""", (org_id, json.dumps(state)))
+
+
+async def _membership(deps: Deps, org_id: str, base: str, source: str, products: list[dict[str, Any]],
+                      state: dict[str, Any]) -> tuple[dict[int, list[str]], dict[int, str], list[str]]:
+    """Coleções de cada produto sem reler as ~140 coleções a cada rodada: relê só as COLLECTIONS_PER_RUN da vez (nunca lidas,
+    alteradas no site depois da última leitura, depois as lidas há mais tempo) e completa com o que já está gravado em site_items."""
+    cols = await site.fetch_collection_list(deps.http, base)
+    seen: dict[str, str] = dict(state.get("collections") or {})
+    def priority(c: dict[str, Any]) -> tuple[int, str]:
+        last = seen.get(c["handle"])
+        if not last:
+            return (0, "")
+        return (1 if (c["updated_at"] or "") > last else 2, last)
+    due = [c["handle"] for c in sorted(cols, key=priority)[:COLLECTIONS_PER_RUN]]
+    fresh = await site.fetch_membership(deps.http, base, due)
+    rows = await fetch_all(deps.pool, "select external_id, collections from catalog.site_items where org_id = %s and source = %s and removed_at is null",
+                           (org_id, source))
+    cached = {r["external_id"]: r["collections"] or [] for r in rows}
+    exists, due_set = {c["handle"] for c in cols}, set(due)
+    membership: dict[int, list[str]] = {}
+    for p in products:
+        pid = int(p["id"])
+        keep = [h for h in cached.get(str(pid), []) if h in exists and h not in due_set]
+        membership[pid] = keep + fresh.get(pid, [])
+    now = _now()
+    state["collections"] = {h: (now if h in due_set else seen.get(h, "")) for h in exists if h in due_set or seen.get(h)}
+    return membership, {c["id"]: c["handle"] for c in cols}, due
+
+
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     p = msg.payload
     org_id, kind = p["org_id"], p.get("kind", "FULL")
@@ -92,20 +145,27 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
             await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "OK", stats, None, None)
             return
 
-        membership, col_ids = await site.fetch_collections(deps.http, base)
-        # guias de tamanho (vêm na página de qualquer produto)
-        charts: list[dict[str, Any]] = []
-        for prod in products[:: max(1, len(products) // 8)][:8]:          # nem toda página traz a tabela: tenta alguns produtos
-            charts = await site.fetch_size_charts(deps.http, base, prod["handle"])
+        state = await _load_state(deps, org_id)
+        membership, col_ids, refreshed = await _membership(deps, org_id, base, source, products, state)
+        stats["collections_refreshed"] = len(refreshed)
+        # guias de tamanho: no máximo 1× por dia; nas outras rodadas usa o que foi lido da última vez
+        if _older_than(state.get("charts_at"), CHARTS_EVERY_S):
+            charts: list[dict[str, Any]] = []
+            for prod in products[:: max(1, len(products) // CHART_PAGES)][:CHART_PAGES]:   # nem toda página traz a tabela
+                charts = await site.fetch_size_charts(deps.http, base, prod["handle"])
+                if charts:
+                    break
+            for c in charts:
+                handle = col_ids.get(c["collection_id"]) if c["collection_id"] else None
+                await call_fn(deps.pool, "catalog.upsert_site_size_chart", org_id, c["name"], c["html"], [handle] if handle else [])
+                c["collection"] = handle
             if charts:
-                break
-        chart_by_col: dict[str, str] = {}
-        for c in charts:
-            handle = col_ids.get(c["collection_id"]) if c["collection_id"] else None
-            await call_fn(deps.pool, "catalog.upsert_site_size_chart", org_id, c["name"], c["html"], [handle] if handle else [])
-            if handle:
-                chart_by_col[handle] = c["name"]
-        names = {c["name"].lower(): c["name"] for c in charts}
+                state["charts"] = [{"name": c["name"], "collection": c["collection"]} for c in charts]
+                state["charts_at"] = _now()
+        chart_list = state.get("charts") or []
+        chart_by_col = {c["collection"]: c["name"] for c in chart_list if c.get("collection")}
+        names = {c["name"].lower(): c["name"] for c in chart_list}
+        stats["size_charts"] = len(chart_list)
 
         items = site.build_items(products, base, membership)
         changes = new = 0
@@ -115,11 +175,11 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
             res = await call_fn(deps.pool, "catalog.upsert_site_product", {**it, "org_id": org_id, "source": source, "size_chart": chart or ""})
             changes += int((res or {}).get("price_changes") or 0)
             new += 1 if (res or {}).get("new") else 0
-        stats.update({"items": len(items), "new_models": new, "price_changes": changes, "size_charts": len(charts),
-                      "models": len({i["model_code"] for i in items})})
+        stats.update({"items": len(items), "new_models": new, "price_changes": changes, "models": len({i["model_code"] for i in items})})
         if deps.settings.supabase_service_key:
             stats.update(await mirror_media(deps, org_id, 1000))
         await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "OK", stats, None, [i["external_id"] for i in items])
+        await _save_state(deps, org_id, state)
     except site.RateLimited as e:
         # bloqueio do site: uma nova tentativa só depois da pausa (a mensagem some; FULL e PRICES voltam pelo agendamento)
         await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "ERROR", stats, f"temporário: {e} (pausa de {COOLDOWN_S // 60} min)", None)

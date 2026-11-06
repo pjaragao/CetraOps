@@ -1,6 +1,7 @@
 """Leitura do catálogo público de uma loja Shopify (o site oficial da SIÉ: siewear.com) — só endpoints públicos, sem login:
 - /products.json?limit=250&page=N   produtos, variantes (SKU, preço, disponibilidade), fotos, descrição, tipo e tags
-- /collections.json e /collections/<handle>/products.json   em que coleções cada produto está
+- /collections.json e /collections/<handle>/products.json   em que coleções cada produto está (são ~140 coleções: o handler
+  atualiza algumas por rodada, em revezamento, e guarda o resto — ver handlers/catalog_site.py)
 - página de um produto: guias de tamanho do app FoxKit (FoxKitPlugins.SizeChart), ligados a coleções
 
 Regras da marca usadas aqui (conferidas nas 834 variantes do site em 12/10/2026):
@@ -25,7 +26,7 @@ UA = {"User-Agent": "CentralOps catalog sync (+https://siewear.com)", "Accept": 
 MAX_ATTEMPTS = 4         # timeout, rede e 5xx
 MAX_429 = 2              # 429: espera o Retry-After uma vez; se continuar, desiste e deixa para a próxima janela (insistir prolonga o bloqueio)
 BACKOFF_S = 5.0          # 5, 10, 15… segundos
-MIN_INTERVAL_S = 1.5     # intervalo mínimo entre dois pedidos ao site (a leitura completa faz dezenas; sem pausa o site passa a responder 429)
+MIN_INTERVAL_S = 4.0     # intervalo mínimo entre dois pedidos ao site (sem pausa o site passa a responder 429; em 05/11/2026 bloqueou o IP)
 LINES = ("Activewear", "everyday", "inspiré")
 CATEGORY_FIX = {"Shorts": "Short", "Leggings": "Legging", "Tops": "Top", "Calças": "Calça", "Blusas": "Blusa"}
 
@@ -95,27 +96,30 @@ async def fetch_products(http: httpx.AsyncClient, base: str) -> list[dict[str, A
     return out
 
 
-async def fetch_collections(http: httpx.AsyncClient, base: str, pause: float = 0.5) -> tuple[dict[int, list[str]], dict[int, str]]:
-    """{id do produto: [títulos das coleções]} e {id da coleção: título}."""
+async def fetch_collection_list(http: httpx.AsyncClient, base: str) -> list[dict[str, Any]]:
+    """Coleções do site (um pedido para até 250): [{id, handle, updated_at}]."""
     cols: list[dict[str, Any]] = []
     for page in range(1, 11):
         data = await _get(http, f"{base.rstrip('/')}/collections.json?limit=250&page={page}")
         items = data.get("collections") or []
-        cols += items
+        cols += [{"id": int(c["id"]), "handle": c["handle"], "updated_at": c.get("updated_at") or ""} for c in items]
         if len(items) < 250:
             break
+    return cols
+
+
+async def fetch_membership(http: httpx.AsyncClient, base: str, handles: list[str]) -> dict[int, list[str]]:
+    """{id do produto: [coleções]} só das coleções pedidas (um pedido por coleção de até 250 produtos)."""
     membership: dict[int, list[str]] = defaultdict(list)
-    for c in cols:
+    for h in handles:
         for page in range(1, 11):
-            data = await _get(http, f"{base.rstrip('/')}/collections/{c['handle']}/products.json?limit=250&page={page}")
+            data = await _get(http, f"{base.rstrip('/')}/collections/{h}/products.json?limit=250&page={page}")
             items = data.get("products") or []
             for p in items:
-                membership[int(p["id"])].append(c["handle"])
+                membership[int(p["id"])].append(h)
             if len(items) < 250:
                 break
-            await asyncio.sleep(pause)
-        await asyncio.sleep(pause)
-    return dict(membership), {int(c["id"]): c["handle"] for c in cols}
+    return dict(membership)
 
 
 def parse_size_charts(page_html: str) -> list[dict[str, Any]]:

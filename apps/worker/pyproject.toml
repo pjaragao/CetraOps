@@ -20,7 +20,7 @@ centralops-agent-contract = { workspace = true }
 [dependency-groups]
 dev = [
   "pytest>=8.3",
-  "pytest-asyncio>=0.24",
+  "pytest-asyncio>=1.4.1.post1",
   "respx>=0.21",
 ]
 

@@ -61,7 +61,8 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
         <p className="mb-3 text-xs text-muted">
           Busca automática a cada 2 horas{lastRun ? ` · última: ${new Date(lastRun).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}.
         </p>
-        {syncError && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">A última busca falhou: {syncError}</p>}
+        {syncError && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">A última busca falhou: {syncError}
+          {syncHint(syncError) && <span className="mt-0.5 block text-xs text-muted">{syncHint(syncError)}</span>}</p>}
         {(dfe ?? []).length === 0 ? <p className="text-sm text-muted">Nada por aqui ainda. Conecte a SEFAZ direta (certificado A1), o Focus NFe ou a Brasil NFe em Configurações › Integrações e use “Buscar agora”. Pela SEFAZ direta, a busca respeita a espera de 1 hora exigida quando não há nota nova.</p> : (
           <Table head={["Fornecedor", "Valor", "Manifestação", "Destino", canWrite ? "Manifestar" : ""]}>
             {(dfe ?? []).map((d) => {
@@ -207,4 +208,12 @@ export default async function NotasRecebidasPage({ searchParams }: { searchParam
       )}
     </>
   );
+}
+
+/** O que costuma ser o erro da distribuição de DF-e (Ambiente Nacional da SEFAZ) e o que fazer. */
+function syncHint(error: string): string | null {
+  if (/^999\b|falha n[aã]o tratada/i.test(error))
+    return "Instabilidade no Ambiente Nacional da SEFAZ (não é o certificado nem o sistema). A busca tenta de novo sozinha a cada 2 horas; as notas não se perdem.";
+  if (/^656\b/.test(error)) return "A SEFAZ pediu uma pausa de 1 hora entre buscas; a próxima rodada já respeita isso.";
+  return null;
 }

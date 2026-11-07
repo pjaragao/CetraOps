@@ -28,6 +28,7 @@ PRODUCTION = ("producao", "production")
 PARALYZED = {"108", "109"}
 DFE_WAIT = timedelta(hours=1)               # NT 2014.002: sem documento novo (137) ou ultNSU = maxNSU, nova consulta só depois de 1 hora
 DFE_MAX_PAGES = 20
+DFE_TRANSIENT = {"999"} | PARALYZED          # 999 "Falha nao tratada"/erro não catalogado do Ambiente Nacional; 108/109 serviço paralisado
 XML_RETRY_DELAYS = (300, 900, 3600, 3 * 3600)   # depois da manifestação o Ambiente Nacional leva um tempo para liberar a NF-e completa
 
 
@@ -287,19 +288,23 @@ async def dfe_sync(deps: Deps, conn: dict[str, Any], org_id: str) -> None:
         return
     ult = int(state["last_version"]) if state else 0
     found = 0
-    error: str | None = None
+    error: str | None = None          # erro que não passa sozinho (rejeição, certificado): vai para a tela e avisa
+    transient: str | None = None      # SEFAZ fora/instável ou pausa pedida: só registro; avisa se passar de 24 h
     async with ctx.client() as client:
         for _ in range(DFE_MAX_PAGES):
             try:
                 res = await client.distribution(cnpj, ult_nsu=ult)
             except SefazNetworkError as e:
-                error = str(e)
+                transient = f"rede: {e}"
                 break
             if res.cstat in ("137", "656"):
                 ult = max(ult, res.ult_nsu)
                 await call_fn(deps.pool, "fiscal.dfe_set_wait", org_id, ctx.entity_id, now + DFE_WAIT)
                 if res.cstat == "656":
-                    error = f"{res.cstat} {res.xmotivo}"
+                    transient = f"{res.cstat} {res.xmotivo}"
+                break
+            if res.cstat in DFE_TRANSIENT:
+                transient = f"{res.cstat} {res.xmotivo}"
                 break
             if res.cstat != "138":
                 error = f"{res.cstat} {res.xmotivo}"
@@ -314,9 +319,17 @@ async def dfe_sync(deps: Deps, conn: dict[str, Any], org_id: str) -> None:
             if res.ult_nsu >= res.max_nsu:
                 await call_fn(deps.pool, "fiscal.dfe_set_wait", org_id, ctx.entity_id, now + DFE_WAIT)
                 break
+    if transient and not error:
+        # a busca segue do último NSU na próxima rodada: nada se perde, então só registra (fiscal.dfe_sync_log + log do worker)
+        late = await call_fn(deps.pool, "fiscal.dfe_set_transient", org_id, ctx.entity_id, ult, found, transient)
+        log.warning("distribuição de DF-e: falha passageira da SEFAZ (%s)%s", transient, "; já passa de 24 h, avisando" if late else "; tenta de novo na próxima rodada")
+        if late:
+            await deps.notify(org_id, "INTEGRATION_ERROR", f"Busca de notas recebidas na SEFAZ sem funcionar há mais de 24 h: {transient}",
+                              {"legal_entity_id": ctx.entity_id, "href": "/fiscal/recebidas"}, perm="fiscal.write")
+        return
     await call_fn(deps.pool, "fiscal.dfe_set_state", org_id, ctx.entity_id, ult, found, error)
     if error:
-        await deps.notify(org_id, "INTEGRATION_ERROR", f"Busca de notas recebidas na SEFAZ: {error}", {"legal_entity_id": ctx.entity_id}, perm="fiscal.write")
+        await deps.notify(org_id, "INTEGRATION_ERROR", f"Busca de notas recebidas na SEFAZ: {error}", {"legal_entity_id": ctx.entity_id, "href": "/fiscal/recebidas"}, perm="fiscal.write")
 
 
 async def _company_name(deps: Deps, cnpj: str) -> str | None:

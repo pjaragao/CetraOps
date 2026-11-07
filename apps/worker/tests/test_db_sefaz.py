@@ -265,6 +265,41 @@ async def test_received_notes_respect_the_one_hour_rule(pool: Any, deps: Any, di
     assert len(sefaz.calls) == calls                                               # dentro da hora: não consulta (evita o bloqueio 656)
 
 
+async def test_sefaz_hiccup_is_only_logged_and_clears_by_itself(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
+    await fetch_one(pool, "delete from fiscal.dfe_sync_state where legal_entity_id = %s returning 1", (LEGAL_ENTITY,))
+    before = (await fetch_one(pool, "select count(*) as n from core.notifications where title like 'Busca de notas recebidas%%'"))["n"]
+    sefaz.dist = ["999"]
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 6, 1, {"action": "DFE_SYNC", "org_id": ORG}))
+    st = await fetch_one(pool, "select last_error, failing_since from fiscal.dfe_sync_state where legal_entity_id = %s", (LEGAL_ENTITY,))
+    assert st["last_error"] is None and st["failing_since"] is not None                 # nada na tela de recebimento
+    assert (await fetch_one(pool, "select count(*) as n from core.notifications where title like 'Busca de notas recebidas%%'"))["n"] == before
+    logged = await fetch_one(pool, "select kind, message from fiscal.dfe_sync_log where legal_entity_id = %s order by id desc limit 1", (LEGAL_ENTITY,))
+    assert logged["kind"] == "PASSAGEIRA" and logged["message"].startswith("999")
+    # volta ao normal: registra que voltou e limpa a falha
+    sefaz.dist = ["138"]
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 7, 1, {"action": "DFE_SYNC", "org_id": ORG}))
+    st = await fetch_one(pool, "select last_error, failing_since, last_ok_at from fiscal.dfe_sync_state where legal_entity_id = %s", (LEGAL_ENTITY,))
+    assert st["last_error"] is None and st["failing_since"] is None and st["last_ok_at"] is not None
+    assert (await fetch_one(pool, "select kind from fiscal.dfe_sync_log where legal_entity_id = %s order by id desc limit 1", (LEGAL_ENTITY,)))["kind"] == "VOLTOU"
+
+
+async def test_sefaz_down_for_a_day_becomes_an_error(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
+    await fetch_one(pool, "delete from fiscal.dfe_sync_state where legal_entity_id = %s returning 1", (LEGAL_ENTITY,))
+    await call_fn(pool, "fiscal.dfe_set_transient", ORG, LEGAL_ENTITY, 0, 0, "999 Falha nao tratada")
+    await fetch_one(pool, "update fiscal.dfe_sync_state set failing_since = now() - interval '25 hours', next_allowed_at = null where legal_entity_id = %s returning 1", (LEGAL_ENTITY,))
+    sefaz.dist = ["999"]
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 11, 1, {"action": "DFE_SYNC", "org_id": ORG}))
+    st = await fetch_one(pool, "select last_error from fiscal.dfe_sync_state where legal_entity_id = %s", (LEGAL_ENTITY,))
+    assert st["last_error"].startswith("999") and "desde" in st["last_error"]
+    note = await fetch_one(pool, "select title, read_at from core.notifications where title like 'Busca de notas recebidas na SEFAZ sem funcionar%%' order by created_at desc limit 1")
+    assert note and note["read_at"] is None
+    sefaz.dist = ["138"]                                                                # voltou: o aviso fecha sozinho
+    await fetch_one(pool, "update fiscal.dfe_sync_state set next_allowed_at = null where legal_entity_id = %s returning 1", (LEGAL_ENTITY,))
+    await fiscal.handle(deps, queues.QueueMessage("fiscal_emission", 12, 1, {"action": "DFE_SYNC", "org_id": ORG}))
+    note = await fetch_one(pool, "select read_at, payload from core.notifications where title like 'Busca de notas recebidas na SEFAZ sem funcionar%%' order by created_at desc limit 1")
+    assert note["read_at"] is not None and note["payload"]["resolvido_sozinho"] is True
+
+
 async def test_received_note_by_access_key(pool: Any, deps: Any, direct: dict, sefaz: FakeSefaz) -> None:
     sefaz.dist = ["138"]
     key = "42261099888777000166550010000004561000004561"

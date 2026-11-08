@@ -234,7 +234,19 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
 
   const start = () => { unlockAudio(); setStarted(true); setRunning(true); };
   const submitManual = (e: FormEvent) => { e.preventDefault(); if (manual.trim()) { unlockAudio(); enqueue(manual); setManual(""); } };
-  const leave = async () => { if (leaveAction) await leaveAction(receiptId); router.push(`/produtos/recebimento/${receiptId}`); };
+  // sair: cada leitura já fica salva no banco na hora; só espera as que ainda estão a caminho (sem rede, fica no aparelho)
+  const [leaving, setLeaving] = useState(false);
+  const leave = async (to: "conferencia" | "lista" = "conferencia") => {
+    setLeaving(true);
+    for (let i = 0; i < 20 && (queue.current.length || working.current); i++) await new Promise((ok) => setTimeout(ok, 500));
+    if (queue.current.length) {
+      setLeaving(false);
+      setNotice(`${queue.current.length} leitura(s) ainda não chegaram ao servidor (sem conexão). Elas ficam guardadas neste aparelho e vão quando a rede voltar — abra esta nota de novo para enviar.`);
+      return;
+    }
+    if (leaveAction) await leaveAction(receiptId);
+    router.push(to === "lista" ? "/produtos/recebimento" : `/produtos/recebimento/${receiptId}`);
+  };
   const onlineLinks = links.filter((l) => l.online);
 
   // ---------- números da nota ----------
@@ -272,7 +284,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       <div className={cn("sticky top-[var(--topbar-h,49px)] z-20 space-y-2 border-b border-border bg-bg/95 px-3 pb-3 pt-2 backdrop-blur sm:rounded-xl sm:border",
         flash === "ok" && "flash-ok", flash === "warn" && "flash-warn", flash === "err" && "flash-err")}>
         <div className="flex items-center gap-2">
-          {mode === "staff" ? <button type="button" onClick={leave} className="rounded-lg p-1.5 hover:bg-surface-2" aria-label="Voltar para a conferência"><ArrowLeft size={18} /></button>
+          {mode === "staff" ? <button type="button" onClick={() => void leave("conferencia")} className="rounded-lg p-1.5 hover:bg-surface-2" aria-label="Voltar para a conferência"><ArrowLeft size={18} /></button>
             : <Smartphone size={18} className="mx-1 text-brand" aria-hidden />}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">NF-e {summary.nfNumber} · {summary.supplier}</p>
@@ -440,8 +452,14 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
           </p>
         ) : (
           <div className="mx-auto flex max-w-3xl items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-xs text-muted">{totals.pct === 100 ? "Todas as peças da nota conferidas." : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s) · ${formatBRL(totals.shortage)}`}</p>
-            <Link href={`/produtos/recebimento/${receiptId}`} onClick={(e) => { e.preventDefault(); void leave(); }}
+            <div className="min-w-0 flex-1 text-xs">
+              <p className="truncate text-muted">{totals.pct === 100 ? "Todas as peças da nota conferidas." : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s) · ${formatBRL(totals.shortage)}`}</p>
+              <p className={cn("truncate", session.queued ? "text-brand" : "text-success")}>{session.queued ? `Salvando ${session.queued} leitura(s)…` : "✓ Tudo salvo"}</p>
+            </div>
+            <Button type="button" variant="secondary" disabled={leaving} onClick={() => void leave("lista")} title="As leituras já estão salvas: volta para a lista e continua depois de onde parou">
+              {leaving ? "Salvando…" : "Salvar e sair"}
+            </Button>
+            <Link href={`/produtos/recebimento/${receiptId}`} onClick={(e) => { e.preventDefault(); void leave("conferencia"); }}
               className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium", totals.pct === 100 ? "bg-success text-white" : "bg-brand text-brand-contrast")}>
               <Check size={16} /> {totals.pct === 100 ? "Concluir conferência" : "Ir para a conferência"}
             </Link>

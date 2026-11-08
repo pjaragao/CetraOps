@@ -25,12 +25,23 @@ export default async function RecebimentoListPage({ searchParams }: { searchPara
   const { data: receipts } = await q;
   const supplierIds = [...new Set((receipts ?? []).map((r) => r.supplier_party_id))];
   const docIds = (receipts ?? []).map((r) => r.document_id).filter(Boolean) as string[];
-  const [{ data: suppliers }, { data: docs }, opts, { data: pos }] = await Promise.all([
+  const openIds = (receipts ?? []).filter((r) => r.status !== "POSTED").map((r) => r.id);
+  const [{ data: suppliers }, { data: docs }, opts, { data: pos }, { data: counts }] = await Promise.all([
     supplierIds.length ? supabase.schema("crm").from("parties").select("id, display_name").in("id", supplierIds) : Promise.resolve({ data: [] as { id: string; display_name: string }[] }),
     docIds.length ? supabase.schema("fiscal").from("documents").select("id, number, series, issue_at").in("id", docIds) : Promise.resolve({ data: [] as { id: string; number: number | null; series: number | null; issue_at: string | null }[] }),
     can(session, "purch.write") ? loadPurchaseOptions() : Promise.resolve(null),
     supabase.schema("purch").from("purchase_orders").select("id, number, supplier_party_id").in("status", ["APPROVED", "PARTIAL"]).order("created_at", { ascending: false }),
+    openIds.length ? supabase.schema("purch").from("receipt_items").select("receipt_id, qty_nfe, qty_counted").in("receipt_id", openIds)
+      : Promise.resolve({ data: [] as { receipt_id: string; qty_nfe: number; qty_counted: number | null }[] }),
   ]);
+  // quanto já foi bipado/contado de cada nota em aberto (para continuar de onde parou)
+  const progress = new Map<string, { nfe: number; counted: number }>();
+  for (const c of counts ?? []) {
+    const p = progress.get(c.receipt_id) ?? { nfe: 0, counted: 0 };
+    p.nfe += Number(c.qty_nfe); p.counted += Math.min(Number(c.qty_counted ?? 0), Number(c.qty_nfe));
+    progress.set(c.receipt_id, p);
+  }
+  const fmtN = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("pt-BR", { maximumFractionDigits: 3 }));
   const sname = new Map((suppliers ?? []).map((s) => [s.id, s.display_name]));
   const dmap = new Map((docs ?? []).map((d) => [d.id, d]));
   const psup = new Map((pos ?? []).map((p) => [p.id, p]));
@@ -61,6 +72,7 @@ export default async function RecebimentoListPage({ searchParams }: { searchPara
           {(receipts ?? []).map((r) => {
             const d = r.document_id ? dmap.get(r.document_id) : undefined;
             const st = RECEIPT_STATUS[r.status] ?? { label: r.status, tone: "neutral" as const };
+            const pg = progress.get(r.id);
             return (
               <tr key={r.id}>
                 <td className="px-3 py-2"><Link className="font-medium text-brand" href={`/produtos/recebimento/${r.id}`}>{r.number}</Link></td>
@@ -71,7 +83,8 @@ export default async function RecebimentoListPage({ searchParams }: { searchPara
                 <td className="px-3 py-2">{Number(r.shortage_total) > 0 ? <span className="text-warning">{formatBRL(r.shortage_total)}</span> : "—"}</td>
                 <td className="px-3 py-2">{r.po_id ? <Link className="text-brand" href={`/produtos/compras/${r.po_id}`}>{psup.get(r.po_id)?.number ?? "ver"}</Link> : "—"}</td>
                 <td className="px-3 py-2"><span className="flex items-center gap-2"><Badge tone={st.tone}>{st.label}</Badge>
-                  {r.status !== "POSTED" && can(session, "purch.write") && <Link className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs hover:bg-surface-2" href={`/produtos/recebimento/${r.id}/bipar`}><ScanBarcode size={13} /> Bipar</Link>}</span></td>
+                  {r.status !== "POSTED" && can(session, "purch.write") && <Link className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs hover:bg-surface-2" href={`/produtos/recebimento/${r.id}/bipar`}><ScanBarcode size={13} /> {pg && pg.counted > 0 && pg.counted < pg.nfe ? "Continuar" : "Bipar"}</Link>}
+                  {pg && pg.nfe > 0 && <span className={`text-xs tabular-nums ${pg.counted >= pg.nfe ? "text-success" : "text-muted"}`}>{fmtN(pg.counted)}/{fmtN(pg.nfe)} peças</span>}</span></td>
               </tr>
             );
           })}

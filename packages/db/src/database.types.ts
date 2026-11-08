@@ -8773,6 +8773,10 @@ isOneToOne: false
       } },
 "apply_ai_suggestions": { Args: { "p_items"?: string[]; "p_receipt": string }; Returns: Json }
 "request_ai_match": { Args: { "p_all"?: boolean; "p_receipt": string }; Returns: undefined }
+"bump_receipt_item":
+{ Args: { "p_delta": number,"p_item": string }; Returns: Json }
+"scan_receipt_code":
+{ Args: { "p_code": string,"p_qty"?: number,"p_receipt": string }; Returns: Json }
 "set_receipt_item":
 { Args: { "p": Json,"p_item": string }; Returns: {
               "cean": string | null,

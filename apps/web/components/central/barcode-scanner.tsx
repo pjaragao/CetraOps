@@ -12,7 +12,7 @@ const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "it
 
 interface Detector { detect(source: CanvasImageSource): Promise<{ rawValue: string; format: string }[]> }
 
-async function makeDetector(): Promise<Detector> {
+export async function makeDetector(): Promise<Detector> {
   const native = (globalThis as { BarcodeDetector?: { new (o: { formats: string[] }): Detector; getSupportedFormats(): Promise<string[]> } }).BarcodeDetector;
   if (native) {
     try {

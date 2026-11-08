@@ -73,7 +73,7 @@ export default async function RecebimentoPage({ params, searchParams }: { params
   return (
     <>
       <PageHeader title={`Recebimento ${rc.number}`} description={`NF-e ${doc?.number ?? ""}/${doc?.series ?? ""} · ${supplier?.display_name ?? ""} · entrada em ${loc?.name ?? ""}`}
-        actions={<><Badge tone={st.tone}>{st.label}</Badge>{po && <LinkButton href={`/produtos/compras/${po.id}`}>Pedido {po.number}</LinkButton>}{labelLines.length > 0 && <LinkButton href={`/imprimir/etiquetas?i=${labelLines.join(",")}`}>Etiquetas desta nota ({labelTotal})</LinkButton>}<LinkButton href="/produtos/recebimento">Voltar</LinkButton></>} />
+        actions={<><Badge tone={st.tone}>{st.label}</Badge>{editable && <LinkButton variant="primary" href={`/produtos/recebimento/${id}/bipar`}>Bipar com o leitor</LinkButton>}{po && <LinkButton href={`/produtos/compras/${po.id}`}>Pedido {po.number}</LinkButton>}{labelLines.length > 0 && <LinkButton href={`/imprimir/etiquetas?i=${labelLines.join(",")}`}>Etiquetas desta nota ({labelTotal})</LinkButton>}<LinkButton href="/produtos/recebimento">Voltar</LinkButton></>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

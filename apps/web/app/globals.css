@@ -101,3 +101,12 @@ body {
   main { max-width: none !important; padding: 0 !important; }
   body { background: #fff !important; color: #000 !important; }
 }
+
+/* Bipagem do recebimento: linha de leitura correndo na câmera e o brilho do aviso (verde/âmbar/vermelho) a cada leitura. */
+@keyframes scan-line { 0%, 100% { top: 12%; } 50% { top: 85%; } }
+.scan-line { animation: scan-line 1.8s ease-in-out infinite; }
+@keyframes flash-glow { from { box-shadow: inset 0 0 0 999px var(--glow); } to { box-shadow: inset 0 0 0 999px transparent; } }
+.flash-ok { --glow: color-mix(in oklab, var(--success) 28%, transparent); animation: flash-glow .7s ease-out; }
+.flash-warn { --glow: color-mix(in oklab, var(--warning) 30%, transparent); animation: flash-glow .7s ease-out; }
+.flash-err { --glow: color-mix(in oklab, var(--danger) 30%, transparent); animation: flash-glow .7s ease-out; }
+@media (prefers-reduced-motion: reduce) { .scan-line, .flash-ok, .flash-warn, .flash-err { animation: none; } }

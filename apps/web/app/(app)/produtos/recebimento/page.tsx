@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScanBarcode } from "lucide-react";
 import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
@@ -69,7 +70,8 @@ export default async function RecebimentoListPage({ searchParams }: { searchPara
                 <td className="px-3 py-2 font-medium">{formatBRL(r.nf_total)}</td>
                 <td className="px-3 py-2">{Number(r.shortage_total) > 0 ? <span className="text-warning">{formatBRL(r.shortage_total)}</span> : "—"}</td>
                 <td className="px-3 py-2">{r.po_id ? <Link className="text-brand" href={`/produtos/compras/${r.po_id}`}>{psup.get(r.po_id)?.number ?? "ver"}</Link> : "—"}</td>
-                <td className="px-3 py-2"><Badge tone={st.tone}>{st.label}</Badge></td>
+                <td className="px-3 py-2"><span className="flex items-center gap-2"><Badge tone={st.tone}>{st.label}</Badge>
+                  {r.status !== "POSTED" && can(session, "purch.write") && <Link className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs hover:bg-surface-2" href={`/produtos/recebimento/${r.id}/bipar`}><ScanBarcode size={13} /> Bipar</Link>}</span></td>
               </tr>
             );
           })}

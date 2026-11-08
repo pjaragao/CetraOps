@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import { Copy, MessageCircle, Smartphone, X } from "lucide-react";
 import { Button, cn, inputClass } from "@/components/ui";
@@ -73,7 +74,8 @@ export function AssistPanel({ receiptId, receiptLabel, team, links, onLinks, onC
     if (!id || made?.id === id) setMade(null);
   };
 
-  return (
+  // no <body>: o topo fixo da bipagem tem desfoque (backdrop-filter), que prenderia o "fixed" dentro dele
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="assist-title" className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-4 shadow-xl">
         <div className="mb-3 flex items-start gap-2">
@@ -155,6 +157,7 @@ export function AssistPanel({ receiptId, receiptLabel, team, links, onLinks, onC
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

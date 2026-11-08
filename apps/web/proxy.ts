@@ -27,7 +27,9 @@ export async function proxy(request: NextRequest) {
   // públicos sem login: link curto e avisos de provedores (o aviso só pede uma conferência na API do provedor; não confia no corpo);
   // /api/pos/ é o app da maquininha: cada rota exige o token da maquininha pareada e o JWT do operador (lib/pos-api.ts)
   if (request.nextUrl.pathname.startsWith("/r/") || request.nextUrl.pathname.startsWith("/api/webhooks/") || request.nextUrl.pathname === "/api/internal/stone-drain"
-      || request.nextUrl.pathname.startsWith("/api/pos/")) return response;
+      || request.nextUrl.pathname.startsWith("/api/pos/")
+      // /bipar/<código>: celular do modo assistido; o banco confere o código do link (prazo, nota, quem gerou) em cada chamada
+      || request.nextUrl.pathname.startsWith("/bipar/")) return response;
 
   if (!data?.claims && !isLogin) {
     const url = request.nextUrl.clone();

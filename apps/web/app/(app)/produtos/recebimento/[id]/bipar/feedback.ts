@@ -27,7 +27,7 @@ function tone(freq: number, start: number, dur: number, type: OscillatorType = "
   o.start(t); o.stop(t + dur + 0.02);
 }
 
-export type Cue = ScanStatus | "COMPLETE" | "DONE_ALL" | "ERROR";
+export type Cue = Exclude<ScanStatus, "ADJUST"> | "COMPLETE" | "DONE_ALL" | "ERROR";
 
 export function cue(kind: Cue, muted = false) {
   const vib: Record<Cue, number[]> = {

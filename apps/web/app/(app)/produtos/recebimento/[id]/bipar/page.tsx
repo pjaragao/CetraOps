@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { fmtDate } from "@/components/form";
 import { loadScanItems } from "./data";
+import { bumpItemAction, feedAction, refreshReceiptAction, scanCodeAction } from "./actions";
 import { ReceiveScanner } from "./receive-scanner";
+import type { TeamPhone } from "./assist-panel";
 import type { NoteSummary } from "./types";
 
 export const metadata = { title: "Bipar entrada" };
@@ -31,5 +33,24 @@ export default async function BiparRecebimentoPage({ params }: { params: Promise
     supplier: supplier?.display_name ?? "Fornecedor", supplierCnpj: fmtCnpj(doc?.counterpart_cnpj ?? null), location: loc?.name ?? "—",
     nfTotal: Number(rc.nf_total), vProd: Number(totals.vProd ?? 0), vFrete: Number(totals.vFrete ?? 0), vDesc: Number(totals.vDesc ?? 0),
   };
-  return <ReceiveScanner receiptId={id} summary={summary} initialItems={items} editable={can(session, "purch.write")} />;
+  const editable = can(session, "purch.write");
+  const team = editable ? await loadTeamPhones() : [];
+  return (
+    <ReceiveScanner receiptId={id} summary={summary} initialItems={items} editable={editable} team={team} leaveAction={refreshReceiptAction}
+      api={{ scan: scanCodeAction.bind(null, id), bump: bumpItemAction, feed: feedAction.bind(null, id) }} />
+  );
+}
+
+/** Equipe ativa com WhatsApp cadastrado: para mandar o link do modo assistido. */
+async function loadTeamPhones(): Promise<TeamPhone[]> {
+  const supabase = await createClient();
+  const { data: members } = await supabase.schema("core").from("members").select("display_name, party_id").eq("status", "ACTIVE");
+  const parties = (members ?? []).map((m) => m.party_id).filter(Boolean) as string[];
+  if (!parties.length) return [];
+  const { data: pts } = await supabase.schema("crm").from("party_contact_points").select("party_id, value_normalized, type").in("party_id", parties).in("type", ["WHATSAPP", "PHONE"]);
+  return (members ?? []).flatMap((m) => {
+    const mine = (pts ?? []).filter((p) => p.party_id === m.party_id);
+    const pick = mine.find((p) => p.type === "WHATSAPP") ?? mine[0];
+    return pick ? [{ name: m.display_name, phone: pick.value_normalized }] : [];
+  });
 }

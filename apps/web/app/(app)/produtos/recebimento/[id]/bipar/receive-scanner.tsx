@@ -2,22 +2,33 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Undo2, Volume2, VolumeX } from "lucide-react";
-import { formatBRL } from "@centralops/domain";
+import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Smartphone, Undo2, Volume2, VolumeX } from "lucide-react";
+import { catalogPhoto, formatBRL } from "@centralops/domain";
 import { Button, cn, inputClass } from "@/components/ui";
-import { bumpItemAction, itemCountsAction, refreshReceiptAction, scanCodeAction } from "./actions";
+import { AssistPanel, type TeamPhone } from "./assist-panel";
 import { cue, unlockAudio } from "./feedback";
 import { MiniCamera } from "./mini-camera";
-import type { NoteSummary, ScanItem, ScanResult } from "./types";
+import type { NoteSummary, ScanApi, ScanItem, ScanLink, ScanResult } from "./types";
 
 type Tone = "ok" | "warn" | "err";
-interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean }
+interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean; /** leitura feita em outro aparelho */ remote?: "link" | "other" }
 type Tab = "faltando" | "conferidos" | "todos" | "leituras";
 
 const fmtQty = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("pt-BR", { maximumFractionDigits: 3 }));
 const toneOf = (r: Read): Tone => r.state === "error" || r.result?.status === "UNKNOWN" ? "err" : r.result && r.result.status !== "OK" ? "warn" : "ok";
 
-export function ReceiveScanner({ receiptId, summary, initialItems, editable }: { receiptId: string; summary: NoteSummary; initialItems: ScanItem[]; editable: boolean }) {
+const num = (v: unknown) => (v == null ? undefined : Number(v));
+const normalize = (r: ScanResult): ScanResult => ({ ...r, qty_counted: num(r.qty_counted), qty_nfe: num(r.qty_nfe), added: Number(r.added ?? 0), excess: Number(r.excess ?? 0) });
+const photoOf = (p: string | null | undefined) => (p ? catalogPhoto(p, 160, process.env.NEXT_PUBLIC_SUPABASE_URL ?? "") : null);
+
+/**
+ * Tela de bipagem. mode "staff": no sistema (computador ou celular de quem está logado), com o modo assistido;
+ * mode "link": celular aberto pelo link temporário, sem login — as leituras aparecem no computador.
+ */
+export function ReceiveScanner({ receiptId, summary, initialItems, editable, api, mode = "staff", team = [], leaveAction, expiresAt }: {
+  receiptId: string; summary: NoteSummary; initialItems: ScanItem[]; editable: boolean; api: ScanApi; mode?: "staff" | "link";
+  team?: TeamPhone[]; leaveAction?: (receiptId: string) => Promise<void>; expiresAt?: string;
+}) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [status, setStatus] = useState(summary.status);
@@ -36,7 +47,14 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
   const [editing, setEditing] = useState<string | null>(null);
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [links, setLinks] = useState<ScanLink[]>([]);
+  const [showAssist, setShowAssist] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const seq = useRef(0);
+  const ownEvents = useRef(new Set<number>());
+  const lastEvent = useRef(-1);                                   // −1: a primeira consulta só marca onde o registro está
+  const linksRef = useRef(links);
+  useEffect(() => { linksRef.current = links; }, [links]);
   const queue = useRef<Read[]>([]);
   const working = useRef(false);
   const mutedRef = useRef(muted);
@@ -44,7 +62,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
   const itemsRef = useRef(items);
   useEffect(() => { itemsRef.current = items; }, [items]);
   const storeKey = `bipar:${receiptId}`;
-  const canScan = editable && status !== "POSTED";
+  const canScan = editable && status !== "POSTED" && !linkError;
 
   // ---------- leituras: fila em série (ordem garantida), guardada no aparelho enquanto não chega ao servidor ----------
   const persist = useCallback(() => {
@@ -63,7 +81,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
     working.current = true;
     while (queue.current.length) {
       const r = queue.current[0];
-      const out = await scanCodeAction(receiptId, r.code, r.qty);
+      const out = await api.scan(r.code, r.qty);
       if (!out.ok && out.retry) {
         setOffline(true);
         await new Promise((ok) => setTimeout(ok, 3000));
@@ -75,11 +93,12 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
       if (!out.ok) {
         patchRead(r.id, { state: "error", error: out.error });
         if (/lançado/i.test(out.error)) setStatus("POSTED");
+        if (mode === "link" && /link/i.test(out.error)) setLinkError(out.error);
         setLastId(r.id); setFlash("err"); cue("ERROR", mutedRef.current);
         continue;
       }
-      const res = { ...out.data, qty_counted: out.data.qty_counted == null ? undefined : Number(out.data.qty_counted), qty_nfe: out.data.qty_nfe == null ? undefined : Number(out.data.qty_nfe),
-                    added: Number(out.data.added ?? 0), excess: Number(out.data.excess ?? 0) };
+      const res = normalize(out.data);
+      if (res.event_id) ownEvents.current.add(res.event_id);
       applyCount(res);
       patchRead(r.id, { state: "done", result: res });
       setLastId(r.id);
@@ -90,12 +109,12 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
         cue(allDone ? "DONE_ALL" : itemDone ? "COMPLETE" : "OK", mutedRef.current);
         setFlash("ok");
       } else {
-        cue(res.status, mutedRef.current);
+        if (res.status !== "ADJUST") cue(res.status, mutedRef.current);
         setFlash(res.status === "UNKNOWN" ? "err" : "warn");
       }
     }
     working.current = false;
-  }, [receiptId, persist]);
+  }, [api, mode, persist]);
 
   const enqueue = useCallback((code: string, qty = mult) => {
     const c = code.trim();
@@ -156,29 +175,53 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
     return () => { document.removeEventListener("visibilitychange", onVis); void lock?.release().catch(() => undefined); };
   }, [running]);
 
-  // ---------- outra pessoa bipando a mesma nota: sincroniza as quantidades ----------
+  // ---------- outros aparelhos na mesma nota (celular do modo assistido, outra pessoa): quantidades e leituras ----------
   useEffect(() => {
+    let stop = false, timer: ReturnType<typeof setTimeout> | undefined;
     const sync = async () => {
       if (queue.current.length || working.current || busyItem || document.hidden) return;
-      const out = await itemCountsAction(receiptId);
-      if (!out.ok) return;
+      const out = await api.feed(Math.max(0, lastEvent.current));
+      if (!out.ok) { if (mode === "link" && /link/i.test(out.error)) setLinkError(out.error); return; }
       if (queue.current.length || working.current) return;
-      setStatus(out.data.status);
-      const m = new Map(out.data.items.map((i) => [i.item_id, i.qty_counted]));
+      const f = out.data;
+      setStatus(f.status);
+      if (f.links) setLinks(f.links);
+      const m = new Map(f.items.map((i) => [i.item_id, Number(i.qty_counted)]));
       setItems((p) => p.map((i) => (m.has(i.id) && m.get(i.id) !== i.qty_counted ? { ...i, qty_counted: m.get(i.id)! } : i)));
+      const first = lastEvent.current < 0;
+      lastEvent.current = Math.max(lastEvent.current, Number(f.last_event) || 0);
+      if (first) return;
+      const fresh = f.events.filter((e) => !ownEvents.current.has(e.id) && e.result.status !== "ADJUST");
+      if (!fresh.length) return;
+      const added: Read[] = fresh.map((e) => ({ id: ++seq.current, code: e.code, qty: Number(e.qty), at: new Date(e.at).getTime(), state: "done", result: normalize(e.result), remote: e.by_link ? "link" : "other" }));
+      setReads((p) => [...added.reverse(), ...p].slice(0, 300));
+      const top = added[0];
+      setLastId(top.id);
+      const st = top.result!.status;
+      if (st === "OK") { const done = (top.result!.qty_counted ?? 0) >= (top.result!.qty_nfe ?? Infinity); cue(done ? "COMPLETE" : "OK", mutedRef.current); setFlash("ok"); }
+      else if (st !== "ADJUST") { cue(st, mutedRef.current); setFlash(st === "UNKNOWN" ? "err" : "warn"); }
     };
-    const t = setInterval(sync, 8000);
-    document.addEventListener("visibilitychange", sync);
-    return () => { clearInterval(t); document.removeEventListener("visibilitychange", sync); };
-  }, [receiptId, busyItem]);
+    const loop = async () => {
+      await sync().catch(() => undefined);
+      if (stop) return;
+      // com celular ligado por link o computador acompanha quase ao vivo
+      const ms = mode === "link" ? 4000 : linksRef.current.length ? 1500 : 8000;
+      timer = setTimeout(loop, ms);
+    };
+    void loop();
+    const onVis = () => { void sync(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { stop = true; clearTimeout(timer); document.removeEventListener("visibilitychange", onVis); };
+  }, [api, mode, busyItem]);
 
   // ---------- ajustes à mão ----------
   const bump = async (itemId: string, delta: number, readId?: number) => {
     if (!delta) return;
     setBusyItem(itemId);
-    const out = await bumpItemAction(itemId, delta);
+    const out = await api.bump(itemId, delta);
     setBusyItem(null);
     if (!out.ok) { setNotice(out.error); cue("ERROR", muted); return false; }
+    if (out.data.event_id) ownEvents.current.add(Number(out.data.event_id));
     applyCount({ ...out.data, qty_counted: Number(out.data.qty_counted) });
     if (readId) patchRead(readId, { undone: true });
     return true;
@@ -191,7 +234,8 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
 
   const start = () => { unlockAudio(); setStarted(true); setRunning(true); };
   const submitManual = (e: FormEvent) => { e.preventDefault(); if (manual.trim()) { unlockAudio(); enqueue(manual); setManual(""); } };
-  const leave = async () => { await refreshReceiptAction(receiptId); router.push(`/produtos/recebimento/${receiptId}`); };
+  const leave = async () => { if (leaveAction) await leaveAction(receiptId); router.push(`/produtos/recebimento/${receiptId}`); };
+  const onlineLinks = links.filter((l) => l.online);
 
   // ---------- números da nota ----------
   const totals = useMemo(() => {
@@ -223,16 +267,22 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
   useEffect(() => { if (lastItem) rowRefs.current.get(lastItem.id)?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, [lastItem, lastItem?.qty_counted]);
 
   return (
-    <div className="-mx-4 -my-6 sm:mx-0 sm:my-0">
+    <div className={cn("-mx-4 -my-6 sm:mx-auto sm:my-0 sm:max-w-4xl", mode === "link" && "mx-0 my-0")}>
       {/* ---------- topo fixo: câmera, progresso e o aviso da última leitura ---------- */}
       <div className={cn("sticky top-[var(--topbar-h,49px)] z-20 space-y-2 border-b border-border bg-bg/95 px-3 pb-3 pt-2 backdrop-blur sm:rounded-xl sm:border",
         flash === "ok" && "flash-ok", flash === "warn" && "flash-warn", flash === "err" && "flash-err")}>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={leave} className="rounded-lg p-1.5 hover:bg-surface-2" aria-label="Voltar para a conferência"><ArrowLeft size={18} /></button>
+          {mode === "staff" ? <button type="button" onClick={leave} className="rounded-lg p-1.5 hover:bg-surface-2" aria-label="Voltar para a conferência"><ArrowLeft size={18} /></button>
+            : <Smartphone size={18} className="mx-1 text-brand" aria-hidden />}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">NF-e {summary.nfNumber} · {summary.supplier}</p>
             <p className="truncate text-xs text-muted">Recebimento {summary.receiptNumber} · entrada em {summary.location}</p>
           </div>
+          {mode === "staff" && onlineLinks.length > 0 && (
+            <button type="button" onClick={() => setShowAssist(true)} className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] text-success">
+              <Smartphone size={12} /> {onlineLinks.length === 1 ? "celular ligado" : `${onlineLinks.length} celulares`}
+            </button>
+          )}
           {offline && <span className="flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] text-warning"><CloudOff size={12} /> sem conexão</span>}
           <button type="button" onClick={() => { unlockAudio(); setMuted((m) => !m); }} className="rounded-lg p-1.5 hover:bg-surface-2" aria-label={muted ? "Ligar som" : "Tirar som"}>{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
         </div>
@@ -268,19 +318,34 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
         </div>
 
         {canScan && !started && (
-          <button type="button" onClick={start} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-4 text-base font-semibold text-brand-contrast shadow-sm active:scale-[.99]">
-            <ScanBarcode size={22} /> Começar a bipar
-          </button>
+          <>
+            {/* celular: botão grande para o polegar; computador: botões do tamanho normal e o modo assistido em primeiro */}
+            <button type="button" onClick={start} className={cn("flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-4 text-base font-semibold text-brand-contrast shadow-sm active:scale-[.99]", mode === "staff" && "sm:hidden")}>
+              <ScanBarcode size={22} /> Começar a bipar
+            </button>
+            {mode === "staff" && (
+              <div className="hidden flex-wrap items-center gap-2 sm:flex">
+                <Button type="button" onClick={() => { unlockAudio(); setShowAssist(true); }}><Smartphone size={16} /> Usar o celular como leitor</Button>
+                <Button type="button" variant="secondary" onClick={start}><Camera size={16} /> Câmera deste computador</Button>
+                <span className="text-xs text-muted">Leitor USB ou Bluetooth? É só bipar, sem clicar em nada.</span>
+              </div>
+            )}
+          </>
         )}
+        {mode === "staff" && showAssist && canScan && (
+          <AssistPanel receiptId={receiptId} receiptLabel={`NF-e ${summary.nfNumber} · ${summary.supplier}`} team={team} links={links}
+            onLinks={setLinks} onClose={() => setShowAssist(false)} />
+        )}
+        {linkError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{linkError}</p>}
         {canScan && (showManual || !started) && (
           <form onSubmit={submitManual} className="flex gap-2">
             <input value={manual} onChange={(e) => setManual(e.target.value)} className={inputClass} placeholder="EAN, SKU ou código do fornecedor" aria-label="Digitar código" inputMode="text" autoCapitalize="characters" enterKeyHint="go" />
             <Button disabled={!manual.trim()}>Lançar</Button>
           </form>
         )}
-        {!canScan && <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm text-muted">{status === "POSTED" ? "Esta nota já foi lançada no estoque: a bipagem está fechada." : "Você pode ver a conferência, mas não tem permissão para bipar."}</p>}
+        {!canScan && !linkError && <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm text-muted">{status === "POSTED" ? "Esta nota já foi lançada no estoque: a bipagem está fechada." : "Você pode ver a conferência, mas não tem permissão para bipar."}</p>}
 
-        {last && <LastRead read={last} item={lastItem} canUndo={canScan} onUndo={() => undoRead(last)} />}
+        {last && <LastRead read={last} item={lastItem} canUndo={canScan && !last.remote} onUndo={() => undoRead(last)} />}
         {notice && <p className="flex items-start justify-between gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs" role="status">{notice}<button type="button" className="text-muted" onClick={() => setNotice(null)} aria-label="Fechar aviso">✕</button></p>}
       </div>
 
@@ -323,9 +388,9 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
               <StatusIcon read={r} />
               <div className="min-w-0 flex-1">
                 <p className="truncate">{r.result?.label ?? r.result?.description ?? r.code}</p>
-                <p className="truncate text-xs text-muted">{new Date(r.at).toLocaleTimeString("pt-BR")} · {r.code}{r.qty > 1 ? ` ×${r.qty}` : ""} · {readText(r)}</p>
+                <p className="truncate text-xs text-muted">{new Date(r.at).toLocaleTimeString("pt-BR")}{r.remote ? (r.remote === "link" ? " · pelo celular" : " · outro aparelho") : ""} · {r.code}{r.qty > 1 ? ` ×${r.qty}` : ""} · {readText(r)}</p>
               </div>
-              {canScan && r.result?.added && !r.undone ? <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => undoRead(r)}><Undo2 size={14} /> Desfazer</Button> : null}
+              {canScan && !r.remote && r.result?.added && !r.undone ? <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => undoRead(r)}><Undo2 size={14} /> Desfazer</Button> : null}
             </li>
           ))}
         </ul>
@@ -366,15 +431,22 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable }: {
         </ul>
       )}
 
-      {/* ---------- rodapé: concluir ---------- */}
+      {/* ---------- rodapé: concluir (no computador) ou aviso (no celular do link) ---------- */}
       <div className="sticky bottom-0 z-20 border-t border-border bg-bg/95 px-3 py-2.5 backdrop-blur sm:rounded-xl sm:border">
-        <div className="mx-auto flex max-w-3xl items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-xs text-muted">{totals.pct === 100 ? "Todas as peças da nota conferidas." : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s) · ${formatBRL(totals.shortage)}`}</p>
-          <Link href={`/produtos/recebimento/${receiptId}`} onClick={(e) => { e.preventDefault(); void leave(); }}
-            className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium", totals.pct === 100 ? "bg-success text-white" : "bg-brand text-brand-contrast")}>
-            <Check size={16} /> {totals.pct === 100 ? "Concluir conferência" : "Ir para a conferência"}
-          </Link>
-        </div>
+        {mode === "link" ? (
+          <p className="text-center text-xs text-muted">
+            {totals.pct === 100 ? "Todas as peças conferidas! " : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s). `}
+            As leituras já aparecem no computador.{expiresAt ? ` Link válido até ${new Date(expiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.` : ""}
+          </p>
+        ) : (
+          <div className="mx-auto flex max-w-3xl items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-xs text-muted">{totals.pct === 100 ? "Todas as peças da nota conferidas." : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s) · ${formatBRL(totals.shortage)}`}</p>
+            <Link href={`/produtos/recebimento/${receiptId}`} onClick={(e) => { e.preventDefault(); void leave(); }}
+              className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium", totals.pct === 100 ? "bg-success text-white" : "bg-brand text-brand-contrast")}>
+              <Check size={16} /> {totals.pct === 100 ? "Concluir conferência" : "Ir para a conferência"}
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -411,27 +483,31 @@ function Thumb({ src, done }: { src: string | null; done?: boolean }) {
   );
 }
 
-/** Aviso grande da última leitura: produto, foto e quanto já foi conferido do item. */
+/** Aviso grande da última leitura: produto, foto e quanto já foi conferido do item (sempre o número atual do item). */
 function LastRead({ read, item, canUndo, onUndo }: { read: Read; item?: ScanItem; canUndo: boolean; onUndo(): void }) {
-  const t = read.state === "queued" ? null : toneOf(read);
+  const t = read.state === "queued" || read.undone ? null : toneOf(read);
   const s = read.result;
-  const title = read.state === "queued" ? "Lendo…" : read.state === "error" ? "Não foi possível lançar"
-    : s?.status === "OK" ? (s.qty_counted != null && s.qty_nfe != null && s.qty_counted >= s.qty_nfe ? "Item completo!" : "Lida e somada")
+  const counted = item?.qty_counted ?? s?.qty_counted ?? 0;
+  const total = item?.qty_nfe ?? s?.qty_nfe;
+  const title = read.state === "queued" ? "Lendo…" : read.state === "error" ? "Não foi possível lançar" : read.undone ? "Leitura desfeita"
+    : s?.status === "OK" ? (total != null && counted >= total ? "Item completo!" : "Lida e somada")
     : s?.status === "PARTIAL_EXCESS" ? "Somada em parte: passou da nota" : s?.status === "EXCESS" ? "Sobra! A nota já está completa" : s?.status === "NOT_IN_NOTE" ? "Esta peça não está nesta nota" : "Código não encontrado";
   const name = s?.label ?? item?.label ?? s?.description ?? item?.description ?? null;
   return (
     <div className={cn("flex items-center gap-3 rounded-xl border-2 p-2.5 transition-colors", t === null && "border-border bg-surface",
       t === "ok" && "border-success bg-success/10", t === "warn" && "border-warning bg-warning/10", t === "err" && "border-danger bg-danger/10")} role="status" aria-live="polite">
-      <Thumb src={item?.photo ?? null} />
+      <Thumb src={item?.photo ?? photoOf(s?.photo)} />
       <div className="min-w-0 flex-1">
-        <p className={cn("text-xs font-semibold uppercase tracking-wide", t === "ok" && "text-success", t === "warn" && "text-warning", t === "err" && "text-danger")}>{title}</p>
+        <p className={cn("text-xs font-semibold uppercase tracking-wide", t === null && "text-muted", t === "ok" && "text-success", t === "warn" && "text-warning", t === "err" && "text-danger")}>
+          {title}{read.remote === "link" ? <span className="ml-1.5 font-normal normal-case text-muted">· pelo celular</span> : null}
+        </p>
         <p className="truncate text-sm font-medium">{name ?? read.code}</p>
         <p className="truncate text-xs text-muted">{read.state === "error" ? read.error : s?.sku ?? item?.sku ?? read.code}{s?.status === "UNKNOWN" ? " · confira a etiqueta ou digite o código" : ""}</p>
       </div>
-      {s?.qty_nfe != null && (
+      {total != null && (
         <div className="shrink-0 text-right">
-          <p className="text-2xl font-bold tabular-nums leading-none">{fmtQty(s.qty_counted ?? 0)}<span className="text-sm font-medium text-muted">/{fmtQty(s.qty_nfe)}</span></p>
-          {canUndo && s.added ? !read.undone ? <button type="button" onClick={onUndo} className="mt-1 inline-flex items-center gap-1 text-xs text-brand"><Undo2 size={12} /> desfazer</button> : <span className="text-xs text-muted">desfeita</span> : null}
+          <p className="text-2xl font-bold tabular-nums leading-none">{fmtQty(counted)}<span className="text-sm font-medium text-muted">/{fmtQty(total)}</span></p>
+          {canUndo && s?.added ? !read.undone ? <button type="button" onClick={onUndo} className="mt-1 inline-flex items-center gap-1 text-xs text-brand"><Undo2 size={12} /> desfazer</button> : null : null}
         </div>
       )}
     </div>

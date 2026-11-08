@@ -48,7 +48,7 @@ select is((select qty_counted from purch.receipt_items where id = (select v from
 
 insert into kv select 'c', purch.scan_receipt_code((select v from ids where k = 'rc'), 'cp-079', 5);
 select is((select v ->> 'status' from kv where k = 'c'), 'PARTIAL_EXCESS', 'código do fornecedor (sem diferenciar maiúsculas) com ×5 em item de 3');
-select is((select (v ->> 'added')::numeric || '/' || (v ->> 'excess')::numeric from kv where k = 'c'), '3/2', 'soma 3 e avisa 2 a mais');
+select is((select array[(v ->> 'added')::numeric, (v ->> 'excess')::numeric] from kv where k = 'c'), array[3, 2]::numeric[], 'soma 3 e avisa 2 a mais');
 
 insert into kv select 'd', purch.scan_receipt_code((select v from ids where k = 'rc'), (select lower(sku) from catalog.variants where id = (select v from ids where k = 'var')));
 select is((select v ->> 'item_id' from kv where k = 'd'), (select v::text from ids where k = 'i3'), 'SKU da etiqueta acha o item ligado à peça');

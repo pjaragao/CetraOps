@@ -11,7 +11,7 @@ COPY apps/agent/contract apps/agent/contract
 COPY apps/agent/mcp_server apps/agent/mcp_server
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --package centralops-mcp
 
-FROM python:3.13-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 ENV PATH="/repo/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 RUN useradd --system --uid 10001 --no-create-home app
 WORKDIR /repo

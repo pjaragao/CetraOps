@@ -11,7 +11,7 @@ COPY apps/worker apps/worker
 # --no-editable: os pacotes do workspace são instalados no venv (nada aponta para o código-fonte)
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --package centralops-worker
 
-FROM python:3.13-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 ENV PATH="/repo/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 RUN useradd --system --uid 10001 --no-create-home app
 WORKDIR /repo

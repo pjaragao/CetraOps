@@ -2,39 +2,43 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Smartphone, Undo2, Volume2, VolumeX, X, Layers } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Smartphone, Undo2, Volume2, VolumeX, X, Layers, ListChecks } from "lucide-react";
 import { catalogPhoto, formatBRL } from "@centralops/domain";
 import { Button, cn, inputClass } from "@/components/ui";
 import { AssistPanel, type TeamPhone } from "./assist-panel";
 import { cue, unlockAudio } from "./feedback";
 import { MiniCamera } from "./mini-camera";
 import { JoinPanel, type Sibling } from "./join-panel";
-import type { GroupNote, NoteSummary, ScanApi, ScanItem, ScanLink, ScanResult } from "./types";
+import type { GroupNote, NoteSummary, ScanApi, ScanExtra, ScanItem, ScanLink, ScanResult } from "./types";
 
 type Tone = "ok" | "warn" | "err";
-interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean; /** leitura feita em outro aparelho */ remote?: "link" | "other"; /** tirada da lista pela pessoa (só some da tela; nada muda na nota) */ dismissed?: boolean }
-type Tab = "faltando" | "conferidos" | "todos" | "leituras";
+interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean; /** leitura feita em outro aparelho */ remote?: "link" | "other"; /** tirada da lista pela pessoa (só some da tela; nada muda na nota) */ dismissed?: boolean; /** leitura da revisão (bipar de novo): não mexe na contagem */ review?: boolean }
+type Tab = "faltando" | "conferidos" | "todos" | "leituras" | "arevisar" | "revisados" | "divergencias" | "fora";
 
 const fmtQty = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("pt-BR", { maximumFractionDigits: 3 }));
 const toneOf = (r: Read): Tone => r.state === "error" || r.result?.status === "UNKNOWN" ? "err" : r.result && r.result.status !== "OK" ? "warn" : "ok";
 
+const EXTRA_STATUS = ["EXCESS", "PARTIAL_EXCESS", "NOT_IN_NOTE", "UNKNOWN"];
+const EXTRA_LABEL: Record<ScanExtra["kind"], string> = { EXCESS: "Sobra: já estava completa na nota", NOT_IN_NOTE: "Fora da nota", UNKNOWN: "Código não reconhecido" };
 const noEffect = (r: Read) => r.state === "error" || !!r.undone || (r.state === "done" && !r.result?.added);
 
 const num = (v: unknown) => (v == null ? undefined : Number(v));
-const normalize = (r: ScanResult): ScanResult => ({ ...r, qty_counted: num(r.qty_counted), qty_nfe: num(r.qty_nfe), added: Number(r.added ?? 0), excess: Number(r.excess ?? 0) });
+const normalize = (r: ScanResult): ScanResult => ({ ...r, qty_counted: num(r.qty_counted), qty_reviewed: num(r.qty_reviewed), qty_nfe: num(r.qty_nfe), added: Number(r.added ?? 0), excess: Number(r.excess ?? 0) });
 const photoOf = (p: string | null | undefined) => (p ? catalogPhoto(p, 160, process.env.NEXT_PUBLIC_SUPABASE_URL ?? "") : null);
 
 /**
  * Tela de bipagem. mode "staff": no sistema (computador ou celular de quem está logado), com o modo assistido;
  * mode "link": celular aberto pelo link temporário, sem login — as leituras aparecem no computador.
  */
-export function ReceiveScanner({ receiptId, summary, initialItems, editable, api, mode = "staff", team = [], leaveAction, expiresAt, notes, siblings = [] }: {
+export function ReceiveScanner({ receiptId, summary, initialItems, editable, api, mode = "staff", team = [], leaveAction, expiresAt, notes, siblings = [], initialExtras = [] }: {
   receiptId: string; summary: NoteSummary; initialItems: ScanItem[]; editable: boolean; api: ScanApi; mode?: "staff" | "link";
   team?: TeamPhone[]; leaveAction?: (receiptId: string) => Promise<void>; expiresAt?: string;
   /** várias NF-e bipadas juntas (receiptId vira os números separados por vírgula): cada peça entra na nota que ainda precisa dela */
   notes?: GroupNote[];
   /** outras notas em aberto do mesmo fornecedor, para juntar a esta */
   siblings?: Sibling[];
+  /** sobras já registradas (peça lida a mais, fora da nota ou desconhecida) e ainda não resolvidas */
+  initialExtras?: ScanExtra[];
 }) {
   const router = useRouter();
   const group = notes && notes.length > 1 ? notes : null;
@@ -62,6 +66,10 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   const [noteFilter, setNoteFilter] = useState<string>("all");
   const [showJoin, setShowJoin] = useState(false);
   const [showConf, setShowConf] = useState(false);
+  const [extras, setExtras] = useState<ScanExtra[]>(initialExtras);
+  const [resolving, setResolving] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const syncRef = useRef<(() => Promise<void>) | null>(null);
   const seq = useRef(0);
   const ownEvents = useRef(new Set<number>());
   const lastEvent = useRef(-1);                                   // −1: a primeira consulta só marca onde o registro está
@@ -78,7 +86,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
 
   // ---------- leituras: fila em série (ordem garantida), guardada no aparelho enquanto não chega ao servidor ----------
   const persist = useCallback(() => {
-    try { localStorage.setItem(storeKey, JSON.stringify(queue.current.map((r) => ({ code: r.code, qty: r.qty, at: r.at })))); } catch { /* sem armazenamento */ }
+    try { localStorage.setItem(storeKey, JSON.stringify(queue.current.map((r) => ({ code: r.code, qty: r.qty, at: r.at, review: r.review })))); } catch { /* sem armazenamento */ }
   }, [storeKey]);
 
   const patchRead = (id: number, patch: Partial<Read>) => setReads((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -93,12 +101,19 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
     setItems((p) => p.map((i) => (i.id === res.item_id ? { ...i, qty_counted: Number(res.qty_counted) } : i)));
   };
 
+  // revisão: guarda quanto já foi conferido de cada linha (a contagem não muda)
+  const applyReview = (res: ScanResult) => {
+    const m = new Map((res.allocations ?? []).map((a) => [a.item_id, Number(a.qty_reviewed ?? 0)]));
+    if (m.size) setItems((p) => p.map((i) => (m.has(i.id) ? { ...i, qty_reviewed: m.get(i.id)! } : i)));
+  };
+
   const pump = useCallback(async () => {
     if (working.current) return;
     working.current = true;
+    let hadExtra = false;
     while (queue.current.length) {
       const r = queue.current[0];
-      const out = await api.scan(r.code, r.qty);
+      const out = r.review ? await api.review(r.code, r.qty) : await api.scan(r.code, r.qty);
       if (!out.ok && out.retry) {
         setOffline(true);
         await new Promise((ok) => setTimeout(ok, 3000));
@@ -116,9 +131,25 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       }
       const res = normalize(out.data);
       if (res.event_id) ownEvents.current.add(res.event_id);
-      applyCount(res);
+      if (EXTRA_STATUS.includes(res.status)) hadExtra = true;
+      if (r.review) applyReview(res); else applyCount(res);
       patchRead(r.id, { state: "done", result: res });
       setLastId(r.id);
+      if (r.review) {                                               // revisão: confere sem mexer na contagem
+        const rev = new Map((res.allocations ?? []).map((a) => [a.item_id, Number(a.qty_reviewed ?? 0)]));
+        const allReviewed = itemsRef.current.filter((i) => i.qty_counted > 0).every((i) => (rev.has(i.id) ? rev.get(i.id)! : i.qty_reviewed ?? 0) >= i.qty_counted);
+        if (res.status === "OK") {
+          const itemDone = res.qty_reviewed != null && res.qty_counted != null && res.qty_reviewed >= res.qty_counted;
+          cue(allReviewed ? "DONE_ALL" : itemDone ? "COMPLETE" : "OK", mutedRef.current);
+          setFlash("ok");
+        } else if (res.status === "EXTRA_OK") {                     // sobra / peça fora da NF: conferida e guardada à parte
+          const k = res.extra?.kind;
+          cue((k === "UNKNOWN" ? "UNKNOWN" : k === "NOT_IN_NOTE" ? "NOT_IN_NOTE" : "EXCESS") as never, mutedRef.current);
+          setFlash(k === "UNKNOWN" ? "err" : "warn");
+          hadExtra = true;
+        } else { cue(res.status as never, mutedRef.current); setFlash(res.status === "UNKNOWN" ? "err" : "warn"); }
+        continue;
+      }
       const alloc = new Map((res.allocations ?? []).map((a) => [a.item_id, Number(a.qty_counted)]));
       const after = itemsRef.current.map((i) => (alloc.has(i.id) ? { ...i, qty_counted: alloc.get(i.id)! } : !res.allocations && i.id === res.item_id ? { ...i, qty_counted: res.qty_counted ?? i.qty_counted } : i));
       const allDone = after.every((i) => i.qty_counted >= i.qty_nfe);
@@ -132,27 +163,28 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       }
     }
     working.current = false;
+    if (hadExtra) void syncRef.current?.();                         // a sobra aparece no painel na hora
   }, [api, mode, persist]);
 
   const enqueue = useCallback((code: string, qty = mult) => {
     const c = code.trim();
     if (!c || !canScan) return;
-    const r: Read = { id: ++seq.current, code: c, qty, at: Date.now(), state: "queued" };
+    const r: Read = { id: ++seq.current, code: c, qty, at: Date.now(), state: "queued", review: reviewing };
     queue.current.push(r);
     persist();
     setReads((p) => [r, ...p].slice(0, 300));
     setLastId(r.id);
     void pump();
-  }, [mult, canScan, persist, pump]);
+  }, [mult, canScan, reviewing, persist, pump]);
 
   // leituras que ficaram no aparelho (sem rede ou página fechada no meio) voltam para a fila
   useEffect(() => {
     const t = setTimeout(() => { try {
-      const saved = JSON.parse(localStorage.getItem(storeKey) ?? "[]") as { code: string; qty: number; at: number }[];
+      const saved = JSON.parse(localStorage.getItem(storeKey) ?? "[]") as { code: string; qty: number; at: number; review?: boolean }[];
       if (saved.length && canScan) {
         setNotice(`${saved.length} leitura(s) que não tinham chegado ao servidor foram reenviadas.`);
         for (const s of saved) {
-          const r: Read = { id: ++seq.current, code: s.code, qty: s.qty, at: s.at, state: "queued" };
+          const r: Read = { id: ++seq.current, code: s.code, qty: s.qty, at: s.at, state: "queued", review: s.review };
           queue.current.push(r);
           setReads((p) => [r, ...p]);
         }
@@ -204,8 +236,10 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       const f = out.data;
       setStatus(f.status);
       if (f.links) setLinks(f.links);
+      if (f.extras) setExtras(f.extras.map((x) => ({ ...x, qty: Number(x.qty) })));
       const m = new Map(f.items.map((i) => [i.item_id, Number(i.qty_counted)]));
-      setItems((p) => p.map((i) => (m.has(i.id) && m.get(i.id) !== i.qty_counted ? { ...i, qty_counted: m.get(i.id)! } : i)));
+      const rvm = new Map(f.items.map((i) => [i.item_id, Number(i.qty_reviewed ?? 0)]));
+      setItems((p) => p.map((i) => { const c = m.get(i.id), v = rvm.get(i.id); return c !== undefined && (c !== i.qty_counted || v !== (i.qty_reviewed ?? 0)) ? { ...i, qty_counted: c, qty_reviewed: v } : i; }));
       const first = lastEvent.current < 0;
       lastEvent.current = Math.max(lastEvent.current, Number(f.last_event) || 0);
       if (first) return;
@@ -219,6 +253,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       if (st === "OK") { const done = (top.result!.qty_counted ?? 0) >= (top.result!.qty_nfe ?? Infinity); cue(done ? "COMPLETE" : "OK", mutedRef.current); setFlash("ok"); }
       else if (st !== "ADJUST") { cue(st, mutedRef.current); setFlash(st === "UNKNOWN" ? "err" : "warn"); }
     };
+    syncRef.current = sync;
     const loop = async () => {
       await sync().catch(() => undefined);
       if (stop) return;
@@ -257,8 +292,49 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
     if (await bump(res.item_id, -res.added, r.id)) setNotice(`Leitura desfeita: ${res.label ?? res.description ?? r.code} (−${fmtQty(res.added)})`);
   };
 
-  const removeRead = (r: Read) => patchRead(r.id, { dismissed: true });
-  const clearWarnings = () => setReads((p) => p.map((r) => (noEffect(r) && r.state !== "queued" ? { ...r, dismissed: true } : r)));
+  // a leitura de sobra/fora da nota está guardada no banco: tirar da lista também a resolve lá (senão voltaria no painel de sobras)
+  const eventOf = (r: Read) => (r.result?.event_id && EXTRA_STATUS.includes(r.result.status) ? Number(r.result.event_id) : null);
+  const discardEvents = async (ids: number[]) => {
+    if (!ids.length) return true;
+    const out = await api.discard(ids);
+    if (!out.ok) { setNotice(out.error); return false; }
+    setExtras((p) => p.map((x) => ({ ...x, events: x.events.filter((e) => !ids.includes(e)) })).filter((x) => x.events.length));
+    void syncRef.current?.();
+    return true;
+  };
+  const removeRead = async (r: Read) => { const ev = eventOf(r); if (ev && !(await discardEvents([ev]))) return; patchRead(r.id, { dismissed: true }); };
+  const clearWarnings = async () => {
+    const target = reads.filter((r) => noEffect(r) && r.state !== "queued" && !r.dismissed);
+    const evs = target.map(eventOf).filter((e): e is number => e != null);
+    if (evs.length && !(await discardEvents(evs))) return;
+    setReads((p) => p.map((r) => (target.some((t) => t.id === r.id) ? { ...r, dismissed: true } : r)));
+  };
+  const resolveExtra = async (x: ScanExtra) => {
+    setResolving(`${x.kind}:${x.events[0]}`);
+    await discardEvents(x.events);
+    setResolving(null);
+  };
+  const extrasQty = extras.reduce((s, x) => s + x.qty, 0);
+  const extrasRv = extras.reduce((s, x) => s + Math.min(x.reviewed ?? 0, x.qty), 0);
+
+  // revisão: depois de bipar tudo, bipa de novo para conferir (a contagem só muda se a pessoa mandar ajustar)
+  const enterReview = () => {
+    unlockAudio();
+    setReviewing(true); setTab("arevisar"); setNoteFilter("all");
+    if (!started) setStarted(true);
+    setRunning(true);
+    void syncRef.current?.();
+  };
+  const exitReview = () => {
+    setReviewing(false); setTab("faltando");
+    setNotice(`Revisão: ${rv.ok} item(ns) conferem${rv.pending ? `, ${rv.pending} ainda por revisar` : ""}${rv.over ? `, ${rv.over} com mais peças do que o bipado` : ""}.`);
+  };
+  const resetReview = async () => {
+    if (!window.confirm("Zerar a revisão e começar de novo? A contagem não muda.")) return;
+    const out = await api.resetReview();
+    if (!out.ok) { setNotice(out.error); return; }
+    setItems((p) => p.map((i) => ({ ...i, qty_reviewed: 0 })));
+  };
 
   const start = () => { unlockAudio(); setStarted(true); setRunning(true); };
   const submitManual = (e: FormEvent) => { e.preventDefault(); if (manual.trim()) { unlockAudio(); enqueue(manual); setManual(""); } };
@@ -290,7 +366,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   }, [items]);
   const visibleReads = useMemo(() => reads.filter((r) => !r.dismissed), [reads]);
   const session = useMemo(() => {
-    const ok = visibleReads.filter((r) => r.result && r.result.added && !r.undone);
+    const ok = visibleReads.filter((r) => r.result && r.result.added && !r.undone && !r.review);
     return {
       pieces: ok.reduce((s, r) => s + (r.result!.added ?? 0), 0),
       excess: visibleReads.reduce((s, r) => s + (r.result?.excess ?? 0), 0),
@@ -309,15 +385,52 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   const scoped = noteFilter === "all" ? items : items.filter((i) => i.receipt_id === noteFilter);
   const scopedDone = scoped.filter((i) => i.qty_counted >= i.qty_nfe).length;
 
+  // revisão: tudo que foi bipado × o que já foi conferido bipando de novo
+  const rvOf = (i: ScanItem) => i.qty_reviewed ?? 0;
+  const rv = (() => {
+    const counted = items.reduce((a, i) => a + i.qty_counted, 0);
+    const reviewed = items.reduce((a, i) => a + Math.min(rvOf(i), i.qty_counted), 0);
+    return { counted, reviewed, ok: items.filter((i) => i.qty_counted > 0 && rvOf(i) === i.qty_counted).length, pending: items.filter((i) => rvOf(i) < i.qty_counted).length,
+             over: items.filter((i) => rvOf(i) > i.qty_counted).length, pct: counted ? Math.round((reviewed / counted) * 100) : 0 };
+  })();
+  const reviewBase = scoped.filter((i) => i.qty_counted > 0 || rvOf(i) > 0);
+  const rvPending = reviewBase.filter((i) => rvOf(i) < i.qty_counted), rvDone = reviewBase.filter((i) => rvOf(i) === i.qty_counted), rvOver = reviewBase.filter((i) => rvOf(i) > i.qty_counted);
+  const reviewTabs: [Tab, string][] = [["arevisar", `A revisar (${rvPending.length})`], ["revisados", `Revisados (${rvDone.length})`], ["divergencias", `A mais (${rvOver.length})`], ["todos", `Tudo bipado (${reviewBase.length})`], ["fora", `Fora da NF (${extras.length})`], ["leituras", `Leituras (${visibleReads.length})`]];
+  const shownPct = reviewing ? rv.pct : totals.pct;
+
   const last = visibleReads.find((r) => r.id === lastId) ?? null;
   const lastItem = last?.result?.item_id ? items.find((i) => i.id === last.result!.item_id) : undefined;
   // várias notas: o "3/5" da última leitura é o total da peça em todas as notas
-  const lastTotal = last?.result?.candidates?.length ? items.filter((i) => last.result!.candidates!.includes(i.id)).reduce((a, i) => ({ counted: a.counted + i.qty_counted, total: a.total + i.qty_nfe }), { counted: 0, total: 0 }) : undefined;
-  const list = tab === "faltando" ? scoped.filter((i) => i.qty_counted < i.qty_nfe) : tab === "conferidos" ? scoped.filter((i) => i.qty_counted >= i.qty_nfe) : scoped;
+  const lastTotal = last?.review && last.result?.extra ? { counted: last.result.extra.reviewed, total: last.result.extra.qty } : last?.result?.candidates?.length ? items.filter((i) => last.result!.candidates!.includes(i.id)).reduce((a, i) => ({ counted: a.counted + (last.review ? rvOf(i) : i.qty_counted), total: a.total + (last.review ? i.qty_counted : i.qty_nfe) }), { counted: 0, total: 0 }) : undefined;
+  const list = reviewing
+    ? (tab === "arevisar" ? rvPending : tab === "revisados" ? rvDone : tab === "divergencias" ? rvOver : reviewBase)
+    : tab === "faltando" ? scoped.filter((i) => i.qty_counted < i.qty_nfe) : tab === "conferidos" ? scoped.filter((i) => i.qty_counted >= i.qty_nfe) : scoped;
 
   // o item recém-bipado aparece na lista
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
   useEffect(() => { if (lastItem) rowRefs.current.get(lastItem.id)?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, [lastItem, lastItem?.qty_counted]);
+
+  // sobras e peças fora da NF: lista própria, separada dos itens da nota (painel na bipagem, aba na revisão)
+  const extrasList = (
+    <ul className="divide-y divide-border border-t border-border/60">
+      {extras.map((x) => {
+        const rvd = Math.min(x.reviewed ?? 0, x.qty);
+        return (
+          <li key={`${x.kind}:${x.events[0]}`} className="flex items-center gap-2.5 px-3 py-2 text-sm">
+            <Thumb src={photoOf(x.photo)} done={reviewing && rvd >= x.qty} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{x.label ?? x.code}</p>
+              <p className="truncate text-xs text-muted">{EXTRA_LABEL[x.kind]} · {x.sku ?? x.code}</p>
+            </div>
+            {reviewing
+              ? <span className="shrink-0 tabular-nums"><b className={cn("text-base", rvd >= x.qty && "text-success")}>{fmtQty(rvd)}</b><span className="text-xs text-muted">/{fmtQty(x.qty)} revisadas</span></span>
+              : <span className="shrink-0 text-base font-semibold tabular-nums">×{fmtQty(x.qty)}</span>}
+            {editable && !linkError && <Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" disabled={resolving === `${x.kind}:${x.events[0]}`} onClick={() => void resolveExtra(x)} title="Marca como resolvida: sai deste painel e da conferência"><Check size={14} /> Resolver</Button>}
+          </li>
+        );
+      })}
+    </ul>
+  );
 
   return (
     <div className={cn("-mx-4 -my-6 sm:mx-auto sm:my-0 sm:max-w-4xl", mode === "link" && "mx-0 my-0")}>
@@ -340,20 +453,40 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
           <button type="button" onClick={() => { unlockAudio(); setMuted((m) => !m); }} className="rounded-lg p-1.5 hover:bg-surface-2" aria-label={muted ? "Ligar som" : "Tirar som"}>{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
         </div>
 
+        {reviewing && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand/10 px-3 py-1.5 text-xs">
+            <ListChecks size={14} className="shrink-0 text-brand" />
+            <span className="min-w-0 flex-1"><b>Modo revisão:</b> bipe cada peça de novo. Nada muda na contagem até você mandar ajustar.</span>
+            <button type="button" onClick={() => void resetReview()} className="text-muted underline">Zerar</button>
+            <button type="button" onClick={exitReview} className="font-semibold text-brand">Concluir revisão</button>
+          </div>
+        )}
+
         <div className="flex gap-3">
           {canScan && started ? <MiniCamera active={running} onCode={(c) => enqueue(c)} flash={flash} /> : null}
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-2xl font-bold tabular-nums leading-none">{fmtQty(totals.counted)}<span className="text-base font-medium text-muted"> / {fmtQty(totals.nfe)} peças</span></p>
-              <span className={cn("text-sm font-semibold tabular-nums", totals.pct === 100 ? "text-success" : "text-muted")}>{totals.pct}%</span>
+              <p className="text-2xl font-bold tabular-nums leading-none">{reviewing ? <>{fmtQty(rv.reviewed)}<span className="text-base font-medium text-muted"> / {fmtQty(rv.counted)} revisadas</span></> : <>{fmtQty(totals.counted)}<span className="text-base font-medium text-muted"> / {fmtQty(totals.nfe)} peças</span></>}</p>
+              <span className={cn("text-sm font-semibold tabular-nums", shownPct === 100 ? "text-success" : "text-muted")}>{shownPct}%</span>
             </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={totals.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Peças conferidas">
-              <div className={cn("h-full rounded-full transition-all duration-300", totals.pct === 100 ? "bg-success" : "bg-brand")} style={{ width: `${totals.pct}%` }} />
+            <div className="h-2.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={shownPct} aria-valuemin={0} aria-valuemax={100} aria-label="Peças conferidas">
+              <div className={cn("h-full rounded-full transition-all duration-300", shownPct === 100 ? "bg-success" : "bg-brand")} style={{ width: `${shownPct}%` }} />
             </div>
             <div className="flex flex-wrap gap-1 text-[11px]">
-              <span className="rounded-full bg-success/15 px-2 py-0.5 text-success">{totals.done} item(ns) ok</span>
-              <span className="rounded-full bg-surface-2 px-2 py-0.5">{totals.missing} faltando</span>
-              {session.excess > 0 && <span className="rounded-full bg-warning/15 px-2 py-0.5 text-warning">{fmtQty(session.excess)} sobra(s)</span>}
+              {reviewing ? (
+                <>
+                  <span className="rounded-full bg-success/15 px-2 py-0.5 text-success">{rv.ok} conferem</span>
+                  <span className="rounded-full bg-surface-2 px-2 py-0.5">{rv.pending} a revisar</span>
+                  {rv.over > 0 && <span className="rounded-full bg-danger/15 px-2 py-0.5 text-danger">{rv.over} a mais</span>}
+                  {extras.length > 0 && <span className="rounded-full bg-warning/15 px-2 py-0.5 text-warning">fora da NF {fmtQty(extrasRv)}/{fmtQty(extrasQty)}</span>}
+                </>
+              ) : (
+                <>
+                  <span className="rounded-full bg-success/15 px-2 py-0.5 text-success">{totals.done} item(ns) ok</span>
+                  <span className="rounded-full bg-surface-2 px-2 py-0.5">{totals.missing} faltando</span>
+                </>
+              )}
+              {extrasQty > 0 && <span className="rounded-full bg-warning/15 px-2 py-0.5 text-warning">{fmtQty(extrasQty)} sobrando</span>}
               {session.queued > 0 && <span className="rounded-full bg-brand/15 px-2 py-0.5 text-brand">{session.queued} enviando…</span>}
             </div>
             {group && (
@@ -419,7 +552,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
         )}
         {!canScan && !linkError && <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm text-muted">{status === "POSTED" ? "Esta nota já foi lançada no estoque: a bipagem está fechada." : "Você pode ver a conferência, mas não tem permissão para bipar."}</p>}
 
-        {last && <LastRead read={last} item={lastItem} total={lastTotal} nfOf={group ? (id) => nfOf.get(id) : undefined} canUndo={canScan && !last.remote} onUndo={() => undoRead(last)} onDismiss={noEffect(last) && last.state !== "queued" ? () => removeRead(last) : undefined} />}
+        {last && <LastRead read={last} item={lastItem} total={lastTotal} nfOf={group ? (id) => nfOf.get(id) : undefined} canUndo={canScan && !last.remote && !last.review} onUndo={() => undoRead(last)} onDismiss={noEffect(last) && last.state !== "queued" ? () => removeRead(last) : undefined} />}
         {notice && <p className="flex items-start justify-between gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs" role="status">{notice}<button type="button" className="text-muted" onClick={() => setNotice(null)} aria-label="Fechar aviso">✕</button></p>}
       </div>
 
@@ -457,6 +590,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             <dt className="text-muted">Peças na nota</dt><dd className="text-right tabular-nums">{fmtQty(totals.nfe)}</dd>
             <dt className="text-muted">Bipadas (conferidas)</dt><dd className="text-right font-semibold tabular-nums text-success">{fmtQty(totals.counted)} · {formatBRL(totals.countedValue)}</dd>
             <dt className="text-muted">Faltando</dt><dd className={cn("text-right tabular-nums", totals.shortage > 0 && "text-warning")}>{fmtQty(totals.nfe - totals.counted)} · {formatBRL(totals.shortage)}</dd>
+            {extrasQty > 0 && <><dt className="text-muted">Sobras / fora da nota</dt><dd className="text-right font-semibold tabular-nums text-warning">{fmtQty(extrasQty)} peça(s)</dd></>}
             <dt className="text-muted">Nesta sessão</dt><dd className="text-right tabular-nums">{fmtQty(session.pieces)} peça(s) · {visibleReads.length} leitura(s){session.problems ? ` · ${session.problems} problema(s)` : ""}</dd>
             {totals.unlinked > 0 && <dd className="col-span-2 rounded-lg bg-warning/10 px-2 py-1.5 text-xs text-warning">{totals.unlinked} item(ns) ainda sem peça do catálogo: bipam pelo EAN ou código da nota; ligue-os na conferência antes de lançar.</dd>}
             <dd className="col-span-2 pt-1 text-xs text-muted">{group ? "Cada nota continua com a sua conferência, vencimentos, estoque e financeiro. " : ""}Faltas viram crédito com o fornecedor ao lançar. Sobras não entram: peça nota complementar.</dd>
@@ -464,13 +598,27 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
         )}
       </section>
 
+      {/* ---------- sobras: peça que chegou e não entra na nota (fica guardada até resolver) ---------- */}
+      {extras.length > 0 && !reviewing && (
+        <section className="mx-3 mt-3 rounded-xl border-2 border-warning/60 bg-warning/5 sm:mx-0" aria-label="Sobras e peças fora da nota">
+          <div className="flex items-start gap-2 px-3 py-2.5">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">{fmtQty(extrasQty)} peça(s) chegaram e não entram {group ? "nestas notas" : "nesta nota"}</p>
+              <p className="text-xs text-muted">Ficam guardadas aqui e na conferência até você resolver: peça nota complementar ao fornecedor, devolva a peça ou marque como engano.</p>
+            </div>
+          </div>
+          {extrasList}
+        </section>
+      )}
+
       {/* ---------- itens da nota ---------- */}
       <nav className="mx-3 mt-3 flex gap-1 overflow-x-auto text-sm sm:mx-0" aria-label="Filtro dos itens">
-        {([["faltando", `Faltando (${scoped.length - scopedDone})`], ["conferidos", `Conferidos (${scopedDone})`], ["todos", `Todos (${scoped.length})`], ["leituras", `Leituras (${visibleReads.length})`]] as [Tab, string][]).map(([v, l]) => (
+        {(reviewing ? reviewTabs : [["faltando", `Faltando (${scoped.length - scopedDone})`], ["conferidos", `Conferidos (${scopedDone})`], ["todos", `Todos (${scoped.length})`], ["leituras", `Leituras (${visibleReads.length})`]] as [Tab, string][]).map(([v, l]) => (
           <button key={v} type="button" onClick={() => setTab(v)} className={cn("shrink-0 rounded-full px-3 py-1", tab === v ? "bg-brand text-brand-contrast" : "border border-border bg-surface")}>{l}</button>
         ))}
       </nav>
-      {group && tab !== "leituras" && (
+      {group && tab !== "leituras" && tab !== "fora" && (
         <nav className="mx-3 mt-2 flex gap-1 overflow-x-auto text-xs sm:mx-0" aria-label="Filtro por nota">
           <button type="button" onClick={() => setNoteFilter("all")} className={cn("shrink-0 rounded-md px-2 py-0.5", noteFilter === "all" ? "bg-surface-2 font-semibold" : "text-muted")}>Todas as notas</button>
           {group.map((n) => (
@@ -495,15 +643,41 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
                 <p className="truncate">{r.result?.label ?? r.result?.description ?? r.code}</p>
                 <p className="truncate text-xs text-muted">{new Date(r.at).toLocaleTimeString("pt-BR")}{r.remote ? (r.remote === "link" ? " · pelo celular" : " · outro aparelho") : ""} · {r.code}{r.qty > 1 ? ` ×${r.qty}` : ""} · {readText(r, group ? (id) => nfOf.get(id) : undefined)}</p>
               </div>
-              {canScan && !r.remote && r.result?.added && !r.undone ? <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => undoRead(r)}><Undo2 size={14} /> Desfazer</Button> : null}
+              {canScan && !r.remote && !r.review && r.result?.added && !r.undone ? <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => undoRead(r)}><Undo2 size={14} /> Desfazer</Button> : null}
               {r.state !== "queued" && noEffect(r) ? <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => removeRead(r)} aria-label="Remover esta leitura da lista"><X size={14} /> Remover</Button> : null}
             </li>
           ))}
         </ul>
+      ) : tab === "fora" ? (
+        extras.length === 0
+          ? <p className="mx-3 mb-3 mt-2 rounded-xl border border-border bg-surface px-3 py-6 text-center text-sm text-muted sm:mx-0">Nada fora da NF. Peça lida a mais, peça que não está na nota e código desconhecido aparecem aqui, separados dos itens.</p>
+          : <div className="mx-3 mb-3 mt-2 overflow-hidden rounded-xl border-2 border-warning/60 bg-warning/5 sm:mx-0"><p className="px-3 py-2 text-xs text-muted">Separado dos itens da nota. Bipe de novo para conferir: peça nova fora da NF também fica registrada aqui.</p>{extrasList}</div>
       ) : (
         <ul className="mx-3 mb-3 mt-2 space-y-1.5 sm:mx-0">
-          {list.length === 0 && <li className="rounded-xl border border-border bg-surface px-3 py-6 text-center text-sm text-muted">{tab === "faltando" ? "Tudo conferido! 🎉" : "Nada aqui ainda."}</li>}
+          {list.length === 0 && <li className="rounded-xl border border-border bg-surface px-3 py-6 text-center text-sm text-muted">{tab === "faltando" || tab === "arevisar" ? "Tudo conferido! 🎉" : "Nada aqui ainda."}</li>}
           {list.map((i) => {
+            if (reviewing) {                                          // revisão: o que foi bipado × o que já foi conferido de novo
+              const rvd = rvOf(i), diff = rvd - i.qty_counted, full = diff === 0 && i.qty_counted > 0;
+              const pctR = i.qty_counted > 0 ? Math.min(100, Math.round((rvd / i.qty_counted) * 100)) : 0;
+              return (
+                <li key={i.id} ref={(el) => { if (el) rowRefs.current.set(i.id, el); else rowRefs.current.delete(i.id); }}
+                  className={cn("flex items-center gap-2.5 rounded-xl border bg-surface p-2 transition-colors", lastItem?.id === i.id ? "border-brand ring-2 ring-brand/30" : "border-border", full && "bg-success/5", diff > 0 && "border-danger/60 bg-danger/5")}>
+                  <Thumb src={i.photo} done={full} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{i.label ?? i.description}</p>
+                    <p className="truncate text-[11px] text-muted">#{i.n_item} · {i.sku ?? i.cprod ?? "—"}{group && noteFilter === "all" && i.receipt_id && <span className="ml-1 rounded bg-surface-2 px-1 py-px text-[10px] font-medium text-text">NF {nfOf.get(i.receipt_id)}</span>}</p>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2"><div className={cn("h-full rounded-full", diff > 0 ? "bg-danger" : full ? "bg-success" : "bg-brand")} style={{ width: `${diff > 0 ? 100 : pctR}%` }} /></div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="tabular-nums"><b className={cn("text-base", full && "text-success", diff > 0 && "text-danger")}>{fmtQty(rvd)}</b><span className="text-xs text-muted">/{fmtQty(i.qty_counted)} revisadas</span></p>
+                    {canScan && diff < 0 && <button type="button" disabled={busyItem === i.id} onClick={() => bump(i.id, diff)} className="mt-0.5 text-xs text-brand disabled:text-muted" title="A contagem passa a ser só o que foi conferido">Ajustar contagem p/ {fmtQty(rvd)}</button>}
+                    {canScan && diff > 0 && (i.qty_counted + diff <= i.qty_nfe
+                      ? <button type="button" disabled={busyItem === i.id} onClick={() => bump(i.id, diff)} className="mt-0.5 text-xs text-brand disabled:text-muted" title="Tem mais peças do que foi bipado antes">Contar {fmtQty(rvd)}</button>
+                      : <span className="text-xs text-warning">passa da nota</span>)}
+                  </div>
+                </li>
+              );
+            }
             const done = i.qty_counted >= i.qty_nfe;
             const pct = Math.min(100, Math.round((i.qty_counted / i.qty_nfe) * 100));
             return (
@@ -540,10 +714,19 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       {/* ---------- rodapé: concluir (no computador) ou aviso (no celular do link) ---------- */}
       <div className="sticky bottom-0 z-20 border-t border-border bg-bg/95 px-3 py-2.5 backdrop-blur sm:rounded-xl sm:border">
         {mode === "link" ? (
+          <>
           <p className="text-center text-xs text-muted">
             {totals.pct === 100 ? "Todas as peças conferidas! " : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s). `}
             As leituras já aparecem no computador.{expiresAt ? ` Link válido até ${new Date(expiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.` : ""}
           </p>
+          {canScan && totals.counted > 0 && (
+            <div className="mt-2 flex justify-center">
+              <Button type="button" variant={reviewing ? "primary" : "secondary"} className="h-8 text-xs" onClick={reviewing ? exitReview : enterReview}>
+                <ListChecks size={14} /> {reviewing ? "Voltar à bipagem" : "Revisar tudo que foi bipado"}
+              </Button>
+            </div>
+          )}
+          </>
         ) : (
           <div className="mx-auto max-w-3xl space-y-2">
             {group && showConf && (
@@ -559,12 +742,17 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             )}
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1 text-xs">
-              <p className="truncate text-muted">{totals.pct === 100 ? "Todas as peças da nota conferidas." : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s) · ${formatBRL(totals.shortage)}`}</p>
+              <p className="truncate text-muted">{totals.pct === 100 ? "Todas as peças da nota conferidas." : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s) · ${formatBRL(totals.shortage)}`}{extrasQty > 0 && <span className="text-warning"> · {fmtQty(extrasQty)} sobrando</span>}</p>
               <p className={cn("truncate", session.queued ? "text-brand" : "text-success")}>{session.queued ? `Salvando ${session.queued} leitura(s)…` : "✓ Tudo salvo"}</p>
             </div>
             <Button type="button" variant="secondary" disabled={leaving} onClick={() => void leave("lista")} title="As leituras já estão salvas: volta para a lista e continua depois de onde parou">
               {leaving ? "Salvando…" : "Salvar e sair"}
             </Button>
+            {canScan && totals.counted > 0 && (
+              <Button type="button" variant={reviewing ? "primary" : "secondary"} onClick={reviewing ? exitReview : enterReview} title="Bipar tudo de novo para conferir o que foi lançado">
+                <ListChecks size={16} /> {reviewing ? "Voltar à bipagem" : "Revisar"}
+              </Button>
+            )}
             {group ? (
               <button type="button" onClick={() => setShowConf((v) => !v)} aria-expanded={showConf}
                 className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium", totals.pct === 100 ? "bg-success text-white" : "bg-brand text-brand-contrast")}>
@@ -590,6 +778,18 @@ function readText(r: Read, nfOf?: (receiptId: string) => string | undefined): st
   const s = r.result!;
   if (r.undone) return "desfeita";
   // várias notas: onde cada peça entrou
+  if (r.review) {                                                   // revisão (bipar de novo)
+    const w = nfOf && s.allocations?.length ? ` → ${s.allocations.map((a) => `NF ${nfOf(a.receipt_id) ?? "?"} ×${fmtQty(a.added)}`).join(", ")}` : "";
+    switch (s.status) {
+      case "OK": return `revisada${w} · ${fmtQty(s.qty_reviewed ?? 0)}/${fmtQty(s.qty_counted ?? 0)}`;
+      case "PARTIAL_OVER": return `+${fmtQty(s.added ?? 0)} revisada(s) e ${fmtQty(s.excess ?? 0)} a mais do que foi bipado`;
+      case "EXTRA_OK": return `fora da NF: conferida${s.extra ? ` (${fmtQty(s.extra.reviewed)}/${fmtQty(s.extra.qty)})` : ""}`;
+      case "OVER": return "a mais do que foi bipado: confira a contagem";
+      case "NOT_COUNTED": return "peça da nota que não tinha sido bipada";
+      case "NOT_IN_NOTE": return "fora da nota";
+      default: return "código não encontrado";
+    }
+  }
   const where = nfOf && s.allocations?.length ? ` → ${s.allocations.map((a) => `NF ${nfOf(a.receipt_id) ?? "?"} ×${fmtQty(a.added)}`).join(", ")}` : "";
   switch (s.status) {
     case "OK": return `+${fmtQty(s.added ?? 0)}${where} · ${fmtQty(s.qty_counted ?? 0)}/${fmtQty(s.qty_nfe ?? 0)}`;
@@ -629,7 +829,10 @@ function LastRead({ read, item, total: agg, nfOf, canUndo, onUndo, onDismiss }: 
   const s = read.result;
   const counted = agg?.counted ?? item?.qty_counted ?? s?.qty_counted ?? 0;
   const total = agg?.total ?? item?.qty_nfe ?? s?.qty_nfe;
+  const reviewTitle = read.review && s ? ({ OK: total != null && counted >= total ? "Item revisado!" : "Revisada ✓", PARTIAL_OVER: "Revisada em parte: passou do bipado", OVER: "A mais do que foi bipado",
+    NOT_COUNTED: "Esta peça não tinha sido bipada", EXTRA_OK: ({ UNKNOWN: "Fora da NF: código não reconhecido, registrado", NOT_IN_NOTE: "Fora da NF: registrada e conferida", EXCESS: "Sobra conferida" } as Record<string, string>)[s.extra?.kind ?? "EXCESS"], NOT_IN_NOTE: "Fora da nota", UNKNOWN: "Código não encontrado" } as Record<string, string>)[s.status] : undefined;
   const title = read.state === "queued" ? "Lendo…" : read.state === "error" ? "Não foi possível lançar" : read.undone ? "Leitura desfeita"
+    : reviewTitle ? reviewTitle
     : s?.status === "OK" ? (total != null && counted >= total ? "Item completo!" : "Lida e somada")
     : s?.status === "PARTIAL_EXCESS" ? "Somada em parte: passou da nota" : s?.status === "EXCESS" ? (nfOf ? "Sobra! As notas já estão completas para esta peça" : "Sobra! A nota já está completa") : s?.status === "NOT_IN_NOTE" ? (nfOf ? "Esta peça não está em nenhuma destas notas" : "Esta peça não está nesta nota") : "Código não encontrado";
   const name = s?.label ?? item?.label ?? s?.description ?? item?.description ?? null;
@@ -645,7 +848,7 @@ function LastRead({ read, item, total: agg, nfOf, canUndo, onUndo, onDismiss }: 
         <p className="truncate text-xs text-muted">{read.state === "error" ? read.error : s?.sku ?? item?.sku ?? read.code}{s?.status === "UNKNOWN" ? " · confira a etiqueta ou digite o código" : ""}</p>
         {nfOf && s?.allocations?.length ? <p className="truncate text-xs font-medium">{s.allocations.map((a) => `NF ${nfOf(a.receipt_id) ?? "?"} +${fmtQty(a.added)}`).join(" · ")}</p> : null}
       </div>
-      {total != null && (
+      {total != null && total > 0 && (
         <div className="shrink-0 text-right">
           <p className="text-2xl font-bold tabular-nums leading-none">{fmtQty(counted)}<span className="text-sm font-medium text-muted">/{fmtQty(total)}</span></p>
           {canUndo && s?.added ? !read.undone ? <button type="button" onClick={onUndo} className="mt-1 inline-flex items-center gap-1 text-xs text-brand"><Undo2 size={12} /> desfazer</button> : null : null}

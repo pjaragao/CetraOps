@@ -41,5 +41,23 @@ export async function linkFeedAction(token: string, after: number): Promise<Outc
 /** Abre a nota pelo link (usado pela página). */
 export async function openLink(token: string) {
   if (!okToken(token)) return { ok: false as const, error: "Link inválido" };
-  return call<{ expires_at: string; label: string | null; summary: Record<string, unknown>; notes?: Record<string, unknown>[]; items: Record<string, unknown>[] }>("receipt_link_open", { p_token: token });
+  return call<{ expires_at: string; label: string | null; summary: Record<string, unknown>; notes?: Record<string, unknown>[]; extras?: Record<string, unknown>[]; items: Record<string, unknown>[] }>("receipt_link_open", { p_token: token });
+}
+
+export async function linkDiscardAction(token: string, events: number[]): Promise<Outcome<number>> {
+  if (!okToken(token) || !Array.isArray(events) || events.length < 1 || events.length > 500 || !events.every((i) => Number.isInteger(i) && i > 0)) return { ok: false, error: "Leituras inválidas" };
+  const out = await call<number>("receipt_link_discard", { p_token: token, p_events: events });
+  return out.ok ? { ok: true, data: Number(out.data) } : out;
+}
+
+export async function linkReviewAction(token: string, code: string, qty: number): Promise<Outcome<ScanResult>> {
+  const c = String(code ?? "").trim();
+  if (!okToken(token) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000) return { ok: false, error: "Leitura inválida" };
+  return call<ScanResult>("receipt_link_review", { p_token: token, p_code: c, p_qty: qty });
+}
+
+export async function linkResetReviewAction(token: string): Promise<Outcome<number>> {
+  if (!okToken(token)) return { ok: false, error: "Link inválido" };
+  const out = await call<number>("receipt_link_review_reset", { p_token: token });
+  return out.ok ? { ok: true, data: Number(out.data) } : out;
 }

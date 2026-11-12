@@ -3,8 +3,8 @@ import { Smartphone } from "lucide-react";
 import { photoUrl } from "@/lib/photos";
 import { ReceiveScanner } from "@/app/(app)/produtos/recebimento/[id]/bipar/receive-scanner";
 import { mergeSummary } from "@/app/(app)/produtos/recebimento/[id]/bipar/data";
-import type { GroupNote, ScanItem } from "@/app/(app)/produtos/recebimento/[id]/bipar/types";
-import { linkBumpAction, linkFeedAction, linkScanAction, openLink } from "./actions";
+import type { GroupNote, ScanExtra, ScanItem } from "@/app/(app)/produtos/recebimento/[id]/bipar/types";
+import { linkBumpAction, linkDiscardAction, linkFeedAction, linkResetReviewAction, linkReviewAction, linkScanAction, openLink } from "./actions";
 
 export const metadata: Metadata = { title: "Bipar entrada", robots: { index: false, follow: false }, referrer: "no-referrer" };
 export const dynamic = "force-dynamic";
@@ -35,13 +35,17 @@ export default async function BiparPorLinkPage({ params }: { params: Promise<{ t
   const summary = mergeSummary(notes);
   const items: ScanItem[] = out.data.items.map((i) => ({
     id: String(i.id), receipt_id: i.receipt_id ? String(i.receipt_id) : undefined, n_item: Number(i.n_item), description: String(i.description ?? ""), cprod: (i.cprod as string | null) ?? null, cean: (i.cean as string | null) ?? null,
-    qty_nfe: Number(i.qty_nfe), qty_counted: Number(i.qty_counted ?? 0), item_total: Number(i.item_total ?? 0), variant_id: (i.variant_id as string | null) ?? null,
+    qty_nfe: Number(i.qty_nfe), qty_counted: Number(i.qty_counted ?? 0), qty_reviewed: Number(i.qty_reviewed ?? 0), item_total: Number(i.item_total ?? 0), variant_id: (i.variant_id as string | null) ?? null,
     sku: (i.sku as string | null) ?? null, label: (i.label as string | null) ?? null, photo: i.photo ? photoUrl(String(i.photo), 160) : null,
+  }));
+  const extras: ScanExtra[] = (out.data.extras ?? []).map((x) => ({
+    kind: x.kind as ScanExtra["kind"], code: String(x.code ?? ""), label: (x.label as string | null) ?? null, sku: (x.sku as string | null) ?? null,
+    photo: (x.photo as string | null) ?? null, qty: Number(x.qty ?? 0), events: ((x.events as number[]) ?? []).map(Number), last_at: String(x.last_at ?? ""),
   }));
   return (
     <main className="min-h-dvh bg-bg" style={{ ["--topbar-h" as string]: "0px" }}>
-      <ReceiveScanner receiptId={token} summary={summary} notes={notes.length > 1 ? notes : undefined} initialItems={items} editable mode="link" expiresAt={out.data.expires_at}
-        api={{ scan: linkScanAction.bind(null, token), bump: linkBumpAction.bind(null, token), feed: linkFeedAction.bind(null, token) }} />
+      <ReceiveScanner receiptId={token} summary={summary} notes={notes.length > 1 ? notes : undefined} initialItems={items} initialExtras={extras} editable mode="link" expiresAt={out.data.expires_at}
+        api={{ scan: linkScanAction.bind(null, token), bump: linkBumpAction.bind(null, token), feed: linkFeedAction.bind(null, token), discard: linkDiscardAction.bind(null, token), review: linkReviewAction.bind(null, token), resetReview: linkResetReviewAction.bind(null, token) }} />
     </main>
   );
 }

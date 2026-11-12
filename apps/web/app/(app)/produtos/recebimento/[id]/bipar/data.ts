@@ -1,8 +1,9 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/photos";
+import { rpcAny } from "@/lib/rpc";
 import type { Sibling } from "./join-panel";
-import type { GroupNote, NoteSummary, ScanItem } from "./types";
+import type { GroupNote, NoteSummary, ScanExtra, ScanItem } from "./types";
 
 /** Itens da nota (ou das notas bipadas juntas, na ordem em que foram passadas) com a peça ligada (SKU, nome · cor · tamanho) e a foto da cor. */
 export async function loadScanItems(receiptIds: string | string[]): Promise<ScanItem[]> {
@@ -113,4 +114,11 @@ export async function loadSiblings(id: string): Promise<Sibling[]> {
       pieces: mine.reduce((s, i) => s + Number(i.qty_nfe), 0), counted: mine.reduce((s, i) => s + Math.min(Number(i.qty_counted ?? 0), Number(i.qty_nfe)), 0),
     };
   });
+}
+
+/** Sobras pendentes das notas (peça lida a mais, fora da nota ou desconhecida). */
+export async function loadExtras(receiptIds: string[]): Promise<ScanExtra[]> {
+  const supabase = await createClient();
+  const { data } = await rpcAny(supabase, "purch", "receipts_extras", { p_receipts: receiptIds });
+  return Array.isArray(data) ? (data as ScanExtra[]).map((x) => ({ ...x, qty: Number(x.qty) })) : [];
 }

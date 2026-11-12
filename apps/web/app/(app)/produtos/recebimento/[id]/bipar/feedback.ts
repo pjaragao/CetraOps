@@ -33,6 +33,7 @@ export function cue(kind: Cue, muted = false) {
   const vib: Record<Cue, number[]> = {
     OK: [50], COMPLETE: [40, 40, 40], DONE_ALL: [60, 60, 60, 60, 120], PARTIAL_EXCESS: [150, 80, 150],
     EXCESS: [200, 80, 200], NOT_IN_NOTE: [300, 100, 300], UNKNOWN: [400], ERROR: [400],
+    PARTIAL_OVER: [150, 80, 150], OVER: [200, 80, 200], NOT_COUNTED: [300, 100, 300], EXTRA_OK: [60, 60, 60],
   };
   try { navigator.vibrate?.(vib[kind]); } catch { /* sem vibração */ }
   if (muted || !ctx) return;
@@ -41,7 +42,11 @@ export function cue(kind: Cue, muted = false) {
     case "COMPLETE": tone(1300, 0, 0.08, "square", 0.06); tone(1900, 0.1, 0.12, "square", 0.06); break;   // item fechou
     case "DONE_ALL": [1046, 1318, 1568, 2093].forEach((f, i) => tone(f, i * 0.11, 0.14, "triangle", 0.14)); break;
     case "PARTIAL_EXCESS":
+    case "PARTIAL_OVER":
+    case "OVER":
     case "EXCESS": tone(520, 0, 0.14, "sawtooth", 0.08); tone(520, 0.2, 0.14, "sawtooth", 0.08); break;    // sobra: dois graves
+    case "EXTRA_OK": tone(1100, 0, 0.09, "triangle", 0.1); tone(800, 0.11, 0.12, "triangle", 0.1); break;   // sobra conferida
+    case "NOT_COUNTED":
     case "NOT_IN_NOTE": tone(700, 0, 0.12, "triangle", 0.12); tone(440, 0.15, 0.25, "triangle", 0.12); break;
     case "UNKNOWN":
     case "ERROR": tone(180, 0, 0.35, "sawtooth", 0.1); break;                               // erro: zumbido

@@ -1,9 +1,12 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { rpcAny } from "@/lib/rpc";
 import type { Outcome, ScanFeed, ScanResult } from "./types";
+
+const eventIds = (ids: number[]) => Array.isArray(ids) && ids.length >= 1 && ids.length <= 500 && ids.every((i) => Number.isInteger(i) && i > 0);
 
 const uuid = z.string().uuid();
 const friendly = (m: string) => m.replace(/^ERROR:\s*/, "");
@@ -101,4 +104,57 @@ export async function refreshReceiptAction(receiptId: string): Promise<void> {
   const ids = String(receiptId ?? "").split(",").filter((i) => uuid.safeParse(i).success).slice(0, 20);
   for (const id of ids) revalidatePath(`/produtos/recebimento/${id}`);
   revalidatePath("/produtos/recebimento");
+}
+
+/** Resolve sobras: marca as leituras como resolvidas (engano, nota complementar pedida, peça devolvida). */
+export async function discardExtrasAction(events: number[]): Promise<Outcome<number>> {
+  if (!eventIds(events)) return { ok: false, error: "Leituras inválidas" };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await rpcAny(supabase, "purch", "discard_scan_extras", { p_events: events });
+    if (error) return { ok: false, error: friendly(error.message), retry: !error.code || error.code.startsWith("08") };
+    return { ok: true, data: Number(data) };
+  } catch {
+    return { ok: false, error: "Sem conexão com o servidor", retry: true };
+  }
+}
+
+/** Conferência da nota: botão "Resolver" de uma sobra. */
+export async function resolveExtraFormAction(formData: FormData) {
+  const receiptId = String(formData.get("receipt_id") ?? "");
+  const events = String(formData.get("events") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  if (!uuid.safeParse(receiptId).success) redirect("/produtos/recebimento");
+  if (!eventIds(events)) redirect(`/produtos/recebimento/${receiptId}?erro=${encodeURIComponent("Leituras inválidas")}`);
+  const supabase = await createClient();
+  const { error } = await rpcAny(supabase, "purch", "discard_scan_extras", { p_events: events });
+  revalidatePath(`/produtos/recebimento/${receiptId}`);
+  revalidatePath("/produtos/recebimento");
+  redirect(`/produtos/recebimento/${receiptId}?${error ? `erro=${encodeURIComponent(friendly(error.message))}` : "ok=" + encodeURIComponent("Sobra marcada como resolvida")}`);
+}
+
+/** Revisão: bipa de novo para conferir o que foi lançado (uma ou várias notas). Não muda a contagem. */
+export async function reviewGroupAction(receiptIds: string[], code: string, qty: number): Promise<Outcome<ScanResult>> {
+  const c = String(code ?? "").trim();
+  if (!uuidList(receiptIds) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000) return { ok: false, error: "Leitura inválida" };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await rpcAny(supabase, "purch", "review_receipts_code", { p_receipts: receiptIds, p_code: c, p_qty: qty });
+    if (error) return { ok: false, error: friendly(error.message), retry: !error.code || error.code.startsWith("08") || error.code === "PGRST000" };
+    return { ok: true, data: data as unknown as ScanResult };
+  } catch {
+    return { ok: false, error: "Sem conexão com o servidor", retry: true };
+  }
+}
+
+/** Revisão: zera o que já foi conferido para revisar de novo. */
+export async function resetReviewAction(receiptIds: string[]): Promise<Outcome<number>> {
+  if (!uuidList(receiptIds)) return { ok: false, error: "Recebimento inválido" };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await rpcAny(supabase, "purch", "reset_receipts_review", { p_receipts: receiptIds });
+    if (error) return { ok: false, error: friendly(error.message), retry: !error.code || error.code.startsWith("08") };
+    return { ok: true, data: Number(data) };
+  } catch {
+    return { ok: false, error: "Sem conexão com o servidor", retry: true };
+  }
 }

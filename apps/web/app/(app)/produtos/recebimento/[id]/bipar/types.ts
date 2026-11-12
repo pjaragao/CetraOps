@@ -9,6 +9,8 @@ export interface ScanItem {
   cean: string | null;
   qty_nfe: number;
   qty_counted: number;
+  /** revisão: quanto já foi conferido bipando de novo (0 enquanto não revisa) */
+  qty_reviewed?: number;
   /** valor do item na nota (produtos − desconto + frete…), para estimar a falta em R$ */
   item_total: number;
   variant_id: string | null;
@@ -17,7 +19,8 @@ export interface ScanItem {
   photo: string | null;
 }
 
-export type ScanStatus = "OK" | "PARTIAL_EXCESS" | "EXCESS" | "NOT_IN_NOTE" | "UNKNOWN" | "ADJUST";
+/** Revisão (bipar de novo): OK = conferiu; PARTIAL_OVER/OVER = bipou mais do que foi lançado; NOT_COUNTED = a peça é da nota, mas não tinha sido bipada; EXTRA_OK = conferiu uma sobra / peça fora da NF (fica separada dos itens). */
+export type ScanStatus = "OK" | "PARTIAL_EXCESS" | "EXCESS" | "NOT_IN_NOTE" | "UNKNOWN" | "ADJUST" | "PARTIAL_OVER" | "OVER" | "NOT_COUNTED" | "EXTRA_OK";
 
 /** Resposta do banco para uma leitura (purch.scan_receipt_code) ou um +/− (purch.bump_receipt_item). */
 export interface ScanResult {
@@ -28,6 +31,10 @@ export interface ScanResult {
   description?: string;
   qty_nfe?: number;
   qty_counted?: number;
+  /** revisão: quanto já foi conferido bipando de novo (total da peça nas notas) */
+  qty_reviewed?: number;
+  /** revisão de sobra / peça fora da NF: quanto desta sobra já foi conferido, de quanto, e de que tipo */
+  extra?: { reviewed: number; qty: number; kind: "EXCESS" | "NOT_IN_NOTE" | "UNKNOWN" };
   added?: number;
   excess?: number;
   variant_id?: string | null;
@@ -43,7 +50,7 @@ export interface ScanResult {
   candidates?: string[];
 }
 
-export interface ScanAllocation { receipt_id: string; item_id: string; added: number; qty_counted: number; qty_nfe: number }
+export interface ScanAllocation { receipt_id: string; item_id: string; added: number; qty_counted: number; qty_nfe?: number; qty_reviewed?: number }
 
 /** Leitura registrada na nota (de qualquer aparelho). */
 export interface ScanEvent { id: number; at: string; code: string; qty: number; by_link: boolean; result: ScanResult }
@@ -52,16 +59,25 @@ export interface ScanEvent { id: number; at: string; code: string; qty: number; 
 export interface ScanLink { id: string; label: string | null; expires_at: string; last_seen_at: string | null; /** abriu ou bipou no último minuto */ online?: boolean }
 
 /** O que a tela consulta a cada poucos segundos: quantidades, leituras novas e celulares ligados. */
-export interface ScanFeed { status: string; items: ItemCount[]; events: ScanEvent[]; last_event: number; links?: ScanLink[]; expires_at?: string }
+/** Peça que chegou e não entrou na nota: lida a mais (sobra), fora da nota ou código desconhecido. Fica pendente até ser resolvida. */
+export interface ScanExtra { kind: "EXCESS" | "NOT_IN_NOTE" | "UNKNOWN"; code: string; label: string | null; sku: string | null; photo: string | null; qty: number; /** revisão: quanto já foi conferido bipando de novo */ reviewed?: number; /** leituras de origem */ events: number[]; last_at: string }
+
+export interface ScanFeed { status: string; items: ItemCount[]; events: ScanEvent[]; last_event: number; links?: ScanLink[]; expires_at?: string; extras?: ScanExtra[] }
 
 /** Funções da tela: do sistema (logado) ou do link temporário (celular sem login). */
 export interface ScanApi {
   scan(code: string, qty: number): Promise<Outcome<ScanResult>>;
   bump(itemId: string, delta: number): Promise<Outcome<ScanResult>>;
   feed(after: number): Promise<Outcome<ScanFeed>>;
+  /** marca leituras de sobra/fora da nota como resolvidas */
+  discard(events: number[]): Promise<Outcome<number>>;
+  /** revisão: bipa de novo para conferir o que foi lançado (não muda a contagem) */
+  review(code: string, qty: number): Promise<Outcome<ScanResult>>;
+  /** revisão: começa de novo */
+  resetReview(): Promise<Outcome<number>>;
 }
 
-export interface ItemCount { item_id: string; receipt_id?: string; qty_counted: number; qty_nfe: number }
+export interface ItemCount { item_id: string; receipt_id?: string; qty_counted: number; qty_reviewed?: number; qty_nfe: number }
 
 export type Outcome<T> = { ok: true; data: T } | { ok: false; error: string; /** falha de rede/servidor: vale tentar de novo */ retry?: boolean };
 

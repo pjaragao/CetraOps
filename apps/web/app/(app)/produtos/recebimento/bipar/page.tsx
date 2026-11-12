@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { can, requirePerm } from "@/lib/session";
 import { type SP } from "@/lib/context";
-import { loadNotes, loadScanItems, mergeSummary } from "../[id]/bipar/data";
-import { feedGroupAction, refreshReceiptAction, scanGroupAction, bumpItemAction } from "../[id]/bipar/actions";
+import { loadExtras, loadNotes, loadScanItems, mergeSummary } from "../[id]/bipar/data";
+import { feedGroupAction, refreshReceiptAction, scanGroupAction, bumpItemAction, discardExtrasAction, resetReviewAction, reviewGroupAction } from "../[id]/bipar/actions";
 import { ReceiveScanner } from "../[id]/bipar/receive-scanner";
 import { loadTeamPhones } from "../[id]/bipar/team";
 
@@ -24,9 +24,9 @@ export default async function BiparVariasPage({ searchParams }: { searchParams: 
   if (open.length === 1) redirect(`/produtos/recebimento/${open[0].id}/bipar`);
   const ids = open.map((n) => n.id);                                   // na ordem do número da NF-e: é a ordem em que as notas "enchem"
   const editable = can(session, "purch.write");
-  const [items, team] = await Promise.all([loadScanItems(ids), editable ? loadTeamPhones() : Promise.resolve([])]);
+  const [items, team, extras] = await Promise.all([loadScanItems(ids), editable ? loadTeamPhones() : Promise.resolve([]), loadExtras(ids)]);
   return (
-    <ReceiveScanner receiptId={ids.join(",")} summary={mergeSummary(open)} notes={open} initialItems={items} editable={editable} team={team} leaveAction={refreshReceiptAction}
-      api={{ scan: scanGroupAction.bind(null, ids), bump: bumpItemAction, feed: feedGroupAction.bind(null, ids) }} />
+    <ReceiveScanner receiptId={ids.join(",")} summary={mergeSummary(open)} notes={open} initialItems={items} initialExtras={extras} editable={editable} team={team} leaveAction={refreshReceiptAction}
+      api={{ scan: scanGroupAction.bind(null, ids), bump: bumpItemAction, feed: feedGroupAction.bind(null, ids), discard: discardExtrasAction, review: reviewGroupAction.bind(null, ids), resetReview: resetReviewAction.bind(null, ids) }} />
   );
 }

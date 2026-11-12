@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { can, requirePerm } from "@/lib/session";
-import { loadNotes, loadScanItems, loadSiblings } from "./data";
-import { bumpItemAction, feedAction, refreshReceiptAction, scanCodeAction } from "./actions";
+import { loadExtras, loadNotes, loadScanItems, loadSiblings } from "./data";
+import { bumpItemAction, discardExtrasAction, feedAction, refreshReceiptAction, resetReviewAction, reviewGroupAction, scanCodeAction } from "./actions";
 import { ReceiveScanner } from "./receive-scanner";
 import { loadTeamPhones } from "./team";
 
@@ -14,9 +14,9 @@ export default async function BiparRecebimentoPage({ params }: { params: Promise
   const [note] = await loadNotes([id]);
   if (!note) notFound();
   const editable = can(session, "purch.write");
-  const [items, team, siblings] = await Promise.all([loadScanItems(id), editable ? loadTeamPhones() : Promise.resolve([]), editable ? loadSiblings(id) : Promise.resolve([])]);
+  const [items, team, siblings, extras] = await Promise.all([loadScanItems(id), editable ? loadTeamPhones() : Promise.resolve([]), editable ? loadSiblings(id) : Promise.resolve([]), loadExtras([id])]);
   return (
-    <ReceiveScanner receiptId={id} summary={note} initialItems={items} editable={editable} team={team} leaveAction={refreshReceiptAction} siblings={siblings}
-      api={{ scan: scanCodeAction.bind(null, id), bump: bumpItemAction, feed: feedAction.bind(null, id) }} />
+    <ReceiveScanner receiptId={id} summary={note} initialItems={items} editable={editable} team={team} leaveAction={refreshReceiptAction} siblings={siblings} initialExtras={extras}
+      api={{ scan: scanCodeAction.bind(null, id), bump: bumpItemAction, feed: feedAction.bind(null, id), discard: discardExtrasAction, review: reviewGroupAction.bind(null, [id]), resetReview: resetReviewAction.bind(null, [id]) }} />
   );
 }

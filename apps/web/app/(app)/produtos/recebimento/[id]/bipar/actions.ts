@@ -48,11 +48,40 @@ export async function feedAction(receiptId: string, after: number): Promise<Outc
   }
 }
 
+const uuidList = (ids: string[]) => Array.isArray(ids) && ids.length >= 1 && ids.length <= 20 && ids.every((i) => uuid.safeParse(i).success);
+
+/** Várias notas bipadas juntas: o banco distribui a peça na nota que ainda precisa dela. */
+export async function scanGroupAction(receiptIds: string[], code: string, qty: number): Promise<Outcome<ScanResult>> {
+  const c = String(code ?? "").trim();
+  if (!uuidList(receiptIds) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000) return { ok: false, error: "Leitura inválida" };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await rpcAny(supabase, "purch", "scan_receipts_code", { p_receipts: receiptIds, p_code: c, p_qty: qty });
+    if (error) return { ok: false, error: friendly(error.message), retry: !error.code || error.code.startsWith("08") || error.code === "PGRST000" };
+    return { ok: true, data: data as unknown as ScanResult };
+  } catch {
+    return { ok: false, error: "Sem conexão com o servidor", retry: true };
+  }
+}
+
+/** Quantidades e leituras novas de todas as notas juntas. */
+export async function feedGroupAction(receiptIds: string[], after: number): Promise<Outcome<ScanFeed>> {
+  if (!uuidList(receiptIds)) return { ok: false, error: "Recebimento inválido" };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await rpcAny(supabase, "purch", "receipts_scan_feed", { p_receipts: receiptIds, p_after: Math.max(0, Math.floor(after) || 0) });
+    if (error) return { ok: false, error: friendly(error.message), retry: true };
+    return { ok: true, data: data as ScanFeed };
+  } catch {
+    return { ok: false, error: "Sem conexão com o servidor", retry: true };
+  }
+}
+
 /** Modo assistido: link temporário para o celular bipar esta nota sem entrar no sistema. */
-export async function createScanLinkAction(receiptId: string, label: string, hours: number): Promise<Outcome<{ id: string; token: string; expires_at: string }>> {
-  if (!uuid.safeParse(receiptId).success || !Number.isInteger(hours) || hours < 1 || hours > 24) return { ok: false, error: "Dados do link inválidos" };
+export async function createScanLinkAction(receiptId: string, label: string, hours: number, extraReceiptIds: string[] = []): Promise<Outcome<{ id: string; token: string; expires_at: string }>> {
+  if (!uuid.safeParse(receiptId).success || !Number.isInteger(hours) || hours < 1 || hours > 24 || (extraReceiptIds.length > 0 && !uuidList(extraReceiptIds))) return { ok: false, error: "Dados do link inválidos" };
   const supabase = await createClient();
-  const { data, error } = await rpcAny(supabase, "purch", "create_scan_link", { p_receipt: receiptId, p_label: label.trim().slice(0, 80) || null, p_hours: hours });
+  const { data, error } = await rpcAny(supabase, "purch", "create_scan_link", { p_receipt: receiptId, p_label: label.trim().slice(0, 80) || null, p_hours: hours, p_extra: extraReceiptIds });
   if (error) return { ok: false, error: friendly(error.message) };
   return { ok: true, data: data as { id: string; token: string; expires_at: string } };
 }
@@ -68,7 +97,8 @@ export async function revokeScanLinkAction(receiptId: string, linkId: string | n
 
 /** Ao sair da tela: a conferência (e a lista de recebimentos) mostra o que foi bipado. */
 export async function refreshReceiptAction(receiptId: string): Promise<void> {
-  if (!uuid.safeParse(receiptId).success) return;
-  revalidatePath(`/produtos/recebimento/${receiptId}`);
+  // várias notas juntas: os números vêm separados por vírgula
+  const ids = String(receiptId ?? "").split(",").filter((i) => uuid.safeParse(i).success).slice(0, 20);
+  for (const id of ids) revalidatePath(`/produtos/recebimento/${id}`);
   revalidatePath("/produtos/recebimento");
 }

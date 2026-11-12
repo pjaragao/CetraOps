@@ -18,8 +18,9 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: 
  * Modo assistido: gera um link temporário desta nota e manda para o celular da pessoa pelo WhatsApp (ou mostra o QR).
  * O celular, apoiado ao lado do computador, vira o leitor; as leituras aparecem nesta tela.
  */
-export function AssistPanel({ receiptId, receiptLabel, team, links, onLinks, onClose }: {
-  receiptId: string; receiptLabel: string; team: TeamPhone[]; links: ScanLink[]; onLinks(l: ScanLink[]): void; onClose(): void;
+export function AssistPanel({ receiptId, extraIds = [], receiptLabel, team, links, onLinks, onClose }: {
+  /** nota do link (a primeira, se forem várias) e, em várias notas juntas, as outras */
+  receiptId: string; extraIds?: string[]; receiptLabel: string; team: TeamPhone[]; links: ScanLink[]; onLinks(l: ScanLink[]): void; onClose(): void;
 }) {
   const [who, setWho] = useState<TeamPhone | null>(team[0] ?? null);
   const [phone, setPhone] = useState(team[0]?.phone ?? "");
@@ -36,11 +37,11 @@ export function AssistPanel({ receiptId, receiptLabel, team, links, onLinks, onC
   }, [onClose]);
 
   const message = (url: string, exp: string) =>
-    `Link para bipar a entrada da ${receiptLabel} pelo celular (válido até ${hhmm(exp)}):\n${url}\n\nAbra no celular, toque em "Começar a bipar" e deixe o celular apoiado ao lado do computador.`;
+    `Link para bipar a entrada (${receiptLabel}) pelo celular (válido até ${hhmm(exp)}):\n${url}\n\nAbra no celular, toque em "Começar a bipar" e deixe o celular apoiado ao lado do computador.`;
 
   const generate = async () => {
     setBusy(true); setError(null);
-    const out = await createScanLinkAction(receiptId, who?.name ?? (digitsOf(phone) ? `WhatsApp ${phone}` : "Celular"), hours);
+    const out = await createScanLinkAction(receiptId, who?.name ?? (digitsOf(phone) ? `WhatsApp ${phone}` : "Celular"), hours, extraIds);
     setBusy(false);
     if (!out.ok) { setError(out.error); return null; }
     const url = `${window.location.origin}/bipar/${out.data.token}`;
@@ -82,7 +83,7 @@ export function AssistPanel({ receiptId, receiptLabel, team, links, onLinks, onC
           <Smartphone size={20} className="mt-0.5 text-brand" />
           <div className="min-w-0 flex-1">
             <h2 id="assist-title" className="font-semibold">Usar o celular como leitor</h2>
-            <p className="text-xs text-muted">O celular abre o link sem entrar no sistema e bipa esta nota. Cada leitura aparece aqui no computador, com som.</p>
+            <p className="text-xs text-muted">O celular abre o link sem entrar no sistema e bipa {extraIds.length > 0 ? `as ${extraIds.length + 1} notas juntas` : "esta nota"}. Cada leitura aparece aqui no computador, com som.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1 hover:bg-surface-2" aria-label="Fechar"><X size={18} /></button>
         </div>

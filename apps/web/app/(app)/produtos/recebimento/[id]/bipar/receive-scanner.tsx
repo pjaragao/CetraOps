@@ -2,20 +2,23 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Smartphone, Undo2, Volume2, VolumeX } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Smartphone, Undo2, Volume2, VolumeX, X, Layers } from "lucide-react";
 import { catalogPhoto, formatBRL } from "@centralops/domain";
 import { Button, cn, inputClass } from "@/components/ui";
 import { AssistPanel, type TeamPhone } from "./assist-panel";
 import { cue, unlockAudio } from "./feedback";
 import { MiniCamera } from "./mini-camera";
-import type { NoteSummary, ScanApi, ScanItem, ScanLink, ScanResult } from "./types";
+import { JoinPanel, type Sibling } from "./join-panel";
+import type { GroupNote, NoteSummary, ScanApi, ScanItem, ScanLink, ScanResult } from "./types";
 
 type Tone = "ok" | "warn" | "err";
-interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean; /** leitura feita em outro aparelho */ remote?: "link" | "other" }
+interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean; /** leitura feita em outro aparelho */ remote?: "link" | "other"; /** tirada da lista pela pessoa (só some da tela; nada muda na nota) */ dismissed?: boolean }
 type Tab = "faltando" | "conferidos" | "todos" | "leituras";
 
 const fmtQty = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("pt-BR", { maximumFractionDigits: 3 }));
 const toneOf = (r: Read): Tone => r.state === "error" || r.result?.status === "UNKNOWN" ? "err" : r.result && r.result.status !== "OK" ? "warn" : "ok";
+
+const noEffect = (r: Read) => r.state === "error" || !!r.undone || (r.state === "done" && !r.result?.added);
 
 const num = (v: unknown) => (v == null ? undefined : Number(v));
 const normalize = (r: ScanResult): ScanResult => ({ ...r, qty_counted: num(r.qty_counted), qty_nfe: num(r.qty_nfe), added: Number(r.added ?? 0), excess: Number(r.excess ?? 0) });
@@ -25,11 +28,17 @@ const photoOf = (p: string | null | undefined) => (p ? catalogPhoto(p, 160, proc
  * Tela de bipagem. mode "staff": no sistema (computador ou celular de quem está logado), com o modo assistido;
  * mode "link": celular aberto pelo link temporário, sem login — as leituras aparecem no computador.
  */
-export function ReceiveScanner({ receiptId, summary, initialItems, editable, api, mode = "staff", team = [], leaveAction, expiresAt }: {
+export function ReceiveScanner({ receiptId, summary, initialItems, editable, api, mode = "staff", team = [], leaveAction, expiresAt, notes, siblings = [] }: {
   receiptId: string; summary: NoteSummary; initialItems: ScanItem[]; editable: boolean; api: ScanApi; mode?: "staff" | "link";
   team?: TeamPhone[]; leaveAction?: (receiptId: string) => Promise<void>; expiresAt?: string;
+  /** várias NF-e bipadas juntas (receiptId vira os números separados por vírgula): cada peça entra na nota que ainda precisa dela */
+  notes?: GroupNote[];
+  /** outras notas em aberto do mesmo fornecedor, para juntar a esta */
+  siblings?: Sibling[];
 }) {
   const router = useRouter();
+  const group = notes && notes.length > 1 ? notes : null;
+  const nfOf = useMemo(() => new Map((notes ?? []).map((n) => [n.id, n.nfNumber.split("/")[0]])), [notes]);
   const [items, setItems] = useState(initialItems);
   const [status, setStatus] = useState(summary.status);
   const [running, setRunning] = useState(false);
@@ -50,6 +59,9 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   const [links, setLinks] = useState<ScanLink[]>([]);
   const [showAssist, setShowAssist] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [noteFilter, setNoteFilter] = useState<string>("all");
+  const [showJoin, setShowJoin] = useState(false);
+  const [showConf, setShowConf] = useState(false);
   const seq = useRef(0);
   const ownEvents = useRef(new Set<number>());
   const lastEvent = useRef(-1);                                   // −1: a primeira consulta só marca onde o registro está
@@ -72,6 +84,11 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   const patchRead = (id: number, patch: Partial<Read>) => setReads((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   const applyCount = (res: ScanResult) => {
+    if (res.allocations) {                                          // várias notas: cada linha tem a sua contagem
+      const m = new Map(res.allocations.map((a) => [a.item_id, Number(a.qty_counted)]));
+      if (m.size) setItems((p) => p.map((i) => (m.has(i.id) ? { ...i, qty_counted: m.get(i.id)! } : i)));
+      return;
+    }
     if (!res.item_id || res.qty_counted == null) return;
     setItems((p) => p.map((i) => (i.id === res.item_id ? { ...i, qty_counted: Number(res.qty_counted) } : i)));
   };
@@ -102,7 +119,8 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       applyCount(res);
       patchRead(r.id, { state: "done", result: res });
       setLastId(r.id);
-      const after = itemsRef.current.map((i) => (i.id === res.item_id ? { ...i, qty_counted: res.qty_counted ?? i.qty_counted } : i));
+      const alloc = new Map((res.allocations ?? []).map((a) => [a.item_id, Number(a.qty_counted)]));
+      const after = itemsRef.current.map((i) => (alloc.has(i.id) ? { ...i, qty_counted: alloc.get(i.id)! } : !res.allocations && i.id === res.item_id ? { ...i, qty_counted: res.qty_counted ?? i.qty_counted } : i));
       const allDone = after.every((i) => i.qty_counted >= i.qty_nfe);
       if (res.status === "OK") {
         const itemDone = res.qty_counted != null && res.qty_nfe != null && res.qty_counted >= res.qty_nfe;
@@ -228,15 +246,25 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   };
 
   const undoRead = async (r: Read) => {
-    if (!r.result?.item_id || !r.result.added || r.undone) return;
-    if (await bump(r.result.item_id, -r.result.added, r.id)) setNotice(`Leitura desfeita: ${r.result.label ?? r.result.description ?? r.code} (−${fmtQty(r.result.added)})`);
+    const res = r.result;
+    if (!res?.item_id || !res.added || r.undone) return;
+    if (res.allocations?.length) {                                  // várias notas: devolve a peça em cada nota onde entrou
+      let all = true;
+      for (const a of res.allocations) if (a.added > 0 && !(await bump(a.item_id, -a.added))) { all = false; break; }
+      if (all) { patchRead(r.id, { undone: true }); setNotice(`Leitura desfeita: ${res.label ?? res.description ?? r.code} (−${fmtQty(res.added)})`); }
+      return;
+    }
+    if (await bump(res.item_id, -res.added, r.id)) setNotice(`Leitura desfeita: ${res.label ?? res.description ?? r.code} (−${fmtQty(res.added)})`);
   };
+
+  const removeRead = (r: Read) => patchRead(r.id, { dismissed: true });
+  const clearWarnings = () => setReads((p) => p.map((r) => (noEffect(r) && r.state !== "queued" ? { ...r, dismissed: true } : r)));
 
   const start = () => { unlockAudio(); setStarted(true); setRunning(true); };
   const submitManual = (e: FormEvent) => { e.preventDefault(); if (manual.trim()) { unlockAudio(); enqueue(manual); setManual(""); } };
   // sair: cada leitura já fica salva no banco na hora; só espera as que ainda estão a caminho (sem rede, fica no aparelho)
   const [leaving, setLeaving] = useState(false);
-  const leave = async (to: "conferencia" | "lista" = "conferencia") => {
+  const leave = async (to: "conferencia" | "lista" | "junto" = "conferencia", target?: string) => {
     setLeaving(true);
     for (let i = 0; i < 20 && (queue.current.length || working.current); i++) await new Promise((ok) => setTimeout(ok, 500));
     if (queue.current.length) {
@@ -245,7 +273,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
       return;
     }
     if (leaveAction) await leaveAction(receiptId);
-    router.push(to === "lista" ? "/produtos/recebimento" : `/produtos/recebimento/${receiptId}`);
+    router.push(to === "lista" || (to === "conferencia" && group && !target) ? "/produtos/recebimento" : to === "junto" ? (target ?? "/produtos/recebimento") : `/produtos/recebimento/${target ?? receiptId}`);
   };
   const onlineLinks = links.filter((l) => l.online);
 
@@ -260,19 +288,32 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
     const unlinked = items.filter((i) => !i.variant_id).length;
     return { nfe, counted, done, started, missing: items.length - done, shortage, countedValue, unlinked, pct: nfe ? Math.round((counted / nfe) * 100) : 0 };
   }, [items]);
+  const visibleReads = useMemo(() => reads.filter((r) => !r.dismissed), [reads]);
   const session = useMemo(() => {
-    const ok = reads.filter((r) => r.result && r.result.added && !r.undone);
+    const ok = visibleReads.filter((r) => r.result && r.result.added && !r.undone);
     return {
       pieces: ok.reduce((s, r) => s + (r.result!.added ?? 0), 0),
-      excess: reads.reduce((s, r) => s + (r.result?.excess ?? 0), 0),
-      problems: reads.filter((r) => r.state === "error" || (r.result && ["UNKNOWN", "NOT_IN_NOTE"].includes(r.result.status))).length,
-      queued: reads.filter((r) => r.state === "queued").length,
+      excess: visibleReads.reduce((s, r) => s + (r.result?.excess ?? 0), 0),
+      problems: visibleReads.filter((r) => r.state === "error" || (r.result && ["UNKNOWN", "NOT_IN_NOTE"].includes(r.result.status))).length,
+      queued: visibleReads.filter((r) => r.state === "queued").length,
+      removable: visibleReads.filter((r) => noEffect(r) && r.state !== "queued").length,
     };
-  }, [reads]);
+  }, [visibleReads]);
 
-  const last = reads.find((r) => r.id === lastId) ?? null;
+  // por nota (só quando há várias juntas) e o recorte da lista pela nota escolhida
+  const perNote = useMemo(() => (group ?? []).map((n) => {
+    const its = items.filter((i) => i.receipt_id === n.id);
+    const nfe = its.reduce((s, i) => s + i.qty_nfe, 0), counted = its.reduce((s, i) => s + Math.min(i.qty_counted, i.qty_nfe), 0);
+    return { note: n, nfe, counted, done: nfe > 0 && counted >= nfe, pct: nfe ? Math.round((counted / nfe) * 100) : 0, value: its.reduce((s, i) => s + (i.item_total * Math.min(i.qty_counted, i.qty_nfe)) / i.qty_nfe, 0) };
+  }), [group, items]);
+  const scoped = noteFilter === "all" ? items : items.filter((i) => i.receipt_id === noteFilter);
+  const scopedDone = scoped.filter((i) => i.qty_counted >= i.qty_nfe).length;
+
+  const last = visibleReads.find((r) => r.id === lastId) ?? null;
   const lastItem = last?.result?.item_id ? items.find((i) => i.id === last.result!.item_id) : undefined;
-  const list = tab === "faltando" ? items.filter((i) => i.qty_counted < i.qty_nfe) : tab === "conferidos" ? items.filter((i) => i.qty_counted >= i.qty_nfe) : items;
+  // várias notas: o "3/5" da última leitura é o total da peça em todas as notas
+  const lastTotal = last?.result?.candidates?.length ? items.filter((i) => last.result!.candidates!.includes(i.id)).reduce((a, i) => ({ counted: a.counted + i.qty_counted, total: a.total + i.qty_nfe }), { counted: 0, total: 0 }) : undefined;
+  const list = tab === "faltando" ? scoped.filter((i) => i.qty_counted < i.qty_nfe) : tab === "conferidos" ? scoped.filter((i) => i.qty_counted >= i.qty_nfe) : scoped;
 
   // o item recém-bipado aparece na lista
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
@@ -288,7 +329,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             : <Smartphone size={18} className="mx-1 text-brand" aria-hidden />}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">NF-e {summary.nfNumber} · {summary.supplier}</p>
-            <p className="truncate text-xs text-muted">Recebimento {summary.receiptNumber} · entrada em {summary.location}</p>
+            <p className="truncate text-xs text-muted">{group ? `${group.length} notas bipadas juntas` : `Recebimento ${summary.receiptNumber}`} · entrada em {summary.location}</p>
           </div>
           {mode === "staff" && onlineLinks.length > 0 && (
             <button type="button" onClick={() => setShowAssist(true)} className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] text-success">
@@ -315,6 +356,17 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
               {session.excess > 0 && <span className="rounded-full bg-warning/15 px-2 py-0.5 text-warning">{fmtQty(session.excess)} sobra(s)</span>}
               {session.queued > 0 && <span className="rounded-full bg-brand/15 px-2 py-0.5 text-brand">{session.queued} enviando…</span>}
             </div>
+            {group && (
+              <div className="flex flex-wrap gap-1 pt-0.5" aria-label="Andamento de cada nota">
+                {perNote.map((n) => (
+                  <button key={n.note.id} type="button" onClick={() => { setNoteFilter((f) => (f === n.note.id ? "all" : n.note.id)); setTab("todos"); }} title={`NF-e ${n.note.nfNumber}: ver só os itens desta nota`}
+                    className={cn("relative overflow-hidden rounded-md border px-1.5 py-0.5 text-[11px] tabular-nums", noteFilter === n.note.id ? "border-brand" : "border-border", n.done ? "text-success" : "text-muted")}>
+                    <span className={cn("absolute inset-y-0 left-0", n.done ? "bg-success/20" : "bg-brand/15")} style={{ width: `${n.pct}%` }} />
+                    <span className="relative">NF {n.note.nfNumber.split("/")[0]} · {fmtQty(n.counted)}/{fmtQty(n.nfe)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {canScan && started && (
               <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                 <Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setRunning((r) => !r)}>{running ? <><Pause size={14} /> Pausar</> : <><Play size={14} /> Retomar</>}</Button>
@@ -324,6 +376,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
                   <button type="button" className="px-2" onClick={() => setMult((m) => Math.min(999, m + 1))} aria-label="Aumentar peças por leitura"><Plus size={13} /></button>
                 </div>
                 <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => setShowManual((s) => !s)}><Keyboard size={14} /> Digitar</Button>
+                {mode === "staff" && !group && siblings.length > 0 && <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => setShowJoin(true)}><Layers size={14} /> Juntar NFs</Button>}
               </div>
             )}
           </div>
@@ -335,18 +388,27 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             <button type="button" onClick={start} className={cn("flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-4 text-base font-semibold text-brand-contrast shadow-sm active:scale-[.99]", mode === "staff" && "sm:hidden")}>
               <ScanBarcode size={22} /> Começar a bipar
             </button>
+            {mode === "staff" && !group && siblings.length > 0 && (
+              <button type="button" onClick={() => setShowJoin(true)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm sm:hidden"><Layers size={16} /> Juntar com outras NFs ({siblings.length})</button>
+            )}
             {mode === "staff" && (
               <div className="hidden flex-wrap items-center gap-2 sm:flex">
                 <Button type="button" onClick={() => { unlockAudio(); setShowAssist(true); }}><Smartphone size={16} /> Usar o celular como leitor</Button>
                 <Button type="button" variant="secondary" onClick={start}><Camera size={16} /> Câmera deste computador</Button>
+                {!group && siblings.length > 0 && <Button type="button" variant="ghost" onClick={() => setShowJoin(true)}><Layers size={16} /> Juntar com outras NFs ({siblings.length})</Button>}
                 <span className="text-xs text-muted">Leitor USB ou Bluetooth? É só bipar, sem clicar em nada.</span>
               </div>
             )}
           </>
         )}
         {mode === "staff" && showAssist && canScan && (
-          <AssistPanel receiptId={receiptId} receiptLabel={`NF-e ${summary.nfNumber} · ${summary.supplier}`} team={team} links={links}
+          <AssistPanel receiptId={group ? group[0].id : receiptId} extraIds={group ? group.slice(1).map((n) => n.id) : []}
+            receiptLabel={group ? `${group.length} NF-e juntas: ${summary.nfNumber}` : `NF-e ${summary.nfNumber} · ${summary.supplier}`} team={team} links={links}
             onLinks={setLinks} onClose={() => setShowAssist(false)} />
+        )}
+        {mode === "staff" && showJoin && !group && (
+          <JoinPanel currentId={receiptId} currentLabel={`NF-e ${summary.nfNumber}`} siblings={siblings} onClose={() => setShowJoin(false)}
+            onJoin={(ids) => void leave("junto", `/produtos/recebimento/bipar?${[receiptId, ...ids].map((i) => `n=${i}`).join("&")}`)} />
         )}
         {linkError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{linkError}</p>}
         {canScan && (showManual || !started) && (
@@ -357,7 +419,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
         )}
         {!canScan && !linkError && <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm text-muted">{status === "POSTED" ? "Esta nota já foi lançada no estoque: a bipagem está fechada." : "Você pode ver a conferência, mas não tem permissão para bipar."}</p>}
 
-        {last && <LastRead read={last} item={lastItem} canUndo={canScan && !last.remote} onUndo={() => undoRead(last)} />}
+        {last && <LastRead read={last} item={lastItem} total={lastTotal} nfOf={group ? (id) => nfOf.get(id) : undefined} canUndo={canScan && !last.remote} onUndo={() => undoRead(last)} onDismiss={noEffect(last) && last.state !== "queued" ? () => removeRead(last) : undefined} />}
         {notice && <p className="flex items-start justify-between gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs" role="status">{notice}<button type="button" className="text-muted" onClick={() => setNotice(null)} aria-label="Fechar aviso">✕</button></p>}
       </div>
 
@@ -373,36 +435,68 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             <dt className="text-muted">Nota / emissão</dt><dd className="text-right">{summary.nfNumber}{summary.issueAt && <span className="block text-xs text-muted">{summary.issueAt}</span>}</dd>
             <dt className="text-muted">Produtos</dt><dd className="text-right tabular-nums">{formatBRL(summary.vProd)}</dd>
             <dt className="text-muted">Frete / desconto</dt><dd className="text-right tabular-nums">{formatBRL(summary.vFrete)} / {formatBRL(summary.vDesc)}</dd>
-            <dt className="text-muted">Total da nota</dt><dd className="text-right font-semibold tabular-nums">{formatBRL(summary.nfTotal)}</dd>
+            <dt className="text-muted">{group ? `Total das ${group.length} notas` : "Total da nota"}</dt><dd className="text-right font-semibold tabular-nums">{formatBRL(summary.nfTotal)}</dd>
+            {group && (
+              <dd className="col-span-2 overflow-hidden rounded-lg border border-border">
+                <table className="w-full text-xs">
+                  <thead className="bg-surface-2 text-muted"><tr><th className="px-2 py-1 text-left font-medium">NF-e</th><th className="px-2 py-1 text-right font-medium">Valor</th><th className="px-2 py-1 text-right font-medium">Bipadas</th><th className="px-2 py-1 text-right font-medium">Em R$</th></tr></thead>
+                  <tbody className="divide-y divide-border">
+                    {perNote.map((n) => (
+                      <tr key={n.note.id}>
+                        <td className="px-2 py-1">{n.note.nfNumber}<span className="block text-[10px] text-muted">{n.note.receiptNumber}</span></td>
+                        <td className="px-2 py-1 text-right tabular-nums">{formatBRL(n.note.nfTotal)}</td>
+                        <td className={cn("px-2 py-1 text-right tabular-nums", n.done && "text-success")}>{fmtQty(n.counted)}/{fmtQty(n.nfe)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums">{formatBRL(n.value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </dd>
+            )}
             <dt className="text-muted">Itens (linhas)</dt><dd className="text-right tabular-nums">{items.length} · {totals.done} ok · {totals.started} em andamento</dd>
             <dt className="text-muted">Peças na nota</dt><dd className="text-right tabular-nums">{fmtQty(totals.nfe)}</dd>
             <dt className="text-muted">Bipadas (conferidas)</dt><dd className="text-right font-semibold tabular-nums text-success">{fmtQty(totals.counted)} · {formatBRL(totals.countedValue)}</dd>
             <dt className="text-muted">Faltando</dt><dd className={cn("text-right tabular-nums", totals.shortage > 0 && "text-warning")}>{fmtQty(totals.nfe - totals.counted)} · {formatBRL(totals.shortage)}</dd>
-            <dt className="text-muted">Nesta sessão</dt><dd className="text-right tabular-nums">{fmtQty(session.pieces)} peça(s) · {reads.length} leitura(s){session.problems ? ` · ${session.problems} problema(s)` : ""}</dd>
+            <dt className="text-muted">Nesta sessão</dt><dd className="text-right tabular-nums">{fmtQty(session.pieces)} peça(s) · {visibleReads.length} leitura(s){session.problems ? ` · ${session.problems} problema(s)` : ""}</dd>
             {totals.unlinked > 0 && <dd className="col-span-2 rounded-lg bg-warning/10 px-2 py-1.5 text-xs text-warning">{totals.unlinked} item(ns) ainda sem peça do catálogo: bipam pelo EAN ou código da nota; ligue-os na conferência antes de lançar.</dd>}
-            <dd className="col-span-2 pt-1 text-xs text-muted">Faltas viram crédito com o fornecedor ao lançar. Sobras não entram: peça nota complementar.</dd>
+            <dd className="col-span-2 pt-1 text-xs text-muted">{group ? "Cada nota continua com a sua conferência, vencimentos, estoque e financeiro. " : ""}Faltas viram crédito com o fornecedor ao lançar. Sobras não entram: peça nota complementar.</dd>
           </dl>
         )}
       </section>
 
       {/* ---------- itens da nota ---------- */}
       <nav className="mx-3 mt-3 flex gap-1 overflow-x-auto text-sm sm:mx-0" aria-label="Filtro dos itens">
-        {([["faltando", `Faltando (${totals.missing})`], ["conferidos", `Conferidos (${totals.done})`], ["todos", `Todos (${items.length})`], ["leituras", `Leituras (${reads.length})`]] as [Tab, string][]).map(([v, l]) => (
+        {([["faltando", `Faltando (${scoped.length - scopedDone})`], ["conferidos", `Conferidos (${scopedDone})`], ["todos", `Todos (${scoped.length})`], ["leituras", `Leituras (${visibleReads.length})`]] as [Tab, string][]).map(([v, l]) => (
           <button key={v} type="button" onClick={() => setTab(v)} className={cn("shrink-0 rounded-full px-3 py-1", tab === v ? "bg-brand text-brand-contrast" : "border border-border bg-surface")}>{l}</button>
         ))}
       </nav>
+      {group && tab !== "leituras" && (
+        <nav className="mx-3 mt-2 flex gap-1 overflow-x-auto text-xs sm:mx-0" aria-label="Filtro por nota">
+          <button type="button" onClick={() => setNoteFilter("all")} className={cn("shrink-0 rounded-md px-2 py-0.5", noteFilter === "all" ? "bg-surface-2 font-semibold" : "text-muted")}>Todas as notas</button>
+          {group.map((n) => (
+            <button key={n.id} type="button" onClick={() => setNoteFilter(n.id)} className={cn("shrink-0 rounded-md px-2 py-0.5", noteFilter === n.id ? "bg-surface-2 font-semibold" : "text-muted")}>NF {n.nfNumber.split("/")[0]}</button>
+          ))}
+        </nav>
+      )}
 
       {tab === "leituras" ? (
         <ul className="mx-3 mb-3 mt-2 divide-y divide-border rounded-xl border border-border bg-surface sm:mx-0">
-          {reads.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">Nenhuma leitura nesta sessão.</li>}
-          {reads.map((r) => (
+          {session.removable > 0 && (
+            <li className="flex items-center justify-between gap-2 bg-surface-2/50 px-3 py-1.5 text-xs">
+              <span className="text-muted">{session.removable} leitura(s) sem efeito na nota (fora da nota, desconhecida, sobra ou desfeita).</span>
+              <button type="button" onClick={clearWarnings} className="shrink-0 font-medium text-brand">Limpar essas {session.removable}</button>
+            </li>
+          )}
+          {visibleReads.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">Nenhuma leitura nesta sessão.</li>}
+          {visibleReads.map((r) => (
             <li key={r.id} className={cn("flex items-center gap-2 px-3 py-2 text-sm", r.undone && "opacity-50")}>
               <StatusIcon read={r} />
               <div className="min-w-0 flex-1">
                 <p className="truncate">{r.result?.label ?? r.result?.description ?? r.code}</p>
-                <p className="truncate text-xs text-muted">{new Date(r.at).toLocaleTimeString("pt-BR")}{r.remote ? (r.remote === "link" ? " · pelo celular" : " · outro aparelho") : ""} · {r.code}{r.qty > 1 ? ` ×${r.qty}` : ""} · {readText(r)}</p>
+                <p className="truncate text-xs text-muted">{new Date(r.at).toLocaleTimeString("pt-BR")}{r.remote ? (r.remote === "link" ? " · pelo celular" : " · outro aparelho") : ""} · {r.code}{r.qty > 1 ? ` ×${r.qty}` : ""} · {readText(r, group ? (id) => nfOf.get(id) : undefined)}</p>
               </div>
               {canScan && !r.remote && r.result?.added && !r.undone ? <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => undoRead(r)}><Undo2 size={14} /> Desfazer</Button> : null}
+              {r.state !== "queued" && noEffect(r) ? <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => removeRead(r)} aria-label="Remover esta leitura da lista"><X size={14} /> Remover</Button> : null}
             </li>
           ))}
         </ul>
@@ -418,7 +512,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
                 <Thumb src={i.photo} done={done} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{i.label ?? i.description}</p>
-                  <p className="truncate text-[11px] text-muted">#{i.n_item} · {i.sku ?? i.cprod ?? "—"}{i.cean && !/^0+$/.test(i.cean) ? ` · ${i.cean}` : ""}{!i.variant_id && <span className="text-warning"> · sem vínculo</span>}</p>
+                  <p className="truncate text-[11px] text-muted">#{i.n_item} · {i.sku ?? i.cprod ?? "—"}{i.cean && !/^0+$/.test(i.cean) ? ` · ${i.cean}` : ""}{!i.variant_id && <span className="text-warning"> · sem vínculo</span>}{group && noteFilter === "all" && i.receipt_id && <span className="ml-1 rounded bg-surface-2 px-1 py-px text-[10px] font-medium text-text">NF {nfOf.get(i.receipt_id)}</span>}</p>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2"><div className={cn("h-full rounded-full", done ? "bg-success" : "bg-brand")} style={{ width: `${pct}%` }} /></div>
                 </div>
                 {canScan ? (
@@ -451,7 +545,19 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             As leituras já aparecem no computador.{expiresAt ? ` Link válido até ${new Date(expiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.` : ""}
           </p>
         ) : (
-          <div className="mx-auto flex max-w-3xl items-center gap-2">
+          <div className="mx-auto max-w-3xl space-y-2">
+            {group && showConf && (
+              <ul className="divide-y divide-border rounded-lg border border-border bg-surface text-sm" aria-label="Conferência de cada nota">
+                {perNote.map((n) => (
+                  <li key={n.note.id} className="flex items-center gap-2 px-3 py-2">
+                    <span className="min-w-0 flex-1 truncate">NF {n.note.nfNumber} <span className="text-xs text-muted">· {n.note.receiptNumber}</span>
+                      <span className={cn("block text-xs tabular-nums", n.done ? "text-success" : "text-muted")}>{fmtQty(n.counted)}/{fmtQty(n.nfe)} peças{n.done ? " · completa" : ` · faltam ${fmtQty(n.nfe - n.counted)}`}</span></span>
+                    <Button type="button" variant={n.done ? "primary" : "secondary"} className="h-8 px-3 text-xs" disabled={leaving} onClick={() => void leave("conferencia", n.note.id)}>Abrir conferência</Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1 text-xs">
               <p className="truncate text-muted">{totals.pct === 100 ? "Todas as peças da nota conferidas." : `Faltam ${fmtQty(totals.nfe - totals.counted)} peça(s) · ${formatBRL(totals.shortage)}`}</p>
               <p className={cn("truncate", session.queued ? "text-brand" : "text-success")}>{session.queued ? `Salvando ${session.queued} leitura(s)…` : "✓ Tudo salvo"}</p>
@@ -459,10 +565,18 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             <Button type="button" variant="secondary" disabled={leaving} onClick={() => void leave("lista")} title="As leituras já estão salvas: volta para a lista e continua depois de onde parou">
               {leaving ? "Salvando…" : "Salvar e sair"}
             </Button>
-            <Link href={`/produtos/recebimento/${receiptId}`} onClick={(e) => { e.preventDefault(); void leave("conferencia"); }}
-              className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium", totals.pct === 100 ? "bg-success text-white" : "bg-brand text-brand-contrast")}>
-              <Check size={16} /> {totals.pct === 100 ? "Concluir conferência" : "Ir para a conferência"}
-            </Link>
+            {group ? (
+              <button type="button" onClick={() => setShowConf((v) => !v)} aria-expanded={showConf}
+                className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium", totals.pct === 100 ? "bg-success text-white" : "bg-brand text-brand-contrast")}>
+                <Check size={16} /> {totals.pct === 100 ? "Concluir conferência" : "Conferir notas"} <ChevronDown size={14} className={cn("transition-transform", showConf && "rotate-180")} />
+              </button>
+            ) : (
+              <Link href={`/produtos/recebimento/${receiptId}`} onClick={(e) => { e.preventDefault(); void leave("conferencia"); }}
+                className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium", totals.pct === 100 ? "bg-success text-white" : "bg-brand text-brand-contrast")}>
+                <Check size={16} /> {totals.pct === 100 ? "Concluir conferência" : "Ir para a conferência"}
+              </Link>
+            )}
+          </div>
           </div>
         )}
       </div>
@@ -470,16 +584,18 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   );
 }
 
-function readText(r: Read): string {
+function readText(r: Read, nfOf?: (receiptId: string) => string | undefined): string {
   if (r.state === "queued") return "enviando…";
   if (r.state === "error") return r.error ?? "erro";
   const s = r.result!;
   if (r.undone) return "desfeita";
+  // várias notas: onde cada peça entrou
+  const where = nfOf && s.allocations?.length ? ` → ${s.allocations.map((a) => `NF ${nfOf(a.receipt_id) ?? "?"} ×${fmtQty(a.added)}`).join(", ")}` : "";
   switch (s.status) {
-    case "OK": return `+${fmtQty(s.added ?? 0)} · ${fmtQty(s.qty_counted ?? 0)}/${fmtQty(s.qty_nfe ?? 0)}`;
-    case "PARTIAL_EXCESS": return `+${fmtQty(s.added ?? 0)} e ${fmtQty(s.excess ?? 0)} a mais que a nota`;
-    case "EXCESS": return "sobra: a nota já está completa para este item";
-    case "NOT_IN_NOTE": return "peça do catálogo que não está nesta nota";
+    case "OK": return `+${fmtQty(s.added ?? 0)}${where} · ${fmtQty(s.qty_counted ?? 0)}/${fmtQty(s.qty_nfe ?? 0)}`;
+    case "PARTIAL_EXCESS": return `+${fmtQty(s.added ?? 0)}${where} e ${fmtQty(s.excess ?? 0)} a mais que ${nfOf ? "as notas" : "a nota"}`;
+    case "EXCESS": return nfOf ? "sobra: todas as notas já estão completas para esta peça" : "sobra: a nota já está completa para este item";
+    case "NOT_IN_NOTE": return nfOf ? "peça do catálogo que não está em nenhuma destas notas" : "peça do catálogo que não está nesta nota";
     default: return "código não encontrado";
   }
 }
@@ -502,14 +618,20 @@ function Thumb({ src, done }: { src: string | null; done?: boolean }) {
 }
 
 /** Aviso grande da última leitura: produto, foto e quanto já foi conferido do item (sempre o número atual do item). */
-function LastRead({ read, item, canUndo, onUndo }: { read: Read; item?: ScanItem; canUndo: boolean; onUndo(): void }) {
+function LastRead({ read, item, total: agg, nfOf, canUndo, onUndo, onDismiss }: {
+  read: Read; item?: ScanItem; canUndo: boolean; onUndo(): void;
+  /** várias notas: total da peça somando as linhas de todas as notas */
+  total?: { counted: number; total: number }; nfOf?: (receiptId: string) => string | undefined;
+  /** tira o aviso da tela (leitura sem efeito: fora da nota, desconhecida, sobra) */
+  onDismiss?: () => void;
+}) {
   const t = read.state === "queued" || read.undone ? null : toneOf(read);
   const s = read.result;
-  const counted = item?.qty_counted ?? s?.qty_counted ?? 0;
-  const total = item?.qty_nfe ?? s?.qty_nfe;
+  const counted = agg?.counted ?? item?.qty_counted ?? s?.qty_counted ?? 0;
+  const total = agg?.total ?? item?.qty_nfe ?? s?.qty_nfe;
   const title = read.state === "queued" ? "Lendo…" : read.state === "error" ? "Não foi possível lançar" : read.undone ? "Leitura desfeita"
     : s?.status === "OK" ? (total != null && counted >= total ? "Item completo!" : "Lida e somada")
-    : s?.status === "PARTIAL_EXCESS" ? "Somada em parte: passou da nota" : s?.status === "EXCESS" ? "Sobra! A nota já está completa" : s?.status === "NOT_IN_NOTE" ? "Esta peça não está nesta nota" : "Código não encontrado";
+    : s?.status === "PARTIAL_EXCESS" ? "Somada em parte: passou da nota" : s?.status === "EXCESS" ? (nfOf ? "Sobra! As notas já estão completas para esta peça" : "Sobra! A nota já está completa") : s?.status === "NOT_IN_NOTE" ? (nfOf ? "Esta peça não está em nenhuma destas notas" : "Esta peça não está nesta nota") : "Código não encontrado";
   const name = s?.label ?? item?.label ?? s?.description ?? item?.description ?? null;
   return (
     <div className={cn("flex items-center gap-3 rounded-xl border-2 p-2.5 transition-colors", t === null && "border-border bg-surface",
@@ -521,6 +643,7 @@ function LastRead({ read, item, canUndo, onUndo }: { read: Read; item?: ScanItem
         </p>
         <p className="truncate text-sm font-medium">{name ?? read.code}</p>
         <p className="truncate text-xs text-muted">{read.state === "error" ? read.error : s?.sku ?? item?.sku ?? read.code}{s?.status === "UNKNOWN" ? " · confira a etiqueta ou digite o código" : ""}</p>
+        {nfOf && s?.allocations?.length ? <p className="truncate text-xs font-medium">{s.allocations.map((a) => `NF ${nfOf(a.receipt_id) ?? "?"} +${fmtQty(a.added)}`).join(" · ")}</p> : null}
       </div>
       {total != null && (
         <div className="shrink-0 text-right">
@@ -528,6 +651,7 @@ function LastRead({ read, item, canUndo, onUndo }: { read: Read; item?: ScanItem
           {canUndo && s?.added ? !read.undone ? <button type="button" onClick={onUndo} className="mt-1 inline-flex items-center gap-1 text-xs text-brand"><Undo2 size={12} /> desfazer</button> : null : null}
         </div>
       )}
+      {onDismiss && <button type="button" onClick={onDismiss} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg hover:bg-surface-2" aria-label="Tirar este aviso da lista" title="Tirar este aviso (não muda nada na nota)"><X size={16} /></button>}
     </div>
   );
 }

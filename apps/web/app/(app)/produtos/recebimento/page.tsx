@@ -68,13 +68,18 @@ export default async function RecebimentoListPage({ searchParams }: { searchPara
         ))}
       </nav>
       {(receipts ?? []).length === 0 ? <Empty title="Nenhum recebimento">Importe o XML da NF-e do fornecedor para começar a conferência.</Empty> : (
-        <Table head={["Recebimento", "Nota", "Fornecedor", "Emissão", "Total", "Faltas", "Pedido", "Situação"]}>
+        <>
+        {can(session, "purch.write") && (receipts ?? []).filter((r) => r.status !== "POSTED").length > 1 && (
+          <p className="mb-2 text-xs text-muted">Recebeu várias caixas do mesmo pedido, cada uma com a sua NF-e? Marque as notas e toque em <b>Bipar juntas</b>: cada peça entra na nota que ainda precisa dela.</p>
+        )}
+        <Table head={["Recebimento", "Nota", "Fornecedor", "Emissão", "Total", "Faltas", "Pedido", "Situação"]}
+          bulk={can(session, "purch.write") ? [{ label: "Bipar juntas", tone: "primary", href: "/produtos/recebimento/bipar?n={ids}", tag: "bipar" }] : undefined}>
           {(receipts ?? []).map((r) => {
             const d = r.document_id ? dmap.get(r.document_id) : undefined;
             const st = RECEIPT_STATUS[r.status] ?? { label: r.status, tone: "neutral" as const };
             const pg = progress.get(r.id);
             return (
-              <tr key={r.id}>
+              <tr key={r.id} data-select={r.status !== "POSTED" ? r.id : undefined} data-tags={r.status !== "POSTED" ? "bipar" : undefined}>
                 <td className="px-3 py-2"><Link className="font-medium text-brand" href={`/produtos/recebimento/${r.id}`}>{r.number}</Link></td>
                 <td className="px-3 py-2">{d ? `${d.number}/${d.series}` : "—"}</td>
                 <td className="px-3 py-2">{sname.get(r.supplier_party_id) ?? "—"}</td>
@@ -89,6 +94,7 @@ export default async function RecebimentoListPage({ searchParams }: { searchPara
             );
           })}
         </Table>
+        </>
       )}
     </>
   );

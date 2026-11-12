@@ -41,5 +41,5 @@ export async function linkFeedAction(token: string, after: number): Promise<Outc
 /** Abre a nota pelo link (usado pela página). */
 export async function openLink(token: string) {
   if (!okToken(token)) return { ok: false as const, error: "Link inválido" };
-  return call<{ expires_at: string; label: string | null; summary: Record<string, unknown>; items: Record<string, unknown>[] }>("receipt_link_open", { p_token: token });
+  return call<{ expires_at: string; label: string | null; summary: Record<string, unknown>; notes?: Record<string, unknown>[]; items: Record<string, unknown>[] }>("receipt_link_open", { p_token: token });
 }

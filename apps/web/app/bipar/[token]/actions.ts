@@ -21,10 +21,12 @@ async function call<T>(fn: string, args: Record<string, unknown>): Promise<Outco
   }
 }
 
-export async function linkScanAction(token: string, code: string, qty: number): Promise<Outcome<ScanResult>> {
+const okCid = (c?: string) => c == null || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(c);
+
+export async function linkScanAction(token: string, code: string, qty: number, cid?: string): Promise<Outcome<ScanResult>> {
   const c = String(code ?? "").trim();
-  if (!okToken(token) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000) return { ok: false, error: "Leitura inválida" };
-  return call<ScanResult>("receipt_link_scan", { p_token: token, p_code: c, p_qty: qty });
+  if (!okToken(token) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000 || !okCid(cid)) return { ok: false, error: "Leitura inválida" };
+  return call<ScanResult>("receipt_link_scan", { p_token: token, p_code: c, p_qty: qty, p_client: cid ?? null });
 }
 
 export async function linkBumpAction(token: string, itemId: string, delta: number): Promise<Outcome<ScanResult>> {
@@ -50,10 +52,10 @@ export async function linkDiscardAction(token: string, events: number[]): Promis
   return out.ok ? { ok: true, data: Number(out.data) } : out;
 }
 
-export async function linkReviewAction(token: string, code: string, qty: number): Promise<Outcome<ScanResult>> {
+export async function linkReviewAction(token: string, code: string, qty: number, cid?: string): Promise<Outcome<ScanResult>> {
   const c = String(code ?? "").trim();
-  if (!okToken(token) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000) return { ok: false, error: "Leitura inválida" };
-  return call<ScanResult>("receipt_link_review", { p_token: token, p_code: c, p_qty: qty });
+  if (!okToken(token) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000 || !okCid(cid)) return { ok: false, error: "Leitura inválida" };
+  return call<ScanResult>("receipt_link_review", { p_token: token, p_code: c, p_qty: qty, p_client: cid ?? null });
 }
 
 export async function linkResetReviewAction(token: string): Promise<Outcome<number>> {

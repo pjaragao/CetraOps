@@ -4,9 +4,11 @@ import { formatBRL } from "@centralops/domain";
 import { createClient } from "@/lib/supabase/server";
 import { can, requirePerm } from "@/lib/session";
 import { str, type SP } from "@/lib/context";
-import { Badge, Button, Card, Empty, inputClass, PageHeader, Table } from "@/components/ui";
+import { Badge, Button, Card, Empty, inputClass, LinkButton, PageHeader, Table } from "@/components/ui";
 import { Field, Flash, fmtDate } from "@/components/form";
 import { importNfeAction } from "../compras/actions";
+import { rpcAny } from "@/lib/rpc";
+import { finishBatchFormAction } from "./[id]/bipar/actions";
 import { RECEIPT_STATUS } from "../compras/labels";
 import { loadPurchaseOptions } from "../compras/options";
 
@@ -42,14 +44,46 @@ export default async function RecebimentoListPage({ searchParams }: { searchPara
     progress.set(c.receipt_id, p);
   }
   const fmtN = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("pt-BR", { maximumFractionDigits: 3 }));
+  // lotes de várias NF-e em andamento: ficam aqui até serem finalizados
+  type BatchNote = { id: string; number: string; status: string; total: number; nf: string; pieces: number; counted: number };
+  type Batch = { id: string; created_at: string; notes: BatchNote[]; extras: number };
+  const { data: batchData } = can(session, "purch.write") || can(session, "purch.read") ? await rpcAny(supabase, "purch", "receipt_batches_overview", {}) : { data: [] };
+  const batches = Array.isArray(batchData) ? (batchData as Batch[]) : [];
   const sname = new Map((suppliers ?? []).map((s) => [s.id, s.display_name]));
   const dmap = new Map((docs ?? []).map((d) => [d.id, d]));
   const psup = new Map((pos ?? []).map((p) => [p.id, p]));
 
   return (
     <>
-      <PageHeader title="Recebimento de NF-e" description="Importe o XML da nota do fornecedor, confira a grade (quantidade por tamanho) e lance no estoque. O contas a pagar sai das duplicatas." />
+      <PageHeader title="Recebimento de NF-e" description="Importe o XML da nota do fornecedor, confira a grade (quantidade por tamanho) e lance no estoque. O contas a pagar sai das duplicatas." actions={<LinkButton href="/produtos/recebimento/sobras">Sobras e fora da NF</LinkButton>} />
       <Flash ok={str(sp.ok)} erro={str(sp.erro)} />
+      {batches.length > 0 && (
+        <Card className="mb-4 border-brand/50" title={`Entradas em andamento (${batches.length})`}>
+          <p className="mb-2 text-xs text-muted">Várias NF-e bipadas juntas. O lote fica aqui até você finalizar (ou até todas as notas serem lançadas no estoque).</p>
+          <ul className="space-y-2">
+            {batches.map((b) => {
+              const pieces = b.notes.reduce((a, n) => a + Number(n.pieces), 0), counted = b.notes.reduce((a, n) => a + Number(n.counted), 0);
+              const pct = pieces ? Math.round((counted / pieces) * 100) : 0;
+              return (
+                <li key={b.id} className="rounded-xl border border-border bg-surface p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ScanBarcode size={16} className="text-brand" />
+                    <span className="font-medium">{b.notes.length} notas: {b.notes.map((n) => `NF ${n.nf.split("/")[0]}`).join(" + ")}</span>
+                    <span className="text-xs text-muted">desde {fmtDate(b.created_at.slice(0, 10))}</span>
+                    {Number(b.extras) > 0 && <Badge tone="warning">{fmtN(Number(b.extras))} sobrando / fora da NF</Badge>}
+                    <span className="ml-auto flex items-center gap-2">
+                      {can(session, "purch.write") && <form action={finishBatchFormAction}><input type="hidden" name="batch_id" value={b.id} /><Button variant="ghost" className="text-xs">Finalizar lote</Button></form>}
+                      <Link className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-brand-contrast" href={`/produtos/recebimento/bipar?lote=${b.id}`}><ScanBarcode size={14} /> Continuar bipando</Link>
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2"><div className={`h-full rounded-full ${pct === 100 ? "bg-success" : "bg-brand"}`} style={{ width: `${pct}%` }} /></div>
+                  <p className="mt-1 text-xs tabular-nums text-muted">{fmtN(counted)}/{fmtN(pieces)} peças · {b.notes.map((n) => `NF ${n.nf.split("/")[0]}: ${fmtN(Number(n.counted))}/${fmtN(Number(n.pieces))}`).join(" · ")}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
       {opts && (
         <Card className="mb-4" title="Importar XML">
           <form action={importNfeAction} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-4">

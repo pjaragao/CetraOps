@@ -54,12 +54,12 @@ export async function feedAction(receiptId: string, after: number): Promise<Outc
 const uuidList = (ids: string[]) => Array.isArray(ids) && ids.length >= 1 && ids.length <= 20 && ids.every((i) => uuid.safeParse(i).success);
 
 /** Várias notas bipadas juntas: o banco distribui a peça na nota que ainda precisa dela. */
-export async function scanGroupAction(receiptIds: string[], code: string, qty: number): Promise<Outcome<ScanResult>> {
+export async function scanGroupAction(receiptIds: string[], code: string, qty: number, cid?: string): Promise<Outcome<ScanResult>> {
   const c = String(code ?? "").trim();
-  if (!uuidList(receiptIds) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000) return { ok: false, error: "Leitura inválida" };
+  if (!uuidList(receiptIds) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000 || (cid != null && !uuid.safeParse(cid).success)) return { ok: false, error: "Leitura inválida" };
   try {
     const supabase = await createClient();
-    const { data, error } = await rpcAny(supabase, "purch", "scan_receipts_code", { p_receipts: receiptIds, p_code: c, p_qty: qty });
+    const { data, error } = await rpcAny(supabase, "purch", "scan_receipts_code", { p_receipts: receiptIds, p_code: c, p_qty: qty, p_client: cid ?? null });
     if (error) return { ok: false, error: friendly(error.message), retry: !error.code || error.code.startsWith("08") || error.code === "PGRST000" };
     return { ok: true, data: data as unknown as ScanResult };
   } catch {
@@ -133,12 +133,12 @@ export async function resolveExtraFormAction(formData: FormData) {
 }
 
 /** Revisão: bipa de novo para conferir o que foi lançado (uma ou várias notas). Não muda a contagem. */
-export async function reviewGroupAction(receiptIds: string[], code: string, qty: number): Promise<Outcome<ScanResult>> {
+export async function reviewGroupAction(receiptIds: string[], code: string, qty: number, cid?: string): Promise<Outcome<ScanResult>> {
   const c = String(code ?? "").trim();
-  if (!uuidList(receiptIds) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000) return { ok: false, error: "Leitura inválida" };
+  if (!uuidList(receiptIds) || !c || c.length > 80 || !Number.isFinite(qty) || qty <= 0 || qty > 10000 || (cid != null && !uuid.safeParse(cid).success)) return { ok: false, error: "Leitura inválida" };
   try {
     const supabase = await createClient();
-    const { data, error } = await rpcAny(supabase, "purch", "review_receipts_code", { p_receipts: receiptIds, p_code: c, p_qty: qty });
+    const { data, error } = await rpcAny(supabase, "purch", "review_receipts_code", { p_receipts: receiptIds, p_code: c, p_qty: qty, p_client: cid ?? null });
     if (error) return { ok: false, error: friendly(error.message), retry: !error.code || error.code.startsWith("08") || error.code === "PGRST000" };
     return { ok: true, data: data as unknown as ScanResult };
   } catch {
@@ -157,4 +157,29 @@ export async function resetReviewAction(receiptIds: string[]): Promise<Outcome<n
   } catch {
     return { ok: false, error: "Sem conexão com o servidor", retry: true };
   }
+}
+
+/** Lote de várias NF-e: marca como finalizado (some da lista de recebimentos). */
+export async function finishBatchAction(batchId: string): Promise<Outcome<true>> {
+  if (!uuid.safeParse(batchId).success) return { ok: false, error: "Lote inválido" };
+  try {
+    const supabase = await createClient();
+    const { error } = await rpcAny(supabase, "purch", "finish_receipt_batch", { p_batch: batchId });
+    if (error) return { ok: false, error: friendly(error.message) };
+    revalidatePath("/produtos/recebimento");
+    return { ok: true, data: true };
+  } catch {
+    return { ok: false, error: "Sem conexão com o servidor", retry: true };
+  }
+}
+
+/** Lista de recebimentos: finalizar um lote. */
+export async function finishBatchFormAction(formData: FormData) {
+  const id = String(formData.get("batch_id") ?? "");
+  if (uuid.safeParse(id).success) {
+    const supabase = await createClient();
+    await rpcAny(supabase, "purch", "finish_receipt_batch", { p_batch: id });
+  }
+  revalidatePath("/produtos/recebimento");
+  redirect("/produtos/recebimento?ok=" + encodeURIComponent("Lote finalizado"));
 }

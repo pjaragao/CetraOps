@@ -60,19 +60,20 @@ export interface ScanLink { id: string; label: string | null; expires_at: string
 
 /** O que a tela consulta a cada poucos segundos: quantidades, leituras novas e celulares ligados. */
 /** Peça que chegou e não entrou na nota: lida a mais (sobra), fora da nota ou código desconhecido. Fica pendente até ser resolvida. */
-export interface ScanExtra { kind: "EXCESS" | "NOT_IN_NOTE" | "UNKNOWN"; code: string; label: string | null; sku: string | null; photo: string | null; qty: number; /** revisão: quanto já foi conferido bipando de novo */ reviewed?: number; /** leituras de origem */ events: number[]; last_at: string }
+export interface ScanExtra { kind: "EXCESS" | "NOT_IN_NOTE" | "UNKNOWN"; code: string; label: string | null; sku: string | null; photo: string | null; /** peça do catálogo, quando a leitura a identificou */ variant_id?: string | null; /** nota da leitura (visão de todas as notas) */ receipt_id?: string | null; /** na lixeira desde */ trashed_at?: string | null; qty: number; /** revisão: quanto já foi conferido bipando de novo */ reviewed?: number; /** leituras de origem */ events: number[]; last_at: string }
 
 export interface ScanFeed { status: string; items: ItemCount[]; events: ScanEvent[]; last_event: number; links?: ScanLink[]; expires_at?: string; extras?: ScanExtra[] }
 
 /** Funções da tela: do sistema (logado) ou do link temporário (celular sem login). */
 export interface ScanApi {
-  scan(code: string, qty: number): Promise<Outcome<ScanResult>>;
+  /** cid: id da leitura (criado no aparelho): se o servidor receber o mesmo id de novo (reenvio), não soma outra vez */
+  scan(code: string, qty: number, cid?: string): Promise<Outcome<ScanResult>>;
   bump(itemId: string, delta: number): Promise<Outcome<ScanResult>>;
   feed(after: number): Promise<Outcome<ScanFeed>>;
   /** marca leituras de sobra/fora da nota como resolvidas */
   discard(events: number[]): Promise<Outcome<number>>;
   /** revisão: bipa de novo para conferir o que foi lançado (não muda a contagem) */
-  review(code: string, qty: number): Promise<Outcome<ScanResult>>;
+  review(code: string, qty: number, cid?: string): Promise<Outcome<ScanResult>>;
   /** revisão: começa de novo */
   resetReview(): Promise<Outcome<number>>;
 }
@@ -97,4 +98,20 @@ export interface NoteSummary {
   vProd: number;
   vFrete: number;
   vDesc: number;
+}
+
+/** O que foi feito com uma sobra: compensada com um faltante, entrada sem NF (a definir / presente / NF depois) ou devolução. */
+export interface ExtraResolution {
+  id: string; receipt_id: string | null; receipt_number: string | null;
+  action: "COMPENSATE" | "ENTRY_NO_NF" | "RETURN"; status: "OPEN" | "DONE"; destination: "GIFT" | "NF_LATER" | "NF_LINKED" | null;
+  kind: ScanExtra["kind"]; code: string; label: string | null; sku: string | null; photo: string | null; variant_id: string | null;
+  qty: number; note: string | null; detail: Record<string, unknown>; created_at: string; decided_at: string | null;
+}
+
+export interface ExtrasOverview { pending: ScanExtra[]; trash: ScanExtra[]; resolutions: ExtraResolution[] }
+
+/** Item da nota que faltou e pode ser compensado pela peça que sobrou. */
+export interface CompensationCandidate {
+  item_id: string; receipt_id: string; nf: string; label: string; sku: string | null; missing: number; unit_cost: number;
+  /** mesmo produto (outro tamanho ou cor) */ same_product: boolean; /** diferença de preço em relação ao custo da peça que sobrou; null se não há referência */ diff_pct: number | null;
 }

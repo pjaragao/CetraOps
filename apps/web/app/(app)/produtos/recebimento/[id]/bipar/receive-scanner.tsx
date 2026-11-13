@@ -2,17 +2,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Smartphone, Undo2, Volume2, VolumeX, X, Layers, ListChecks } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronDown, CircleHelp, CloudOff, Keyboard, Minus, PackageX, Pause, Play, Plus, ScanBarcode, Smartphone, Trash2, Undo2, Volume2, VolumeX, X, Layers, ListChecks } from "lucide-react";
 import { catalogPhoto, formatBRL } from "@centralops/domain";
 import { Button, cn, inputClass } from "@/components/ui";
 import { AssistPanel, type TeamPhone } from "./assist-panel";
 import { cue, unlockAudio } from "./feedback";
 import { MiniCamera } from "./mini-camera";
+import { ExtraRowActions } from "./extras-ui";
 import { JoinPanel, type Sibling } from "./join-panel";
 import type { GroupNote, NoteSummary, ScanApi, ScanExtra, ScanItem, ScanLink, ScanResult } from "./types";
 
 type Tone = "ok" | "warn" | "err";
-interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean; /** leitura feita em outro aparelho */ remote?: "link" | "other"; /** tirada da lista pela pessoa (só some da tela; nada muda na nota) */ dismissed?: boolean; /** leitura da revisão (bipar de novo): não mexe na contagem */ review?: boolean }
+interface Read { id: number; code: string; qty: number; at: number; state: "queued" | "done" | "error"; result?: ScanResult; error?: string; undone?: boolean; /** leitura feita em outro aparelho */ remote?: "link" | "other"; /** tirada da lista pela pessoa (só some da tela; nada muda na nota) */ dismissed?: boolean; /** leitura da revisão (bipar de novo): não mexe na contagem */ review?: boolean; /** id da leitura: o servidor ignora o mesmo id reenviado */ cid?: string }
 type Tab = "faltando" | "conferidos" | "todos" | "leituras" | "arevisar" | "revisados" | "divergencias" | "fora";
 
 const fmtQty = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("pt-BR", { maximumFractionDigits: 3 }));
@@ -20,6 +21,8 @@ const toneOf = (r: Read): Tone => r.state === "error" || r.result?.status === "U
 
 const EXTRA_STATUS = ["EXCESS", "PARTIAL_EXCESS", "NOT_IN_NOTE", "UNKNOWN"];
 const EXTRA_LABEL: Record<ScanExtra["kind"], string> = { EXCESS: "Sobra: já estava completa na nota", NOT_IN_NOTE: "Fora da nota", UNKNOWN: "Código não reconhecido" };
+/** id da leitura (UUID): navegadores sem crypto.randomUUID (http) caem no sorteio comum */
+const newId = () => (globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (ch) => { const r = (Math.random() * 16) | 0; return (ch === "x" ? r : (r & 3) | 8).toString(16); }));
 const noEffect = (r: Read) => r.state === "error" || !!r.undone || (r.state === "done" && !r.result?.added);
 
 const num = (v: unknown) => (v == null ? undefined : Number(v));
@@ -30,7 +33,7 @@ const photoOf = (p: string | null | undefined) => (p ? catalogPhoto(p, 160, proc
  * Tela de bipagem. mode "staff": no sistema (computador ou celular de quem está logado), com o modo assistido;
  * mode "link": celular aberto pelo link temporário, sem login — as leituras aparecem no computador.
  */
-export function ReceiveScanner({ receiptId, summary, initialItems, editable, api, mode = "staff", team = [], leaveAction, expiresAt, notes, siblings = [], initialExtras = [] }: {
+export function ReceiveScanner({ receiptId, summary, initialItems, editable, api, mode = "staff", team = [], leaveAction, expiresAt, notes, siblings = [], initialExtras = [], finishBatch }: {
   receiptId: string; summary: NoteSummary; initialItems: ScanItem[]; editable: boolean; api: ScanApi; mode?: "staff" | "link";
   team?: TeamPhone[]; leaveAction?: (receiptId: string) => Promise<void>; expiresAt?: string;
   /** várias NF-e bipadas juntas (receiptId vira os números separados por vírgula): cada peça entra na nota que ainda precisa dela */
@@ -39,6 +42,8 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   siblings?: Sibling[];
   /** sobras já registradas (peça lida a mais, fora da nota ou desconhecida) e ainda não resolvidas */
   initialExtras?: ScanExtra[];
+  /** lote de várias NF-e: finaliza o lote (some da lista de recebimentos) */
+  finishBatch?: () => Promise<{ ok: boolean; error?: string }>;
 }) {
   const router = useRouter();
   const group = notes && notes.length > 1 ? notes : null;
@@ -71,6 +76,8 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   const [reviewing, setReviewing] = useState(false);
   const syncRef = useRef<(() => Promise<void>) | null>(null);
   const seq = useRef(0);
+  const lastAccepted = useRef(new Map<string, number>());
+  const recent = useRef(new Map<string, number[]>());
   const ownEvents = useRef(new Set<number>());
   const lastEvent = useRef(-1);                                   // −1: a primeira consulta só marca onde o registro está
   const linksRef = useRef(links);
@@ -86,7 +93,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
 
   // ---------- leituras: fila em série (ordem garantida), guardada no aparelho enquanto não chega ao servidor ----------
   const persist = useCallback(() => {
-    try { localStorage.setItem(storeKey, JSON.stringify(queue.current.map((r) => ({ code: r.code, qty: r.qty, at: r.at, review: r.review })))); } catch { /* sem armazenamento */ }
+    try { localStorage.setItem(storeKey, JSON.stringify(queue.current.map((r) => ({ code: r.code, qty: r.qty, at: r.at, review: r.review, cid: r.cid })))); } catch { /* sem armazenamento */ }
   }, [storeKey]);
 
   const patchRead = (id: number, patch: Partial<Read>) => setReads((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -113,7 +120,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
     let hadExtra = false;
     while (queue.current.length) {
       const r = queue.current[0];
-      const out = r.review ? await api.review(r.code, r.qty) : await api.scan(r.code, r.qty);
+      const out = r.review ? await api.review(r.code, r.qty, r.cid) : await api.scan(r.code, r.qty, r.cid);
       if (!out.ok && out.retry) {
         setOffline(true);
         await new Promise((ok) => setTimeout(ok, 3000));
@@ -169,7 +176,20 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   const enqueue = useCallback((code: string, qty = mult) => {
     const c = code.trim();
     if (!c || !canScan) return;
-    const r: Read = { id: ++seq.current, code: c, qty, at: Date.now(), state: "queued", review: reviewing };
+    // trava: o mesmo código em menos de 0,5 s é leitura repetida (câmera/celular que engasgou, tecla presa): ignora e avisa
+    const now = Date.now();
+    const key = `${reviewing ? "r" : "s"}:${c.toUpperCase()}`;
+    const prevAt = lastAccepted.current.get(key);
+    if (prevAt !== undefined && now - prevAt < 500) {
+      setNotice(`Leitura repetida ignorada: ${c} foi lido de novo em menos de meio segundo. Se eram 2 peças, bipe uma de cada vez (ou use ×2).`);
+      return;
+    }
+    lastAccepted.current.set(key, now);
+    // rajada: a mesma peça várias vezes em poucos segundos costuma ser engano
+    const burst = [...(recent.current.get(key) ?? []).filter((t) => now - t < 5000), now];
+    recent.current.set(key, burst);
+    if (burst.length >= 4) setNotice(`${c} foi lido ${burst.length} vezes em poucos segundos. Se foi engano, desfaça na aba Leituras.`);
+    const r: Read = { id: ++seq.current, code: c, qty, at: now, state: "queued", review: reviewing, cid: newId() };
     queue.current.push(r);
     persist();
     setReads((p) => [r, ...p].slice(0, 300));
@@ -180,11 +200,11 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
   // leituras que ficaram no aparelho (sem rede ou página fechada no meio) voltam para a fila
   useEffect(() => {
     const t = setTimeout(() => { try {
-      const saved = JSON.parse(localStorage.getItem(storeKey) ?? "[]") as { code: string; qty: number; at: number; review?: boolean }[];
+      const saved = JSON.parse(localStorage.getItem(storeKey) ?? "[]") as { code: string; qty: number; at: number; review?: boolean; cid?: string }[];
       if (saved.length && canScan) {
         setNotice(`${saved.length} leitura(s) que não tinham chegado ao servidor foram reenviadas.`);
         for (const s of saved) {
-          const r: Read = { id: ++seq.current, code: s.code, qty: s.qty, at: s.at, state: "queued", review: s.review };
+          const r: Read = { id: ++seq.current, code: s.code, qty: s.qty, at: s.at, state: "queued", review: s.review, cid: s.cid };
           queue.current.push(r);
           setReads((p) => [r, ...p]);
         }
@@ -325,6 +345,12 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
     setRunning(true);
     void syncRef.current?.();
   };
+  const doFinishBatch = async () => {
+    if (!finishBatch || !window.confirm("Finalizar este lote? Ele sai da lista de recebimentos. As notas continuam abertas para conferir e lançar, e dá para marcar as notas e bipar juntas de novo.")) return;
+    const out = await finishBatch();
+    if (!out.ok) { setNotice(out.error ?? "Não foi possível finalizar o lote"); return; }
+    void leave("lista");
+  };
   const exitReview = () => {
     setReviewing(false); setTab("faltando");
     setNotice(`Revisão: ${rv.ok} item(ns) conferem${rv.pending ? `, ${rv.pending} ainda por revisar` : ""}${rv.over ? `, ${rv.over} com mais peças do que o bipado` : ""}.`);
@@ -425,7 +451,9 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             {reviewing
               ? <span className="shrink-0 tabular-nums"><b className={cn("text-base", rvd >= x.qty && "text-success")}>{fmtQty(rvd)}</b><span className="text-xs text-muted">/{fmtQty(x.qty)} revisadas</span></span>
               : <span className="shrink-0 text-base font-semibold tabular-nums">×{fmtQty(x.qty)}</span>}
-            {editable && !linkError && <Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" disabled={resolving === `${x.kind}:${x.events[0]}`} onClick={() => void resolveExtra(x)} title="Marca como resolvida: sai deste painel e da conferência"><Check size={14} /> Resolver</Button>}
+            {mode === "staff" && editable && !linkError
+              ? <ExtraRowActions row={x} receiptIds={group ? group.map((n) => n.id) : [receiptId]} onChanged={(reload) => { if (reload) window.location.reload(); else void syncRef.current?.(); }} />
+              : editable && !linkError && <Button type="button" variant="secondary" className="h-8 px-2.5 text-xs" disabled={resolving === `${x.kind}:${x.events[0]}`} onClick={() => void resolveExtra(x)} title="Apaga: vai para a lixeira por 30 dias"><Trash2 size={14} /> Apagar</Button>}
           </li>
         );
       })}
@@ -605,7 +633,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold">{fmtQty(extrasQty)} peça(s) chegaram e não entram {group ? "nestas notas" : "nesta nota"}</p>
-              <p className="text-xs text-muted">Ficam guardadas aqui e na conferência até você resolver: peça nota complementar ao fornecedor, devolva a peça ou marque como engano.</p>
+              <p className="text-xs text-muted">Ficam guardadas aqui e na conferência até você dar um destino: compensar com um faltante parecido, dar entrada sem NF ou devolver. {mode === "staff" && <Link href="/produtos/recebimento/sobras" className="text-brand">Ver todas, devoluções e lixeira</Link>}</p>
             </div>
           </div>
           {extrasList}
@@ -748,6 +776,7 @@ export function ReceiveScanner({ receiptId, summary, initialItems, editable, api
             <Button type="button" variant="secondary" disabled={leaving} onClick={() => void leave("lista")} title="As leituras já estão salvas: volta para a lista e continua depois de onde parou">
               {leaving ? "Salvando…" : "Salvar e sair"}
             </Button>
+            {group && finishBatch && <Button type="button" variant="ghost" disabled={leaving} onClick={() => void doFinishBatch()} title="Tira o lote da lista de recebimentos">Finalizar lote</Button>}
             {canScan && totals.counted > 0 && (
               <Button type="button" variant={reviewing ? "primary" : "secondary"} onClick={reviewing ? exitReview : enterReview} title="Bipar tudo de novo para conferir o que foi lançado">
                 <ListChecks size={16} /> {reviewing ? "Voltar à bipagem" : "Revisar"}

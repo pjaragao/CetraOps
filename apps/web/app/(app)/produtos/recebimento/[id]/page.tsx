@@ -11,9 +11,8 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { RECEIPT_STATUS } from "../../compras/labels";
 import { resolveItems } from "../../compras/options";
 import { ConferenceTable, type CatalogOptions, type ConferenceItem } from "./conference";
-import { loadExtras } from "./bipar/data";
-import { resolveExtraFormAction } from "./bipar/actions";
-import { photoUrl } from "@/lib/photos";
+import { loadExtrasOverview } from "./bipar/data";
+import { ExtrasManager } from "./bipar/extras-ui";
 
 export const metadata = { title: "Recebimento" };
 
@@ -56,9 +55,8 @@ export default async function RecebimentoPage({ params, searchParams }: { params
     variant: r.variant_id && lmap.get(r.variant_id) ? { id: r.variant_id, sku: lmap.get(r.variant_id)!.sku, label: lmap.get(r.variant_id)!.label, product_id: productOf.get(r.variant_id) } : null,
     ai: (r.ai_suggestion as ConferenceItem["ai"]) ?? null, receipt_id: id,
   }));
-  const extras = await loadExtras([id]);
-  const extrasQty = extras.reduce((s, x) => s + x.qty, 0);
-  const EXTRA_LABEL: Record<string, string> = { EXCESS: "Sobra: a nota já estava completa", NOT_IN_NOTE: "Fora da nota", UNKNOWN: "Código não reconhecido" };
+  const overview = await loadExtrasOverview([id]);
+  const extrasQty = overview.pending.reduce((s, x) => s + x.qty, 0);
   const aiPending = items.filter((i) => i.ai && i.ai.acao !== "indefinido").length;
 
   const st = RECEIPT_STATUS[rc.status] ?? { label: rc.status, tone: "neutral" as const };
@@ -109,29 +107,9 @@ export default async function RecebimentoPage({ params, searchParams }: { params
 
       <ConferenceTable items={items} editable={editable} options={options} />
 
-      {extras.length > 0 && (
-        <Card className="mt-4 border-warning/60" title={`Sobras e peças fora da nota (${extrasQty.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} peça(s))`}>
-          <p className="mb-2 text-sm text-muted">Peças bipadas que não entram nesta nota: lidas a mais, fora da nota ou sem cadastro. Elas não entram no estoque por esta nota. Peça a nota complementar ao fornecedor, devolva a peça ou marque como resolvida.</p>
-          <ul className="divide-y divide-border">
-            {extras.map((x) => (
-              <li key={`${x.kind}:${x.events[0]}`} className="flex items-center gap-3 py-2 text-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {x.photo ? <img src={photoUrl(x.photo, 160)} alt="" className="h-12 w-10 shrink-0 rounded-md object-cover" loading="lazy" /> : <span className="h-12 w-10 shrink-0 rounded-md bg-surface-2" />}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{x.label ?? x.code}</p>
-                  <p className="truncate text-xs text-muted">{EXTRA_LABEL[x.kind] ?? x.kind} · {x.sku ?? x.code}</p>
-                </div>
-                <span className="shrink-0 text-base font-semibold tabular-nums">×{x.qty.toLocaleString("pt-BR", { maximumFractionDigits: 3 })}</span>
-                {canWrite && (
-                  <form action={resolveExtraFormAction}>
-                    <input type="hidden" name="receipt_id" value={id} />
-                    <input type="hidden" name="events" value={x.events.join(",")} />
-                    <Button variant="secondary">Resolver</Button>
-                  </form>
-                )}
-              </li>
-            ))}
-          </ul>
+      {(overview.pending.length + overview.resolutions.length + overview.trash.length > 0) && (
+        <Card className="mt-4" title={`Sobras e peças fora da nota${extrasQty > 0 ? ` (${extrasQty.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} pendente(s))` : ""}`}>
+          <ExtrasManager scope={[id]} initial={overview} canWrite={canWrite} />
         </Card>
       )}
 

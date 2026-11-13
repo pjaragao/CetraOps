@@ -27,7 +27,10 @@ export function MiniCamera({ active, onCode, flash }: { active: boolean; onCode(
     let stream: MediaStream | null = null;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const seen = new Map<string, number>();                              // código → última vez que apareceu no quadro
+    // Cada código tem um estado: quando foi visto pela última vez e quantos quadros seguidos ficou fora da imagem.
+    // Só conta de novo depois de SAIR do quadro (≥ 2 quadros e ≥ 0,5 s sem aparecer). Não depende do tempo entre quadros: num aparelho lento
+    // (quadro a cada 1 s) ou que travou, a etiqueta parada na frente da câmera continua sendo a mesma leitura.
+    const state = new Map<string, { lastSeen: number; absent: number }>();
     (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error(), { name: "NoMedia" });
@@ -51,13 +54,19 @@ export function MiniCamera({ active, onCode, flash }: { active: boolean; onCode(
             try {
               const found = await detector.detect(v);
               const now = Date.now();
+              const present = new Set<string>();
               for (const hit of found) {
                 const code = hit.rawValue.trim();
                 if (!code || ((hit.format.startsWith("ean") || hit.format.startsWith("upc")) && !validGtin(code))) continue;
-                const last = seen.get(code);
-                seen.set(code, now);
-                if (last === undefined || now - last > 700) onCodeRef.current(code);   // saiu do quadro (ou é novo): conta
+                present.add(code);
               }
+              for (const code of present) {
+                const st = state.get(code);
+                // conta se é novo ou se SAIU do quadro (≥ 2 quadros e ≥ 0,5 s fora). Etiqueta parada na frente não conta de novo, nem em aparelho lento
+                if (st === undefined || (st.absent >= 2 && now - st.lastSeen >= 500)) onCodeRef.current(code);
+                state.set(code, { lastSeen: now, absent: 0 });
+              }
+              for (const [code, st] of state) if (!present.has(code)) st.absent += 1;
             } catch { /* quadro ilegível: segue */ }
           }
           timer = setTimeout(loop, 120);

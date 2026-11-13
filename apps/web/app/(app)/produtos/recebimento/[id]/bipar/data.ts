@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { photoUrl } from "@/lib/photos";
 import { rpcAny } from "@/lib/rpc";
 import type { Sibling } from "./join-panel";
-import type { GroupNote, NoteSummary, ScanExtra, ScanItem } from "./types";
+import type { ExtraResolution, ExtrasOverview, GroupNote, NoteSummary, ScanExtra, ScanItem } from "./types";
 
 /** Itens da nota (ou das notas bipadas juntas, na ordem em que foram passadas) com a peça ligada (SKU, nome · cor · tamanho) e a foto da cor. */
 export async function loadScanItems(receiptIds: string | string[]): Promise<ScanItem[]> {
@@ -121,4 +121,13 @@ export async function loadExtras(receiptIds: string[]): Promise<ScanExtra[]> {
   const supabase = await createClient();
   const { data } = await rpcAny(supabase, "purch", "receipts_extras", { p_receipts: receiptIds });
   return Array.isArray(data) ? (data as ScanExtra[]).map((x) => ({ ...x, qty: Number(x.qty) })) : [];
+}
+
+/** Sobras pendentes, o que foi feito com elas e a lixeira (30 dias). receiptIds nulo = todas as notas. */
+export async function loadExtrasOverview(receiptIds: string[] | null): Promise<ExtrasOverview> {
+  const supabase = await createClient();
+  const { data } = await rpcAny(supabase, "purch", "extras_overview", { p_receipts: receiptIds });
+  const d = (data ?? {}) as Partial<ExtrasOverview>;
+  const ex = (x: ScanExtra): ScanExtra => ({ ...x, qty: Number(x.qty), reviewed: x.reviewed == null ? undefined : Number(x.reviewed) });
+  return { pending: (d.pending ?? []).map(ex), trash: (d.trash ?? []).map(ex), resolutions: (d.resolutions ?? []).map((r: ExtraResolution) => ({ ...r, qty: Number(r.qty) })) };
 }

@@ -345,14 +345,41 @@ async def test_stone_pos_client() -> None:
         assert order["charges"][0]["code"] == "NSU_STONE_456"
 
         # Cancelar pedido na maquininha
-        respx.delete("https://api.pagar.me/core/v5/orders/or_test123/closed").mock(return_value=httpx.Response(200, json={"status": "canceled"}))
+        patch = respx.patch("https://api.pagar.me/core/v5/orders/or_test123/closed").mock(
+            return_value=httpx.Response(200, json={"status": "canceled", "closed": True}))
         canc = await stone.cancel_pos_order("or_test123")
-        assert canc["status"] == "canceled"
+        assert canc == {"ok": True, "status": "canceled"}
+        assert json.loads(patch.calls.last.request.read()) == {"status": "canceled"}
 
         # Erro 401 credencial recusada
         respx.get("https://api.pagar.me/core/v5/orders").mock(return_value=httpx.Response(401))
         with pytest.raises(PermanentError):
             await stone.ping()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_stone_cancel_pos_order_fallbacks() -> None:
+    url = "https://api.pagar.me/core/v5/orders"
+    async with httpx.AsyncClient() as http:
+        stone = StoneClient(http, "sk_test_1234567890abcdef")
+
+        # PATCH falha, mas o pedido já está cancelado: sucesso
+        respx.patch(f"{url}/or_a/closed").mock(return_value=httpx.Response(422, json={"message": "Order already closed"}))
+        respx.get(f"{url}/or_a").mock(return_value=httpx.Response(200, json={"id": "or_a", "status": "canceled", "closed": True}))
+        assert (await stone.cancel_pos_order("or_a"))["ok"] is True
+
+        # PATCH falha e o pedido foi pago: não cancela
+        respx.patch(f"{url}/or_b/closed").mock(return_value=httpx.Response(422, json={"message": "Order already paid"}))
+        respx.get(f"{url}/or_b").mock(return_value=httpx.Response(200, json={"id": "or_b", "status": "paid", "closed": True}))
+        r = await stone.cancel_pos_order("or_b")
+        assert r["ok"] is False and r["error"] == "Cobrança já foi paga na maquininha"
+
+        # PATCH falha e o pedido segue aberto: erro da API; 404 não é sucesso
+        respx.patch(f"{url}/or_c/closed").mock(return_value=httpx.Response(404, json={"message": "Order not found"}))
+        respx.get(f"{url}/or_c").mock(return_value=httpx.Response(200, json={"id": "or_c", "status": "pending", "closed": False}))
+        r = await stone.cancel_pos_order("or_c")
+        assert r["ok"] is False and r["error"] == "Order not found"
 
 
 class _Scripted:

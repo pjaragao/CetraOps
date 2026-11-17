@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
+import { cancelStoneChargesForOrder } from "@/lib/stone-sync";
 
 export type State = { ok: boolean; error?: string; message?: string } | null;
 
@@ -184,6 +185,12 @@ export async function createLinkAction(formData: FormData) {
 export async function cancelOrderAction(formData: FormData) {
   const id = str(formData.get("order_id"));
   const supabase = await createClient();
+  const session = await getSession();
+  if (session?.orgId) {
+    // Antes de cancelar o pedido, desfaz as cobranças abertas na maquininha; se a Stone não confirmar, o pedido não é cancelado
+    const st = await cancelStoneChargesForOrder(session.orgId, id).catch((e: Error) => ({ ok: false as const, error: e.message }));
+    if (!st.ok) back(`/vender/pedidos/${id}`, { erro: `Não consegui cancelar a cobrança na maquininha: ${st.error}` });
+  }
   const { error } = await supabase.schema("sales").rpc("cancel_order", { p_order: id, p_reason: str(formData.get("reason")) || "sem motivo informado" });
   refresh();
   back(`/vender/pedidos/${id}`, error ? { erro: friendly(error.message) } : { ok: "Pedido cancelado e estoque liberado" });

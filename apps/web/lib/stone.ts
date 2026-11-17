@@ -170,19 +170,46 @@ export async function getPosOrder(
   };
 }
 
-/** Cancela uma ordem enviada para a maquininha. */
-export async function cancelPosOrder(
-  secretKey: string,
-  stoneOrderId: string,
-): Promise<{ ok: boolean }> {
-  const res = await fetch(`${BASE_URL}/orders/${stoneOrderId}/closed`, {
-    method: "DELETE",
-    headers: {
-      Authorization: getAuthHeader(secretKey),
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
+export interface CancelPosOrderResult {
+  ok: boolean;
+  status?: string;
+  error?: string;
+}
 
-  return { ok: res.ok || res.status === 404 };
+/**
+ * Cancela uma ordem enviada para a maquininha: fecha o pedido com status "canceled"
+ * (PATCH /orders/{id}/closed). Nunca enviar sem corpo: sem ele o Pagar.me fecha como pago.
+ * Se a chamada falhar, consulta o pedido: já cancelado/fechado sem pagamento conta como sucesso; pago não.
+ */
+export async function cancelPosOrder(secretKey: string, stoneOrderId: string): Promise<CancelPosOrderResult> {
+  let apiError = "";
+  try {
+    const res = await fetch(`${BASE_URL}/orders/${encodeURIComponent(stoneOrderId)}/closed`, {
+      method: "PATCH",
+      headers: {
+        Authorization: getAuthHeader(secretKey),
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ status: "canceled" }),
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (res.ok) return { ok: true, status: String(data.status ?? "canceled").toLowerCase() };
+    apiError = String(data.message ?? (data.errors ? JSON.stringify(data.errors) : "") ?? "") || `HTTP ${res.status}`;
+  } catch (e) {
+    apiError = (e as Error).message;
+  }
+
+  try {
+    const cur = await getPosOrder(secretKey, stoneOrderId);
+    if (cur.status === "paid") return { ok: false, status: "paid", error: "Cobrança já foi paga na maquininha" };
+    const closed = cur.raw.closed === true;
+    if (["canceled", "cancelled", "failed"].includes(cur.status) || closed) {
+      return { ok: true, status: cur.status };
+    }
+    return { ok: false, status: cur.status, error: apiError };
+  } catch {
+    return { ok: false, error: apiError };
+  }
 }

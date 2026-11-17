@@ -6,7 +6,7 @@ import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { cancelPosOrder, sendPosOrder } from "@/lib/stone";
-import { stoneSecret, syncStoneOrder } from "@/lib/stone-sync";
+import { cancelStoneCharge, releaseStoneTerminal, stoneSecret, syncStoneOrder } from "@/lib/stone-sync";
 
 export interface StoneTerminal {
   id: string;
@@ -141,7 +141,7 @@ export async function sendToStonePosAction(input: z.infer<typeof sendSchema>) {
       p_terminal_name: terminalName ?? undefined,
     });
     if (recErr) {
-      await cancelPosOrder(secretKey, orderRes.id).catch(() => null);     // sem registro aqui não há como conferir depois: desfaz na maquininha
+      await cancelPosOrder(secretKey, orderRes.id).catch(() => null);     // melhor esforço: sem registro aqui não há como conferir depois: desfaz na maquininha
       return { ok: false as const, error: recErr.message };
     }
 
@@ -186,9 +186,30 @@ export async function checkStonePosPaymentAction(stoneOrderId: string, orderId?:
 /** Cancela a ordem na maquininha se o operador desistir ou quiser mudar a forma. */
 export async function cancelStonePosOrderAction(stoneOrderId: string) {
   const session = await requirePerm("sales.write");
-  const secretKey = await stoneSecret(session.orgId);
-  if (secretKey) await cancelPosOrder(secretKey, stoneOrderId).catch(() => null);
+  if (!/^[A-Za-z0-9_-]{4,64}$/.test(stoneOrderId)) return { ok: false as const, error: "Cobrança inválida" };
   const supabase = await createClient();
-  const { error } = await supabase.schema("sales").rpc("cancel_stone_pos_order", { p_stone_order_id: stoneOrderId });
-  return error ? { ok: false as const, error: error.message } : { ok: true as const };
+  const { data: row } = await supabase.schema("sales").from("stone_pos_orders").select("source").eq("stone_order_id", stoneOrderId).maybeSingle();
+  try {
+    const r = await cancelStoneCharge(session.orgId, stoneOrderId, row?.source ?? null);
+    if (!r.ok) return { ok: false as const, error: `Não consegui cancelar a cobrança na maquininha: ${r.error}` };
+    return { ok: true as const };
+  } catch (e) {
+    return { ok: false as const, error: `Não consegui cancelar a cobrança na maquininha: ${(e as Error).message}` };
+  }
+}
+
+/** Libera uma maquininha presa com cobrança aberta na Stone (cancela o que seguir aberto das últimas 72h). */
+export async function releaseStoneTerminalAction(serial: string) {
+  const session = await requirePerm("core.admin");
+  const clean = String(serial ?? "").trim();
+  if (!clean) return { ok: false as const, error: "Informe o número de série da maquininha" };
+  try {
+    const r = await releaseStoneTerminal(session.orgId, clean);
+    if (!r.ok) return { ok: false as const, error: r.error };
+    revalidatePath("/vender/pdv");
+    revalidatePath("/vender/pedidos");
+    return { ok: true as const, ...r.summary };
+  } catch (e) {
+    return { ok: false as const, error: (e as Error).message };
+  }
 }

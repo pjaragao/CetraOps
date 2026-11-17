@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Edit2, Plus, Smartphone, Star, Trash2, X } from "lucide-react";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
 import { Field } from "@/components/form";
-import { saveStoneTerminalsAction, type StoneTerminal } from "../../vender/stone-actions";
+import { releaseStoneTerminalAction, saveStoneTerminalsAction, type StoneTerminal } from "../../vender/stone-actions";
 import { PosDevicesPanel } from "./pos-devices-panel";
 
 interface StoneTerminalsDialogProps {
@@ -33,6 +33,8 @@ function StoneTerminalsModal({
   const [isDefault, setIsDefault] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [releasing, setReleasing] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   const handleStartEdit = (t: StoneTerminal) => {
     setEditingId(t.id);
@@ -107,6 +109,32 @@ function StoneTerminalsModal({
     });
   };
 
+  const handleRelease = async (t: StoneTerminal) => {
+    setError(null);
+    setInfo(null);
+    setReleasing(t.id);
+    try {
+      const res = await releaseStoneTerminalAction(t.serial);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      const parts = [
+        `${res.released} cobrança(s) liberada(s)`,
+        `${res.alreadyClosed} já fechada(s)`,
+      ];
+      if (res.paid > 0) parts.push(`${res.paid} já paga(s) na maquininha (sincronizada(s))`);
+      if (res.errors.length > 0) {
+        setError(`Não consegui liberar tudo: ${res.errors.join("; ")}`);
+      }
+      setInfo(`${t.name}: ${parts.join(", ")}.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setReleasing(null);
+    }
+  };
+
   const handleSetDefault = (id: string) => {
     const updated = terminals.map((t) => ({
       ...t,
@@ -168,6 +196,12 @@ function StoneTerminalsModal({
           </p>
         )}
 
+        {info && (
+          <p role="status" className="mb-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
+            {info}
+          </p>
+        )}
+
         {/* Lista de Maquininhas cadastradas */}
         <div className="mb-5 space-y-2 max-h-64 overflow-y-auto pr-1">
           {terminals.length === 0 ? (
@@ -219,6 +253,16 @@ function StoneTerminalsModal({
                       Tornar padrão
                     </Button>
                   )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => handleRelease(t)}
+                    disabled={pending || releasing !== null}
+                    className="px-2 py-1 text-xs text-muted hover:text-brand"
+                    title="Cancela na Stone a cobrança que ficou aberta e destrava a maquininha"
+                  >
+                    {releasing === t.id ? "Liberando…" : "Liberar maquininha"}
+                  </Button>
                   <button
                     type="button"
                     onClick={() => handleStartEdit(t)}

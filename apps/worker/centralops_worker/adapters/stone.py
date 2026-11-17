@@ -107,15 +107,34 @@ class StoneClient:
         return resp.json()
 
     async def cancel_pos_order(self, order_id: str) -> dict[str, Any]:
-        """Cancela/fecha pedido em aberto na maquininha."""
-        resp = await self._request("DELETE", f"/core/v5/orders/{order_id}/closed")
-        if resp.status_code == 404:
-            return {"status": "canceled"}
-        self._check(resp)
+        """Cancela pedido em aberto na maquininha: PATCH /orders/{id}/closed com status canceled.
+
+        Nunca enviar sem corpo (o Pagar.me fecharia como pago). Se a chamada falhar, consulta o pedido:
+        já cancelado/falho/fechado sem pagamento é sucesso; pago ou erro da API retorna ok=False.
+        """
+        api_error = ""
         try:
-            return resp.json()
-        except Exception:
-            return {"status": "canceled"}
+            resp = await self._request("PATCH", f"/core/v5/orders/{order_id}/closed", json={"status": "canceled"})
+            try:
+                data = resp.json()
+            except Exception:
+                data = {}
+            if 200 <= resp.status_code < 300:
+                return {"ok": True, "status": str(data.get("status") or "canceled").lower()}
+            api_error = str(data.get("message") or data.get("errors") or "") or f"HTTP {resp.status_code}"
+        except TransientError as e:
+            api_error = str(e)
+
+        try:
+            cur = await self.get_order(order_id)
+        except (TransientError, PermanentError):
+            return {"ok": False, "error": api_error}
+        status = str(cur.get("status") or "").lower()
+        if status == "paid":
+            return {"ok": False, "status": "paid", "error": "Cobrança já foi paga na maquininha"}
+        if status in ("canceled", "cancelled", "failed") or cur.get("closed") is True:
+            return {"ok": True, "status": status}
+        return {"ok": False, "status": status, "error": api_error}
 
     async def ping(self) -> dict[str, Any]:
         """Verifica se a Secret Key é válida consultando a API."""

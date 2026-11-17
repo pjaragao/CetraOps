@@ -156,8 +156,14 @@ function StonePosModalInner({
 
   const handleCancel = async () => {
     if (stoneOrderId) {
-      await cancelStonePosOrderAction(stoneOrderId);
+      const res = await cancelStonePosOrderAction(stoneOrderId);
+      if (!res.ok) {
+        // a Stone não confirmou: segue aguardando e mostra o erro (não fecha como se tivesse cancelado)
+        setErrorMsg(res.error || "Não consegui cancelar a cobrança na maquininha");
+        return;
+      }
     }
+    setErrorMsg(null);
     if (pollRef.current) clearInterval(pollRef.current);
     setStatus("CANCELED");
   };
@@ -392,6 +398,10 @@ function StonePosModalInner({
               <div className="flex justify-center gap-2">
                 <Badge tone="warning">Aguardando aprovação…</Badge>
               </div>
+
+              {errorMsg && (
+                <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{errorMsg}</p>
+              )}
 
               <div className="pt-2">
                 <Button variant="ghost" onClick={handleCancel} className="text-xs text-danger">

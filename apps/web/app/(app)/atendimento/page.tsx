@@ -6,6 +6,9 @@ import { isoFromNow, str, type SP } from "@/lib/context";
 import { Badge, cn, Empty, LinkButton, PageHeader } from "@/components/ui";
 import { ConversationPane, type DraftProducts } from "./conversation-pane";
 import { RealtimeRefresh } from "./realtime-refresh";
+import { CartPanel } from "./cart-panel";
+import { NewConversationButton } from "./new-conversation";
+import type { CartItem } from "./actions";
 import { ForHerNow, type ForHerNowData } from "@/components/for-her-now";
 
 export const metadata = { title: "Atendimento" };
@@ -85,7 +88,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
   if (selected) {
     const [{ data: conv }, { data: messages }, { data: drafts }, { data: notes }, { data: members }] = await Promise.all([
       supabase.schema("omni").from("conversations")
-        .select("id, mode, last_inbound_at, pending_ai_at, ai_paused_until, ai_instruction, assignee_member_id, party_id, channel_account_id, channel_accounts:channel_account_id(channel, display_name)")
+        .select("id, mode, last_inbound_at, pending_ai_at, ai_forced_at, ai_paused_until, ai_instruction, assignee_member_id, party_id, channel_account_id, channel_accounts:channel_account_id(channel, display_name)")
         .eq("id", selected).maybeSingle(),
       supabase.schema("omni").from("messages").select("id, direction, author_type, body, transcript, type, status, created_at, media_path, provider_message_id, payload, error")
         .eq("conversation_id", selected).order("created_at").order("seq").limit(300),
@@ -115,17 +118,18 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
       const media = await loadMedia(supabase, messages ?? [], conv.channel_account_id);
       // produtos citados (links de foto do catálogo) no rascunho: viram cartões do catálogo do WhatsApp ou fotos diretas
       const draftText = ((drafts?.[0]?.variants as { messages?: string[] }[] | null)?.[0]?.messages ?? []).join("\n\n");
+      const { data: cart } = await supabase.schema("omni").rpc("conversation_cart", { p_conversation: conv.id });
       const { data: draftProducts } = draftText
         ? await supabase.schema("omni").rpc("text_products", { p_conversation: conv.id, p_text: draftText })
         : { data: null };
-      detail = { media, forHer: (forHer as unknown as ForHerNowData | null) ?? null, suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, draftProducts: (draftProducts as DraftProducts | null) ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
+      detail = { media, forHer: (forHer as unknown as ForHerNowData | null) ?? null, suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, draftProducts: (draftProducts as DraftProducts | null) ?? null, cart: (cart as unknown as CartItem[] | null) ?? [], orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
     }
   }
 
   return (
     <>
       <PageHeader title="Atendimento" description="WhatsApp, Instagram e Telegram numa caixa só. Troque entre IA e humano a qualquer momento."
-        actions={<LinkButton href="/atendimento/templates">Templates e respostas rápidas</LinkButton>} />
+        actions={<div className="flex flex-wrap gap-2"><NewConversationButton /><LinkButton href="/atendimento/templates">Templates e respostas rápidas</LinkButton></div>} />
       <RealtimeRefresh conversationId={selected} />
       <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
@@ -179,6 +183,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               quickReplies={detail.quickReplies}
               messages={detail.media}
               aiThinkingSince={detail.conv.pending_ai_at}
+              aiForcedSince={detail.conv.ai_forced_at}
               draft={detail.draft ? { id: detail.draft.id, variants: detail.draft.variants as { messages: string[] }[], confidence: detail.draft.confidence, intent: detail.draft.intent, needsHuman: detail.draft.needs_human, products: detail.draftProducts } : null}
               backHref={`/atendimento?filtro=${filtro}`}
               suggestedOutcome={detail.suggested}
@@ -207,6 +212,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
                   ))}</ul>
                 )}
               </div>
+              <CartPanel conversationId={detail.conv.id} items={detail.cart} />
               {detail.forHer && <div className="border-t border-border pt-3"><p className="mb-1 text-xs font-semibold">Para ela agora</p><ForHerNow data={detail.forHer} compact /></div>}
             </aside>
           </div>

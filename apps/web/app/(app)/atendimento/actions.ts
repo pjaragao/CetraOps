@@ -102,3 +102,57 @@ export async function closeConversation(conversationId: string, outcome: string,
   revalidatePath("/atendimento");
   return error ? { ok: false, error: clean(error.message) } : { ok: true };
 }
+
+const uuid = z.string().uuid();
+
+/** "Sugerir resposta" (qualquer modo) e "Comentar" numa sugestão: a IA prepara um rascunho; nada sai sozinho. */
+export async function requestSuggestion(conversationId: string, comment?: string, draftId?: string) {
+  if (!uuid.safeParse(conversationId).success || (draftId && !uuid.safeParse(draftId).success)) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("request_ai_suggestion", {
+    p_conversation: conversationId, ...(comment?.trim() ? { p_comment: comment.trim().slice(0, 1000) } : {}), ...(draftId ? { p_draft: draftId } : {}),
+  });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
+/** Peça do carrinho da conversa (o que está sendo mostrado ao cliente). */
+export interface CartItem {
+  id: string; product_id: string; color_id?: string; name: string; reference: string; color?: string; size?: string; qty: number;
+  source: "SHOWN" | "ORDER" | "MANUAL" | "PDV"; price?: number; available?: number; sizes_in_stock?: string[]; photo?: string;
+}
+export interface CartHit { product_id: string; color_id?: string; name: string; reference: string; gender?: string; color?: string; price?: number; available?: number; photo?: string }
+
+export async function cartSearch(conversationId: string, query: string): Promise<CartHit[]> {
+  if (!uuid.safeParse(conversationId).success || query.trim().length < 2) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.schema("omni").rpc("cart_search", { p_conversation: conversationId, p_query: query.trim().slice(0, 80) });
+  return (data as unknown as CartHit[] | null) ?? [];
+}
+
+export async function cartAdd(conversationId: string, productId: string, colorId?: string, size?: string) {
+  if (!uuid.safeParse(conversationId).success || !uuid.safeParse(productId).success || (colorId && !uuid.safeParse(colorId).success)) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("cart_add", {
+    p_conversation: conversationId, p_product: productId, ...(colorId ? { p_color: colorId } : {}), ...(size?.trim() ? { p_size: size.trim() } : {}),
+  });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
+export async function cartRemove(itemId: string) {
+  if (!uuid.safeParse(itemId).success) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("cart_remove", { p_item: itemId });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
+/** "Nova conversa": abre (ou acha) a conversa de WhatsApp do cliente. Fora da janela de 24 h, a primeira mensagem é um template. */
+export async function openConversation(partyId: string) {
+  if (!uuid.safeParse(partyId).success) return { ok: false as const, error: "Cliente inválido" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("omni").rpc("open_conversation_for", { p_party: partyId });
+  revalidatePath("/atendimento");
+  return error ? { ok: false as const, error: clean(error.message) } : { ok: true as const, conversationId: String(data) };
+}

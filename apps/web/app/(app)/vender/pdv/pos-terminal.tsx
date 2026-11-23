@@ -2,13 +2,13 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, ScanBarcode, Smartphone, Tag, Trash2, UserPlus, UserRound } from "lucide-react";
+import { MessageCircle, Minus, Plus, ScanBarcode, Smartphone, Tag, Trash2, UserPlus, UserRound } from "lucide-react";
 import { formatBRL, roundCents } from "@centralops/domain";
 import { Badge, Button, Card, cn, inputClass } from "@/components/ui";
 import { BarcodeScanner, type ScannedCode } from "@/components/central/barcode-scanner";
 import { createRemoteOrderAction, customerCoupons, type CustomerCoupon } from "../actions";
 import { createPdvBackorderAction } from "../encomendas/actions";
-import { autoCouponFor, discardDraftOrder, finalizeSale, getCustomerStoreCredit, type getOrderDraft, saveOrderDraft, type SaleInput } from "./actions";
+import { autoCouponFor, cartToWhatsappAction, discardDraftOrder, finalizeSale, getCustomerStoreCredit, type getOrderDraft, saveOrderDraft, type SaleInput } from "./actions";
 import { PartyPicker, type PartyHit } from "../pickers";
 import { QuickCustomerDialog } from "./quick-customer-dialog";
 import { StonePosDialog } from "../stone-pos-dialog";
@@ -83,6 +83,7 @@ export function PosTerminal({
   const [coupon, setCoupon] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "danger" | "warning"; text: string } | null>(null);
   const router = useRouter();
+  const [sendingWa, startWa] = useTransition();
   const [idem, setIdem] = useState(() => crypto.randomUUID());
   const [scanning, setScanning] = useState(false);
   const [pending, start] = useTransition();
@@ -491,6 +492,17 @@ export function PosTerminal({
   };
 
   // Ao escolher a cliente, busca saldo de vale-troca e cupom pessoal vigente (ex.: aniversário)
+  // Carrinho do caixa → conversa de WhatsApp da cliente, com a mensagem pronta para o atendente enviar na inbox
+  const sendCartToWhatsapp = () => {
+    if (!customer) return;
+    const items = cart.filter((l) => !l.isCustom && l.variant).map((l) => ({ variant_id: l.variant!.id, qty: l.qty, unit_price: l.unitPrice }));
+    startWa(async () => {
+      const r = await cartToWhatsappAction(customer.id, items);
+      if (!r.ok) { setMessage({ tone: "danger", text: r.error }); return; }
+      router.push(`/atendimento?${new URLSearchParams({ c: r.conversationId, msg: r.message })}`);
+    });
+  };
+
   const pickCustomer = (p: PartyHit) => {
     setCustomer(p);
     void getCustomerStoreCredit(p.id).then((credit) => {
@@ -916,6 +928,12 @@ export function PosTerminal({
                 <span className="flex items-center gap-2"><UserRound size={16} /> {customer.name}{customer.phone && <span className="text-xs text-muted">{customer.phone}</span>}</span>
                 <button className="text-xs text-brand" onClick={() => { setCustomer(null); setCustomerCredit(0); setCoupon(""); }}>trocar</button>
               </div>
+              {cart.some((l) => !l.isCustom && l.variant) && (
+                <button type="button" disabled={sendingWa} onClick={sendCartToWhatsapp} className="inline-flex items-center gap-1 text-xs text-brand disabled:opacity-50"
+                  title="Abre a conversa de WhatsApp da cliente com as peças no carrinho e a mensagem pronta (com fotos) para enviar">
+                  <MessageCircle size={14} /> {sendingWa ? "Abrindo o WhatsApp…" : "Enviar carrinho no WhatsApp"}
+                </button>
+              )}
               {customerCredit > 0 && (
                 <div className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                   <span>Vale-troca disponível: <b>{formatBRL(customerCredit)}</b></span>

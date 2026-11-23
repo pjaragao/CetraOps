@@ -2,10 +2,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Bot, CheckCircle2, FileText, PauseCircle, PlayCircle, Reply, Send, Sparkles, StickyNote, Undo2, UserRound, X } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, FileText, MessageSquare, PauseCircle, PlayCircle, Reply, Send, Sparkles, StickyNote, Undo2, UserRound, X } from "lucide-react";
 import { canSend, firstName, formatBRL, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@centralops/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
-import { addNote, assignConversation, closeConversation, discardDraft, markRead, pauseAi, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
+import { addNote, assignConversation, closeConversation, discardDraft, markRead, pauseAi, requestSuggestion, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
 
 interface Msg { id: string; direction: string; author_type: string; body: string | null; transcript: string | null; type: string; status: string; created_at: string;
   error?: string | null; mediaUrl?: string | null; quote?: { mine: boolean | null; text: string } | null; canReply?: boolean }
@@ -114,7 +114,7 @@ export function ConversationPane(props: {
   conversationId: string; mode: ConvMode; channel: MessagingChannel; lastInboundAt: string | null;
   customerName: string; messages: Msg[]; draft: Draft | null; backHref: string; templates: Tpl[]; quickReplies: QuickReply[];
   aiPausedUntil: string | null; aiInstruction: string | null; assigneeId: string | null; meId: string; members: Member[]; notes: Note[];
-  suggestedOutcome: string | null; initialText?: string; aiThinkingSince?: string | null;
+  suggestedOutcome: string | null; initialText?: string; aiThinkingSince?: string | null; aiForcedSince?: string | null;
 }) {
   const router = useRouter();
   const [closeOpen, setCloseOpen] = useState(false);
@@ -124,6 +124,7 @@ export function ConversationPane(props: {
   const [replyTo, setReplyTo] = useState<{ id: string; text: string; mine: boolean } | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);   // mensagem pronta vinda da lista do dia
   const [editingDraft, setEditingDraft] = useState<string | null>(null);
+  const [commenting, setCommenting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
@@ -150,7 +151,8 @@ export function ConversationPane(props: {
   const paused = props.aiPausedUntil !== null && new Date(props.aiPausedUntil).getTime() > now;
   const aiMode = props.mode === "AI_AUTOPILOT" || props.mode === "AI_COPILOT";
   // o roteador marca pending_ai_at a cada mensagem da cliente e limpa ao aplicar a resposta; depois de 10 min sem resposta, some (falhou/descartou)
-  const thinking = aiMode && !paused && !!props.aiThinkingSince && now - new Date(props.aiThinkingSince).getTime() < 10 * 60_000;
+  const forced = !!props.aiForcedSince && now - new Date(props.aiForcedSince).getTime() < 10 * 60_000;   // atendente pediu (Sugerir/Comentar)
+  const thinking = forced || (aiMode && !paused && !!props.aiThinkingSince && now - new Date(props.aiThinkingSince).getTime() < 10 * 60_000);
   const who = new Map(props.members.map((m) => [m.id, m.name]));
   const thread = [
     ...props.messages.map((m) => ({ kind: "msg" as const, at: m.created_at, m })),
@@ -287,7 +289,7 @@ export function ConversationPane(props: {
         ))}
         {thinking && (
           <p className="flex items-center gap-1.5 text-xs text-muted" role="status">
-            <Sparkles size={12} className="animate-pulse" /> IA preparando {props.mode === "AI_COPILOT" ? "a sugestão" : "a resposta"}…
+            <Sparkles size={12} className="animate-pulse" /> IA preparando {forced || props.mode !== "AI_AUTOPILOT" ? "a sugestão" : "a resposta"}…
           </p>
         )}
         <div ref={endRef} />
@@ -309,7 +311,16 @@ export function ConversationPane(props: {
         </form>
       )}
 
-      {props.draft && props.mode !== "HUMAN" && (
+      {!props.draft && !thinking && props.mode !== "AI_AUTOPILOT" && (
+        <div className="mx-3 mb-2 flex justify-end">
+          <Button variant="secondary" className="px-2 py-1 text-xs" disabled={pending} onClick={() => run(() => requestSuggestion(props.conversationId))}
+            title="A IA lê a conversa e prepara um rascunho para você revisar (também quando a última mensagem é da loja)">
+            <Sparkles size={13} /> Sugerir resposta
+          </Button>
+        </div>
+      )}
+
+      {props.draft && (
         <div className="mx-3 mb-2 rounded-xl border border-accent/40 bg-accent/10 p-3 text-sm">
           <p className="mb-1 flex items-center gap-2 text-xs font-medium text-muted">
             <Sparkles size={13} /> Sugestão da IA {props.draft.intent && `· ${props.draft.intent}`}
@@ -322,8 +333,16 @@ export function ConversationPane(props: {
           <div className="mt-2 flex flex-wrap gap-2">
             <Button disabled={pending || !freeForm} onClick={() => run(() => sendMessage(props.conversationId, editingDraft ?? draftText, props.draft!.id, editingDraft !== null && editingDraft !== draftText), () => setEditingDraft(null))}>Enviar</Button>
             {editingDraft === null && <Button variant="secondary" onClick={() => setEditingDraft(draftText)}>Editar</Button>}
+            {editingDraft === null && <Button variant="secondary" disabled={pending} onClick={() => setCommenting((v) => v === null ? "" : null)}><MessageSquare size={13} /> Comentar</Button>}
             <Button variant="ghost" disabled={pending} onClick={() => run(() => discardDraft(props.draft!.id, "descartado na inbox"))}>Descartar</Button>
           </div>
+          {commenting !== null && (
+            <form className="mt-2 flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); run(() => requestSuggestion(props.conversationId, commenting, props.draft!.id), () => setCommenting(null)); }}>
+              <input autoFocus value={commenting} onChange={(e) => setCommenting(e.target.value)} maxLength={1000} className={cn(inputClass, "flex-1")}
+                placeholder="O que mudar? Ex.: ele é homem, mostre a Pierre White" aria-label="Comentário para a IA refazer a sugestão" />
+              <Button disabled={pending || !commenting.trim()}>Refazer</Button>
+            </form>
+          )}
         </div>
       )}
 

@@ -26,6 +26,9 @@ def _raise_for(resp: httpx.Response) -> None:
         err = {}
     code = err.get("code")
     msg = f'{code}: {err.get("error_user_msg") or err.get("message") or resp.text[:200]}'
+    details = (err.get("error_data") or {}).get("details") if isinstance(err.get("error_data"), dict) else None
+    if details:                                         # ex.: 131009 "product not found for product_retailer_id …"
+        msg += f" — {str(details)[:300]}"
     if resp.status_code == 429 or code in RATE_LIMIT_CODES or resp.status_code >= 500:
         raise TransientError(msg, code=code, status=resp.status_code)
     raise PermanentError(msg, code=code, status=resp.status_code)

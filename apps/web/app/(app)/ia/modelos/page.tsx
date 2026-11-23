@@ -6,7 +6,7 @@ import { can, requirePerm } from "@/lib/session";
 import { Button, inputClass, PageHeader } from "@/components/ui";
 import { Flash } from "@/components/form";
 import { str, type SP } from "@/lib/context";
-import { HERMES_DEFAULT, HERMES_UNSUPPORTED, hermesModelOptions, isHermesModel } from "@/lib/central/hermes";
+import { CHAT_TASKS, HERMES_CHAT_DEFAULT, HERMES_DEFAULT, HERMES_UNSUPPORTED, hermesModelOptions, isHermesModel } from "@/lib/central/hermes";
 import { ModelPicker, type ModelOption } from "@/components/model-picker";
 
 export const metadata = { title: "Modelos de IA" };
@@ -154,7 +154,7 @@ export default async function ModelosPage({ searchParams }: { searchParams: SP }
                       <input type="hidden" name="task" value={r.task} />
                       {editable && <Button variant="secondary" className="px-2 py-1 text-xs">Salvar</Button>}
                       {editable && !HERMES_UNSUPPORTED[r.task] && !isHermesModel(r.primary_model) && (
-                        <Button variant="secondary" name="use_hermes" value={HERMES_DEFAULT} className="px-2 py-1 text-xs" title="Hermes do CentralOps (AGY) como principal; o modelo atual vira reserva">Usar Hermes</Button>
+                        <Button variant="secondary" name="use_hermes" value={CHAT_TASKS.includes(r.task) ? HERMES_CHAT_DEFAULT : HERMES_DEFAULT} className="px-2 py-1 text-xs" title="Hermes do CentralOps (AGY) como principal; o modelo atual vira reserva">Usar Hermes</Button>
                       )}
                     </form>
                   </td>

@@ -15,6 +15,9 @@ export const HERMES_PREFIX = "hermes/";
 
 /** Padrão da instância: o Gemini Flash mais novo do AGY, pensamento baixo (o shim resolve). */
 export const HERMES_DEFAULT = "hermes/agy";
+/** Padrão das rotas de conversa (atendimento e assistente da Central): Gemini 4 Hydrogen, pensamento baixo. */
+export const HERMES_CHAT_DEFAULT = "hermes/agy/gemini-4-hydrogen-low";
+export const CHAT_TASKS = ["conversation", "assistant"];
 const AGY_PREFIX = "hermes/agy/";
 
 /** `hermes/agy/<id do agy>` → id concreto do `agy models` (ex.: claude-sonnet-5-5-high); `hermes/agy` → null (padrão da instância). */
@@ -22,20 +25,42 @@ export function agyModelId(model: string): string | null {
   return model.startsWith(AGY_PREFIX) && model.length > AGY_PREFIX.length ? model.slice(AGY_PREFIX.length) : null;
 }
 
-/** Catálogo do `agy models` (id → nome). Usado quando o shim não responde; com CENTRALOPS_AGY_SHIM_URL/TOKEN a lista vem ao vivo. */
+/** Catálogo do `agy models` (id → nome), conferido em 23/11/2026. Usado quando o shim não responde; com CENTRALOPS_AGY_SHIM_URL/TOKEN a lista vem ao vivo. */
 const AGY_FALLBACK: Record<string, string> = {
-  "gemini-4-argon-low": "Gemini 4 Argon (Low)", "gemini-4-argon-medium": "Gemini 4 Argon (Medium)", "gemini-4-argon-high": "Gemini 4 Argon (High)",
-  "gemini-3.8-flash-low": "Gemini 3.8 Flash (Low)", "gemini-3.8-flash-medium": "Gemini 3.8 Flash (Medium)", "gemini-3.8-flash-high": "Gemini 3.8 Flash (High)",
-  "claude-opus-5-5-low": "Claude Opus 5.5 (Low)", "claude-opus-5-5-medium": "Claude Opus 5.5 (Medium)", "claude-opus-5-5-high": "Claude Opus 5.5 (High)",
-  "claude-sonnet-5-5-low": "Claude Sonnet 5.5 (Low)", "claude-sonnet-5-5-medium": "Claude Sonnet 5.5 (Medium)", "claude-sonnet-5-5-high": "Claude Sonnet 5.5 (High)",
+  "gemini-4-neon-high": "Gemini 4 Neon (High)",
+  "gemini-4-neon-xhigh": "Gemini 4 Neon (XHigh)",
+  "gemini-4-neon-medium": "Gemini 4 Neon (Medium)",
+  "gemini-4-neon-low": "Gemini 4 Neon (Low)",
+  "gemini-4-carbon-medium": "Gemini 4 Carbon (Medium)",
+  "gemini-4-carbon-high": "Gemini 4 Carbon (High)",
+  "gemini-4-carbon-low": "Gemini 4 Carbon (Low)",
+  "gemini-4-argon-medium": "Gemini 4 Argon (Medium)",
+  "gemini-4-argon-high": "Gemini 4 Argon (High)",
+  "gemini-4-argon-low": "Gemini 4 Argon (Low)",
+  "gemini-4-hydrogen-high": "Gemini 4 Hydrogen (High)",
+  "gemini-4-hydrogen-xhigh": "Gemini 4 Hydrogen (XHigh)",
+  "gemini-4-hydrogen-medium": "Gemini 4 Hydrogen (Medium)",
+  "gemini-4-hydrogen-low": "Gemini 4 Hydrogen (Low)",
+  "gemini-pro-orchestrator-neon": "Orchestrator (Neon)",
+  "gemini-pro-orchestrator": "Orchestrator (Carbon)",
+  "gemini-pro-orchestrator-argon": "Orchestrator (Argon)",
+  "gemini-3.8-flash-high": "Gemini 3.8 Flash (High)",
+  "gemini-3.8-flash-medium": "Gemini 3.8 Flash (Medium)",
+  "gemini-3.8-flash-low": "Gemini 3.8 Flash (Low)",
+  "claude-opus-5-5-low": "Claude Opus 5.5 (Low)",
+  "claude-opus-5-5-medium": "Claude Opus 5.5 (Medium)",
+  "claude-opus-5-5-high": "Claude Opus 5.5 (High)",
+  "claude-sonnet-5-5-low": "Claude Sonnet 5.5 (Low)",
+  "claude-sonnet-5-5-medium": "Claude Sonnet 5.5 (Medium)",
+  "claude-sonnet-5-5-high": "Claude Sonnet 5.5 (High)",
   "gpt-oss-120b-medium": "GPT-OSS 120B (Medium)",
 };
 
-const LEVELS: Record<string, string> = { low: "pensamento baixo", medium: "pensamento médio", high: "pensamento alto" };
+const LEVELS: Record<string, string> = { low: "pensamento baixo", medium: "pensamento médio", high: "pensamento alto", xhigh: "pensamento máximo" };
 
 /** "Claude Sonnet 5.5 (High)" → "Claude Sonnet 5.5 · pensamento alto". */
 function agyLabel(name: string): string {
-  const m = name.match(/^(.*?)\s*\((low|medium|high)\)\s*$/i);
+  const m = name.match(/^(.*?)\s*\((low|medium|high|xhigh)\)\s*$/i);
   return m ? `${m[1]} · ${LEVELS[m[2].toLowerCase()]}` : name;
 }
 
@@ -59,8 +84,8 @@ export async function hermesModelOptions(): Promise<{ id: string; label: string;
   const group = "Hermes do CentralOps · AGY (sem custo por token)";
   const catalog = await agyCatalog();
   // agrupa cada modelo com seus níveis (baixo → médio → alto), na ordem em que o agy lista os modelos
-  const base = (id: string) => id.replace(/-(low|medium|high)$/, "");
-  const level = (id: string) => ["low", "medium", "high"].findIndex((l) => id.endsWith(`-${l}`));
+  const base = (id: string) => id.replace(/-(low|medium|high|xhigh)$/, "");
+  const level = (id: string) => ["low", "medium", "high", "xhigh"].findIndex((l) => id.endsWith(`-${l}`));
   const first = new Map<string, number>();
   Object.keys(catalog).forEach((id, i) => { if (!first.has(base(id))) first.set(base(id), i); });
   const ids = Object.keys(catalog).sort((a, b) => first.get(base(a))! - first.get(base(b))! || level(a) - level(b));

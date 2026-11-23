@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-/** Assina mudanças em conversas, mensagens e rascunhos (RLS aplicado no Realtime) e atualiza a tela. */
+/** Assina mudanças em conversas, mensagens, rascunhos e carrinho (RLS aplicado no Realtime) e atualiza a tela. */
 export function RealtimeRefresh({ conversationId }: { conversationId?: string }) {
   const router = useRouter();
   useEffect(() => {
@@ -15,6 +15,7 @@ export function RealtimeRefresh({ conversationId }: { conversationId?: string })
       .on("postgres_changes", { event: "*", schema: "omni", table: "conversations" }, refresh)
       .on("postgres_changes", { event: "*", schema: "omni", table: "messages", ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {}) }, refresh)
       .on("postgres_changes", { event: "*", schema: "omni", table: "message_drafts" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "omni", table: "cart_items", ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {}) }, refresh)
       .subscribe();
     return () => { clearTimeout(timer); supabase.removeChannel(channel); };
   }, [router, conversationId]);

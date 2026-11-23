@@ -7,11 +7,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 from ..adapters.errors import PermanentError, TransientError
 from ..adapters.meta import MetaClient
-from ..db import call_fn, fetch_all
+from ..db import call_fn, fetch_all, fetch_one
 from ..deps import Deps
 from ..runner import RetryLater
 
@@ -71,6 +72,17 @@ async def sync(deps: Deps, channel_account_id: str) -> dict[str, Any]:
         await call_fn(deps.pool, "omni.meta_catalog_record", channel_account_id, catalog_id, [], {"ok": False, "error": "canal sem credencial configurada"})
         return {"error": "sem credencial"}
     meta = MetaClient(deps.http, deps.settings.graph_api_base, token)
+    if not feed.get("public_address") and feed.get("phone_number_id"):
+        # o link de cada item abre o WhatsApp da própria loja (nunca o site da marca): precisa do número do canal
+        try:
+            phone = re.sub(r"\D", "", str((await meta.whatsapp_phone_info(str(feed["phone_number_id"]))).get("display_phone_number") or ""))
+        except (PermanentError, TransientError) as e:
+            phone = ""
+            log.warning("número do canal indisponível: %s", e)
+        if phone:
+            await fetch_one(deps.pool, "update omni.channel_accounts set public_address = %s where id = %s and coalesce(public_address, '') = '' returning id",
+                            (phone, channel_account_id))
+            feed = await call_fn(deps.pool, "omni.meta_catalog_feed", channel_account_id)
 
     try:
         info = await meta.catalog_info(catalog_id)

@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { Json } from "@centralops/db";
 import { createClient } from "@/lib/supabase/server";
 import { createPosOrderParam, saleSchema, type SaleInput } from "@/lib/pos-sale";
 
@@ -139,4 +140,17 @@ export async function getOrderDraft(orderId: string) {
     party: party ? { id: party.id, name: party.display_name, phone: phoneContact?.value_display ?? null } : null,
     items: items ?? [],
   };
+}
+
+/** PDV → WhatsApp: abre (ou acha) a conversa do cliente, põe as peças no carrinho da conversa e devolve a mensagem pronta
+ *  (com as fotos, que saem como cartões do catálogo). O envio é feito pelo atendente na inbox. */
+export async function cartToWhatsappAction(partyId: string, items: { variant_id: string; qty: number; unit_price?: number }[]):
+  Promise<{ ok: true; conversationId: string; message: string } | { ok: false; error: string }> {
+  if (!partyId) return { ok: false, error: "Escolha a cliente para mandar o carrinho no WhatsApp." };
+  if (!items.length) return { ok: false, error: "O carrinho está vazio." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("omni").rpc("cart_to_whatsapp", { p_party: partyId, p_items: items.slice(0, 30) as unknown as Json });
+  if (error) return { ok: false, error: error.message.replace(/^ERROR:\s*/, "") };
+  const r = data as unknown as { conversation_id: string; message: string };
+  return { ok: true, conversationId: r.conversation_id, message: r.message };
 }

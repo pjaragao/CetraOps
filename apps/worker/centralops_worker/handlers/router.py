@@ -127,21 +127,57 @@ def _bubbles(text: str | None) -> list[str]:
     return parts[:3] or ([text.strip()] if text and text.strip() else [])
 
 
+async def _forced_instruction(deps: Deps, payload: dict[str, Any], base: str | None, history: list[dict[str, str]]) -> str:
+    """Instrução de uma sugestão pedida pelo atendente (botão Sugerir resposta / Comentar): o comentário dele, a sugestão que ele quer
+    refeita e, se a última mensagem é da loja, que a IA proponha a próxima mensagem da loja."""
+    parts = [base] if base else []
+    parts.append("O atendente pediu esta sugestão pelo botão da inbox: ela vira rascunho para ele revisar, nada sai sozinho.")
+    if history and history[-1]["role"] == "assistant":
+        parts.append("A última mensagem da conversa é da loja, não da cliente: sugira a PRÓXIMA mensagem da loja (retomar, complementar ou "
+                     "dar seguimento ao que foi mostrado), sem repetir o que já foi dito.")
+    if payload.get("draft_id"):
+        row = await fetch_one(deps.pool, "select variants from omni.message_drafts where id = %s", (payload["draft_id"],))
+        previous = "\n\n".join(((row or {}).get("variants") or [{}])[0].get("messages") or [])
+        if previous:
+            parts.append(f'Sugestão anterior, que o atendente quer refeita: """{previous[:1500]}"""')
+    if payload.get("comment"):
+        parts.append(f"Comentário do atendente sobre o que mudar (siga-o sem contrariar as políticas): {str(payload['comment'])[:1000]}")
+    return " ".join(parts)
+
+
+async def _clear_forced(deps: Deps, conv_id: str) -> None:
+    await fetch_one(deps.pool, "update omni.conversations set ai_forced_at = null where id = %s and ai_forced_at is not null returning id", (conv_id,))
+
+
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
+    if msg.payload.get("force"):
+        try:
+            await _handle(deps, msg, forced=True)
+        except RetryLater:
+            raise                                                    # vai tentar de novo: a inbox continua mostrando "IA preparando…"
+        except BaseException:
+            await _clear_forced(deps, msg.payload["conversation_id"])
+            raise
+        await _clear_forced(deps, msg.payload["conversation_id"])  # pronto (ou sem rascunho): a inbox para de mostrar "IA preparando…"
+        return
+    await _handle(deps, msg, forced=False)
+
+
+async def _handle(deps: Deps, msg: queues.QueueMessage, forced: bool) -> None:
     conv_id, message_id = msg.payload["conversation_id"], msg.payload["message_id"]
     claim = await call_fn(deps.pool, "omni.claim_router", conv_id, message_id)
     if claim.get("skip"):
         return
     handled = await fetch_one(deps.pool, "select payload ->> 'automation_handled' as h from omni.messages where id = %s", (message_id,))
-    if handled and handled["h"] == "true":
+    if handled and handled["h"] == "true" and not forced:
         return                                                      # uma automação já respondeu a esta mensagem: a IA não responde de novo
     m = claim["message"]
     text = m.get("body") or m.get("transcript")
     if m["type"] == "AUDIO" and not m.get("transcript") and msg.read_ct < 4:
         raise RetryLater(10, "aguardando transcrição do áudio")     # a mídia volta a enfileirar o roteador quando a transcrição fica pronta
 
-    hit = rules.match_pre_rule(text)
-    mode = claim["mode"]
+    hit = None if forced else rules.match_pre_rule(text)             # pedido do atendente: só rascunho, sem regras de transferência
+    mode = "AI_COPILOT" if forced else claim["mode"]
 
     if hit and hit.rule == "OPT_OUT":
         await call_fn(deps.pool, "omni.record_opt_out", claim["party_id"], message_id)
@@ -162,9 +198,9 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     if hit:                                                          # pedido de humano / tema sensível
         await _handoff(deps, claim, hit.reason, hit.trigger)
         return
-    if claim.get("ai_paused"):
+    if claim.get("ai_paused") and not forced:
         return
-    if claim["ai_replies_last_hour"] >= deps.settings.ai_max_replies_per_hour:
+    if claim["ai_replies_last_hour"] >= deps.settings.ai_max_replies_per_hour and not forced:
         await _handoff(deps, claim, "limite de respostas automáticas por hora atingido", "AI_RATE_LIMIT")
         return
     route = await _route(deps, claim["org_id"])
@@ -172,9 +208,12 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         spent = await fetch_one(deps.pool, """select coalesce(sum(cost_usd), 0) as s from ai.runs where org_id = %s and route_task = 'conversation'
                                               and created_at >= date_trunc('day', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo'""", (claim["org_id"],))
         if float(spent["s"]) >= float(route["daily_budget_usd"]):  # type: ignore[index]
-            await _handoff(deps, claim, "orçamento diário de IA esgotado", "AI_BUDGET")
+            if not forced:
+                await _handoff(deps, claim, "orçamento diário de IA esgotado", "AI_BUDGET")
             return
-    if deps.agent is None:                                           # IA não configurada neste ambiente: cai para atendimento humano, sem travar a fila
+    if deps.agent is None:
+        if forced:
+            return                                           # IA não configurada neste ambiente: cai para atendimento humano, sem travar a fila
         if mode == "AI_AUTOPILOT":
             await _handoff(deps, claim, "IA indisponível neste ambiente", "AI_FAILURE")
         else:
@@ -191,6 +230,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     run_id = await _open_run(deps, claim, "conversation", route["primary_model"], str(persona["id"]) if persona else None)
     history = await _history(deps, conv_id)
     examples = await _examples(deps, claim, history)
+    instruction = await _forced_instruction(deps, msg.payload, claim.get("instruction"), history) if forced else claim.get("instruction")
 
     async def ask(feedback: str | None = None) -> AgentOutput:
         token = sign_ctx(deps.settings.agent_ctx_secret, org=claim["org_id"], conv=conv_id, party=claim["party_id"], run=run_id, version=claim["version"],
@@ -199,7 +239,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         return await deps.agent.run(AgentInput(  # type: ignore[union-attr]
             run_id=run_id, ctx=ctx, ctx_token=token, system_stable=prompts.system_stable(persona["system_prompt"] if persona else None, persona["guardrails"] if persona else None, brand),
             system_volatile=prompts.system_volatile(ctx_token=token, mode=mode, channel=claim["channel"], window_mode=claim.get("window_mode"),
-                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id, examples=examples, instruction=claim.get("instruction")),
+                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id, examples=examples, instruction=instruction),
             history=history, model=route["primary_model"], fallback_models=list(route.get("fallback_models") or []), params=route.get("params") or {},
             provider_prefs=route.get("provider_prefs") or {}))
 
@@ -210,7 +250,8 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         raise RetryLater(int(e.retry_after or 20), str(e)) from e
     except ProviderPermanent as e:                                  # circuit breaker: falhou de vez → humano
         await _finish_run(deps, run_id, None, "ERROR", str(e))
-        await _handoff(deps, claim, "falha do agente de IA", "AI_FAILURE")
+        if not forced:
+            await _handoff(deps, claim, "falha do agente de IA", "AI_FAILURE")
         return
 
     proposal = await _proposal(deps, run_id)
@@ -235,7 +276,8 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         flags.append("NO_PROPOSAL")
     if not proposal["messages"]:
         await _finish_run(deps, run_id, out, "ERROR", "resposta vazia")
-        await _handoff(deps, claim, "a IA não conseguiu responder", "AI_FAILURE")
+        if not forced:
+            await _handoff(deps, claim, "a IA não conseguiu responder", "AI_FAILURE")
         return
     if rules.mentions_health(text) and "HEALTH_TOPIC" not in flags:
         flags.append("HEALTH_TOPIC")
@@ -245,7 +287,11 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     allowed = AUTOPILOT_OK if mode == "AI_AUTOPILOT" else AFTER_HOURS_OK if after_hours_auto else set()
     can_autosend = (bool(allowed) and not flags and not proposal.get("needs_human") and intent in allowed and confidence >= deps.settings.autopilot_min_confidence
                     and claim.get("tier") != "VIP_BLACK" and claim.get("window_allowed"))
-    if proposal.get("needs_human") or intent in ALWAYS_HUMAN:
+    if forced:                                                       # pedido do atendente: sempre rascunho (ele decide)
+        action = "DRAFT"
+        if (proposal.get("needs_human") or intent in ALWAYS_HUMAN) and "NEEDS_HUMAN" not in flags:
+            flags.append("NEEDS_HUMAN")
+    elif proposal.get("needs_human") or intent in ALWAYS_HUMAN:
         action = "HANDOFF"
     elif can_autosend:
         action = "SEND"
@@ -255,7 +301,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
     result = await call_fn(deps.pool, "omni.apply_ai_result", conv_id, claim["version"], run_id, {
         "action": action, "messages": proposal["messages"], "intent": intent, "stage": proposal.get("stage"), "confidence": confidence,
         "needs_human": bool(proposal.get("needs_human")), "flags": flags, "reason": proposal.get("reason") or f"intenção {intent or 'não classificada'}",
-        "based_on_message_at": m["created_at"], "trigger": "AI_REQUEST_HANDOFF"})
+        "based_on_message_at": m["created_at"], "trigger": "AI_REQUEST_HANDOFF", "force": forced})
     await _finish_run(deps, run_id, out)
     if not result.get("applied"):
         log.info("resultado da IA descartado (%s) na conversa %s", result.get("reason"), conv_id)

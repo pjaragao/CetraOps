@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 import httpx
+import psycopg
 
 from .. import queues
 from ..adapters import media_links
@@ -16,6 +17,10 @@ from ..deps import Deps
 from ..runner import PermanentError, RetryLater
 
 log = logging.getLogger("centralops_worker.outbound")
+
+NATIVE_MAX_ITEMS = 30                       # limite da Meta para product_list
+PRODUCT_LIST_HEADER = "Separei pra você"
+PRODUCT_LIST_BODY = "Toque em cada peça para ver foto, preço e detalhes."
 
 
 async def _fail(deps: Deps, message_id: str, reason: str) -> None:
@@ -40,6 +45,15 @@ async def _fetch_image(deps: Deps, url: str) -> tuple[bytes, str] | None:
         return None
 
 
+async def _send_image_or_link(deps: Deps, meta: MetaClient, account: str, to: str, part: media_links.Part, ctx: str | None) -> str:
+    """Envio direto de uma foto (baixada, convertida e subida para a Meta). Sem a foto, manda o link (como antes)."""
+    img = await _fetch_image(deps, part.url)
+    if img is not None:
+        media_id = await meta.upload_whatsapp_media(account, img[0], img[1], "foto.jpg" if img[1] == "image/jpeg" else "foto.png")
+        return await meta.send_whatsapp_image(account, to, media_id, part.text or None, ctx)
+    return await meta.send_whatsapp_text(account, to, f"{part.text}: {part.url}" if part.text else part.url, ctx)
+
+
 async def _send_whatsapp_rich(deps: Deps, meta: MetaClient, account: str, to: str, body: str, reply_to: str | None = None) -> str:
     """Texto com links de foto sai como fotos de verdade (com legenda) + o texto restante, na ordem. Devolve o id da última mensagem.
     `reply_to` (id da Meta da mensagem citada) vai só na primeira parte: é ela que aparece "respondendo" no WhatsApp."""
@@ -50,16 +64,78 @@ async def _send_whatsapp_rich(deps: Deps, meta: MetaClient, account: str, to: st
     for i, part in enumerate(parts):
         ctx = reply_to if i == 0 else None
         if part.kind == "image":
-            img = await _fetch_image(deps, part.url)
-            if img is not None:
-                media_id = await meta.upload_whatsapp_media(account, img[0], img[1], "foto.jpg" if img[1] == "image/jpeg" else "foto.png")
-                pid = await meta.send_whatsapp_image(account, to, media_id, part.text or None, ctx)
-                continue
-            text = f"{part.text}: {part.url}" if part.text else part.url   # sem a foto, manda o link (como antes)
+            pid = await _send_image_or_link(deps, meta, account, to, part, ctx)
         else:
-            text = part.text
-        pid = await meta.send_whatsapp_text(account, to, text, ctx)
+            pid = await meta.send_whatsapp_text(account, to, part.text, ctx)
     return pid
+
+
+async def _send_cards(meta: MetaClient, account: str, to: str, catalog_id: str, images: list[media_links.Part], retailer: dict[str, str], ctx: str | None) -> str:
+    """Cartões nativos: 1 produto → `product`; vários → `product_list` (sem repetir o mesmo item)."""
+    ids: list[str] = []
+    for img in images:
+        rid = retailer[img.url]
+        if rid not in ids:
+            ids.append(rid)
+    captions = [img.text for img in images if img.text]
+    if len(ids) == 1:
+        return await meta.send_whatsapp_product(account, to, catalog_id, ids[0], captions[0] if captions else None, ctx)
+    body = " · ".join(dict.fromkeys(captions)) or PRODUCT_LIST_BODY
+    return await meta.send_whatsapp_product_list(account, to, catalog_id, ids, PRODUCT_LIST_HEADER, body, reply_to=ctx)
+
+
+async def _send_whatsapp_native(deps: Deps, meta: MetaClient, account: str, to: str, body: str, catalog_id: str, retailer: dict[str, str],
+                                reply_to: str | None = None) -> str:
+    """Modo "Catálogo nativo": as fotos de produtos que estão no catálogo da Meta viram cartões (foto, nome e preço da Meta), enviados
+    no lugar da primeira foto; o texto segue na ordem. Foto sem item no catálogo vai direto, como antes. Se a Meta recusar o cartão
+    (catálogo não ligado ao número, item reprovado…), as mesmas fotos saem pelo envio direto: a cliente nunca fica sem resposta."""
+    parts = media_links.split(body, NATIVE_MAX_ITEMS)
+    native = [p for p in parts if p.kind == "image" and p.url in retailer]
+    if not native:
+        return await _send_whatsapp_rich(deps, meta, account, to, body, reply_to)
+    pid, first, cards_done, direct = "", True, False, 0
+    for part in parts:
+        ctx = reply_to if first else None
+        first = False
+        if part.kind == "text":
+            pid = await meta.send_whatsapp_text(account, to, part.text, ctx)
+        elif part.url in retailer:
+            if cards_done:
+                continue
+            cards_done = True
+            try:
+                pid = await _send_cards(meta, account, to, catalog_id, native, retailer, ctx)
+            except SendPermanent as e:
+                log.warning("cartão do catálogo recusado pela Meta (%s): enviando as fotos direto", e)
+                for img in native:
+                    pid = await _send_direct_capped(deps, meta, account, to, img, ctx, direct)
+                    direct, ctx = direct + 1, None
+        else:
+            pid = await _send_direct_capped(deps, meta, account, to, part, ctx, direct)
+            direct += 1
+    return pid
+
+
+async def _send_direct_capped(deps: Deps, meta: MetaClient, account: str, to: str, part: media_links.Part, ctx: str | None, sent: int) -> str:
+    if sent >= media_links.MAX_IMAGES:                               # como no envio direto: depois de 6 fotos, o resto vai como link
+        return await meta.send_whatsapp_text(account, to, f"{part.text}: {part.url}" if part.text else part.url, ctx)
+    return await _send_image_or_link(deps, meta, account, to, part, ctx)
+
+
+async def _native_catalog(deps: Deps, message_id: str, body: str) -> tuple[str, dict[str, str]] | None:
+    """(catalog_id, link da foto → retailer_id) quando o canal está no modo nativo e algum produto do texto está no catálogo da Meta.
+    Qualquer falha aqui volta None: o envio segue pelo caminho direto."""
+    if not any(p.kind == "image" for p in media_links.split(body, NATIVE_MAX_ITEMS)):
+        return None
+    try:
+        info = await call_fn(deps.pool, "omni.message_products", message_id)
+    except psycopg.Error as e:
+        log.warning("produtos da mensagem %s indisponíveis (%s): envio direto", message_id, e)
+        return None
+    if not info or info.get("mode") != "NATIVE_CATALOG" or not info.get("catalog_id"):
+        return None
+    retailer = {p["url"]: p["retailer_id"] for p in info.get("products") or [] if p.get("retailer_id")}
+    return (str(info["catalog_id"]), retailer) if retailer else None
 
 
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
@@ -90,6 +166,8 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
             meta = MetaClient(deps.http, deps.settings.graph_api_base, token)
             if template:
                 pid = await meta.send_whatsapp_template(account, to, template, (m.get("payload") or {}).get("language", "pt_BR"), (m.get("payload") or {}).get("components"))
+            elif native := await _native_catalog(deps, message_id, m["body"]):
+                pid = await _send_whatsapp_native(deps, meta, account, to, m["body"], native[0], native[1], reply_to)
             else:
                 pid = await _send_whatsapp_rich(deps, meta, account, to, m["body"], reply_to)
         elif channel == "INSTAGRAM":

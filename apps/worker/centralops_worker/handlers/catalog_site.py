@@ -17,6 +17,7 @@ from ..adapters.errors import PermanentError, TransientError
 from ..db import call_fn, fetch_all, fetch_one
 from ..deps import Deps
 from ..runner import RetryLater
+from . import meta_catalog
 
 log = logging.getLogger("centralops_worker.catalog_site")
 
@@ -121,6 +122,9 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         res = await mirror_media(deps, org_id, int(p.get("limit") or 1000))
         log.info("fotos do catálogo: %s", res)
         return
+    if kind == "META":                                             # catálogo interno → catálogo da Meta (cartões nativos do WhatsApp)
+        await meta_catalog.handle(deps, p, msg.read_ct)
+        return
     cfg_row = await fetch_one(deps.pool, "select value from core.settings where org_id = %s and key = 'catalog_site'", (org_id,))
     cfg = (cfg_row or {}).get("value") or {}
     if not cfg.get("enabled"):
@@ -180,6 +184,7 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
             stats.update(await mirror_media(deps, org_id, 1000))
         await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "OK", stats, None, [i["external_id"] for i in items])
         await _save_state(deps, org_id, state)
+        await call_fn(deps.pool, "private.enqueue_meta_catalog_sync")    # novidades do site chegam logo ao catálogo da Meta
     except site.RateLimited as e:
         # bloqueio do site: uma nova tentativa só depois da pausa (a mensagem some; FULL e PRICES voltam pelo agendamento)
         await call_fn(deps.pool, "catalog.finish_site_sync", org_id, run_id, "ERROR", stats, f"temporário: {e} (pausa de {COOLDOWN_S // 60} min)", None)

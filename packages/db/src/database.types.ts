@@ -7487,13 +7487,13 @@ isOneToOne: false
                   ]
                 },"channel_accounts": {
                   Row: {
-                    "business_hours": NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id": string | null,"created_at": string,"default_ai_mode": Database["omni"]['Enums']["conv_mode"],"default_persona_id": string | null,"display_name": string,"id": string,"org_id": string,"provider_account_id": string,"public_address": string | null,"status": string,"store_id": string | null,"updated_at": string
+                    "business_hours": NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id": string | null,"created_at": string,"default_ai_mode": Database["omni"]['Enums']["conv_mode"],"default_persona_id": string | null,"display_name": string,"id": string,"org_id": string,"meta_catalog_id": string | null,"meta_catalog_sync": NonNullable<Json>,"product_send_mode": string,"provider_account_id": string,"public_address": string | null,"status": string,"store_id": string | null,"updated_at": string
                   }
                   Insert: {
-                    "business_hours"?: NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name": string,"id"?: string,"org_id": string,"provider_account_id": string,"public_address"?: string | null,"status"?: string,"store_id"?: string | null,"updated_at"?: string
+                    "business_hours"?: NonNullable<Json>,"channel": Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name": string,"id"?: string,"org_id": string,"meta_catalog_id"?: string | null,"meta_catalog_sync"?: NonNullable<Json>,"product_send_mode"?: string,"provider_account_id": string,"public_address"?: string | null,"status"?: string,"store_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "business_hours"?: NonNullable<Json>,"channel"?: Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name"?: string,"id"?: string,"org_id"?: string,"provider_account_id"?: string,"public_address"?: string | null,"status"?: string,"store_id"?: string | null,"updated_at"?: string
+                    "business_hours"?: NonNullable<Json>,"channel"?: Database["omni"]['Enums']["channel"],"connection_id"?: string | null,"created_at"?: string,"default_ai_mode"?: Database["omni"]['Enums']["conv_mode"],"default_persona_id"?: string | null,"display_name"?: string,"id"?: string,"org_id"?: string,"meta_catalog_id"?: string | null,"meta_catalog_sync"?: NonNullable<Json>,"product_send_mode"?: string,"provider_account_id"?: string,"public_address"?: string | null,"status"?: string,"store_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -8352,6 +8352,12 @@ isOneToOne: false
 "submit_template":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"request_meta_catalog_sync":
+{ Args: { "p_id": string }; Returns: undefined },
+"set_product_settings":
+{ Args: { "p": Json,"p_id": string }; Returns: Json },
+"text_products":
+{ Args: { "p_conversation": string,"p_text": string }; Returns: Json },
 "suggest_outcome":
 { Args: { "p_conversation": string }; Returns: string
                            },

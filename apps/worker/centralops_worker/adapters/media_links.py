@@ -38,7 +38,7 @@ def _caption(fragment: str) -> str:
     return c[:1024]
 
 
-def split(body: str) -> list[Part]:
+def split(body: str, max_images: int = MAX_IMAGES) -> list[Part]:
     """Quebra o texto em partes na ordem em que devem sair. Sem link de foto, devolve uma única parte de texto (igual ao original)."""
     images = [m for m in _URL.finditer(body or "") if is_image_url(m.group(0))]
     if not images:
@@ -56,13 +56,13 @@ def split(body: str) -> list[Part]:
 
     for line in body.split("\n"):
         urls = [m for m in _URL.finditer(line) if is_image_url(m.group(0))]
-        if not urls or sent >= MAX_IMAGES:
+        if not urls or sent >= max_images:
             buf.append(line)
             continue
         flush()
         pos = 0
         for m in urls:
-            if sent >= MAX_IMAGES:
+            if sent >= max_images:
                 break
             url = m.group(0).rstrip(".,;:!?")
             parts.append(Part("image", _caption(line[pos:m.start()]), url))

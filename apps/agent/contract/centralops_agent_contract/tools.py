@@ -14,8 +14,11 @@ ITEMS = {"type": "array", "minItems": 1, "maxItems": 5, "items": {"type": "objec
 
 TOOLS: list[dict[str, Any]] = [
     _fn("search_catalog", "Busca produtos por nome, cor, categoria, linha, tecido ou detalhe (ex.: 'short com bolso'). Devolve preço, tamanhos em estoque, foto, "
-        "composição, aviso de modelagem e availability: IN_STOCK (tem na loja), BACKORDER (sem estoque, mas pode ser encomendada) ou OUT_OF_STOCK.",
-        {"query": {"type": "string"}, "category": {"type": "string"}, "color": {"type": "string"}, "price_max": {"type": "number"}, "in_stock_only": {"type": "boolean"}}, ["query"]),
+        "composição, aviso de modelagem, gender (MASC/FEM/UNISSEX) e availability: IN_STOCK (tem na loja), BACKORDER (sem estoque, mas pode ser encomendada) ou OUT_OF_STOCK. "
+        "Cor em português ou inglês dá no mesmo (branco inclui White e Off-White). Informe gender com o público da peça quando a conversa deixar claro "
+        "(cliente homem ou pedido de peça masculina → MASC); sem ele, vale o cadastro do cliente.",
+        {"query": {"type": "string"}, "category": {"type": "string"}, "color": {"type": "string"}, "gender": {"type": "string", "enum": ["MASC", "FEM", "UNISSEX"]},
+         "price_max": {"type": "number"}, "in_stock_only": {"type": "boolean"}}, ["query"]),
     _fn("check_stock_by_size", "Estoque disponível por tamanho e cor de um produto/variante/SKU; backorder_ok = sem estoque, mas pode ser encomendado.",
         {"product_id": UUID, "variant_id": UUID, "sku": {"type": "string"}, "color": {"type": "string"}}),
     _fn("get_product_details", "Detalhes de um produto: descrição, composição (tecido), cuidados, aviso de modelagem, guia de tamanhos (medidas) e fotos por cor.",

@@ -6,7 +6,7 @@ from typing import Any
 
 WA_TYPES = {
     "text": "TEXT", "image": "IMAGE", "audio": "AUDIO", "video": "VIDEO", "document": "DOCUMENT", "sticker": "STICKER",
-    "location": "LOCATION", "interactive": "INTERACTIVE", "button": "INTERACTIVE", "reaction": "REACTION",
+    "location": "LOCATION", "interactive": "INTERACTIVE", "button": "INTERACTIVE", "reaction": "REACTION", "order": "INTERACTIVE",
 }
 WA_STATUS = {"sent": "SENT", "delivered": "DELIVERED", "read": "READ", "failed": "FAILED"}
 PLACEHOLDER = {"IMAGE": "[imagem]", "AUDIO": "[áudio]", "VIDEO": "[vídeo]", "DOCUMENT": "[documento]", "STICKER": "[figurinha]", "LOCATION": "[localização]"}
@@ -17,6 +17,30 @@ def _iso(ts: Any, millis: bool = False) -> str | None:
         return None
     value = float(ts) / (1000 if millis else 1)
     return datetime.fromtimestamp(value, tz=UTC).isoformat()
+
+
+def _brl(value: Any) -> str:
+    return f"R$ {float(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def describe_order(order: dict[str, Any], names: dict[str, str] | None = None) -> str:
+    """Carrinho do catálogo → texto legível (inbox e IA). Sem o nome, mostra o retailer_id."""
+    lines = ["🛒 Carrinho enviado pelo catálogo do WhatsApp:"]
+    total, priced = 0.0, False
+    for it in order.get("product_items") or []:
+        rid = str(it.get("product_retailer_id") or "?")
+        qty = float(it.get("quantity") or 1)
+        price = it.get("item_price")
+        line = f"• {qty:g}× {(names or {}).get(rid, rid)}"
+        if price is not None:
+            line += f" — {_brl(price)}"
+            total, priced = total + qty * float(price), True
+        lines.append(line)
+    if priced:
+        lines.append(f"Total: {_brl(total)}")
+    if str(order.get("text") or "").strip():
+        lines.append(str(order["text"]).strip())
+    return "\n".join(lines)
 
 
 def _wa_message(m: dict[str, Any], phone_number_id: str, names: dict[str, str], echo: bool = False) -> dict[str, Any]:
@@ -41,6 +65,10 @@ def _wa_message(m: dict[str, Any], phone_number_id: str, names: dict[str, str], 
     elif t == "button":
         body = m["button"].get("text")
         payload["reply_id"] = m["button"].get("payload")
+    elif t == "order":                     # carrinho enviado pelo catálogo; o inbound troca os retailer_id pelos nomes (omni.describe_order)
+        order = m.get("order") or {}
+        payload["order"] = order
+        body = describe_order(order)
     elif t == "reaction":
         body = m["reaction"].get("emoji")
         payload["reacted_to"] = m["reaction"].get("message_id")

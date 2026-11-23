@@ -182,6 +182,11 @@ export default async function IntegracoesPage({ searchParams }: { searchParams: 
                     <Link href={`/configuracoes/integracoes/horario/${ch.id}`} className="rounded-lg px-2 py-1 text-xs hover:bg-surface-2">
                       Horário
                     </Link>
+                    {ch.channel === "WHATSAPP" && (
+                      <Link href={`/configuracoes/integracoes/catalogo/${ch.id}`} className="rounded-lg px-2 py-1 text-xs hover:bg-surface-2">
+                        Produtos
+                      </Link>
+                    )}
                     <form action={toggleChannelAction}>
                       <input type="hidden" name="id" value={ch.id} />
                       <Button variant="ghost" className="px-2 py-1 text-xs">

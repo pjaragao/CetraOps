@@ -152,6 +152,41 @@ class MetaClient:
         data = await self._post(f"{phone_number_id}/messages", payload)
         return data["messages"][0]["id"]
 
+    async def send_whatsapp_product(self, phone_number_id: str, to: str, catalog_id: str, retailer_id: str, body: str | None = None,
+                                    reply_to: str | None = None) -> str:
+        """Cartão de UM produto do catálogo (foto, nome e preço vêm do catálogo da Meta)."""
+        interactive: dict[str, Any] = {"type": "product", "action": {"catalog_id": catalog_id, "product_retailer_id": retailer_id}}
+        if body:
+            interactive["body"] = {"text": body[:1024]}
+        return await self._send_interactive(phone_number_id, to, interactive, reply_to)
+
+    async def send_whatsapp_product_list(self, phone_number_id: str, to: str, catalog_id: str, retailer_ids: list[str], header: str, body: str,
+                                         section_title: str = "Peças", reply_to: str | None = None) -> str:
+        """Lista de produtos do catálogo (até 30 itens; cabeçalho e corpo são obrigatórios na Meta)."""
+        interactive = {"type": "product_list", "header": {"type": "text", "text": header[:60]}, "body": {"text": body[:1024]},
+                       "action": {"catalog_id": catalog_id, "sections": [{"title": section_title[:24], "product_items": [{"product_retailer_id": r} for r in retailer_ids[:30]]}]}}
+        return await self._send_interactive(phone_number_id, to, interactive, reply_to)
+
+    async def _send_interactive(self, phone_number_id: str, to: str, interactive: dict[str, Any], reply_to: str | None) -> str:
+        payload: dict[str, Any] = {"messaging_product": "whatsapp", "recipient_type": "individual", "to": to, "type": "interactive", "interactive": interactive}
+        if reply_to:
+            payload["context"] = {"message_id": reply_to}
+        data = await self._post(f"{phone_number_id}/messages", payload)
+        return data["messages"][0]["id"]
+
+    # ---------------- Catálogo do Commerce Manager ----------------
+    async def catalog_info(self, catalog_id: str) -> dict[str, Any]:
+        return await self._get(catalog_id, {"fields": "id,name,product_count"})
+
+    async def catalog_items_batch(self, catalog_id: str, requests: list[dict[str, Any]]) -> dict[str, Any]:
+        """Cria/atualiza (UPDATE com upsert) ou apaga itens. Devolve {handles, validation_status}: erros de validação imediatos por retailer_id."""
+        return await self._post(f"{catalog_id}/items_batch", {"item_type": "PRODUCT_ITEM", "allow_upsert": True, "requests": requests})
+
+    async def catalog_batch_status(self, catalog_id: str, handle: str) -> dict[str, Any]:
+        data = await self._get(f"{catalog_id}/check_batch_request_status", {"handle": handle})
+        rows = data.get("data") or []
+        return rows[0] if rows else {}
+
     async def send_whatsapp_template(self, phone_number_id: str, to: str, name: str, language: str = "pt_BR", components: list[dict[str, Any]] | None = None) -> str:
         payload = {"messaging_product": "whatsapp", "to": to, "type": "template", "template": {"name": name, "language": {"code": language}, "components": components or []}}
         data = await self._post(f"{phone_number_id}/messages", payload)

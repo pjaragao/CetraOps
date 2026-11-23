@@ -87,8 +87,9 @@ def build_server(settings: Settings, db: AgentDb) -> MCPServer:
     call = Invoker(settings, db)
 
     @mcp.tool(description=_desc("search_catalog"))
-    async def search_catalog(ctx: CTX, query: str, category: str | None = None, color: str | None = None, price_max: float | None = None, in_stock_only: bool = True) -> dict[str, Any]:
-        return await call(ctx, "search_catalog", {"query": query, "category": category, "color": color, "price_max": price_max, "in_stock_only": in_stock_only})
+    async def search_catalog(ctx: CTX, query: str, category: str | None = None, color: str | None = None, gender: Literal["MASC", "FEM", "UNISSEX"] | None = None,
+                             price_max: float | None = None, in_stock_only: bool = True) -> dict[str, Any]:
+        return await call(ctx, "search_catalog", {"query": query, "category": category, "color": color, "gender": gender, "price_max": price_max, "in_stock_only": in_stock_only})
 
     @mcp.tool(description=_desc("check_stock_by_size"))
     async def check_stock_by_size(ctx: CTX, product_id: str | None = None, variant_id: str | None = None, sku: str | None = None, color: str | None = None) -> dict[str, Any]:

@@ -32,6 +32,12 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         if ev.get("kind") == "TEMPLATE":                          # situação/qualidade de template da Meta: não é conversa
             await call_fn(deps.pool, "omni.record_template_status", {k: ev.get(k) for k in ("waba_id", "external_id", "name", "language", "status", "reason", "quality")})
             continue
+        order = (ev.get("payload") or {}).get("order")
+        if order and ev.get("channel") == "WHATSAPP":              # carrinho do catálogo: nomes das peças no lugar dos retailer_id
+            try:
+                ev["body"] = await call_fn(deps.pool, "omni.describe_order", ev["provider_account_id"], order) or ev.get("body")
+            except psycopg.Error as e:
+                log.warning("carrinho sem nomes (%s): fica com os códigos", e)
         try:
             res = await call_fn(deps.pool, "omni.ingest_event", ev)
         except psycopg.Error as e:                                  # canal não cadastrado/evento inválido (P0100/P0101): não adianta repetir

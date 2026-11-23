@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePerm } from "@/lib/session";
 import { isoFromNow, str, type SP } from "@/lib/context";
 import { Badge, cn, Empty, LinkButton, PageHeader } from "@/components/ui";
-import { ConversationPane } from "./conversation-pane";
+import { ConversationPane, type DraftProducts } from "./conversation-pane";
 import { RealtimeRefresh } from "./realtime-refresh";
 import { ForHerNow, type ForHerNowData } from "@/components/for-her-now";
 
@@ -113,7 +113,12 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         supabase.schema("crm").rpc("for_her_now", { p_party: conv.party_id }),
       ]);
       const media = await loadMedia(supabase, messages ?? [], conv.channel_account_id);
-      detail = { media, forHer: (forHer as unknown as ForHerNowData | null) ?? null, suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
+      // produtos citados (links de foto do catálogo) no rascunho: viram cartões do catálogo do WhatsApp ou fotos diretas
+      const draftText = ((drafts?.[0]?.variants as { messages?: string[] }[] | null)?.[0]?.messages ?? []).join("\n\n");
+      const { data: draftProducts } = draftText
+        ? await supabase.schema("omni").rpc("text_products", { p_conversation: conv.id, p_text: draftText })
+        : { data: null };
+      detail = { media, forHer: (forHer as unknown as ForHerNowData | null) ?? null, suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, draftProducts: (draftProducts as DraftProducts | null) ?? null, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
     }
   }
 
@@ -174,7 +179,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               quickReplies={detail.quickReplies}
               messages={detail.media}
               aiThinkingSince={detail.conv.pending_ai_at}
-              draft={detail.draft ? { id: detail.draft.id, variants: detail.draft.variants as { messages: string[] }[], confidence: detail.draft.confidence, intent: detail.draft.intent, needsHuman: detail.draft.needs_human } : null}
+              draft={detail.draft ? { id: detail.draft.id, variants: detail.draft.variants as { messages: string[] }[], confidence: detail.draft.confidence, intent: detail.draft.intent, needsHuman: detail.draft.needs_human, products: detail.draftProducts } : null}
               backHref={`/atendimento?filtro=${filtro}`}
               suggestedOutcome={detail.suggested}
               initialText={str(sp.msg)}

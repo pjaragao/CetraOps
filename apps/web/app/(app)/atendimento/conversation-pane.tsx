@@ -3,13 +3,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ArrowLeft, Bot, CheckCircle2, FileText, PauseCircle, PlayCircle, Reply, Send, Sparkles, StickyNote, Undo2, UserRound, X } from "lucide-react";
-import { canSend, firstName, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@centralops/domain";
+import { canSend, firstName, formatBRL, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@centralops/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
 import { addNote, assignConversation, closeConversation, discardDraft, markRead, pauseAi, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
 
 interface Msg { id: string; direction: string; author_type: string; body: string | null; transcript: string | null; type: string; status: string; created_at: string;
   error?: string | null; mediaUrl?: string | null; quote?: { mine: boolean | null; text: string } | null; canReply?: boolean }
-interface Draft { id: string; variants: { messages: string[] }[]; confidence: number | null; intent: string | null; needsHuman: boolean }
+/** Produtos citados no rascunho (omni.text_products): com `native`, os que têm retailer_id saem como cartões do catálogo do WhatsApp. */
+export interface DraftProducts {
+  channel: string; mode: string; catalog_ready: boolean; native: boolean;
+  products: { url: string; photo: string; name: string; color?: string; price?: number; retailer_id?: string }[];
+}
+interface Draft { id: string; variants: { messages: string[] }[]; confidence: number | null; intent: string | null; needsHuman: boolean; products?: DraftProducts | null }
 interface Tpl { id: string; name: string; category: string; body: string; examples: string[] }
 interface QuickReply { id: string; shortcut: string; body: string }
 interface Member { id: string; name: string }
@@ -75,6 +80,35 @@ const MODES: { value: ConvMode; label: string; icon: typeof Bot }[] = [
   { value: "AI_COPILOT", label: "IA Copiloto", icon: Sparkles },
   { value: "HUMAN", label: "Humano", icon: UserRound },
 ];
+
+/** Cartões dos produtos que a sugestão vai mandar, e por qual caminho (catálogo nativo do WhatsApp ou foto direta). */
+function DraftProductCards({ data }: { data: DraftProducts }) {
+  const nativeCount = data.native ? data.products.filter((p) => p.retailer_id).length : 0;
+  const how = data.channel !== "WHATSAPP" ? "Saem como links de foto."
+    : data.mode === "DIRECT" ? "Envio direto: saem como fotos com legenda."
+    : !data.catalog_ready ? "Catálogo da Meta não configurado: saem como fotos (envio direto)."
+    : nativeCount === data.products.length ? "Saem como cartões do catálogo do WhatsApp (foto, nome e preço)."
+    : nativeCount > 0 ? "Os marcados saem como cartões do catálogo do WhatsApp; os outros, como fotos."
+    : "Ainda não estão no catálogo da Meta: saem como fotos (envio direto).";
+  return (
+    <div className="mt-2">
+      <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Produtos da sugestão">
+        {data.products.map((p, i) => (
+          <li key={`${p.url}-${i}`} className="w-32 shrink-0 overflow-hidden rounded-lg border border-border bg-surface">
+            {/* eslint-disable-next-line @next/next/no-img-element -- foto do catálogo (CDN externo) */}
+            <img src={p.photo} alt={p.name} className="h-28 w-full object-cover" loading="lazy" />
+            <div className="space-y-0.5 p-1.5 text-xs">
+              <p className="line-clamp-2 font-medium">{p.name}{p.color ? ` · ${p.color}` : ""}</p>
+              {p.price != null && <p className="text-muted">{formatBRL(Number(p.price))}</p>}
+              <Badge tone={data.native && p.retailer_id ? "success" : "neutral"}>{data.native && p.retailer_id ? "catálogo" : "foto"}</Badge>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-xs text-muted">{how}</p>
+    </div>
+  );
+}
 
 export function ConversationPane(props: {
   conversationId: string; mode: ConvMode; channel: MessagingChannel; lastInboundAt: string | null;
@@ -284,6 +318,7 @@ export function ConversationPane(props: {
           {editingDraft === null ? <p className="whitespace-pre-line">{draftText}</p> : (
             <textarea value={editingDraft} onChange={(e) => setEditingDraft(e.target.value)} rows={4} className={inputClass} aria-label="Editar sugestão" />
           )}
+          {editingDraft === null && props.draft.products && props.draft.products.products.length > 0 && <DraftProductCards data={props.draft.products} />}
           <div className="mt-2 flex flex-wrap gap-2">
             <Button disabled={pending || !freeForm} onClick={() => run(() => sendMessage(props.conversationId, editingDraft ?? draftText, props.draft!.id, editingDraft !== null && editingDraft !== draftText), () => setEditingDraft(null))}>Enviar</Button>
             {editingDraft === null && <Button variant="secondary" onClick={() => setEditingDraft(draftText)}>Editar</Button>}

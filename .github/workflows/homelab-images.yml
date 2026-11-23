@@ -1,0 +1,70 @@
+name: Homelab images
+
+# Constrói no GitHub (não no servidor) as imagens que o Coolify do homelab usa; o servidor só baixa.
+# Motivo: o build do Next.js + 3 imagens Python ao mesmo tempo estourava a memória do WSL2 (swap zerado, host reiniciava).
+#
+# Tags (mesmos pacotes ghcr.io/<dono>/centralops-{web,worker,mcp} do release.yml, mas tags próprias do homelab):
+#   homelab            -> último main (é o que o docker-compose.yml da raiz usa; o Coolify baixa de novo a cada deploy)
+#   homelab-<sha>      -> imutável, para voltar a uma versão (CENTRALOPS_TAG=homelab-<sha> no Coolify e redeploy)
+#
+# As variáveis NEXT_PUBLIC_* são as do homelab (URL do Supabase pela Tailscale + chave anon, que é pública por desenho) —
+# as mesmas que já estavam no docker-compose.yml. NÃO usam as `vars` do release.yml (aquelas são da produção em nuvem).
+# O deploy continua sendo pedido ao Coolify (ele só alcança o homelab pela Tailscale): depois deste workflow ficar verde,
+# "Redeploy" no Coolify ou  POST /api/v1/deploy?uuid=<app>.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "**/*.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: homelab-images
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HOMELAB_SUPABASE_URL: https://mpbflndsk201-wsl.tabby-broadnose.ts.net:8001
+  HOMELAB_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+
+jobs:
+  images:
+    name: Imagem ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: web, dockerfile: apps/web/Dockerfile }
+          - { image: worker, dockerfile: apps/worker/Dockerfile }
+          - { image: mcp, dockerfile: apps/agent/mcp_server/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/centralops-${{ matrix.image }}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:homelab
+            ${{ env.IMAGE }}:homelab-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ env.HOMELAB_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ env.HOMELAB_SUPABASE_ANON_KEY }}
+          cache-from: type=gha,scope=homelab-${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=homelab-${{ matrix.image }}

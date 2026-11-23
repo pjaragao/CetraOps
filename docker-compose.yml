@@ -1,11 +1,13 @@
+# Deploy do homelab (Coolify). As imagens NÃO são construídas aqui: o GitHub Actions (.github/workflows/homelab-images.yml) as publica
+# em ghcr.io e o servidor só baixa — o build do Next.js estourava a memória do WSL2.
+# CENTRALOPS_TAG (variável do app no Coolify): `homelab` = último main (padrão) · `homelab-<sha>` = versão fixa (rollback).
 services:
   # Roda a cada deploy ANTES do web e do worker: confere o banco e aplica as migrations que faltarem
   # (e garante o administrador inicial). Se falhar, web e worker não sobem sobre um banco desatualizado.
   # Log: docker logs centralops-migrate · ver apps/worker/centralops_worker/migrate.py
   centralops-migrate:
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile
+    image: ghcr.io/pjaragao/centralops-worker:${CENTRALOPS_TAG:-homelab}
+    pull_policy: always
     container_name: centralops-migrate
     command: ["centralops-migrate"]
     labels:
@@ -21,12 +23,8 @@ services:
       - .env
 
   centralops-web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_SUPABASE_URL: "https://mpbflndsk201-wsl.tabby-broadnose.ts.net:8001"
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+    image: ghcr.io/pjaragao/centralops-web:${CENTRALOPS_TAG:-homelab}
+    pull_policy: always
     container_name: centralops-web
     labels:
       coolify.managed: "true"
@@ -49,9 +47,8 @@ services:
         condition: service_completed_successfully
 
   centralops-worker:
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile
+    image: ghcr.io/pjaragao/centralops-worker:${CENTRALOPS_TAG:-homelab}
+    pull_policy: always
     container_name: centralops-worker
     labels:
       coolify.managed: "true"
@@ -71,9 +68,8 @@ services:
         condition: service_started
 
   centralops-mcp:
-    build:
-      context: .
-      dockerfile: apps/agent/mcp_server/Dockerfile
+    image: ghcr.io/pjaragao/centralops-mcp:${CENTRALOPS_TAG:-homelab}
+    pull_policy: always
     container_name: centralops-mcp
     labels:
       coolify.managed: "true"

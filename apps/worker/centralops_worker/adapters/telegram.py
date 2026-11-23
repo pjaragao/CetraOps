@@ -26,8 +26,12 @@ class TelegramClient:
             raise PermanentError(f'Telegram: {data.get("description", resp.text[:200])}', code=data.get("error_code"), status=resp.status_code)
         return data["result"]
 
-    async def send_message(self, chat_id: str, text: str) -> str:
-        result = await self._call("sendMessage", {"chat_id": chat_id, "text": text})
+    async def send_message(self, chat_id: str, text: str, reply_to: str | None = None) -> str:
+        """`reply_to`: id do provedor da mensagem citada ("<chat>:<message_id>", como o normalizador grava)."""
+        body: dict[str, Any] = {"chat_id": chat_id, "text": text}
+        if reply_to and reply_to.rsplit(":", 1)[-1].isdigit():
+            body["reply_parameters"] = {"message_id": int(reply_to.rsplit(":", 1)[-1]), "allow_sending_without_reply": True}
+        result = await self._call("sendMessage", body)
         return f'{chat_id}:{result["message_id"]}'
 
     async def get_me(self) -> dict[str, Any]:

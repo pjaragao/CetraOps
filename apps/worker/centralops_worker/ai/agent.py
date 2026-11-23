@@ -18,6 +18,10 @@ from ..adapters.errors import PermanentError, TransientError
 from ..db import call_fn
 from .hermes_llm import HermesLLM, is_hermes
 
+# Atendimento é conversa ao vivo: uma rodada do modelo que passa disso cai para o reserva (o outro lado: Hermes ↔ OpenRouter)
+# em vez de prender a cliente esperando. Tarefas de fundo (resumo, persona) seguem com o timeout longo do llm.py.
+CHAT_TIMEOUT_S = 60
+
 
 @dataclass
 class AgentInput:
@@ -75,7 +79,7 @@ class OpenRouterAgent:
                 continue
             try:
                 if side == "hermes":
-                    return await self._hermes.chat(group[0], messages, tools=tools)  # type: ignore[union-attr]
+                    return await self._hermes.chat(group[0], messages, tools=tools, timeout=CHAT_TIMEOUT_S)  # type: ignore[union-attr]
                 return await self._chat_openrouter(inp, group, messages, tools)
             except (TransientError, PermanentError) as e:
                 last = e
@@ -88,7 +92,7 @@ class OpenRouterAgent:
         if inp.provider_prefs:
             body["provider"] = inp.provider_prefs           # zdr / data_collection: deny
         try:
-            resp = await self._http.post(f"{self._base}/chat/completions", json=body, headers={"Authorization": f"Bearer {self._key}"}, timeout=90)
+            resp = await self._http.post(f"{self._base}/chat/completions", json=body, headers={"Authorization": f"Bearer {self._key}"}, timeout=CHAT_TIMEOUT_S)
         except (httpx.TimeoutException, httpx.TransportError) as e:
             raise TransientError(f"rede: {e}") from e
         _classify(resp)

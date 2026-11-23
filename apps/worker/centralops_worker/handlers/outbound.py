@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import logging
 
+import httpx
+
 from .. import queues
+from ..adapters import media_links
 from ..adapters.errors import PermanentError as SendPermanent
 from ..adapters.errors import TransientError
 from ..adapters.meta import MetaClient
@@ -17,6 +20,46 @@ log = logging.getLogger("centralops_worker.outbound")
 
 async def _fail(deps: Deps, message_id: str, reason: str) -> None:
     await call_fn(deps.pool, "omni.mark_outbound", message_id, "FAILED", None, reason)
+
+
+async def _fetch_image(deps: Deps, url: str) -> tuple[bytes, str] | None:
+    """Baixa a foto do link (catálogo/Shopify). Falhou → None, e o link segue no texto como antes."""
+    try:
+        resp = await deps.http.get(url, timeout=20, follow_redirects=True)
+    except (httpx.TimeoutException, httpx.TransportError) as e:
+        log.warning("não consegui baixar a foto %s: %s", url, e)
+        return None
+    mime = resp.headers.get("content-type", "")
+    if resp.status_code >= 400 or not mime.startswith("image/"):
+        log.warning("link de foto inválido %s (%s, %s)", url, resp.status_code, mime)
+        return None
+    try:
+        return media_links.to_whatsapp_image(resp.content, mime)
+    except Exception as e:                                       # imagem corrompida/formato desconhecido
+        log.warning("não consegui converter a foto %s: %s", url, e)
+        return None
+
+
+async def _send_whatsapp_rich(deps: Deps, meta: MetaClient, account: str, to: str, body: str, reply_to: str | None = None) -> str:
+    """Texto com links de foto sai como fotos de verdade (com legenda) + o texto restante, na ordem. Devolve o id da última mensagem.
+    `reply_to` (id da Meta da mensagem citada) vai só na primeira parte: é ela que aparece "respondendo" no WhatsApp."""
+    parts = media_links.split(body)
+    if len(parts) == 1 and parts[0].kind == "text":
+        return await meta.send_whatsapp_text(account, to, body, reply_to)
+    pid = ""
+    for i, part in enumerate(parts):
+        ctx = reply_to if i == 0 else None
+        if part.kind == "image":
+            img = await _fetch_image(deps, part.url)
+            if img is not None:
+                media_id = await meta.upload_whatsapp_media(account, img[0], img[1], "foto.jpg" if img[1] == "image/jpeg" else "foto.png")
+                pid = await meta.send_whatsapp_image(account, to, media_id, part.text or None, ctx)
+                continue
+            text = f"{part.text}: {part.url}" if part.text else part.url   # sem a foto, manda o link (como antes)
+        else:
+            text = part.text
+        pid = await meta.send_whatsapp_text(account, to, text, ctx)
+    return pid
 
 
 async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
@@ -40,22 +83,24 @@ async def handle(deps: Deps, msg: queues.QueueMessage) -> None:
         raise RetryLater(300, "canal sem credencial configurada")
 
     channel, to, account = ctx["channel"], ctx["external_id"], ctx["provider_account_id"]
+    reply_to = (m.get("payload") or {}).get("reply_to")              # resposta citando uma mensagem (botão "Responder" da inbox)
+    reply_to = str(reply_to) if reply_to else None
     try:
         if channel == "WHATSAPP":
             meta = MetaClient(deps.http, deps.settings.graph_api_base, token)
             if template:
                 pid = await meta.send_whatsapp_template(account, to, template, (m.get("payload") or {}).get("language", "pt_BR"), (m.get("payload") or {}).get("components"))
             else:
-                pid = await meta.send_whatsapp_text(account, to, m["body"])
+                pid = await _send_whatsapp_rich(deps, meta, account, to, m["body"], reply_to)
         elif channel == "INSTAGRAM":
             meta = MetaClient(deps.http, deps.settings.instagram_api_base, token)
             comment_id = (m.get("payload") or {}).get("reply_to_comment_id")
             if comment_id:                                          # resposta privada a comentário (automação)
                 pid = await meta.send_instagram_private_reply(account, str(comment_id), m["body"])
             else:
-                pid = await meta.send_instagram_text(account, to, m["body"], human_agent=ctx.get("window_mode") == "HUMAN_AGENT_TAG")
+                pid = await meta.send_instagram_text(account, to, m["body"], human_agent=ctx.get("window_mode") == "HUMAN_AGENT_TAG", reply_to=reply_to)
         elif channel == "TELEGRAM":
-            pid = await TelegramClient(deps.http, deps.settings.telegram_api_base, token).send_message(to, m["body"])
+            pid = await TelegramClient(deps.http, deps.settings.telegram_api_base, token).send_message(to, m["body"], reply_to)
         else:
             await _fail(deps, message_id, f"canal {channel} indisponível")
             return

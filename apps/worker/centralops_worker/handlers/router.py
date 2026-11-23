@@ -89,13 +89,20 @@ async def _examples(deps: Deps, claim: dict[str, Any], history: list[dict[str, s
 
 
 async def _history(deps: Deps, conversation_id: str) -> list[dict[str, str]]:
-    rows = await fetch_all(deps.pool, """select direction, body, transcript, type from omni.messages where conversation_id = %s
-                                         and (body is not null or transcript is not null) order by created_at desc, seq desc limit 30""", (conversation_id,))
+    # `quoted`: quando a cliente responde (reply) a uma mensagem específica, o texto citado vai junto para a IA entender a referência
+    rows = await fetch_all(deps.pool, """select m.direction, m.body, m.transcript, m.type,
+                                                (select coalesce(q.body, q.transcript) from omni.messages q
+                                                  where q.channel_account_id = m.channel_account_id and q.provider_message_id = m.payload ->> 'reply_to' limit 1) as quoted
+                                           from omni.messages m where m.conversation_id = %s
+                                         and (m.body is not null or m.transcript is not null) order by m.created_at desc, m.seq desc limit 30""", (conversation_id,))
     out: list[dict[str, str]] = []
     for r in reversed(rows):
         text = r["body"] or r["transcript"]
         if r["transcript"] and r["type"] == "AUDIO":
             text = f'[áudio transcrito] {r["transcript"]}'
+        if r.get("quoted"):
+            quoted = " ".join(str(r["quoted"]).split())
+            text = f'[respondendo à mensagem: "{quoted[:200]}{"…" if len(quoted) > 200 else ""}"] {text}'
         out.append({"role": "user" if r["direction"] == "IN" else "assistant", "content": text})
     return out
 

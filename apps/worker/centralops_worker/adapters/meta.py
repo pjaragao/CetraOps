@@ -132,6 +132,26 @@ class MetaClient:
         data = await self._post(f"{phone_number_id}/messages", payload)
         return data["messages"][0]["id"]
 
+    async def upload_whatsapp_media(self, phone_number_id: str, data: bytes, mime: str, filename: str = "foto.jpg") -> str:
+        """Sobe o arquivo para a Meta (POST /{phone}/media, multipart) e devolve o media id, usado no envio."""
+        try:
+            resp = await self._http.post(f"{self._base}/{phone_number_id}/media", headers=self._headers(), timeout=60,
+                                         data={"messaging_product": "whatsapp", "type": mime}, files={"file": (filename, data, mime)})
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            raise TransientError(f"rede: {e}") from e
+        _raise_for(resp)
+        return str(resp.json()["id"])
+
+    async def send_whatsapp_image(self, phone_number_id: str, to: str, media_id: str, caption: str | None = None, reply_to: str | None = None) -> str:
+        image: dict[str, Any] = {"id": media_id}
+        if caption:
+            image["caption"] = caption
+        payload: dict[str, Any] = {"messaging_product": "whatsapp", "recipient_type": "individual", "to": to, "type": "image", "image": image}
+        if reply_to:
+            payload["context"] = {"message_id": reply_to}
+        data = await self._post(f"{phone_number_id}/messages", payload)
+        return data["messages"][0]["id"]
+
     async def send_whatsapp_template(self, phone_number_id: str, to: str, name: str, language: str = "pt_BR", components: list[dict[str, Any]] | None = None) -> str:
         payload = {"messaging_product": "whatsapp", "to": to, "type": "template", "template": {"name": name, "language": {"code": language}, "components": components or []}}
         data = await self._post(f"{phone_number_id}/messages", payload)
@@ -142,8 +162,11 @@ class MetaClient:
         await self._post(f"{phone_number_id}/messages", {"messaging_product": "whatsapp", "status": "read", "message_id": message_id, "typing_indicator": {"type": "text"}})
 
     # ---------------- Instagram ----------------
-    async def send_instagram_text(self, ig_account_id: str, recipient_id: str, text: str, human_agent: bool = False) -> str:
-        payload: dict[str, Any] = {"recipient": {"id": recipient_id}, "message": {"text": text}}
+    async def send_instagram_text(self, ig_account_id: str, recipient_id: str, text: str, human_agent: bool = False, reply_to: str | None = None) -> str:
+        message: dict[str, Any] = {"text": text}
+        if reply_to and not reply_to.startswith("comment:"):
+            message["reply_to"] = {"mid": reply_to}      # resposta citando uma DM específica
+        payload: dict[str, Any] = {"recipient": {"id": recipient_id}, "message": message}
         if human_agent:
             payload["messaging_type"] = "MESSAGE_TAG"
             payload["tag"] = "HUMAN_AGENT"            # só humano, entre 24 h e 7 dias

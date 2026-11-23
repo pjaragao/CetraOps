@@ -2,18 +2,68 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Bot, CheckCircle2, FileText, PauseCircle, PlayCircle, Send, Sparkles, StickyNote, Undo2, UserRound } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, FileText, PauseCircle, PlayCircle, Reply, Send, Sparkles, StickyNote, Undo2, UserRound, X } from "lucide-react";
 import { canSend, firstName, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@centralops/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
 import { addNote, assignConversation, closeConversation, discardDraft, markRead, pauseAi, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
 
-interface Msg { id: string; direction: string; author_type: string; body: string | null; transcript: string | null; type: string; status: string; created_at: string }
+interface Msg { id: string; direction: string; author_type: string; body: string | null; transcript: string | null; type: string; status: string; created_at: string;
+  error?: string | null; mediaUrl?: string | null; quote?: { mine: boolean | null; text: string } | null; canReply?: boolean }
 interface Draft { id: string; variants: { messages: string[] }[]; confidence: number | null; intent: string | null; needsHuman: boolean }
 interface Tpl { id: string; name: string; category: string; body: string; examples: string[] }
 interface QuickReply { id: string; shortcut: string; body: string }
 interface Member { id: string; name: string }
 interface Note { id: string; member_id: string | null; body: string; mentions: string[]; created_at: string }
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+
+const STATUS_LABEL: Record<string, string> = { QUEUED: "enviando", SENT: "enviada", DELIVERED: "entregue", READ: "lida", FAILED: "falhou", RECEIVED: "recebida" };
+const URL_RE = /(https?:\/\/[^\s<>"')\]]+)/g;
+// mesmo critério do worker (adapters/media_links.py): esses links saem no WhatsApp como foto
+const IMAGE_LINK = /^https?:\/\/(?:[^/\s]+\/[^\s]*\.(?:jpe?g|png|webp|gif|avif|heic)(?:[?#][^\s]*)?|[^/\s]+\/storage\/v1\/object\/public\/catalog-media\/[^\s]*)$/i;
+
+/** Texto com links clicáveis (o resto é texto puro: nada de HTML vindo da cliente). */
+function Linkify({ text }: { text: string }) {
+  return <>{text.split(URL_RE).map((part, i) => i % 2 === 0 ? <span key={i}>{part}</span> : IMAGE_LINK.test(part) ? (
+    <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="my-1 block" title="Vai para a cliente como foto">
+      {/* eslint-disable-next-line @next/next/no-img-element -- foto do catálogo (CDN externo) */}
+      <img src={part} alt="Foto enviada" className="max-h-48 rounded-lg object-cover" loading="lazy" />
+    </a>
+  ) : <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="break-all text-brand underline">{part}</a>)}</>;
+}
+
+/** Corpo da bolha: mensagem citada (reply), mídia (áudio, foto, vídeo, figurinha, documento) e texto/legenda/transcrição. */
+function MessageBody({ m }: { m: Msg }) {
+  const placeholder = m.body !== null && /^\[(imagem|áudio|vídeo|documento|figurinha)\]$/.test(m.body);
+  const caption = placeholder ? null : m.body;
+  return (
+    <>
+      {m.quote && (
+        <span className="mb-1 block rounded-md border-l-2 border-brand bg-black/5 px-2 py-1 text-xs text-muted dark:bg-white/5">
+          <span className="block font-medium">{m.quote.mine === null ? "Respondendo a" : m.quote.mine ? "Respondendo à loja" : "Respondendo à cliente"}</span>
+          <span className="line-clamp-3 whitespace-pre-line">{m.quote.text}</span>
+        </span>
+      )}
+      {m.mediaUrl && (m.type === "IMAGE" || m.type === "STICKER") && (
+        <a href={m.mediaUrl} target="_blank" rel="noopener noreferrer" className="mb-1 block">
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do Storage */}
+          <img src={m.mediaUrl} alt={caption ?? "Foto enviada pela cliente"} className={cn("rounded-lg object-cover", m.type === "STICKER" ? "max-h-32" : "max-h-72 w-full")} loading="lazy" />
+        </a>
+      )}
+      {m.mediaUrl && m.type === "AUDIO" && <audio controls preload="none" src={m.mediaUrl} className="mb-1 h-10 w-64 max-w-full" aria-label="Áudio da cliente" />}
+      {m.mediaUrl && m.type === "VIDEO" && <video controls preload="metadata" src={m.mediaUrl} className="mb-1 max-h-72 w-full rounded-lg" />}
+      {m.mediaUrl && m.type === "DOCUMENT" && (
+        <a href={m.mediaUrl} target="_blank" rel="noopener noreferrer" className="mb-1 flex items-center gap-1.5 rounded-md bg-black/5 px-2 py-1.5 text-brand underline dark:bg-white/5">
+          <FileText size={14} /> {caption ?? "Abrir documento"}
+        </a>
+      )}
+      {!m.mediaUrl && placeholder && m.direction === "IN" && <span className="block text-muted">{m.body} <span className="text-[11px]">(arquivo ainda não disponível)</span></span>}
+      {m.type === "AUDIO" && m.transcript && <span className="block text-xs italic text-muted">🎙️ “{m.transcript}”</span>}
+      {caption && !(m.type === "DOCUMENT" && m.mediaUrl) && <Linkify text={caption} />}
+      {!caption && !m.mediaUrl && !placeholder && !m.transcript && `[${m.type}]`}
+      {m.status === "FAILED" && m.error && <span className="mt-1 block text-xs text-danger">Não enviada: {m.error}</span>}
+    </>
+  );
+}
 
 export const OUTCOME_LABEL: Record<string, string> = {
   PURCHASED: "Comprou", RESERVED: "Reservou / armário", RESOLVED: "Dúvida resolvida", EXCHANGE: "Troca ou devolução",
@@ -30,13 +80,15 @@ export function ConversationPane(props: {
   conversationId: string; mode: ConvMode; channel: MessagingChannel; lastInboundAt: string | null;
   customerName: string; messages: Msg[]; draft: Draft | null; backHref: string; templates: Tpl[]; quickReplies: QuickReply[];
   aiPausedUntil: string | null; aiInstruction: string | null; assigneeId: string | null; meId: string; members: Member[]; notes: Note[];
-  suggestedOutcome: string | null; initialText?: string;
+  suggestedOutcome: string | null; initialText?: string; aiThinkingSince?: string | null;
 }) {
   const router = useRouter();
   const [closeOpen, setCloseOpen] = useState(false);
   const [outcome, setOutcome] = useState(props.suggestedOutcome ?? "RESOLVED");
   const [outcomeNote, setOutcomeNote] = useState("");
-  const [text, setText] = useState(props.initialText ?? "");   // mensagem pronta vinda da lista do dia
+  const [text, setText] = useState(props.initialText ?? "");
+  const [replyTo, setReplyTo] = useState<{ id: string; text: string; mine: boolean } | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);   // mensagem pronta vinda da lista do dia
   const [editingDraft, setEditingDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -63,6 +115,8 @@ export function ConversationPane(props: {
   const [now] = useState(() => Date.now());
   const paused = props.aiPausedUntil !== null && new Date(props.aiPausedUntil).getTime() > now;
   const aiMode = props.mode === "AI_AUTOPILOT" || props.mode === "AI_COPILOT";
+  // o roteador marca pending_ai_at a cada mensagem da cliente e limpa ao aplicar a resposta; depois de 10 min sem resposta, some (falhou/descartou)
+  const thinking = aiMode && !paused && !!props.aiThinkingSince && now - new Date(props.aiThinkingSince).getTime() < 10 * 60_000;
   const who = new Map(props.members.map((m) => [m.id, m.name]));
   const thread = [
     ...props.messages.map((m) => ({ kind: "msg" as const, at: m.created_at, m })),
@@ -178,18 +232,30 @@ export function ConversationPane(props: {
             <p className="whitespace-pre-line">{t.n.body}</p>
           </div>
         ) : (
-          <div key={t.m.id} className={cn("flex", t.m.direction === "OUT" ? "justify-end" : "justify-start")}>
+          <div key={t.m.id} className={cn("group flex items-center gap-1", t.m.direction === "OUT" ? "flex-row-reverse" : "flex-row")}>
             <div className={cn("max-w-[min(80%,42rem)] rounded-2xl px-3 py-2 text-sm whitespace-pre-line",
               t.m.direction === "OUT" ? "bg-brand/10" : "bg-surface-2")}>
-              {t.m.body ?? (t.m.transcript ? `🎙️ ${t.m.transcript}` : `[${t.m.type}]`)}
+              <MessageBody m={t.m} />
               <span className="mt-1 block text-right text-[10px] text-muted">
                 {t.m.author_type === "AI" ? "IA · " : t.m.author_type === "ECHO_FROM_APP" ? "pelo app · " : t.m.author_type === "HUMAN" ? "equipe · " : ""}
                 {new Date(t.m.created_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
-                {t.m.direction === "OUT" && ` · ${t.m.status.toLowerCase()}`}
+                {t.m.direction === "OUT" && ` · ${STATUS_LABEL[t.m.status] ?? t.m.status.toLowerCase()}`}
               </span>
             </div>
+            {t.m.canReply && freeForm && (
+              <button type="button" aria-label="Responder a esta mensagem" title="Responder"
+                onClick={() => { setReplyTo({ id: t.m.id, mine: t.m.direction === "OUT", text: t.m.body ?? (t.m.transcript ? `🎙️ ${t.m.transcript}` : `[${t.m.type.toLowerCase()}]`) }); composerRef.current?.focus(); }}
+                className="shrink-0 rounded-full p-1.5 text-muted opacity-60 hover:bg-surface-2 hover:text-text focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                <Reply size={14} />
+              </button>
+            )}
           </div>
         ))}
+        {thinking && (
+          <p className="flex items-center gap-1.5 text-xs text-muted" role="status">
+            <Sparkles size={12} className="animate-pulse" /> IA preparando {props.mode === "AI_COPILOT" ? "a sugestão" : "a resposta"}…
+          </p>
+        )}
         <div ref={endRef} />
       </div>
 
@@ -268,12 +334,25 @@ export function ConversationPane(props: {
         </div>
       )}
 
+      {replyTo && (
+        <div className="mx-3 -mb-1 mt-2 flex items-start gap-2 rounded-lg border-l-2 border-brand bg-surface-2 px-3 py-1.5 text-xs">
+          <Reply size={13} className="mt-0.5 shrink-0 text-brand" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">Respondendo {replyTo.mine ? "à mensagem da loja" : "à cliente"}</p>
+            <p className="line-clamp-2 whitespace-pre-line text-muted">{replyTo.text}</p>
+          </div>
+          <button type="button" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)} className="rounded p-0.5 text-muted hover:text-text"><X size={14} /></button>
+        </div>
+      )}
       <form className="flex items-end gap-2 border-t border-border p-3"
-        onSubmit={(e) => { e.preventDefault(); run(() => sendMessage(props.conversationId, text), () => setText("")); }}>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2}
+        onSubmit={(e) => { e.preventDefault(); run(() => sendMessage(props.conversationId, text, undefined, undefined, replyTo?.id), () => { setText(""); setReplyTo(null); }); }}>
+        <textarea ref={composerRef} value={text} onChange={(e) => setText(e.target.value)} rows={2}
           placeholder={freeForm ? "Escreva uma mensagem (ao enviar, você assume a conversa)" : ("reason" in decision ? decision.reason : "Fora da janela: use um template")}
           disabled={!freeForm || pending} className={cn(inputClass, "resize-none")} aria-label="Mensagem"
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && replyTo) { e.preventDefault(); setReplyTo(null); }
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
+          }} />
         <Button aria-label="Enviar" disabled={!freeForm || pending || !text.trim()}><Send size={16} /></Button>
       </form>
       {windowClosed && !showTemplates && props.channel === "WHATSAPP" && (

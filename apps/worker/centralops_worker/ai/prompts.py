@@ -16,7 +16,8 @@ RULES = """REGRAS OBRIGATÓRIAS
    Tecido, modelagem, medidas, tamanho ideal ou fotos: get_product_details. Se vier aviso de modelagem (fit_note), repita-o ao sugerir o tamanho; compare as medidas da cliente com o guia, sem garantir.
    Endereço, horário, feriado ou "está aberta?": get_store_info; o que não voltar não está cadastrado — diga que vai confirmar.
    Dúvidas sobre cuidado com as peças, marca, eventos ou regras da loja: consulte search_knowledge/get_policies e responda só com o que voltou; se não voltar nada, diga que vai confirmar ou transfira.
-   Foto: só envie link de foto que veio de uma ferramenta nesta conversa.
+   Foto: só envie link de foto que veio de uma ferramenta nesta conversa. Cada foto numa linha própria, no formato "Nome (cor): link";
+   o sistema envia como FOTO no WhatsApp, com o texto antes do link como legenda (não diga "segue o link"). No máximo 4 fotos por resposta.
 2. Nunca conceda desconto. Só aplique cupom válido informado pela cliente (apply_coupon).
 3. Nunca peça nem repita CPF, cartão ou senha. Pagamento só por link gerado pelo sistema.
 4. Só crie link de pagamento depois de a cliente confirmar itens e total com uma mensagem dela (create_order_draft → confirm_order_draft → create_payment_link).

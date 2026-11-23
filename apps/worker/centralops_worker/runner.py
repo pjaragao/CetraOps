@@ -33,8 +33,28 @@ def backoff_s(read_ct: int) -> int:
     return min(5 * 3 ** max(read_ct - 1, 0), 300)
 
 
+async def _keep_invisible(pool: AsyncConnectionPool, msg: queues.QueueMessage, vt: int) -> None:
+    """Enquanto o job roda, renova a invisibilidade da mensagem. Sem isso, um job mais longo que o `visibility_timeout_s`
+    (ex.: resposta da IA com várias ferramentas) reaparece na fila e roda de novo EM PARALELO, disputando o modelo e atrasando tudo."""
+    interval = max(vt / 2, 1)
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            await queues.set_visibility(pool, msg.queue, msg.msg_id, vt)
+        except Exception as e:                       # renovar é melhor esforço: o job em si continua
+            log.warning("não consegui renovar a visibilidade da fila %s msg=%s: %s", msg.queue, msg.msg_id, e)
+
+
 async def process_one(pool: AsyncConnectionPool, msg: queues.QueueMessage, handler: Handler, settings: Settings) -> str:
     """Devolve 'ok' | 'retry' | 'dlq'."""
+    heartbeat = asyncio.create_task(_keep_invisible(pool, msg, settings.visibility_timeout_s))
+    try:
+        return await _process(pool, msg, handler, settings)
+    finally:
+        heartbeat.cancel()
+
+
+async def _process(pool: AsyncConnectionPool, msg: queues.QueueMessage, handler: Handler, settings: Settings) -> str:
     try:
         await handler(msg)
     except RetryLater as e:

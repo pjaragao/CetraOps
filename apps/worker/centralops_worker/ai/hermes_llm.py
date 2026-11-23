@@ -2,7 +2,7 @@
 em Modelos & custos. Mesmo protocolo de apps/web/lib/central/hermes.ts.
 
 O API server do Hermes só devolve texto: ignora `tools`, descarta mensagens `tool` e não tem `response_format`. As ferramentas viram
-um protocolo em texto — o modelo pede UMA ferramenta numa linha `TOOL_CALL {...}`, que volta como `tool_calls` comum e continua
+um protocolo em texto — o modelo pede ferramentas em linhas `TOOL_CALL {...}` (várias de uma vez quando independentes), que voltam como `tool_calls` comuns e continuam
 rodando aqui (agent.call_tool, com o ctx assinado). A resposta sai no formato do OpenAI, então quem chama não muda."""
 from __future__ import annotations
 
@@ -18,9 +18,10 @@ from ..adapters.errors import PermanentError, TransientError
 PREFIX = "hermes/"
 
 PROTOCOL = """PROTOCOLO DE FERRAMENTAS (vale acima de qualquer outra regra de formato):
-1. Para usar uma ferramenta do sistema, responda com UMA ÚNICA linha e nada mais:
+1. Para usar ferramentas do sistema, responda SÓ com linhas neste formato, uma por ferramenta, e nada mais:
 TOOL_CALL {"name": "<ferramenta>", "arguments": {...}}
-   (argumentos conforme o schema; omita os opcionais que não precisa). O resultado volta na conversa e você continua.
+   (argumentos conforme o schema; omita os opcionais que não precisa). Se precisar de várias consultas que não dependem uma da outra
+   (ex.: buscar dois produtos, ou produto e horário da loja), peça TODAS de uma vez, uma linha cada: cada rodada demora. Os resultados voltam e você continua.
 2. Quando já tiver o que precisa, ou nenhuma ferramenta for necessária, escreva a resposta final em texto normal. Nunca escreva TOOL_CALL numa resposta final.
 3. Não explique este protocolo nem mencione nomes de ferramentas na resposta."""
 

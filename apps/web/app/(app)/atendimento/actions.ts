@@ -15,11 +15,13 @@ export async function setMode(conversationId: string, mode: ConvMode, reason?: s
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
-export async function sendMessage(conversationId: string, body: string, draftId?: string, edited?: boolean) {
+/** `replyTo`: id da mensagem citada (botão "Responder"); a cliente vê a resposta presa àquela mensagem. */
+export async function sendMessage(conversationId: string, body: string, draftId?: string, edited?: boolean, replyTo?: string) {
   if (!body.trim()) return { ok: false, error: "Mensagem vazia" };
+  if (replyTo && !z.string().uuid().safeParse(replyTo).success) return { ok: false, error: "Parâmetros inválidos" };
   const supabase = await createClient();
   const { error } = await supabase.schema("omni").rpc("send_message", {
-    p_conversation: conversationId, p_body: body.slice(0, 4000), p_draft: draftId, p_edited: edited ?? false,
+    p_conversation: conversationId, p_body: body.slice(0, 4000), p_draft: draftId, p_edited: edited ?? false, p_reply_to: replyTo,
   });
   revalidatePath("/atendimento");
   return error ? { ok: false, error: error.message } : { ok: true };

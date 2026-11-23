@@ -6,7 +6,7 @@ services:
   # (e garante o administrador inicial). Se falhar, web e worker não sobem sobre um banco desatualizado.
   # Log: docker logs centralops-migrate · ver apps/worker/centralops_worker/migrate.py
   centralops-migrate:
-    image: ghcr.io/pjaragao/centralops-worker:${CENTRALOPS_TAG:-homelab}
+    image: ghcr.io/pjaragao/centralops-homelab-worker:${CENTRALOPS_TAG:-homelab}
     pull_policy: always
     container_name: centralops-migrate
     command: ["centralops-migrate"]
@@ -23,7 +23,7 @@ services:
       - .env
 
   centralops-web:
-    image: ghcr.io/pjaragao/centralops-web:${CENTRALOPS_TAG:-homelab}
+    image: ghcr.io/pjaragao/centralops-homelab-web:${CENTRALOPS_TAG:-homelab}
     pull_policy: always
     container_name: centralops-web
     labels:
@@ -47,7 +47,7 @@ services:
         condition: service_completed_successfully
 
   centralops-worker:
-    image: ghcr.io/pjaragao/centralops-worker:${CENTRALOPS_TAG:-homelab}
+    image: ghcr.io/pjaragao/centralops-homelab-worker:${CENTRALOPS_TAG:-homelab}
     pull_policy: always
     container_name: centralops-worker
     labels:
@@ -68,7 +68,7 @@ services:
         condition: service_started
 
   centralops-mcp:
-    image: ghcr.io/pjaragao/centralops-mcp:${CENTRALOPS_TAG:-homelab}
+    image: ghcr.io/pjaragao/centralops-homelab-mcp:${CENTRALOPS_TAG:-homelab}
     pull_policy: always
     container_name: centralops-mcp
     labels:

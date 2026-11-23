@@ -81,6 +81,9 @@ export default async function IntegracoesPage({ searchParams }: { searchParams: 
   const connById = new Map((conns ?? []).map((c) => [c.id, c]));
   const storeName = new Map((stores ?? []).map((s) => [s.id, s.name]));
   const functionsUrl = `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "")}/functions/v1`;
+  // No homelab o Supabase não está na internet: a Meta chama o relay da Vercel (META_WEBHOOK_URL, ex.: https://<relay>.vercel.app/api/meta),
+  // que repassa ao web (/api/webhooks/meta). Sem a variável, vale a Edge Function do Supabase (Supabase Cloud).
+  const metaWebhookUrl = process.env.META_WEBHOOK_URL?.trim() || `${functionsUrl}/webhooks-meta`;
 
   const options: ConnOption[] = (conns ?? []).filter((c) => c.secret_ref && ["META_WA", "META_IG", "TELEGRAM"].includes(c.provider)).map((c) => {
     const cfg = asObj(c.config);
@@ -138,7 +141,7 @@ export default async function IntegracoesPage({ searchParams }: { searchParams: 
       {str(sp.wait) && <AutoRefresh />}
 
       {/* Tabela de Integrações (Estilo /ia/modelos) */}
-      <IntegrationsTable rows={rows} functionsUrl={functionsUrl} />
+      <IntegrationsTable rows={rows} metaWebhookUrl={metaWebhookUrl} />
 
       {/* Canais de Atendimento */}
       <div className="mt-8 mb-2 flex items-center justify-between">
@@ -207,9 +210,9 @@ export default async function IntegracoesPage({ searchParams }: { searchParams: 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-xs text-muted">Meta — WhatsApp e Instagram (URL de callback)</dt>
-            <dd className="mt-0.5 break-all font-mono text-xs">{functionsUrl}/webhooks-meta</dd>
+            <dd className="mt-0.5 break-all font-mono text-xs">{metaWebhookUrl}</dd>
             <dd className="mt-1 text-xs text-muted">
-              Token de verificação: o valor do segredo <code>META_VERIFY_TOKEN</code> das Edge Functions. Assine os campos <code>messages</code> (WhatsApp) e <code>messages</code>, <code>comments</code> (Instagram).
+              Token de verificação: o valor de <code>META_VERIFY_TOKEN</code> (no Coolify quando o webhook passa pelo relay da Vercel; nas Edge Functions no Supabase Cloud). Assine os campos <code>messages</code> (WhatsApp) e <code>messages</code>, <code>comments</code> (Instagram).
             </dd>
           </div>
           <div>

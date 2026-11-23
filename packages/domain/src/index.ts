@@ -23,3 +23,4 @@ export * from "./campaigns";
 export * from "./brand-pdf";
 export * from "./report-spec";
 export * from "./doc-inbox";
+export * from "./meta-webhook";

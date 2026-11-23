@@ -67,6 +67,7 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash          # pai
 |---|---|---|
 | Meta (WhatsApp + Instagram) | `https://<ref>.supabase.co/functions/v1/webhooks-meta` | `X-Hub-Signature-256` (HMAC-SHA256 do corpo bruto) + `META_VERIFY_TOKEN` no handshake |
 | Telegram | `https://<ref>.supabase.co/functions/v1/webhooks-telegram/<bot_id>` | `X-Telegram-Bot-Api-Secret-Token` |
+| Meta no homelab (Supabase só na Tailscale) | `https://<relay>.vercel.app/api/meta` → web `/api/webhooks/meta` | mesma assinatura, conferida no web — ver `docs/whatsapp-webhook-vercel.md` |
 
 ```bash
 # Telegram (uma vez por bot)

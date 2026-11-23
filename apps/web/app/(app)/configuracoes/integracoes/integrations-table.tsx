@@ -40,7 +40,7 @@ export interface IntegrationRowData {
 
 interface IntegrationsTableProps {
   rows: IntegrationRowData[];
-  functionsUrl: string;
+  metaWebhookUrl: string;
 }
 
 const CATEGORY_ICONS: Record<IntegrationCategory, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -50,7 +50,7 @@ const CATEGORY_ICONS: Record<IntegrationCategory, React.ComponentType<{ size?: n
   MARKETING: TrendingUp,
 };
 
-export function IntegrationsTable({ rows, functionsUrl }: IntegrationsTableProps) {
+export function IntegrationsTable({ rows, metaWebhookUrl }: IntegrationsTableProps) {
   const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory | "ALL">("ALL");
   const [activeConfigKey, setActiveConfigKey] = useState<ProviderKey | null>(null);
   const [showStoneTerminals, setShowStoneTerminals] = useState(false);
@@ -162,10 +162,10 @@ export function IntegrationsTable({ rows, functionsUrl }: IntegrationsTableProps
                             </p>
                             {r.key === "META_WA" && (
                               <div className="flex items-center justify-between rounded bg-surface p-1.5 text-[11px] font-mono">
-                                <span className="truncate">{functionsUrl}/webhooks-meta</span>
+                                <span className="truncate">{metaWebhookUrl}</span>
                                 <button
                                   type="button"
-                                  onClick={() => copyToClipboard(`${functionsUrl}/webhooks-meta`, "wa")}
+                                  onClick={() => copyToClipboard(metaWebhookUrl, "wa")}
                                   className="text-brand hover:underline ml-2 flex items-center gap-1"
                                 >
                                   <Copy size={12} />

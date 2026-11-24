@@ -1,10 +1,12 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { Plus, Search, ShoppingBag, X } from "lucide-react";
 import { formatBRL } from "@centralops/domain";
-import { Badge, inputClass } from "@/components/ui";
-import { cartAdd, cartRemove, cartSearch, type CartHit, type CartItem } from "./actions";
+import { Badge, Button, cn, inputClass } from "@/components/ui";
+import { CheckoutDialog } from "./checkout-dialog";
+import { cartAdd, cartRemove, cartSearch, cartSetSize, type CartHit, type CartItem } from "./actions";
 
 const SOURCE: Record<CartItem["source"], { label: string; tone: "neutral" | "brand" | "success" | "info" }> = {
   SHOWN: { label: "mostrada", tone: "neutral" },
@@ -15,13 +17,23 @@ const SOURCE: Record<CartItem["source"], { label: string; tone: "neutral" | "bra
 
 /** Carrinho da conversa: o que está sendo mostrado ao cliente (automático em qualquer modo), o carrinho que ele mandou pelo
  *  catálogo e o que o atendente adicionou. Serve para o atendente se localizar; remover aqui não apaga nada da conversa. */
-export function CartPanel({ conversationId, items }: { conversationId: string; items: CartItem[] }) {
+/** Pedido desta conversa (aguardando pagamento ou pago), com o link de pagamento. */
+export interface ConversationOrder { id: string; number: string; status: string; total: number; url: string | null }
+
+const ORDER_STATUS: Record<string, { label: string; tone: "warning" | "success" | "neutral" | "danger" }> = {
+  PENDING_PAYMENT: { label: "aguardando pagamento", tone: "warning" }, PAID: { label: "pago", tone: "success" }, COMPLETED: { label: "concluído", tone: "success" },
+  FULFILLING: { label: "separando", tone: "success" }, READY_FOR_PICKUP: { label: "pronto p/ retirar", tone: "success" }, SHIPPED: { label: "enviado", tone: "success" },
+  CANCELLED: { label: "cancelado", tone: "danger" },
+};
+
+export function CartPanel({ conversationId, items, orders = [] }: { conversationId: string; items: CartItem[]; orders?: ConversationOrder[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<CartHit[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState(false);
   const searching = adding && query.trim().length >= 2;
   const shown = searching ? hits : [];
   const total = items.reduce((a, i) => a + Number(i.price ?? 0) * Number(i.qty), 0);
@@ -86,9 +98,19 @@ export function CartPanel({ conversationId, items }: { conversationId: string; i
                 {i.photo ? <img src={i.photo} alt="" className="size-10 shrink-0 rounded object-cover" loading="lazy" /> : <span className="size-10 shrink-0 rounded bg-surface-2" />}
                 <div className="min-w-0 flex-1 text-xs">
                   <p className="truncate font-medium" title={`${i.name} · ref. ${i.reference}`}>{i.name}</p>
-                  <p className="text-muted">{[i.color, i.size && `tam. ${i.size}`, Number(i.qty) > 1 && `${Number(i.qty)} un.`].filter(Boolean).join(" · ")}</p>
+                  <div className="flex flex-wrap items-center gap-1 text-muted">
+                    {i.color && <span>{i.color} ·</span>}
+                    {(i.variants?.length ?? 0) > 0 ? (
+                      <select value={i.size ?? ""} disabled={pending} onChange={(e) => e.target.value && run(() => cartSetSize(i.id, e.target.value))}
+                        aria-label={`Tamanho de ${i.name}`} className={cn(inputClass, "w-auto px-1 py-0 text-xs", !i.size && "border-warning text-warning")}>
+                        {!i.size && <option value="">tamanho?</option>}
+                        {i.variants!.map((v) => <option key={v.id} value={v.size}>{v.size}{v.available <= 0 ? " (sem)" : ""}</option>)}
+                      </select>
+                    ) : i.size ? <span>tam. {i.size}</span> : null}
+                    {Number(i.qty) > 1 && <span>· {Number(i.qty)} un.</span>}
+                  </div>
                   <p>{i.price != null ? formatBRL(Number(i.price)) : "sem preço"}
-                    <span className="text-muted"> · {Number(i.available ?? 0) > 0 ? (i.size ? `${Number(i.available)} na loja` : `tam. ${(i.sizes_in_stock ?? []).join(", ")}`) : "sem estoque"}</span></p>
+                    <span className="text-muted"> · {Number(i.available ?? 0) > 0 ? (i.size ? `${Number(i.available)} na loja` : `em estoque: ${(i.sizes_in_stock ?? []).join(", ")}`) : "sem estoque"}</span></p>
                   <Badge tone={SOURCE[i.source].tone}>{SOURCE[i.source].label}</Badge>
                 </div>
                 <button type="button" disabled={pending} onClick={() => run(() => cartRemove(i.id))} className="rounded p-0.5 text-muted hover:bg-surface-2 hover:text-danger"
@@ -97,7 +119,27 @@ export function CartPanel({ conversationId, items }: { conversationId: string; i
             ))}
           </ul>
           <p className="mt-2 flex justify-between border-t border-border pt-1.5 text-xs"><span className="text-muted">Total</span><span className="font-medium">{formatBRL(total)}</span></p>
+          <Button className="mt-2 w-full py-1.5 text-xs" onClick={() => setCheckout(true)}>Fechar pedido</Button>
         </>
+      )}
+      {checkout && <CheckoutDialog conversationId={conversationId} items={items} onClose={() => setCheckout(false)} />}
+
+      {orders.length > 0 && (
+        <ul className="mt-3 space-y-1 border-t border-border pt-2 text-xs" aria-label="Pedidos desta conversa">
+          {orders.map((o) => {
+            const st = ORDER_STATUS[o.status] ?? { label: o.status.toLowerCase(), tone: "neutral" as const };
+            return (
+              <li key={o.id} className="flex flex-wrap items-center gap-1.5">
+                <Link href={`/vender/pedidos/${o.id}`} className="font-medium text-brand">{o.number}</Link>
+                <span>{formatBRL(Number(o.total))}</span>
+                <Badge tone={st.tone}>{st.label}</Badge>
+                {o.url && o.status === "PENDING_PAYMENT" && (
+                  <button type="button" className="text-brand underline" onClick={() => void navigator.clipboard?.writeText(o.url!)} title={o.url}>copiar link</button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

@@ -176,8 +176,9 @@ def build_server(settings: Settings, db: AgentDb) -> MCPServer:
     @mcp.tool(description=_desc("propose_reply"))
     async def propose_reply(ctx: CTX, messages: Annotated[list[Annotated[str, Field(max_length=600)]], Field(min_length=1, max_length=3)],
                             confidence: Annotated[float, Field(ge=0, le=1)], intent: str | None = None, stage: str | None = None,
-                            needs_human: bool = False, reason: str | None = None) -> dict[str, Any]:
-        return await call(ctx, "propose_reply", {"messages": messages, "confidence": confidence, "intent": intent, "stage": stage, "needs_human": needs_human, "reason": reason})
+                            needs_human: bool = False, reason: str | None = None, cart: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return await call(ctx, "propose_reply", {"messages": messages, "confidence": confidence, "intent": intent, "stage": stage, "needs_human": needs_human,
+                                                 "reason": reason, "cart": cart})
 
     return mcp
 

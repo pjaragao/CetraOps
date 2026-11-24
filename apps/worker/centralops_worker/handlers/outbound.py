@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import httpx
 import psycopg
@@ -70,21 +71,30 @@ async def _send_whatsapp_rich(deps: Deps, meta: MetaClient, account: str, to: st
     return pid
 
 
-async def _send_cards(meta: MetaClient, account: str, to: str, catalog_id: str, images: list[media_links.Part], retailer: dict[str, str], ctx: str | None) -> str:
-    """Cartões nativos: 1 produto → `product`; vários → `product_list` (sem repetir o mesmo item)."""
-    ids: list[str] = []
+def _ids(v: str | list[str]) -> list[str]:
+    return [v] if isinstance(v, str) else list(v)
+
+
+async def _send_cards(meta: MetaClient, account: str, to: str, catalog_id: str, images: list[media_links.Part], retailer: dict[str, Any], ctx: str | None) -> str:
+    """Cartões nativos: 1 item → `product`; vários → `product_list` (sem repetir item). Cada peça pode ter vários itens na Meta
+    (um por tamanho): aí cada peça vira uma seção da lista com os seus tamanhos, e a cliente põe no carrinho o tamanho certo."""
+    groups: list[tuple[str, list[str]]] = []
+    seen: set[str] = set()
     for img in images:
-        rid = retailer[img.url]
-        if rid not in ids:
-            ids.append(rid)
+        ids = [r for r in _ids(retailer[img.url]) if r not in seen]
+        if ids:
+            seen.update(ids)
+            groups.append((img.text or "Peças", ids))
+    ids = [r for _, g in groups for r in g][:NATIVE_MAX_ITEMS]
     captions = [img.text for img in images if img.text]
     if len(ids) == 1:
         return await meta.send_whatsapp_product(account, to, catalog_id, ids[0], captions[0] if captions else None, ctx)
     body = " · ".join(dict.fromkeys(captions)) or PRODUCT_LIST_BODY
-    return await meta.send_whatsapp_product_list(account, to, catalog_id, ids, PRODUCT_LIST_HEADER, body, reply_to=ctx)
+    sections = groups if any(len(g) > 1 for _, g in groups) and len(groups) <= 10 else None
+    return await meta.send_whatsapp_product_list(account, to, catalog_id, ids, PRODUCT_LIST_HEADER, body, reply_to=ctx, sections=sections)
 
 
-async def _send_whatsapp_native(deps: Deps, meta: MetaClient, account: str, to: str, body: str, catalog_id: str, retailer: dict[str, str],
+async def _send_whatsapp_native(deps: Deps, meta: MetaClient, account: str, to: str, body: str, catalog_id: str, retailer: dict[str, Any],
                                 reply_to: str | None = None) -> str:
     """Modo "Catálogo nativo": as fotos de produtos que estão no catálogo da Meta viram cartões (foto, nome e preço da Meta), enviados
     no lugar da primeira foto; o texto segue na ordem. Foto sem item no catálogo vai direto, como antes. Se a Meta recusar o cartão
@@ -122,8 +132,8 @@ async def _send_direct_capped(deps: Deps, meta: MetaClient, account: str, to: st
     return await _send_image_or_link(deps, meta, account, to, part, ctx)
 
 
-async def _native_catalog(deps: Deps, message_id: str, body: str) -> tuple[str, dict[str, str]] | None:
-    """(catalog_id, link da foto → retailer_id) quando o canal está no modo nativo e algum produto do texto está no catálogo da Meta.
+async def _native_catalog(deps: Deps, message_id: str, body: str) -> tuple[str, dict[str, list[str]]] | None:
+    """(catalog_id, link da foto → retailer_ids, um por tamanho) quando o canal está no modo nativo e algum produto do texto está no catálogo da Meta.
     Qualquer falha aqui volta None: o envio segue pelo caminho direto."""
     if not any(p.kind == "image" for p in media_links.split(body, NATIVE_MAX_ITEMS)):
         return None
@@ -134,7 +144,7 @@ async def _native_catalog(deps: Deps, message_id: str, body: str) -> tuple[str, 
         return None
     if not info or info.get("mode") != "NATIVE_CATALOG" or not info.get("catalog_id"):
         return None
-    retailer = {p["url"]: p["retailer_id"] for p in info.get("products") or [] if p.get("retailer_id")}
+    retailer = {p["url"]: (p.get("retailer_ids") or [p["retailer_id"]]) for p in info.get("products") or [] if p.get("retailer_id")}
     return (str(info["catalog_id"]), retailer) if retailer else None
 
 

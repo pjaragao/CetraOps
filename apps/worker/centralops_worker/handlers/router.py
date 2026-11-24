@@ -122,6 +122,52 @@ async def _tool_results(deps: Deps, run_id: str) -> list[guardrails.ToolResult]:
     return [guardrails.ToolResult(r["tool"], r["ok"], r["result_digest"] or {}) for r in rows]
 
 
+async def _cart(deps: Deps, conv_id: str) -> list[dict[str, Any]]:
+    """Carrinho da conversa para o prompt (numerado). Falha aqui não impede a resposta."""
+    try:
+        return list(await call_fn(deps.pool, "omni.cart_for_ai", conv_id) or [])
+    except psycopg.Error as e:
+        log.warning("carrinho da conversa %s indisponível: %s", conv_id, e)
+        return []
+
+
+def cart_updates(cart: list[dict[str, Any]], updates: Any) -> list[dict[str, Any]]:
+    """propose_reply.cart (item = número da lista) → [{id, size, qty, remove}] com os ids reais; número desconhecido é ignorado."""
+    by_n = {int(i["n"]): str(i["id"]) for i in cart}
+    out: list[dict[str, Any]] = []
+    for u in updates if isinstance(updates, list) else []:
+        try:
+            item_id = by_n.get(int(u.get("item")))
+        except (TypeError, ValueError, AttributeError):
+            continue
+        if not item_id:
+            continue
+        row: dict[str, Any] = {"id": item_id}
+        if u.get("remove"):
+            row["remove"] = True
+        if isinstance(u.get("size"), str) and u["size"].strip():
+            row["size"] = u["size"].strip()[:10]
+        try:
+            if u.get("qty") is not None and 1 <= int(u["qty"]) <= 99:
+                row["qty"] = int(u["qty"])
+        except (TypeError, ValueError):
+            pass
+        if len(row) > 1:
+            out.append(row)
+    return out
+
+
+async def _apply_cart(deps: Deps, conv_id: str, cart: list[dict[str, Any]], updates: Any) -> None:
+    """Tamanho/quantidade que a cliente escolheu vai para o carrinho (rascunho ou envio: o carrinho é só o mapa do atendimento)."""
+    rows = cart_updates(cart, updates)
+    if not rows:
+        return
+    try:
+        await call_fn(deps.pool, "omni.cart_ai_apply", conv_id, rows)
+    except psycopg.Error as e:
+        log.warning("carrinho da conversa %s não atualizado pela IA: %s", conv_id, e)
+
+
 def _bubbles(text: str | None) -> list[str]:
     parts = [p.strip() for p in (text or "").split("\n\n") if p.strip()]
     return parts[:3] or ([text.strip()] if text and text.strip() else [])
@@ -231,6 +277,7 @@ async def _handle(deps: Deps, msg: queues.QueueMessage, forced: bool) -> None:
     history = await _history(deps, conv_id)
     examples = await _examples(deps, claim, history)
     instruction = await _forced_instruction(deps, msg.payload, claim.get("instruction"), history) if forced else claim.get("instruction")
+    cart = await _cart(deps, conv_id)
 
     async def ask(feedback: str | None = None) -> AgentOutput:
         token = sign_ctx(deps.settings.agent_ctx_secret, org=claim["org_id"], conv=conv_id, party=claim["party_id"], run=run_id, version=claim["version"],
@@ -239,7 +286,8 @@ async def _handle(deps: Deps, msg: queues.QueueMessage, forced: bool) -> None:
         return await deps.agent.run(AgentInput(  # type: ignore[union-attr]
             run_id=run_id, ctx=ctx, ctx_token=token, system_stable=prompts.system_stable(persona["system_prompt"] if persona else None, persona["guardrails"] if persona else None, brand),
             system_volatile=prompts.system_volatile(ctx_token=token, mode=mode, channel=claim["channel"], window_mode=claim.get("window_mode"),
-                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id, examples=examples, instruction=instruction),
+                                                    party_first_name=party["first_name"] if party else None, feedback=feedback, last_message_id=message_id, examples=examples, instruction=instruction,
+                                                    cart=prompts.cart_text(cart)),
             history=history, model=route["primary_model"], fallback_models=list(route.get("fallback_models") or []), params=route.get("params") or {},
             provider_prefs=route.get("provider_prefs") or {}))
 
@@ -306,6 +354,7 @@ async def _handle(deps: Deps, msg: queues.QueueMessage, forced: bool) -> None:
     if not result.get("applied"):
         log.info("resultado da IA descartado (%s) na conversa %s", result.get("reason"), conv_id)
         return
+    await _apply_cart(deps, conv_id, cart, proposal.get("cart"))
     if action == "DRAFT":
         await deps.notify(claim["org_id"], "DRAFT_READY", "Rascunho da IA pronto para revisar", {"conversation_id": conv_id})
         await _after_hours(deps, claim)

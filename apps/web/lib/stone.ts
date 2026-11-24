@@ -156,7 +156,7 @@ export async function getPosOrder(
         cardBrand: cardBrand || undefined,
         method,
         amountCents: Number(paidCharge?.paid_amount ?? paidCharge?.amount ?? 0),
-        installments: Number(meta.installment_quantity ?? 1),
+        installments: Number(meta.installment_quantity ?? lastTx.installments ?? 1),
         terminalSerial: String(meta.terminal_serial_number ?? ""),
         raw: data,
       },
@@ -212,4 +212,75 @@ export async function cancelPosOrder(secretKey: string, stoneOrderId: string): P
   } catch {
     return { ok: false, error: apiError };
   }
+}
+
+export interface CheckoutLinkParams {
+  code: string;
+  amountCents: number;
+  description: string;
+  maxInstallments: number;
+  customer: { name: string; phone?: string | null; email?: string | null };
+  /** Para onde o cliente volta depois de pagar (o WhatsApp da loja). */
+  successUrl?: string | null;
+  expiresInMinutes?: number;
+}
+
+/**
+ * Link de pagamento online (checkout da Stone / Pagar.me): Pix ou cartão em até `maxInstallments` vezes sem juros.
+ * O pedido do Pagar.me nasce com id próprio, que fica em sales.stone_pos_orders (source LINK): o aviso da Stone e a conferência
+ * (syncStoneOrder) dão baixa no pedido sozinhos, como na maquininha.
+ */
+export async function createCheckoutLink(secretKey: string, params: CheckoutLinkParams): Promise<{ id: string; url: string; raw: Record<string, unknown> }> {
+  const amount = Math.round(params.amountCents);
+  const maxInst = Math.max(1, Math.min(12, Math.floor(params.maxInstallments)));
+  const phone = (params.customer.phone ?? "").replace(/\D/g, "");
+  const local = phone.startsWith("55") ? phone.slice(2) : phone;
+  const customer: Record<string, unknown> = { name: params.customer.name.slice(0, 64) || "Cliente", type: "individual" };
+  if (params.customer.email) customer.email = params.customer.email;
+  if (local.length >= 10) customer.phones = { mobile_phone: { country_code: "55", area_code: local.slice(0, 2), number: local.slice(2) } };
+  const expires = params.expiresInMinutes ?? 24 * 60;
+  const payload = {
+    code: params.code.slice(0, 52),
+    closed: true,
+    items: [{ amount, description: params.description.slice(0, 256), quantity: 1, code: params.code.slice(0, 52) }],
+    customer,
+    payments: [{
+      payment_method: "checkout",
+      amount,
+      checkout: {
+        expires_in: expires,
+        customer_editable: true,
+        billing_address_editable: false,
+        skip_checkout_success_page: false,
+        accepted_payment_methods: ["pix", "credit_card"],
+        default_payment_method: "pix",
+        ...(params.successUrl ? { success_url: params.successUrl } : {}),
+        pix: { expires_in: expires * 60 },
+        credit_card: {
+          capture: true,
+          installments: Array.from({ length: maxInst }, (_, i) => ({ number: i + 1, total: amount })),   // sem juros para o cliente
+        },
+      },
+    }],
+  };
+  const res = await fetch(`${BASE_URL}/orders`, {
+    method: "POST",
+    headers: {
+      Authorization: getAuthHeader(secretKey),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ServiceRefererName: process.env.STONE_SERVICE_REFERER_NAME || "6ace2e592a1b7b60ff68b0c7",
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const msg = String(data.message ?? (data.errors ? JSON.stringify(data.errors) : JSON.stringify(data)));
+    throw new Error(`Stone/Pagar.me erro (${res.status}): ${msg.slice(0, 300)}`);
+  }
+  const checkouts = (Array.isArray(data.checkouts) ? data.checkouts : []) as Record<string, unknown>[];
+  const url = String(checkouts[0]?.payment_url ?? "");
+  if (!url) throw new Error("A Stone criou a cobrança mas não devolveu o link de pagamento");
+  return { id: String(data.id), url, raw: data };
 }

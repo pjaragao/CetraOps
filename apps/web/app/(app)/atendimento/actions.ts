@@ -1,6 +1,11 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { formatBRL } from "@centralops/domain";
+import type { Json } from "@centralops/db";
+import { getSession } from "@/lib/session";
+import { createCheckoutLink } from "@/lib/stone";
+import { stoneSecret } from "@/lib/stone-sync";
 import { createClient } from "@/lib/supabase/server";
 
 const MODES = ["AI_AUTOPILOT", "AI_COPILOT", "HUMAN", "WAITING_HUMAN"] as const;
@@ -119,7 +124,7 @@ export async function requestSuggestion(conversationId: string, comment?: string
 /** Peça do carrinho da conversa (o que está sendo mostrado ao cliente). */
 export interface CartItem {
   id: string; product_id: string; color_id?: string; name: string; reference: string; color?: string; size?: string; qty: number;
-  source: "SHOWN" | "ORDER" | "MANUAL" | "PDV"; price?: number; available?: number; sizes_in_stock?: string[]; photo?: string;
+  source: "SHOWN" | "ORDER" | "MANUAL" | "PDV"; price?: number; available?: number; sizes_in_stock?: string[]; photo?: string; variants?: CartVariant[];
 }
 export interface CartHit { product_id: string; color_id?: string; name: string; reference: string; gender?: string; color?: string; price?: number; available?: number; photo?: string }
 
@@ -148,6 +153,15 @@ export async function cartRemove(itemId: string) {
   return error ? { ok: false, error: clean(error.message) } : { ok: true };
 }
 
+/** Tamanho (e quantidade) de uma peça do carrinho, escolhido pelo atendente */
+export async function cartSetSize(itemId: string, size: string, qty?: number) {
+  if (!uuid.safeParse(itemId).success || !size.trim() || size.length > 10) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { error } = await supabase.schema("omni").rpc("cart_set_size", { p_item: itemId, p_size: size, ...(qty ? { p_qty: qty } : {}) });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
 /** "Nova conversa": abre (ou acha) a conversa de WhatsApp do cliente. Fora da janela de 24 h, a primeira mensagem é um template. */
 export async function openConversation(partyId: string) {
   if (!uuid.safeParse(partyId).success) return { ok: false as const, error: "Cliente inválido" };
@@ -155,4 +169,89 @@ export async function openConversation(partyId: string) {
   const { data, error } = await supabase.schema("omni").rpc("open_conversation_for", { p_party: partyId });
   revalidatePath("/atendimento");
   return error ? { ok: false as const, error: clean(error.message) } : { ok: true as const, conversationId: String(data) };
+}
+
+/** Uma peça do carrinho com as variantes (tamanhos) para escolher ao fechar o pedido. */
+export interface CartVariant { id: string; size: string; price?: number; available: number }
+
+const FULFILLMENT = { STORE_PICKUP: "Retirada na loja", MOTOBOY: "Entrega por motoboy", CARRIER: "Envio por transportadora/Correios" } as const;
+export type Fulfillment = keyof typeof FULFILLMENT;
+
+const checkoutSchema = z.object({
+  items: z.array(z.object({ variant_id: z.string().uuid(), qty: z.number().int().min(1).max(10) })).min(1).max(20),
+  fulfillment: z.enum(["STORE_PICKUP", "MOTOBOY", "CARRIER"]),
+  shipping: z.number().min(0).max(500),
+  maxInstallments: z.number().int().min(1).max(6),
+  notes: z.string().max(300).optional(),
+  send: z.boolean(),
+});
+
+interface CheckoutOrder {
+  order_id: string; number: string; total: number; shipping: number; discount: number; fulfillment_type: Fulfillment; expires_at: string | null;
+  items: { name: string; color?: string; size: string; qty: number; total: number }[]; party_name: string | null; party_phone: string | null; store_phone: string | null;
+}
+
+/** Texto do resumo do pedido para o cliente, com o link de pagamento (quando houver). */
+function orderMessage(o: CheckoutOrder, url: string | null, maxInstallments: number): string {
+  const first = (o.party_name ?? "").split(" ")[0];
+  const lines = o.items.map((i) => `• ${Number(i.qty) > 1 ? `${Number(i.qty)}× ` : ""}${i.name}${i.color ? ` (${i.color})` : ""} · tam. ${i.size} · ${formatBRL(Number(i.total))}`);
+  const extra = [Number(o.shipping) > 0 && `Frete: ${formatBRL(Number(o.shipping))}`, Number(o.discount) > 0 && `Desconto: −${formatBRL(Number(o.discount))}`].filter(Boolean);
+  const until = o.expires_at ? new Date(o.expires_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : null;
+  return [
+    `${first ? `${first}, s` : "S"}eu pedido ${o.number} está separado ✨`, "", ...lines, ...extra, `*Total: ${formatBRL(Number(o.total))}*`, `${FULFILLMENT[o.fulfillment_type] ?? ""}`, "",
+    url ? `Para pagar por Pix ou cartão${maxInstallments > 1 ? ` (até ${maxInstallments}x sem juros)` : ""}, é só tocar no link:\n${url}` : "Te mando o link de pagamento em seguida.",
+    until ? `As peças ficam reservadas pra você até ${until}.` : "",
+    "Assim que o pagamento cair, te confirmo por aqui. 💛",
+  ].filter((l, i, a) => !(l === "" && a[i - 1] === "")).join("\n").trim();
+}
+
+export type CloseOrderResult =
+  | { ok: true; number: string; total: number; url: string | null; linkError?: string; sent: boolean; sendError?: string; message: string }
+  | { ok: false; error: string };
+
+/**
+ * "Fechar pedido" no carrinho da conversa: cria o pedido (estoque reservado por 24 h), gera o link da Stone (Pix ou cartão) e manda o
+ * resumo ao cliente. O pagamento dá baixa sozinho (aviso da Stone) e o cliente recebe "pagamento confirmado". Se o link falhar, o pedido
+ * fica criado e o atendente gera o link ou registra o pagamento em Vender › Pedidos.
+ */
+export async function closeOrder(conversationId: string, input: z.input<typeof checkoutSchema>): Promise<CloseOrderResult> {
+  const parsed = checkoutSchema.safeParse(input);
+  if (!uuid.safeParse(conversationId).success || !parsed.success) return { ok: false, error: "Confira tamanhos, quantidades e entrega" };
+  const p = parsed.data;
+  const session = await getSession();
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("omni").rpc("cart_checkout", {
+    p_conversation: conversationId,
+    p: { items: p.items, fulfillment_type: p.fulfillment, shipping_total: p.fulfillment === "STORE_PICKUP" ? 0 : p.shipping, notes: p.notes } as unknown as Json,
+  });
+  if (error) return { ok: false, error: clean(error.message) };
+  const order = data as unknown as CheckoutOrder;
+
+  let url: string | null = null;
+  let linkError: string | undefined;
+  try {
+    const key = await stoneSecret(session.orgId);
+    if (!key) throw new Error("Stone não configurada (Configurações › Integrações)");
+    const link = await createCheckoutLink(key, {
+      code: order.number, amountCents: Math.round(Number(order.total) * 100), description: `Pedido ${order.number}`, maxInstallments: p.maxInstallments,
+      customer: { name: order.party_name ?? "Cliente", phone: order.party_phone },
+      successUrl: order.store_phone ? `https://wa.me/${order.store_phone}?text=${encodeURIComponent(`Paguei o pedido ${order.number}`)}` : null,
+    });
+    const { error: e2 } = await supabase.schema("sales").rpc("attach_stone_link", { p_order: order.order_id, p_stone_order_id: link.id, p_url: link.url, p_max_installments: p.maxInstallments });
+    if (e2) throw new Error(clean(e2.message));
+    url = link.url;
+  } catch (e) {
+    linkError = (e as Error).message;
+  }
+
+  const message = orderMessage(order, url, p.maxInstallments);
+  let sent = false;
+  let sendError: string | undefined;
+  if (p.send && url) {
+    const { error: e3 } = await supabase.schema("omni").rpc("send_message", { p_conversation: conversationId, p_body: message.slice(0, 4000) });
+    if (e3) sendError = clean(e3.message); else sent = true;
+  }
+  revalidatePath("/atendimento");
+  revalidatePath("/vender/pedidos");
+  return { ok: true, number: order.number, total: Number(order.total), url, linkError, sent, sendError, message };
 }

@@ -164,10 +164,18 @@ class MetaClient:
         return await self._send_interactive(phone_number_id, to, interactive, reply_to)
 
     async def send_whatsapp_product_list(self, phone_number_id: str, to: str, catalog_id: str, retailer_ids: list[str], header: str, body: str,
-                                         section_title: str = "Peças", reply_to: str | None = None) -> str:
-        """Lista de produtos do catálogo (até 30 itens; cabeçalho e corpo são obrigatórios na Meta)."""
+                                         section_title: str = "Peças", reply_to: str | None = None,
+                                         sections: list[tuple[str, list[str]]] | None = None) -> str:
+        """Lista de produtos do catálogo (até 30 itens e 10 seções; cabeçalho e corpo são obrigatórios na Meta).
+        `sections`: [(título, retailer_ids)], por exemplo uma seção por peça com os tamanhos; sem ela, uma seção só."""
+        out, left = [], 30
+        for title, ids in (sections or [(section_title, retailer_ids)])[:10]:
+            ids = ids[:left]
+            if ids:
+                out.append({"title": (title or "Peças")[:24], "product_items": [{"product_retailer_id": r} for r in ids]})
+                left -= len(ids)
         interactive = {"type": "product_list", "header": {"type": "text", "text": header[:60]}, "body": {"text": body[:1024]},
-                       "action": {"catalog_id": catalog_id, "sections": [{"title": section_title[:24], "product_items": [{"product_retailer_id": r} for r in retailer_ids[:30]]}]}}
+                       "action": {"catalog_id": catalog_id, "sections": out}}
         return await self._send_interactive(phone_number_id, to, interactive, reply_to)
 
     async def _send_interactive(self, phone_number_id: str, to: str, interactive: dict[str, Any], reply_to: str | None) -> str:

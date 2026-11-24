@@ -6,7 +6,7 @@ import { isoFromNow, str, type SP } from "@/lib/context";
 import { Badge, cn, Empty, LinkButton, PageHeader } from "@/components/ui";
 import { ConversationPane, type DraftProducts } from "./conversation-pane";
 import { RealtimeRefresh } from "./realtime-refresh";
-import { CartPanel } from "./cart-panel";
+import { CartPanel, type ConversationOrder } from "./cart-panel";
 import { NewConversationButton } from "./new-conversation";
 import type { CartItem } from "./actions";
 import { ForHerNow, type ForHerNowData } from "@/components/for-her-now";
@@ -118,11 +118,19 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
       const media = await loadMedia(supabase, messages ?? [], conv.channel_account_id);
       // produtos citados (links de foto do catálogo) no rascunho: viram cartões do catálogo do WhatsApp ou fotos diretas
       const draftText = ((drafts?.[0]?.variants as { messages?: string[] }[] | null)?.[0]?.messages ?? []).join("\n\n");
-      const { data: cart } = await supabase.schema("omni").rpc("conversation_cart", { p_conversation: conv.id });
+      const [{ data: cart }, { data: convOrders }] = await Promise.all([
+        supabase.schema("omni").rpc("conversation_cart", { p_conversation: conv.id }),
+        supabase.schema("sales").from("orders").select("id, number, status, total, payment_links(url, status, created_at)")
+          .eq("origin_conversation_id", conv.id).neq("status", "DRAFT").order("created_at", { ascending: false }).limit(3),
+      ]);
+      const chatOrders: ConversationOrder[] = (convOrders ?? []).map((o) => ({
+        id: o.id, number: o.number, status: o.status, total: Number(o.total),
+        url: [...(o.payment_links ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at)).find((l) => l.url && l.status !== "CANCELLED")?.url ?? null,
+      }));
       const { data: draftProducts } = draftText
         ? await supabase.schema("omni").rpc("text_products", { p_conversation: conv.id, p_text: draftText })
         : { data: null };
-      detail = { media, forHer: (forHer as unknown as ForHerNowData | null) ?? null, suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, draftProducts: (draftProducts as DraftProducts | null) ?? null, cart: (cart as unknown as CartItem[] | null) ?? [], orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
+      detail = { media, forHer: (forHer as unknown as ForHerNowData | null) ?? null, suggested: (suggested as string | null) ?? null, conv: { ...conv, parties: party }, messages: messages ?? [], notes: notes ?? [], members: members ?? [], draft: drafts?.[0] ?? null, draftProducts: (draftProducts as DraftProducts | null) ?? null, cart: (cart as unknown as CartItem[] | null) ?? [], convOrders: chatOrders, orders: orders ?? [], ltv, templates, quickReplies: replies ?? [] };
     }
   }
 
@@ -212,7 +220,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
                   ))}</ul>
                 )}
               </div>
-              <CartPanel conversationId={detail.conv.id} items={detail.cart} />
+              <CartPanel conversationId={detail.conv.id} items={detail.cart} orders={detail.convOrders} />
               {detail.forHer && <div className="border-t border-border pt-3"><p className="mb-1 text-xs font-semibold">Para ela agora</p><ForHerNow data={detail.forHer} compact /></div>}
             </aside>
           </div>

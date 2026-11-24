@@ -54,3 +54,19 @@ async def test_pedido_forcado_limpa_o_aviso_mas_nao_quando_vai_repetir(monkeypat
     monkeypatch.setattr(router, "_handle", ok)
     await router.handle(SimpleNamespace(), SimpleNamespace(payload={"conversation_id": "c2", "message_id": "m2"}))  # type: ignore[arg-type]
     assert cleared == ["c1"] and calls == [True, False]             # mensagem comum do cliente não mexe no aviso
+
+
+def test_carrinho_da_ia_usa_o_numero_do_item_e_ignora_o_resto() -> None:
+    cart = [{"n": 1, "id": "a"}, {"n": 2, "id": "b"}, {"n": 3, "id": "c"}]
+    updates = [{"item": 1, "size": " M ", "qty": 2}, {"item": 2, "remove": True}, {"item": 9, "size": "P"}, {"item": "x"}, {"item": 3}, "lixo"]
+    assert router.cart_updates(cart, updates) == [{"id": "a", "size": "M", "qty": 2}, {"id": "b", "remove": True}]
+    assert router.cart_updates(cart, None) == []
+
+
+def test_carrinho_no_prompt_mostra_numero_tamanho_e_opcoes() -> None:
+    from centralops_worker.ai import prompts
+    text = prompts.cart_text([{"n": 1, "name": "Camiseta Pierre", "color": "White", "size": None, "qty": 1, "sizes": ["P", "M", "G"]},
+                              {"n": 2, "name": "Bermuda Nico", "color": "Cinza", "size": "M", "qty": "2.000"}])
+    assert "1. Camiseta Pierre White · tamanho NÃO definido · 1 un. (tamanhos da peça: P, M, G)" in text
+    assert "2. Bermuda Nico Cinza · tam. M · 2 un." in text
+    assert prompts.cart_text([]) is None

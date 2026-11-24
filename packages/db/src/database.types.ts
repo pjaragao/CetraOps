@@ -8354,10 +8354,14 @@ isOneToOne: false
                            },
 "cart_add":
 { Args: { "p_color"?: string,"p_conversation": string,"p_product": string,"p_qty"?: number,"p_size"?: string }; Returns: string },
+"cart_checkout":
+{ Args: { "p": Json,"p_conversation": string }; Returns: Json },
 "cart_remove":
 { Args: { "p_item": string }; Returns: undefined },
 "cart_search":
 { Args: { "p_conversation": string,"p_query": string }; Returns: Json },
+"cart_set_size":
+{ Args: { "p_item": string,"p_size": string,"p_qty"?: number }; Returns: string },
 "cart_to_whatsapp":
 { Args: { "p_items": Json,"p_party": string }; Returns: Json },
 "conversation_cart":
@@ -9845,6 +9849,8 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"attach_stone_link":
+{ Args: { "p_max_installments"?: number,"p_order": string,"p_stone_order_id": string,"p_url": string }; Returns: string },
 "set_payment_link":
 { Args: { "p_external_id": string,"p_link": string,"p_url": string }; Returns: undefined
                            },

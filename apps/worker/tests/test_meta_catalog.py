@@ -39,6 +39,29 @@ def _payloads(route: respx.Route) -> list[dict[str, Any]]:
 
 
 @respx.mock
+async def test_peca_com_varios_tamanhos_vira_uma_secao_por_peca() -> None:
+    """Catálogo por tamanho: cada peça vira uma seção da lista com os tamanhos dela (a cliente põe no carrinho o tamanho certo)."""
+    sends = _mock_sends()
+    async with httpx.AsyncClient() as http:
+        await outbound._send_whatsapp_native(SimpleNamespace(http=http), MetaClient(http, "https://graph.test", "tok"), "PN", "5511999",  # type: ignore[arg-type]
+                                             f"Bermuda Stefan: {STEFAN}\nBermuda Nico (Cinza): {NICO_C}", "CAT1",
+                                             {STEFAN: ["17853-004-P", "17853-004-M"], NICO_C: ["17767-121-G"]})
+    lst = _payloads(sends)[0]["interactive"]
+    assert lst["type"] == "product_list"
+    assert [(s["title"], [i["product_retailer_id"] for i in s["product_items"]]) for s in lst["action"]["sections"]] == \
+        [("Bermuda Stefan", ["17853-004-P", "17853-004-M"]), ("Bermuda Nico (Cinza)", ["17767-121-G"])]
+
+
+@respx.mock
+async def test_um_tamanho_so_vira_cartao_de_produto() -> None:
+    sends = _mock_sends()
+    async with httpx.AsyncClient() as http:
+        await outbound._send_whatsapp_native(SimpleNamespace(http=http), MetaClient(http, "https://graph.test", "tok"), "PN", "5511999",  # type: ignore[arg-type]
+                                             f"Bermuda Stefan: {STEFAN}", "CAT1", {STEFAN: ["17853-004-M"]})
+    assert _payloads(sends)[0]["interactive"]["action"] == {"catalog_id": "CAT1", "product_retailer_id": "17853-004-M"}
+
+
+@respx.mock
 async def test_fotos_do_catalogo_viram_lista_de_produtos_e_o_resto_segue_direto() -> None:
     """Stefan e Nico Cinza estão no catálogo da Meta → um product_list; Nico Preta não está → foto direta, como antes."""
     respx.get(NICO_P).mock(return_value=httpx.Response(200, content=_jpeg(), headers={"content-type": "image/jpeg"}))
@@ -120,7 +143,7 @@ async def test_modo_nativo_so_quando_configurado_e_com_item_sincronizado(monkeyp
     answers.append({"mode": "NATIVE_CATALOG", "catalog_id": "CAT1", "products": [{"url": STEFAN}]})
     assert await outbound._native_catalog(deps, "m1", BODY) is None                          # type: ignore[arg-type]
     answers.append({"mode": "NATIVE_CATALOG", "catalog_id": "CAT1", "products": [{"url": STEFAN, "retailer_id": "A"}, {"url": NICO_C}]})
-    assert await outbound._native_catalog(deps, "m1", BODY) == ("CAT1", {STEFAN: "A"})      # type: ignore[arg-type]
+    assert await outbound._native_catalog(deps, "m1", BODY) == ("CAT1", {STEFAN: ["A"]})      # type: ignore[arg-type]
 
 
 def test_plano_envia_o_que_mudou_e_apaga_o_que_sumiu() -> None:

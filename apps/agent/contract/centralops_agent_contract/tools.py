@@ -51,7 +51,12 @@ TOOLS: list[dict[str, Any]] = [
     _fn("propose_reply", "RESPOSTA FINAL: 1 a 3 mensagens curtas para a cliente. Sempre termine chamando esta ferramenta.",
         {"messages": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string", "maxLength": 600}},
          "intent": {"type": "string"}, "stage": {"type": "string"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-         "needs_human": {"type": "boolean"}, "reason": {"type": "string"}}, ["messages", "confidence"]),
+         "needs_human": {"type": "boolean"}, "reason": {"type": "string"},
+         "cart": {"type": "array", "maxItems": 30, "description": "Atualiza o carrinho da conversa (lista 'Carrinho da conversa' do contexto): item = número do item; "
+                  "size = tamanho que a cliente escolheu ou confirmou; qty = quantidade; remove = true se ela desistiu da peça.",
+                  "items": {"type": "object", "properties": {"item": {"type": "integer", "minimum": 1}, "size": {"type": "string"},
+                                                             "qty": {"type": "integer", "minimum": 1, "maximum": 99}, "remove": {"type": "boolean"}},
+                            "required": ["item"]}}}, ["messages", "confidence"]),
 ]
 
 BY_NAME = {t["function"]["name"]: t for t in TOOLS}

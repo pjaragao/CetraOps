@@ -127,7 +127,8 @@ async def sync(deps: Deps, channel_account_id: str) -> dict[str, Any]:
 
 
 def _row(it: dict[str, Any]) -> dict[str, Any]:
-    return {"retailer_id": it["retailer_id"], "product_id": it.get("product_id"), "color_id": it.get("color_id"), "hash": it.get("hash") or it.get("data_hash")}
+    return {"retailer_id": it["retailer_id"], "product_id": it.get("product_id"), "color_id": it.get("color_id"), "variant_id": it.get("variant_id"),
+            "size": it.get("size"), "hash": it.get("hash") or it.get("data_hash")}
 
 
 async def handle(deps: Deps, payload: dict[str, Any], read_ct: int) -> None:

@@ -104,13 +104,24 @@ export function CartPanel({ conversationId, items, orders = [] }: { conversation
                 <div className="min-w-0 flex-1 text-xs">
                   <p className="truncate font-medium" title={`${i.name} · ref. ${i.reference}`}>{i.name}</p>
                   <div className="flex flex-wrap items-center gap-1 text-muted">
-                    {i.color && <span>{i.color} ·</span>}
+                    {i.color && <span>{i.color}</span>}
                     {(i.variants?.length ?? 0) > 0 ? (
-                      <select value={i.size ?? ""} disabled={pending} onChange={(e) => e.target.value && run(() => cartSetSize(i.id, e.target.value))}
-                        aria-label={`Tamanho de ${i.name}`} className={cn(inputClass, "w-auto px-1 py-0 text-xs", !i.size && "border-warning text-warning")}>
-                        {!i.size && <option value="">tamanho?</option>}
-                        {i.variants!.map((v) => <option key={v.id} value={v.size}>{v.size}{v.available <= 0 ? " (sem)" : ""}</option>)}
-                      </select>
+                      // tamanhos como fichinhas: o escolhido em destaque; sem estoque fica riscado (ainda dá para escolher, a cliente pode encomendar)
+                      <span role="radiogroup" aria-label={`Tamanho de ${i.name}`} className={cn("inline-flex flex-wrap gap-0.5", !i.size && "rounded ring-1 ring-warning")}
+                        title={i.size ? undefined : "Escolha o tamanho"}>
+                        {i.variants!.map((v) => {
+                          const on = v.size === i.size;
+                          return (
+                            <button key={v.id} type="button" role="radio" aria-checked={on} disabled={pending || on}
+                              onClick={() => run(() => cartSetSize(i.id, v.size))} title={v.available <= 0 ? "sem estoque" : `${v.available} na loja`}
+                              className={cn("min-w-5 rounded px-1 text-[11px] leading-4",
+                                on ? "bg-brand font-semibold text-brand-contrast" : "text-muted hover:bg-surface-2 hover:text-text",
+                                v.available <= 0 && !on && "line-through opacity-50")}>
+                              {v.size}
+                            </button>
+                          );
+                        })}
+                      </span>
                     ) : i.size ? <span>tam. {i.size}</span> : null}
                     {Number(i.qty) > 1 && <span>· {Number(i.qty)} un.</span>}
                   </div>

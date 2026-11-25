@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Bot, CheckCircle2, FileText, MessageSquare, PauseCircle, PlayCircle, Reply, Send, Sparkles, StickyNote, Undo2, UserRound, X } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, FileText, MessageSquare, MoreVertical, PauseCircle, PlayCircle, Reply, Send, Sparkles, StickyNote, Undo2, UserRound, X } from "lucide-react";
 import { canSend, firstName, formatBRL, isValidParam, renderTemplate, serviceWindowRemaining, templatePlaceholders, type MessagingChannel } from "@centralops/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
 import { addNote, assignConversation, closeConversation, discardDraft, markRead, pauseAi, requestSuggestion, returnToAi, sendMessage, sendTemplate, setMode, type ConvMode } from "./actions";
@@ -143,6 +143,7 @@ export function ConversationPane(props: {
   const [note, setNote] = useState("");
   const [returnOpen, setReturnOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
+  const [toolsOpen, setToolsOpen] = useState(false);   // celular: responsável, pausa, nota e encerrar ficam atrás do ⋮
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [props.messages.length, props.notes.length]);
   useEffect(() => { void markRead(props.conversationId); }, [props.conversationId, props.messages.length]);
@@ -184,15 +185,22 @@ export function ConversationPane(props: {
   const suggestions = slash === null ? [] : props.quickReplies.filter((r) => r.shortcut.startsWith(slash)).slice(0, 5);
 
   return (
-    <section className="flex h-[75dvh] flex-col rounded-xl border border-border bg-surface">
-      <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
-        <Link href={props.backHref} className="rounded p-1 hover:bg-surface-2 lg:hidden" aria-label="Voltar"><ArrowLeft size={18} /></Link>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{props.customerName}</p>
-          <p className="text-xs text-muted">
-            {props.channel} · {window24 ? `Janela 24h: ${window24}` : props.channel === "WHATSAPP" ? "Janela fechada: só template" : "Fora da janela de 24h"}
-          </p>
-        </div>
+    // celular: tela cheia como no WhatsApp (cabeçalho, conversa e barra de mensagem); do lg para cima, painel ao lado da lista
+    <section className="fixed inset-0 z-[45] flex flex-col bg-surface lg:static lg:z-auto lg:h-[75dvh] lg:rounded-xl lg:border lg:border-border">
+      <header className="flex items-center gap-2 border-b border-border px-2 py-2 lg:flex-wrap lg:px-3">
+        <Link href={props.backHref} className="rounded-full p-1.5 hover:bg-surface-2 lg:hidden" aria-label="Voltar"><ArrowLeft size={20} /></Link>
+        <button type="button" onClick={() => window.dispatchEvent(new Event("customer-sheet:open"))} title="Ver cliente, carrinho e sugestões"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg text-left xl:pointer-events-none">
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/15 text-sm font-semibold text-brand lg:hidden">
+            {(props.customerName.trim()[0] ?? "?").toUpperCase()}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate font-medium">{props.customerName}</span>
+            <span className="block truncate text-xs text-muted">
+              {props.channel} · {window24 ? `Janela 24h: ${window24}` : props.channel === "WHATSAPP" ? "Janela fechada: só template" : "Fora da janela de 24h"}
+            </span>
+          </span>
+        </button>
         <div role="radiogroup" aria-label="Quem atende" className="flex rounded-lg border border-border p-0.5">
           {MODES.map((m) => {
             const active = props.mode === m.value || (m.value === "HUMAN" && props.mode === "WAITING_HUMAN");
@@ -200,15 +208,19 @@ export function ConversationPane(props: {
               <button key={m.value} role="radio" aria-checked={active} disabled={pending}
                 onClick={() => run(() => setMode(props.conversationId, m.value))}
                 className={cn("flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium", active ? "bg-brand text-brand-contrast" : "text-muted hover:text-text")}>
-                <m.icon size={13} /> {m.label}
+                <m.icon size={13} /> <span className="hidden sm:inline">{m.label}</span>
               </button>
             );
           })}
         </div>
-        {props.mode === "WAITING_HUMAN" && <Badge tone="warning">Cliente aguardando humano</Badge>}
+        <button type="button" className="rounded-full p-1.5 text-muted hover:bg-surface-2 lg:hidden" aria-label="Mais opções" aria-expanded={toolsOpen} onClick={() => setToolsOpen((o) => !o)}>
+          <MoreVertical size={18} />
+        </button>
+        {props.mode === "WAITING_HUMAN" && <Badge tone="warning" className="hidden lg:inline-flex">Cliente aguardando humano</Badge>}
       </header>
+      {props.mode === "WAITING_HUMAN" && <p className="border-b border-border bg-warning/10 px-3 py-1 text-xs text-warning lg:hidden">Cliente aguardando humano</p>}
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-1.5 text-xs">
+      <div className={cn("flex-wrap items-center gap-2 border-b border-border px-3 py-1.5 text-xs lg:flex", toolsOpen ? "flex" : "hidden")}>
         <label className="flex items-center gap-1 text-muted">Responsável
           <select value={props.assigneeId ?? ""} disabled={pending} aria-label="Responsável"
             onChange={(e) => run(() => assignConversation(props.conversationId, e.target.value))}
@@ -276,7 +288,7 @@ export function ConversationPane(props: {
           </div>
         ) : (
           <div key={t.m.id} className={cn("group flex items-center gap-1", t.m.direction === "OUT" ? "flex-row-reverse" : "flex-row")}>
-            <div className={cn("max-w-[min(80%,42rem)] rounded-2xl px-3 py-2 text-sm whitespace-pre-line",
+            <div className={cn("max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line lg:max-w-[min(80%,42rem)]",
               t.m.direction === "OUT" ? "bg-brand/10" : "bg-surface-2")}>
               <MessageBody m={t.m} />
               <span className="mt-1 block text-right text-[10px] text-muted">
@@ -386,7 +398,7 @@ export function ConversationPane(props: {
           {tpl.category === "MARKETING" && <span>Marketing: só sai para quem aceitou receber.</span>}
         </div>
       )}
-      <form className="flex items-end gap-2 border-t border-border p-3"
+      <form className="flex items-end gap-2 border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:p-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (tplMode) run(() => sendTemplate(props.conversationId, tplId, tplParams), () => { setTplOpen(false); });
@@ -411,6 +423,7 @@ export function ConversationPane(props: {
           </div>
         ) : (
           <textarea ref={composerRef} value={text} onChange={(e) => setText(e.target.value)} rows={2}
+            enterKeyHint="send"
             placeholder={freeForm ? "Escreva uma mensagem (ao enviar, você assume a conversa)" : ("reason" in decision ? decision.reason : "Fora da janela: use um template")}
             disabled={!freeForm || pending} className={cn(inputClass, "resize-none")} aria-label="Mensagem"
             onKeyDown={(e) => {

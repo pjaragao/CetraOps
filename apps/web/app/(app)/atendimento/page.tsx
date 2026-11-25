@@ -7,6 +7,7 @@ import { Badge, cn, Empty, LinkButton, PageHeader } from "@/components/ui";
 import { ConversationPane, type DraftProducts } from "./conversation-pane";
 import { RealtimeRefresh } from "./realtime-refresh";
 import { CartPanel, type ConversationOrder } from "./cart-panel";
+import { CustomerSheet } from "./customer-sheet";
 import { NewConversationButton } from "./new-conversation";
 import type { CartItem } from "./actions";
 import { ForHerNow, type ForHerNowData } from "@/components/for-her-now";
@@ -139,33 +140,38 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
       <PageHeader title="Atendimento" description="WhatsApp, Instagram e Telegram numa caixa só. Troque entre IA e humano a qualquer momento."
         actions={<div className="flex flex-wrap gap-2"><NewConversationButton /><LinkButton href="/atendimento/templates">Templates e respostas rápidas</LinkButton></div>} />
       <RealtimeRefresh conversationId={selected} />
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
         {FILTERS.map((f) => (
           <Link key={f.key} href={`/atendimento?filtro=${f.key}${selected ? `&c=${selected}` : ""}`}
-            className={cn("rounded-full border px-3 py-1 text-sm", filtro === f.key ? "border-brand bg-brand/10 text-brand" : "border-border hover:bg-surface-2")}>
+            className={cn("shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-sm", filtro === f.key ? "border-brand bg-brand/10 text-brand" : "border-border hover:bg-surface-2")}>
             {f.label}
           </Link>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        <ul className={cn("max-h-[75dvh] overflow-y-auto rounded-xl border border-border bg-surface", selected && "hidden lg:block")}>
+        <ul className={cn("overflow-y-auto rounded-xl border border-border bg-surface lg:max-h-[75dvh]", selected && "hidden lg:block")}>
           {(convs ?? []).length === 0 && <li className="p-6 text-center text-sm text-muted">Nenhuma conversa neste filtro.</li>}
           {(convs ?? []).map((c) => {
             const m = MODE_LABEL[c.mode];
             return (
               <li key={c.id}>
                 <Link href={`/atendimento?filtro=${filtro}&c=${c.id}`}
-                  className={cn("flex flex-col gap-1 border-b border-border px-3 py-2.5 hover:bg-surface-2", selected === c.id && "bg-surface-2")}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium">{partyName.get(c.party_id) ?? "Cliente"}</span>
-                    {c.unread_count > 0 && <span className="rounded-full bg-brand px-1.5 text-xs text-brand-contrast">{c.unread_count}</span>}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted">
-                    <span>{c.channel_accounts?.channel}</span>
-                    <Badge tone={m.tone}>{m.label}</Badge>
-                    {c.last_message_at && <span className="ml-auto">{new Date(c.last_message_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}</span>}
-                  </div>
+                  className={cn("flex items-center gap-3 border-b border-border px-3 py-2.5 hover:bg-surface-2", selected === c.id && "bg-surface-2")}>
+                  <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-brand/15 font-semibold text-brand">
+                    {((partyName.get(c.party_id) ?? "C").trim()[0] ?? "C").toUpperCase()}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate font-medium">{partyName.get(c.party_id) ?? "Cliente"}</span>
+                      {c.last_message_at && <span className={cn("shrink-0 text-xs", c.unread_count > 0 ? "text-brand" : "text-muted")}>{new Date(c.last_message_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}</span>}
+                    </span>
+                    <span className="flex items-center gap-2 text-xs text-muted">
+                      <span>{c.channel_accounts?.channel}</span>
+                      <Badge tone={m.tone}>{m.label}</Badge>
+                      {c.unread_count > 0 && <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-brand px-1.5 text-xs text-brand-contrast">{c.unread_count}</span>}
+                    </span>
+                  </span>
                 </Link>
               </li>
             );
@@ -197,7 +203,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               suggestedOutcome={detail.suggested}
               initialText={str(sp.msg)}
             />
-            <aside className="space-y-3 rounded-xl border border-border bg-surface p-4 text-sm">
+            <CustomerSheet>
               <div>
                 <p className="text-xs text-muted">Cliente</p>
                 <Link href={`/clientes/${detail.conv.parties?.id}`} className="font-medium text-brand">{detail.conv.parties?.display_name}</Link>
@@ -222,7 +228,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
               </div>
               <CartPanel conversationId={detail.conv.id} items={detail.cart} orders={detail.convOrders} />
               {detail.forHer && <div className="border-t border-border pt-3"><p className="mb-1 text-xs font-semibold">Para ela agora</p><ForHerNow data={detail.forHer} compact cart={{ conversationId: detail.conv.id, items: detail.cart }} /></div>}
-            </aside>
+            </CustomerSheet>
           </div>
         ) : (
           <div className="hidden lg:block"><Empty title="Selecione uma conversa">As mensagens chegam em tempo real.</Empty></div>

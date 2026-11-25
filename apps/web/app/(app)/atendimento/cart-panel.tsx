@@ -136,12 +136,12 @@ export function CartPanel({ conversationId, items, orders = [] }: { conversation
           </ul>
           <p className="mt-2 flex justify-between border-t border-border pt-1.5 text-xs"><span className="text-muted">Total</span><span className="font-medium">{formatBRL(total)}</span></p>
           <div className="mt-2 flex gap-2">
-            <Button variant="secondary" className="flex-1 px-2 py-1.5 text-xs" disabled={pending}
+            <Button variant="secondary" className="h-8 flex-1 whitespace-nowrap px-2 py-0 text-xs" disabled={pending}
               title="Manda as fotos/cartões do catálogo das peças ao cliente (você assume a conversa)"
               onClick={() => run(() => cartSend(conversationId, chosen), () => { setSent(chosen.length === 1 ? "Peça enviada." : "Peças enviadas."); setPicked([]); })}>
-              <Send size={12} /> {chosen.length === 0 ? "Enviar todas" : chosen.length === 1 ? "Enviar 1 peça" : `Enviar ${chosen.length} peças`}
+              <Send size={12} /> {chosen.length === 0 ? "Enviar todas" : `Enviar (${chosen.length})`}
             </Button>
-            <Button className="flex-1 px-2 py-1.5 text-xs" onClick={() => setCheckout(true)}>Fechar pedido</Button>
+            <Button className="h-8 flex-1 whitespace-nowrap px-2 py-0 text-xs" onClick={() => setCheckout(true)}>Fechar pedido</Button>
           </div>
           {sent && !pending && !error && <p role="status" className="mt-1 text-xs text-success">{sent}</p>}
         </>

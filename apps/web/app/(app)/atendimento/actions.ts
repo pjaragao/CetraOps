@@ -153,6 +153,25 @@ export async function cartRemove(itemId: string) {
   return error ? { ok: false, error: clean(error.message) } : { ok: true };
 }
 
+/** Manda ao cliente as peças escolhidas do carrinho (ou todas): uma linha por peça com a foto. No modo catálogo nativo do WhatsApp
+ *  a foto vira o cartão da Meta (com os tamanhos); senão sai como foto com legenda. É uma mensagem da equipe: quem envia assume a conversa. */
+export async function cartSend(conversationId: string, itemIds: string[]) {
+  if (!uuid.safeParse(conversationId).success || !z.array(uuid).max(30).safeParse(itemIds).success) return { ok: false, error: "Parâmetros inválidos" };
+  const supabase = await createClient();
+  const { data, error: cartError } = await supabase.schema("omni").rpc("conversation_cart", { p_conversation: conversationId });
+  if (cartError) return { ok: false, error: clean(cartError.message) };
+  const all = (data as unknown as CartItem[] | null) ?? [];
+  const items = itemIds.length ? all.filter((i) => itemIds.includes(i.id)) : all;
+  if (!items.length) return { ok: false, error: "Nenhuma peça para enviar" };
+  const lines = items.map((i) => {
+    const label = [i.name, i.color, i.size ? `tam. ${i.size}` : null].filter(Boolean).join(" · ") + (i.price != null ? ` — ${formatBRL(Number(i.price))}` : "");
+    return i.photo ? `${label}: ${i.photo}` : label;
+  });
+  const { error } = await supabase.schema("omni").rpc("send_message", { p_conversation: conversationId, p_body: lines.join("\n").slice(0, 4000) });
+  revalidatePath("/atendimento");
+  return error ? { ok: false, error: clean(error.message) } : { ok: true };
+}
+
 /** Tamanho (e quantidade) de uma peça do carrinho, escolhido pelo atendente */
 export async function cartSetSize(itemId: string, size: string, qty?: number) {
   if (!uuid.safeParse(itemId).success || !size.trim() || size.length > 10) return { ok: false, error: "Parâmetros inválidos" };

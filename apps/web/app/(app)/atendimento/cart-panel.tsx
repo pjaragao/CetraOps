@@ -2,11 +2,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Plus, Search, ShoppingBag, X } from "lucide-react";
+import { Plus, Search, Send, ShoppingBag, X } from "lucide-react";
 import { formatBRL } from "@centralops/domain";
 import { Badge, Button, cn, inputClass } from "@/components/ui";
 import { CheckoutDialog } from "./checkout-dialog";
-import { cartAdd, cartRemove, cartSearch, cartSetSize, type CartHit, type CartItem } from "./actions";
+import { cartAdd, cartRemove, cartSearch, cartSend, cartSetSize, type CartHit, type CartItem } from "./actions";
 
 const SOURCE: Record<CartItem["source"], { label: string; tone: "neutral" | "brand" | "success" | "info" }> = {
   SHOWN: { label: "mostrada", tone: "neutral" },
@@ -34,6 +34,9 @@ export function CartPanel({ conversationId, items, orders = [] }: { conversation
   const [hits, setHits] = useState<CartHit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [checkout, setCheckout] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const chosen = picked.filter((id) => items.some((i) => i.id === id));   // ignora o que saiu do carrinho
+  const [sent, setSent] = useState<string | null>(null);
   const searching = adding && query.trim().length >= 2;
   const shown = searching ? hits : [];
   const total = items.reduce((a, i) => a + Number(i.price ?? 0) * Number(i.qty), 0);
@@ -94,6 +97,8 @@ export function CartPanel({ conversationId, items, orders = [] }: { conversation
           <ul className="space-y-1.5">
             {items.map((i) => (
               <li key={i.id} className="flex items-start gap-2">
+                <input type="checkbox" className="mt-3 shrink-0" checked={chosen.includes(i.id)} aria-label={`Selecionar ${i.name} para enviar`}
+                  onChange={(e) => setPicked((p) => e.target.checked ? [...p, i.id] : p.filter((x) => x !== i.id))} />
                 {/* eslint-disable-next-line @next/next/no-img-element -- foto do catálogo (CDN externo) */}
                 {i.photo ? <img src={i.photo} alt="" className="size-10 shrink-0 rounded object-cover" loading="lazy" /> : <span className="size-10 shrink-0 rounded bg-surface-2" />}
                 <div className="min-w-0 flex-1 text-xs">
@@ -119,7 +124,15 @@ export function CartPanel({ conversationId, items, orders = [] }: { conversation
             ))}
           </ul>
           <p className="mt-2 flex justify-between border-t border-border pt-1.5 text-xs"><span className="text-muted">Total</span><span className="font-medium">{formatBRL(total)}</span></p>
-          <Button className="mt-2 w-full py-1.5 text-xs" onClick={() => setCheckout(true)}>Fechar pedido</Button>
+          <div className="mt-2 flex gap-2">
+            <Button variant="secondary" className="flex-1 px-2 py-1.5 text-xs" disabled={pending}
+              title="Manda as fotos/cartões do catálogo das peças ao cliente (você assume a conversa)"
+              onClick={() => run(() => cartSend(conversationId, chosen), () => { setSent(chosen.length === 1 ? "Peça enviada." : "Peças enviadas."); setPicked([]); })}>
+              <Send size={12} /> {chosen.length === 0 ? "Enviar todas" : chosen.length === 1 ? "Enviar 1 peça" : `Enviar ${chosen.length} peças`}
+            </Button>
+            <Button className="flex-1 px-2 py-1.5 text-xs" onClick={() => setCheckout(true)}>Fechar pedido</Button>
+          </div>
+          {sent && !pending && !error && <p role="status" className="mt-1 text-xs text-success">{sent}</p>}
         </>
       )}
       {checkout && <CheckoutDialog conversationId={conversationId} items={items} onClose={() => setCheckout(false)} />}

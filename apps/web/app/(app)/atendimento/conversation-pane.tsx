@@ -110,6 +110,13 @@ function DraftProductCards({ data }: { data: DraftProducts }) {
   );
 }
 
+/** Template sugerido ao abrir: utilidade antes de marketing; hello_world só sai de número de teste. */
+function defaultTemplate(templates: Tpl[]): Tpl | undefined {
+  const usable = templates.filter((t) => t.name !== "hello_world");
+  return usable.find((t) => t.category !== "MARKETING") ?? usable[0];
+}
+const paramsFor = (t: Tpl | undefined, name: string) => Array.from({ length: t ? templatePlaceholders(t.body).length : 0 }, (_, i) => (i === 0 ? firstName(name) : ""));   // {{1}} costuma ser o nome
+
 export function ConversationPane(props: {
   conversationId: string; mode: ConvMode; channel: MessagingChannel; lastInboundAt: string | null;
   customerName: string; messages: Msg[]; draft: Draft | null; backHref: string; templates: Tpl[]; quickReplies: QuickReply[];
@@ -129,8 +136,9 @@ export function ConversationPane(props: {
   const [pending, start] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
   const [tplOpen, setTplOpen] = useState(false);
-  const [tplId, setTplId] = useState("");
-  const [tplParams, setTplParams] = useState<string[]>([]);
+  // janela fechada: já abre com um template sugerido no lugar da mensagem
+  const [tplId, setTplId] = useState(() => defaultTemplate(props.templates)?.id ?? "");
+  const [tplParams, setTplParams] = useState<string[]>(() => paramsFor(defaultTemplate(props.templates), props.customerName));
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
   const [returnOpen, setReturnOpen] = useState(false);
@@ -166,15 +174,14 @@ export function ConversationPane(props: {
   const tplVars = tpl ? templatePlaceholders(tpl.body).length : 0;
   const pickTemplate = (id: string) => {
     setTplId(id);
-    const t = props.templates.find((x) => x.id === id);
-    const n = t ? templatePlaceholders(t.body).length : 0;
-    setTplParams(Array.from({ length: n }, (_, i) => (i === 0 ? firstName(props.customerName) : "")));   // {{1}} costuma ser o nome da cliente
+    setTplParams(paramsFor(props.templates.find((x) => x.id === id), props.customerName));
   };
+  const showTemplates = props.channel === "WHATSAPP" && props.templates.length > 0;
+  const windowClosed = decision.allowed && decision.mode === "TEMPLATE_ONLY";
+  const tplMode = showTemplates && (tplOpen || windowClosed);
   const tplReady = !!tpl && tplParams.length === tplVars && tplParams.every(isValidParam);
   const slash = text.startsWith("/") && !text.includes(" ") ? text.slice(1).toLowerCase() : null;
   const suggestions = slash === null ? [] : props.quickReplies.filter((r) => r.shortcut.startsWith(slash)).slice(0, 5);
-  const showTemplates = props.channel === "WHATSAPP" && props.templates.length > 0;
-  const windowClosed = decision.allowed && decision.mode === "TEMPLATE_ONLY";
 
   return (
     <section className="flex h-[75dvh] flex-col rounded-xl border border-border bg-surface">
@@ -358,36 +365,6 @@ export function ConversationPane(props: {
         </ul>
       )}
 
-      {showTemplates && (
-        <div className="mx-3 mb-2 rounded-xl border border-border bg-surface-2/50 text-sm">
-          <button type="button" onClick={() => setTplOpen((o) => !o)} aria-expanded={tplOpen || windowClosed} className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium">
-            <FileText size={14} /> Enviar template aprovado
-            {windowClosed && <Badge tone="warning">janela fechada: só template</Badge>}
-          </button>
-          {(tplOpen || windowClosed) && (
-            <div className="space-y-2 border-t border-border px-3 py-3">
-              <select value={tplId} onChange={(e) => pickTemplate(e.target.value)} className={inputClass} aria-label="Template">
-                <option value="">— escolha o template —</option>
-                {props.templates.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.category === "MARKETING" ? "marketing" : "utilidade"}</option>)}
-              </select>
-              {tpl && tplVars > 0 && (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {tplParams.map((v, i) => (
-                    <label key={i} className="block text-xs text-muted">{`{{${i + 1}}}`}{tpl.examples[i] ? ` (ex.: ${tpl.examples[i]})` : ""}
-                      <input value={v} onChange={(e) => setTplParams((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))} className={cn(inputClass, "mt-1")} maxLength={200} />
-                    </label>
-                  ))}
-                </div>
-              )}
-              {tpl && <p className="whitespace-pre-line rounded-lg bg-surface px-3 py-2 text-sm shadow-sm">{renderTemplate(tpl.body, tplParams)}</p>}
-              {tpl?.category === "MARKETING" && <p className="text-xs text-muted">Marketing só sai para quem deu consentimento de marketing no WhatsApp.</p>}
-              <Button type="button" disabled={pending || !tplReady}
-                onClick={() => run(() => sendTemplate(props.conversationId, tplId, tplParams), () => { setTplId(""); setTplParams([]); setTplOpen(false); })}>Enviar template</Button>
-            </div>
-          )}
-        </div>
-      )}
-
       {replyTo && (
         <div className="mx-3 -mb-1 mt-2 flex items-start gap-2 rounded-lg border-l-2 border-brand bg-surface-2 px-3 py-1.5 text-xs">
           <Reply size={13} className="mt-0.5 shrink-0 text-brand" />
@@ -398,16 +375,50 @@ export function ConversationPane(props: {
           <button type="button" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)} className="rounded p-0.5 text-muted hover:text-text"><X size={14} /></button>
         </div>
       )}
+      {tplMode && tpl && (tplVars > 0 || tpl.category === "MARKETING") && (
+        <div className="mx-3 mt-2 flex flex-wrap items-end gap-2 text-xs text-muted">
+          {tplParams.map((v, i) => (
+            <label key={i} className="flex items-center gap-1">{`{{${i + 1}}}`}
+              <input value={v} onChange={(e) => setTplParams((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))} maxLength={200}
+                placeholder={tpl.examples[i] ?? ""} className={cn(inputClass, "w-36 px-2 py-1 text-xs")} aria-label={`Variável ${i + 1} do template`} />
+            </label>
+          ))}
+          {tpl.category === "MARKETING" && <span>Marketing: só sai para quem aceitou receber.</span>}
+        </div>
+      )}
       <form className="flex items-end gap-2 border-t border-border p-3"
-        onSubmit={(e) => { e.preventDefault(); run(() => sendMessage(props.conversationId, text, undefined, undefined, replyTo?.id), () => { setText(""); setReplyTo(null); }); }}>
-        <textarea ref={composerRef} value={text} onChange={(e) => setText(e.target.value)} rows={2}
-          placeholder={freeForm ? "Escreva uma mensagem (ao enviar, você assume a conversa)" : ("reason" in decision ? decision.reason : "Fora da janela: use um template")}
-          disabled={!freeForm || pending} className={cn(inputClass, "resize-none")} aria-label="Mensagem"
-          onKeyDown={(e) => {
-            if (e.key === "Escape" && replyTo) { e.preventDefault(); setReplyTo(null); }
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
-          }} />
-        <Button aria-label="Enviar" disabled={!freeForm || pending || !text.trim()}><Send size={16} /></Button>
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (tplMode) run(() => sendTemplate(props.conversationId, tplId, tplParams), () => { setTplOpen(false); });
+          else run(() => sendMessage(props.conversationId, text, undefined, undefined, replyTo?.id), () => { setText(""); setReplyTo(null); });
+        }}>
+        {showTemplates && (
+          <Button type="button" variant={tplMode ? "primary" : "ghost"} className="shrink-0 px-2" disabled={windowClosed || pending}
+            aria-pressed={tplMode} onClick={() => setTplOpen((o) => !o)}
+            title={windowClosed ? "Janela de 24h fechada: só template aprovado" : tplMode ? "Voltar para mensagem livre" : "Enviar template aprovado"} aria-label="Template">
+            <FileText size={16} />
+          </Button>
+        )}
+        {tplMode ? (
+          <div className="min-w-0 flex-1 space-y-1">
+            <select value={tplId} onChange={(e) => pickTemplate(e.target.value)} className={cn(inputClass, "py-1 text-xs")} aria-label="Template">
+              <option value="">— escolha o template —</option>
+              {props.templates.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.category === "MARKETING" ? "marketing" : "utilidade"}{t.name === "hello_world" ? " (só número de teste)" : ""}</option>)}
+            </select>
+            <p className="max-h-24 overflow-y-auto whitespace-pre-line rounded-lg border border-border bg-surface-2/50 px-2 py-1.5 text-sm">
+              {tpl ? renderTemplate(tpl.body, tplParams) : <span className="text-muted">{windowClosed ? "Janela de 24h fechada: escolha um template aprovado." : "Escolha um template."}</span>}
+            </p>
+          </div>
+        ) : (
+          <textarea ref={composerRef} value={text} onChange={(e) => setText(e.target.value)} rows={2}
+            placeholder={freeForm ? "Escreva uma mensagem (ao enviar, você assume a conversa)" : ("reason" in decision ? decision.reason : "Fora da janela: use um template")}
+            disabled={!freeForm || pending} className={cn(inputClass, "resize-none")} aria-label="Mensagem"
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && replyTo) { e.preventDefault(); setReplyTo(null); }
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
+            }} />
+        )}
+        <Button aria-label={tplMode ? "Enviar template" : "Enviar"} disabled={pending || (tplMode ? !tplReady : !freeForm || !text.trim())}><Send size={16} /></Button>
       </form>
       {windowClosed && !showTemplates && props.channel === "WHATSAPP" && (
         <p className="px-3 pb-2 text-xs text-warning">

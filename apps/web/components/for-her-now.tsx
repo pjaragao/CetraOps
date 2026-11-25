@@ -1,18 +1,28 @@
 import { formatBRL } from "@centralops/domain";
+import { ForHerAdd } from "./for-her-add";
 
 export interface ForHerNowData {
   sizes: string[]; arrivals: Item[]; matches: Item[]; last_purchase: string | null; reservations: number; store_credit: number;
   interest_waiting: number; birthday_in_days: number | null; events: { name: string; starts_at: string; rsvp: string }[]; tier: string; benefits: string[] | null;
 }
-interface Item { product_id: string; name: string; size: string; price: number | null }
+interface Item { product_id: string; color_id?: string; color?: string; name: string; size: string; price: number | null }
 
 const RSVP: Record<string, string> = { INVITED: "convidada", CONFIRMED: "confirmou", WAITLIST: "lista de espera", DECLINED: "não vai" };
 
-/** "Para ela agora" (crm.for_her_now): o que oferecer e lembrar nesta conversa. Só leitura. */
-export function ForHerNow({ data, compact = false }: { data: ForHerNowData; compact?: boolean }) {
+/** "Para ela agora" (crm.for_her_now): o que oferecer e lembrar nesta conversa. Com `cart`, cada sugestão ganha o "+" que a põe no carrinho da conversa. */
+export function ForHerNow({ data, compact = false, cart }: {
+  data: ForHerNowData; compact?: boolean; cart?: { conversationId: string; items: { product_id: string; color_id?: string }[] };
+}) {
   const list = (items: Item[]) => (
     <ul className="space-y-0.5">{items.slice(0, compact ? 3 : 6).map((i) => (
-      <li key={i.product_id} className="flex justify-between gap-2"><span className="truncate">{i.name} · <b>{i.size}</b></span>{i.price != null && <span className="tabular-nums text-muted">{formatBRL(Number(i.price))}</span>}</li>
+      <li key={i.product_id} className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate" title={i.color ? `${i.name} · ${i.color}` : i.name}>{i.name} · <b>{i.size}</b></span>
+        <span className="flex shrink-0 items-center gap-1">
+          {i.price != null && <span className="tabular-nums text-muted">{formatBRL(Number(i.price))}</span>}
+          {cart && <ForHerAdd conversationId={cart.conversationId} productId={i.product_id} colorId={i.color_id} size={i.size} name={i.name}
+            inCart={cart.items.some((c) => c.product_id === i.product_id && (!i.color_id || c.color_id === i.color_id))} />}
+        </span>
+      </li>
     ))}</ul>
   );
   const facts = [

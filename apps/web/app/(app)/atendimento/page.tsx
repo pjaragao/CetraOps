@@ -221,7 +221,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
                 )}
               </div>
               <CartPanel conversationId={detail.conv.id} items={detail.cart} orders={detail.convOrders} />
-              {detail.forHer && <div className="border-t border-border pt-3"><p className="mb-1 text-xs font-semibold">Para ela agora</p><ForHerNow data={detail.forHer} compact /></div>}
+              {detail.forHer && <div className="border-t border-border pt-3"><p className="mb-1 text-xs font-semibold">Para ela agora</p><ForHerNow data={detail.forHer} compact cart={{ conversationId: detail.conv.id, items: detail.cart }} /></div>}
             </aside>
           </div>
         ) : (
